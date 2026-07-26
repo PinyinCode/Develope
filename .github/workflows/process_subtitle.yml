@@ -1,0 +1,152 @@
+name: Process AI Subtitle Pipeline
+
+on:
+  repository_dispatch:
+    types: [process_subtitle]
+
+jobs:
+  build_subtitle:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install System Dependencies (FFmpeg)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install Python Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install openai-whisper deep-translator pypinyin yt-dlp
+
+      - name: Run Subtitle Processing Script
+        env:
+          GH_PAT_TOKEN: ${{ secrets.GH_PAT_TOKEN }}
+          YOUTUBE_URL: ${{ github.event.client_payload.youtube_url }}
+          VIDEO_ID: ${{ github.event.client_payload.video_id }}
+          VIDEO_TITLE: ${{ github.event.client_payload.video_title }}
+        run: |
+          python3 - << 'EOF'
+          import os
+          import re
+          import urllib.request
+          import json
+          import yt_dlp
+          import whisper
+          from deep_translator import GoogleTranslator
+          from pypinyin import pinyin, Style
+
+          url = os.environ.get('YOUTUBE_URL')
+          video_id = os.environ.get('VIDEO_ID')
+          video_title = os.environ.get('VIDEO_TITLE', 'video_sub')
+          token = os.environ.get('GH_PAT_TOKEN')
+
+          print(f"Đang xử lý video ID: {video_id} từ URL: {url}")
+
+          ydl_opts_audio = {
+              'format': 'bestaudio/best',
+              'outtmpl': 'temp_audio',
+              'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}],
+          }
+          
+          with yt_dlp.YoutubeDL(ydl_opts_audio) as ydl:
+              ydl.download([url])
+
+          audio_file = next((f for f in os.listdir('.') if f.startswith('temp_audio') and f.endswith('.mp3')), None)
+          if not audio_file:
+              raise Exception("Không thể tải file âm thanh trên GitHub Actions.")
+
+          print("Đang chạy mô hình AI Whisper để nhận diện giọng nói...")
+          model = whisper.load_model("base")
+          result = model.transcribe(audio_file)
+          detected_lang = result.get("language", "zh")
+          print(f"Ngôn ngữ phát hiện: {detected_lang}")
+
+          to_zh_translator = GoogleTranslator(source=detected_lang, target='zh-CN') if not detected_lang.startswith('zh') else None
+          to_vi_translator = GoogleTranslator(source='zh-CN', target='vi')
+
+          def format_time(seconds):
+              hours = int(seconds // 3600)
+              minutes = int((seconds % 3600) // 60)
+              secs = int(seconds % 60)
+              milliseconds = int(int((seconds - int(seconds)) * 1000))
+              return f"{hours:02d}:{minutes:02d}:{secs:02d}.{milliseconds:03d}"
+
+          segments = result.get("segments", [])
+          new_lines = ["WEBVTT\nKind: captions\nLanguage: zh-TW\n\n"]
+
+          for segment in segments:
+              start_time = format_time(segment["start"])
+              end_time = format_time(segment["end"])
+              raw_text = segment["text"].strip()
+              
+              if not raw_text: continue
+
+              zh_text = raw_text if detected_lang.startswith('zh') else (to_zh_translator.translate(raw_text) or raw_text)
+              
+              p_list = pinyin(zh_text, style=Style.TONE, heteronym=False)
+              pinyin_text = " ".join([item[0] for item in p_list])
+              
+              try:
+                  vi_text = to_vi_translator.translate(zh_text) or ""
+              except:
+                  vi_text = ""
+
+              new_lines.append(f"{start_time} --> {end_time}\n{zh_text}\n{pinyin_text}\n{vi_text}\n\n")
+
+          output_filename = f"{video_id}.vtt"
+          with open(output_filename, 'w', encoding='utf-8') as f:
+              f.writelines(new_lines)
+
+          print("Đang đồng bộ kết quả lên GitHub Gist...")
+          with open(output_filename, 'r', encoding='utf-8') as f:
+              content = f.read()
+
+          existing_gist_id = None
+          page = 1
+          while True:
+              req_list = urllib.request.Request(f"https://api.github.com/gists?page={page}&per_page=100")
+              req_list.add_header("Authorization", f"token {token}")
+              try:
+                  with urllib.request.urlopen(req_list) as resp:
+                      gists = json.loads(resp.read().decode('utf-8'))
+                      if not gists: break
+                      found = False
+                      for g in gists:
+                          if output_filename in g.get('files', {}):
+                              existing_gist_id = g['id']
+                              found = True
+                              break
+                      if found: break
+                      page += 1
+              except:
+                  break
+
+          if existing_gist_id:
+              payload = {
+                  "description": f"Pinyin AI Subtitle - {video_id}",
+                  "files": { output_filename: { "content": content } }
+              }
+              req = urllib.request.Request(f"https://api.github.com/gists/{existing_gist_id}", method="PATCH")
+          else:
+              payload = {
+                  "description": f"Pinyin AI Subtitle - {video_id}",
+                  "public": True,
+                  "files": { output_filename: { "content": content } }
+              }
+              req = urllib.request.Request("https://api.github.com/gists", method="POST")
+
+          req.add_header("Authorization", f"token {token}")
+          req.add_header("Content-Type", "application/json")
+          
+          urllib.request.urlopen(req, data=json.dumps(payload).encode('utf-8'))
+          print("✅ Đã đẩy phụ đề lên GitHub Gist thành công!")
+          EOF
