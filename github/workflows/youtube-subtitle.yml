@@ -1,0 +1,199 @@
+name: YouTube Subtitle to Gist
+
+on:
+  workflow_dispatch:
+    inputs:
+      youtube_url:
+        description: 'Dán link YouTube vào đây'
+        required: true
+        type: string
+        default: ''
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade yt-dlp pypinyin googletrans==4.0.0-rc1
+
+      - name: Create Cookies File
+        env:
+          YT_COOKIES: ${{ secrets.YT_COOKIES }}
+        run: |
+          if [ -n "$YT_COOKIES" ]; then
+            echo "$YT_COOKIES" > cookies.txt
+            echo "✅ Cookies OK"
+          else
+            echo "❌ Thiếu YT_COOKIES"
+            exit 1
+          fi
+
+      - name: Process Subtitles
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          YT_URL: ${{ github.event.inputs.youtube_url }}
+        run: |
+          python3 << 'EOF'
+          import os, sys, json, re, html, urllib.request
+          from yt_dlp import YoutubeDL
+          from pypinyin import pinyin, Style
+          from googletrans import Translator
+
+          YT_URL = os.environ["YT_URL"]
+          GH_TOKEN = os.environ["GITHUB_TOKEN"]
+
+          print("=" * 50)
+          print("YOUTUBE SUBTITLE TO GIST")
+          print("=" * 50)
+          print(f"Link: {YT_URL}")
+
+          # Tải phụ đề
+          ydl_opts = {
+              'skip_download': True,
+              'writesubtitles': True,
+              'writeautomaticsub': True,
+              'subtitleslangs': ['zh-TW', 'zh-Hant', 'zh', 'zh-CN', 'zh-Hans', 'en', 'vi'],
+              'subtitlesformat': 'vtt',
+              'outtmpl': 'subtitle',
+              'cookiefile': 'cookies.txt',
+          }
+
+          with YoutubeDL(ydl_opts) as ydl:
+              info = ydl.extract_info(YT_URL, download=False)
+              video_id = info.get('id', 'unknown')
+              video_title = info.get('title', 'No Title')
+              subs = info.get('subtitles', {})
+              auto_subs = info.get('automatic_captions', {})
+              
+              print(f"Video: {video_title}")
+              
+              # Chọn ngôn ngữ
+              target_lang = None
+              for lang in ['zh-TW', 'zh-Hant', 'zh', 'zh-CN', 'zh-Hans']:
+                  if lang in subs:
+                      target_lang = lang
+                      break
+                  if lang in auto_subs:
+                      target_lang = lang
+                      break
+              
+              if not target_lang:
+                  for lang in ['en', 'vi']:
+                      if lang in subs or lang in auto_subs:
+                          target_lang = lang
+                          break
+              
+              if not target_lang:
+                  print("Không có phụ đề!")
+                  sys.exit(1)
+              
+              print(f"Ngôn ngữ: {target_lang}")
+              ydl_opts['subtitleslangs'] = [target_lang]
+              with YoutubeDL(ydl_opts) as ydl2:
+                  ydl2.download([YT_URL])
+
+          # Đọc file VTT
+          vtt_files = [f for f in os.listdir('.') if f.endswith('.vtt')]
+          if not vtt_files:
+              print("Không tìm thấy file VTT!")
+              sys.exit(1)
+          
+          with open(vtt_files[0], 'r', encoding='utf-8') as f:
+              content = f.read()
+
+          # Parse
+          segments = []
+          lines = content.split('\n')
+          i = 0
+          while i < len(lines) and (not lines[i].strip() or 'WEBVTT' in lines[i] or 'Kind:' in lines[i]):
+              i += 1
+          
+          while i < len(lines):
+              m = re.match(r'(\d{2}:\d{2}:\d{2}\.\d{3}) --> (\d{2}:\d{2}:\d{2}\.\d{3})', lines[i].strip())
+              if m:
+                  start, end = m.group(1), m.group(2)
+                  i += 1
+                  texts = []
+                  while i < len(lines) and lines[i].strip():
+                      t = re.sub(r'<[^>]+>', '', lines[i].strip())
+                      t = html.unescape(t)
+                      if t:
+                          texts.append(t)
+                      i += 1
+                  if texts:
+                      segments.append({'start': start, 'end': end, 'text': ' '.join(texts)})
+              else:
+                  i += 1
+
+          print(f"Số đoạn: {len(segments)}")
+
+          # Dịch
+          translator = Translator()
+          output = ['WEBVTT\n', 'Kind: captions\n', f'Language: {target_lang}\n\n']
+          
+          for idx, seg in enumerate(segments):
+              text = seg['text']
+              
+              # Pinyin
+              try:
+                  if re.search(r'[\u4e00-\u9fff]', text):
+                      py = pinyin(text, style=Style.TONE)
+                      py_text = ' '.join([p[0] for p in py])
+                  else:
+                      py_text = text
+              except:
+                  py_text = text
+              
+              # Dịch
+              try:
+                  if re.search(r'[\u4e00-\u9fff]', text):
+                      vi = translator.translate(text, src='zh-cn', dest='vi').text
+                  else:
+                      vi = translator.translate(text, dest='vi').text
+              except:
+                  vi = text
+              
+              output.append(f"{seg['start']} --> {seg['end']}\n{text}\n{py_text}\n{vi}\n\n")
+
+          # Tạo Gist
+          final = ''.join(output)
+          payload = {
+              'description': f'{video_title}',
+              'public': True,
+              'files': {f'{video_id}.vtt': {'content': final}}
+          }
+
+          req = urllib.request.Request(
+              'https://api.github.com/gists',
+              method='POST',
+              data=json.dumps(payload).encode(),
+              headers={
+                  'Authorization': f'token {GH_TOKEN}',
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/vnd.github.v3+json'
+              }
+          )
+
+          resp = urllib.request.urlopen(req)
+          gist = json.loads(resp.read().decode())
+          raw_url = gist['files'][f'{video_id}.vtt']['raw_url']
+          
+          print("\n" + "=" * 50)
+          print("THÀNH CÔNG!")
+          print(f"Link Gist: {raw_url}")
+          print("=" * 50)
+
+          # Cleanup
+          for f in os.listdir('.'):
+              if f.endswith('.vtt') or f == 'cookies.txt':
+                  os.remove(f)
+          EOF
