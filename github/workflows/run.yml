@@ -1,0 +1,270 @@
+name: YouTube Subtitle to Gist
+
+on:
+  workflow_dispatch:
+    inputs:
+        youtube_url:
+          description: 'Dán đường dẫn YouTube vào đây'
+          required: true
+          type: string
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade yt-dlp pypinyin googletrans==4.0.0-rc1
+
+      - name: Create Cookies File
+        env:
+          YT_COOKIES: ${{ secrets.YT_COOKIES }}
+        run: |
+          if [ -n "$YT_COOKIES" ]; then
+            echo "$YT_COOKIES" > cookies.txt
+            echo "✅ Đã tạo cookies.txt ($(wc -l < cookies.txt) dòng)"
+          else
+            echo "❌ KHÔNG CÓ COOKIES!"
+            exit 1
+          fi
+
+      - name: Extract and Format Subtitles
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          YT_URL: ${{ inputs.youtube_url }}
+        run: |
+          python3 << 'PYEOF'
+          import os, json, urllib.request, re, html, sys
+          from yt_dlp import YoutubeDL
+          from pypinyin import pinyin, Style
+          from googletrans import Translator
+
+          url = os.environ["YT_URL"]
+          github_token = os.environ["GITHUB_TOKEN"]
+
+          print("📺 Đang lấy phụ đề từ YouTube...")
+          
+          # QUAN TRỌNG: Chỉ lấy phụ đề, không tải video
+          ydl_opts = {
+              "skip_download": True,  # Bắt buộc
+              "writesubtitles": True,
+              "writeautomaticsub": True,
+              "subtitleslangs": ["zh-TW", "zh-Hant", "zh", "zh-CN", "zh-Hans", "en"],
+              "subtitlesformat": "vtt",
+              "outtmpl": "subtitle",
+              "cookiefile": "cookies.txt",
+              "quiet": False,
+              "no_warnings": False,
+          }
+
+          video_id = "unknown_video"
+          video_title = "subtitle"
+
+          try:
+              with YoutubeDL(ydl_opts) as ydl:
+                  # Bước 1: Lấy thông tin video
+                  print("🔍 Đang kiểm tra video...")
+                  info_dict = ydl.extract_info(url, download=False)
+                  video_id = info_dict.get("id", "unknown_video")
+                  video_title = info_dict.get("title", "subtitle")
+                  
+                  # Bước 2: Kiểm tra phụ đề
+                  subtitles = info_dict.get("subtitles", {})
+                  auto_subtitles = info_dict.get("automatic_captions", {})
+                  
+                  print(f"📹 Video: {video_title} ({video_id})")
+                  print(f"📝 Phụ đề thủ công: {list(subtitles.keys()) if subtitles else 'KHÔNG CÓ'}")
+                  print(f"🤖 Phụ đề tự động: {list(auto_subtitles.keys()) if auto_subtitles else 'KHÔNG CÓ'}")
+                  
+                  # Bước 3: Chọn ngôn ngữ phụ đề
+                  selected_lang = None
+                  
+                  # Ưu tiên phụ đề thủ công
+                  if subtitles:
+                      for lang in ["zh-TW", "zh-Hant", "zh", "zh-CN", "zh-Hans"]:
+                          if lang in subtitles:
+                              selected_lang = lang
+                              break
+                      if not selected_lang and auto_subtitles:
+                          for lang in ["zh-TW", "zh-Hant", "zh", "zh-CN", "zh-Hans"]:
+                              if lang in auto_subtitles:
+                                  selected_lang = lang
+                                  break
+                  elif auto_subtitles:
+                      for lang in ["zh-TW", "zh-Hant", "zh", "zh-CN", "zh-Hans"]:
+                          if lang in auto_subtitles:
+                              selected_lang = lang
+                              break
+                  
+                  if not selected_lang:
+                      # Thử tiếng Anh nếu không có tiếng Trung
+                      if subtitles and "en" in subtitles:
+                          selected_lang = "en"
+                      elif auto_subtitles and "en" in auto_subtitles:
+                          selected_lang = "en"
+                  
+                  if not selected_lang:
+                      print("❌ Video này KHÔNG có phụ đề phù hợp!")
+                      print(f"   Phụ đề có sẵn: {list(subtitles.keys()) + list(auto_subtitles.keys())}")
+                      sys.exit(1)
+                  
+                  print(f"🎯 Đã chọn phụ đề: {selected_lang}")
+                  
+                  # Bước 4: Tải phụ đề với đúng ngôn ngữ
+                  ydl_opts["subtitleslangs"] = [selected_lang]
+                  
+                  # Tạo YoutubeDL mới với options đã set
+                  with YoutubeDL(ydl_opts) as ydl2:
+                      ydl2.download([url])
+          
+          except Exception as e:
+              print(f"❌ Lỗi: {e}")
+              sys.exit(1)
+
+          # Tìm file VTT đã tải
+          vtt_files = [f for f in os.listdir(".") if f.endswith(".vtt")]
+          if not vtt_files:
+              # Thử tìm với pattern khác
+              vtt_files = [f for f in os.listdir(".") if ".vtt" in f.lower()]
+          
+          if not vtt_files:
+              print("❌ Không tìm thấy file phụ đề sau khi tải!")
+              print("📁 Files hiện có:", os.listdir("."))
+              sys.exit(1)
+          
+          vtt_file = vtt_files[0]
+          print(f"📄 Đã tìm thấy file: {vtt_file}")
+
+          with open(vtt_file, "r", encoding="utf-8") as f:
+              content = f.read()
+
+          print(f"📏 Kích thước file: {len(content)} ký tự")
+          print("🔧 Đang biên soạn phụ đề...")
+
+          # Parse VTT
+          lines = content.split("\n")
+          segments = []
+          i = 0
+          
+          # Bỏ qua header WEBVTT
+          while i < len(lines):
+              line = lines[i].strip()
+              if line == "" or line.startswith("WEBVTT") or line.startswith("Kind:"):
+                  i += 1
+                  continue
+              break
+          
+          # Parse timestamps và text
+          while i < len(lines):
+              line = lines[i].strip()
+              
+              timestamp_match = re.match(r"(\d{2}:\d{2}:\d{2}\.\d{3}) --> (\d{2}:\d{2}:\d{2}\.\d{3})", line)
+              if timestamp_match:
+                  start_time = timestamp_match.group(1)
+                  end_time = timestamp_match.group(2)
+                  i += 1
+                  
+                  texts = []
+                  while i < len(lines) and lines[i].strip() != "":
+                      text = lines[i].strip()
+                      if not text.startswith("WEBVTT") and not text.startswith("Kind:"):
+                          text = re.sub(r"<[^>]+>", "", text)
+                          text = html.unescape(text)
+                          if text:
+                              texts.append(text)
+                      i += 1
+                  
+                  if texts:
+                      segments.append({
+                          "start": start_time,
+                          "end": end_time,
+                          "text": " ".join(texts)
+                      })
+              else:
+                  i += 1
+
+          print(f"📝 Đã parse được {len(segments)} đoạn phụ đề")
+
+          if len(segments) == 0:
+              print("❌ Không parse được đoạn phụ đề nào!")
+              print("Nội dung file đầu tiên:")
+              print(content[:500])
+              sys.exit(1)
+
+          # Tạo phiên âm và dịch
+          print("🌐 Đang tạo phiên âm và dịch...")
+          translator = Translator()
+          
+          output_lines = ["WEBVTT\n", "Kind: captions\n", "Language: zh-TW\n\n"]
+          
+          for idx, seg in enumerate(segments):
+              text = seg["text"]
+              
+              # Pinyin (chỉ cho tiếng Trung)
+              try:
+                  if any('\u4e00' <= c <= '\u9fff' for c in text):
+                      pinyin_list = pinyin(text, style=Style.TONE)
+                      pinyin_text = " ".join([p[0] for p in pinyin_list])
+                  else:
+                      pinyin_text = text
+              except:
+                  pinyin_text = text
+              
+              # Dịch sang tiếng Việt
+              try:
+                  if any('\u4e00' <= c <= '\u9fff' for c in text):
+                      translation = translator.translate(text, src="zh-cn", dest="vi").text
+                  else:
+                      translation = translator.translate(text, dest="vi").text
+              except:
+                  translation = "[Không thể dịch]"
+              
+              output_lines.append(f"{seg['start']} --> {seg['end']}\n")
+              output_lines.append(f"{text}\n")
+              output_lines.append(f"{pinyin_text}\n")
+              output_lines.append(f"{translation}\n\n")
+              
+              if (idx + 1) % 10 == 0:
+                  print(f"✅ Đã xử lý {idx+1}/{len(segments)} đoạn...")
+
+          final_content = "".join(output_lines)
+          target_filename = f"{video_id}_subtitle.vtt"
+
+          print("📤 Đang đẩy lên GitHub Gist...")
+          payload = {
+              "description": f"YouTube Subtitle - {video_title} ({video_id})",
+              "public": True,
+              "files": {target_filename: {"content": final_content}}
+          }
+
+          req = urllib.request.Request("https://api.github.com/gists", method="POST")
+          req.add_header("Authorization", f"token {github_token}")
+          req.add_header("Content-Type", "application/json")
+          req.add_header("Accept", "application/vnd.github.v3+json")
+
+          data = json.dumps(payload).encode("utf-8")
+          response = urllib.request.urlopen(req, data=data)
+          res_data = json.loads(response.read().decode("utf-8"))
+          raw_url = res_data["files"][target_filename]["raw_url"]
+          
+          print(f"\n✅ THÀNH CÔNG!")
+          print(f"🔗 Link Raw Gist: {raw_url}")
+          print(f"📝 Video: {video_title}")
+          print(f"📊 Tổng số đoạn: {len(segments)}")
+
+          # Dọn dẹp
+          for f in os.listdir("."):
+              if f.endswith(".vtt") or f == "cookies.txt":
+                  try:
+                      os.remove(f)
+                  except:
+                      pass
+          PYEOF
