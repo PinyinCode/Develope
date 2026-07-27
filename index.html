@@ -3,57 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Hanyu - Pinyin - Auto Scan Gist Cross-Browser</title>
+    <title>Pinyin AI - Auto Scan Gist</title>
     <style>
         :root {
-            --bg-color: #000000;
-            --card-bg: rgba(28, 28, 30, 0.75);
-            --card-solid: #1c1c1e;
-            --text-main: #f5f5f7;
-            --text-secondary: #98989f;
-            --accent: #ff2d55;
-            --accent-light: rgba(255, 45, 85, 0.15);
-            --border-color: rgba(255, 255, 255, 0.1);
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-            --radius: 20px;
-            --element-radius: 12px;
-            --fs-cn: 20px;
-            --fs-py: 16px;
-            --fs-vi: 14px;
+            --bg-color: #000000; --card-bg: rgba(28, 28, 30, 0.75); --card-solid: #1c1c1e;
+            --text-main: #f5f5f7; --text-secondary: #98989f; --accent: #ff2d55;
+            --accent-light: rgba(255, 45, 85, 0.15); --blue: #0a84ff; --green: #30d158;
+            --border-color: rgba(255, 255, 255, 0.1); --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            --radius: 20px; --element-radius: 12px; --fs-cn: 20px; --fs-py: 16px; --fs-vi: 14px;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            box-sizing: border-box;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
+            background-color: var(--bg-color); color: var(--text-main);
+            margin: 0; padding: 16px; display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
         }
-        .container { width: 100%; max-width: 540px; display: flex; flex-direction: column; gap: 16px; }
+        .container { width: 100%; max-width: 540px; display: flex; flex-direction: column; gap: 14px; }
         .app-header { text-align: center; padding: 6px 0; }
         .app-header h3 { margin: 0; font-size: 17px; font-weight: 600; color: var(--text-main); }
         .card {
             background: var(--card-bg); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
             border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow);
-            border: 1px solid var(--border-color); box-sizing: border-box;
-            transition: all 0.3s ease; overflow: hidden; opacity: 1;
+            border: 1px solid var(--border-color); transition: all 0.3s ease;
         }
-        .card.collapsed { max-height: 0; padding: 0; margin: 0; opacity: 0; border-color: transparent; pointer-events: none; }
-        .input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
-        .input-group:last-child { margin-bottom: 0; }
-        label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
-        .url-row { display: flex; gap: 8px; align-items: center; position: relative; }
-        .input-wrapper-flex { position: relative; flex: 1; display: flex; align-items: center; }
-        .url-row input[type="text"] { width: 100%; padding-right: 36px; }
-        .btn-clear-input { position: absolute; right: 10px; background: none; border: none; color: var(--text-secondary); font-size: 18px; font-weight: bold; cursor: pointer; padding: 0 4px; display: none; z-index: 2; }
-        .btn-clear-input:hover { color: var(--text-main); }
+        .card.collapsed { max-height: 0; padding: 0; margin: 0; opacity: 0; border-color: transparent; pointer-events: none; overflow: hidden; }
+        label {
+            font-size: 11px; font-weight: 600; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;
+        }
+        .row { display: flex; gap: 8px; align-items: center; }
+        .row > *:first-child { flex: 1; }
         input[type="text"], input[type="password"], select {
             width: 100%; padding: 12px 14px; background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border-color); border-radius: var(--element-radius);
@@ -66,131 +46,93 @@
         }
         select option { background-color: var(--card-solid); color: var(--text-main); }
         input:focus, select:focus { background-color: var(--card-solid); border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-light); }
-        button.btn-action-inline {
-            padding: 12px 16px; background-color: var(--accent); color: white; border: none;
-            border-radius: var(--element-radius); font-weight: 600; font-size: 13px; cursor: pointer;
-            white-space: nowrap; box-shadow: 0 4px 15px var(--accent-light); transition: transform 0.1s, opacity 0.2s;
+        button {
+            padding: 12px 16px; border: none; border-radius: var(--element-radius);
+            font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.2s;
         }
-        button.btn-action-inline:active { transform: scale(0.96); opacity: 0.9; }
-        button.btn-action-inline.cancel-state { background-color: var(--text-secondary); box-shadow: none; }
-        button.btn-github { background-color: #2ea043; box-shadow: 0 4px 15px rgba(46, 160, 67, 0.3); }
-        button.btn-save { background-color: #0a84ff; width: 100%; margin-top: 8px; }
-        .file-options-row { display: flex; gap: 8px; align-items: center; }
-        .file-upload-wrapper { position: relative; overflow: hidden; display: inline-block; flex: 1; }
-        .file-upload-wrapper input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
-        .btn-file { display: block; width: 100%; padding: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: var(--text-main); text-align: center; border-radius: var(--element-radius); font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .selected-file-box { display: none; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: var(--element-radius); font-size: 13px; color: var(--accent); font-weight: 500; margin-top: 8px; }
-        .selected-file-box.show { display: flex; }
-        .btn-remove-sub { background: none; border: none; color: var(--text-secondary); font-size: 16px; cursor: pointer; padding: 0 4px; font-weight: bold; }
-        .btn-remove-sub:hover { color: var(--accent); }
-        .matched-sub-note { font-size: 12px; color: var(--text-secondary); margin-top: 6px; font-weight: 500; }
-        .player-container { position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border-color); }
-        .player-container.hidden { display: none; }
+        button:active { transform: scale(0.96); opacity: 0.9; }
+        .btn-accent { background-color: var(--accent); color: white; }
+        .btn-accent.cancel { background-color: var(--text-secondary); }
+        .btn-sm { padding: 8px 12px; font-size: 11px; background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); color: var(--text-main); }
+        .progress-wrap { width: 100%; height: 4px; background: #3a3a3c; border-radius: 2px; overflow: hidden; margin-top: 8px; }
+        .progress-bar { height: 100%; background: var(--blue); width: 0; transition: width 0.3s; }
+        .player-wrap { position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: var(--radius); overflow: hidden; }
+        .player-wrap.hidden { display: none; }
         #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-        .timeline-card { background: var(--card-bg); backdrop-filter: blur(25px); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 14px 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; }
-        .timeline-slider-wrapper { display: flex; align-items: center; gap: 12px; }
-        input[type="range"] { flex: 1; accent-color: var(--accent); cursor: pointer; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; outline: none; -webkit-appearance: none; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); cursor: pointer; }
-        .time-info { font-size: 11px; color: var(--text-secondary); min-width: 75px; text-align: right; font-weight: 500; }
-        .control-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-top: 1px solid var(--border-color); padding-top: 10px; gap: 6px; flex-wrap: wrap; }
-        .control-buttons-left { display: flex; gap: 5px; flex-wrap: wrap; }
-        .timeline-btn { background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-color); color: var(--text-main); font-weight: 500; cursor: pointer; padding: 6px 10px; border-radius: 8px; font-size: 11px; }
-        .timeline-btn.active { background-color: var(--accent-light); border-color: var(--accent); color: var(--accent); }
-        .sub-settings-panel { display: none; flex-direction: column; gap: 10px; border-top: 1px solid var(--border-color); padding-top: 10px; }
-        .sub-settings-panel.show { display: flex; }
-        .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-        .setting-row label { font-size: 11px; color: var(--text-secondary); text-transform: none; }
-        .setting-row span { font-size: 11px; color: var(--text-main); text-align: right; }
-        #subtitle-box { background: var(--card-bg); backdrop-filter: blur(25px); border: 1px solid var(--border-color); padding: 24px 16px; border-radius: var(--radius); box-shadow: var(--shadow); min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; text-align: center; }
-        .sub-line { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; width: 100%; }
-        .line-cn .word { font-size: var(--fs-cn); }
-        .line-py .word { font-size: var(--fs-py); }
-        .karaoke-line .word { display: inline-block; font-weight: 600; color: var(--text-secondary); transition: color 0.15s ease, transform 0.15s ease; }
-        .karaoke-line .highlight { color: var(--text-main); transform: scale(1.02); text-shadow: 0 0 20px rgba(255, 45, 85, 0.4); }
-        .vietnamese-line { font-size: var(--fs-vi); font-weight: 400; color: var(--accent); opacity: 0.95; border-top: 1px solid var(--border-color); padding-top: 8px; width: 80%; text-align: center; }
-        .status { font-size: 11px; color: var(--text-secondary); text-align: right; }
-        .settings-toggle { cursor: pointer; color: var(--text-secondary); font-size: 11px; text-align: right; margin-top: -8px; user-select: none; }
+        #subtitle-box {
+            background: var(--card-bg); backdrop-filter: blur(25px); border: 1px solid var(--border-color);
+            padding: 24px 16px; border-radius: var(--radius); min-height: 100px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; text-align: center;
+        }
+        .cn { font-size: var(--fs-cn); font-weight: 700; }
+        .py { font-size: var(--fs-py); color: var(--text-secondary); }
+        .vi { font-size: var(--fs-vi); color: var(--accent); border-top: 1px solid var(--border-color); padding-top: 8px; width: 80%; }
+        .settings-toggle { cursor: pointer; color: var(--text-secondary); font-size: 11px; text-align: right; user-select: none; }
+        #logBox {
+            background: var(--card-bg); border-radius: 12px; padding: 12px; height: 100px;
+            overflow-y: auto; font-size: 11px; font-family: monospace; color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+        .log-ok { color: var(--green); } .log-err { color: var(--accent); } .log-info { color: var(--blue); }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
 <div class="container">
-    <div class="app-header"><h3>Pinyin AI - Auto Scan Gist Cross-Browser</h3></div>
+    <div class="app-header"><h3>🎬 Pinyin AI</h3></div>
 
-    <div class="card" id="input-card">
-        <div class="input-group">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <label>Link YouTube hoặc Tên Video</label>
-                <button type="button" class="timeline-btn" style="padding: 2px 8px; font-size: 10px;" onclick="renameActiveVideo()">✏️ Sửa tên</button>
-            </div>
-            <div class="url-row">
-                <div class="input-wrapper-flex">
-                    <input type="text" id="yt-link" placeholder="Dán link YouTube..." oninput="onUrlInputChanged()">
-                    <button type="button" id="btn-clear" class="btn-clear-input" onclick="clearUrlInput()">×</button>
-                </div>
-                <button id="btn-action" class="btn-action-inline" onclick="handleMainAction()">Tải</button>
-            </div>
+    <!-- URL Input -->
+    <div class="card">
+        <label>🔗 Link YouTube</label>
+        <div class="row">
+            <input type="text" id="yt-link" placeholder="Dán link...">
+            <button class="btn-accent" id="btn-action" style="width:80px" onclick="handleMainAction()">▶️ TẢI</button>
         </div>
-
-        <div class="input-group" style="margin-top: 10px;">
-            <label>Kho phụ đề & liên kết GitHub đã lưu</label>
-            <div class="url-row">
-                <select id="gist-select" onchange="onGistSelected(this.value)">
-                    <option value="">-- Đang tải kho... --</option>
-                </select>
-                <button type="button" class="timeline-btn" style="padding: 12px 12px; white-space: nowrap;" onclick="loadGistLibrary()">🔄</button>
-            </div>
-        </div>
-
-        <div class="input-group" style="margin-top: 10px;">
-            <label>Chọn tệp phụ đề trực tiếp (.vtt)</label>
-            <div class="file-options-row">
-                <div class="file-upload-wrapper"><div class="btn-file" id="file-label">Chọn tệp .vtt</div><input type="file" id="srt-file" accept=".vtt" onchange="handleFileSelect(event)"></div>
-            </div>
-            <div class="selected-file-box" id="selected-file-box"><span id="selected-file-name"></span><button type="button" class="btn-remove-sub" onclick="removeSelectedSub()">×</button></div>
-            <div class="file-options-row" style="margin-top: 10px;"><button type="button" class="btn-action-inline btn-github" style="width: 100%;" onclick="syncToGitHub()">☁️ Đẩy lên GitHub Gist</button></div>
-            <div class="matched-sub-note" id="matched-sub-note">Sẵn sàng</div>
-        </div>
+        <div class="progress-wrap"><div class="progress-bar" id="pb"></div></div>
+        <p style="font-size:10px;color:var(--text-secondary);margin-top:4px" id="pbText">Sẵn sàng</p>
     </div>
 
+    <!-- Settings Toggle -->
     <div class="settings-toggle" onclick="toggleSettings()">⚙️ Cài đặt GitHub & PC Server ▾</div>
     <div class="card" id="settings-card" style="display:none;">
-        <label>GitHub Username</label><input type="text" id="ghUser" placeholder="Username">
-        <div class="url-row" style="margin-top:8px"><input type="text" id="ghRepo" placeholder="Repository"><input type="password" id="ghToken" placeholder="Token ghp_..."></div>
-        <label style="margin-top:8px">PC Server URL</label><input type="text" id="pcUrl" placeholder="https://xxxx.trycloudflare.com">
-        <button class="btn-action-inline btn-save" onclick="saveSettings()">💾 LƯU</button>
+        <input type="text" id="ghUser" placeholder="GitHub Username" style="margin-bottom:8px">
+        <div class="row" style="margin-bottom:8px">
+            <input type="text" id="ghRepo" placeholder="Repository">
+            <input type="password" id="ghToken" placeholder="Token ghp_...">
+        </div>
+        <input type="text" id="pcUrl" placeholder="PC Server URL (https://xxxx.trycloudflare.com)">
+        <button class="btn-sm" style="width:100%;margin-top:8px;background:var(--blue);color:white" onclick="saveSettings()">💾 LƯU</button>
     </div>
 
-    <div class="player-container hidden" id="video-wrapper"><div id="player"></div></div>
-
-    <div class="timeline-card">
-        <div class="timeline-slider-wrapper"><input type="range" id="time-slider" value="0" min="0" max="100" step="0.1" oninput="onSliderSeek(this.value)" onchange="onSliderChange(this.value)"><span class="time-info" id="time-display">00:00 / 00:00</span></div>
-        <div class="control-row">
-            <div class="control-buttons-left">
-                <button class="timeline-btn" id="btn-play-pause" onclick="togglePlayPause()">⏵ Play</button>
-                <button class="timeline-btn" onclick="toggleVideoVisibility()">🎥 Video</button>
-                <button class="timeline-btn" onclick="cyclePlaybackRate()" id="btn-speed">⚡ 1.0x</button>
-                <button class="timeline-btn" id="btn-loop" onclick="toggleLoop()">🔁 Repeat</button>
-                <button class="timeline-btn" onclick="toggleSubSettings()">⚙️ Size</button>
-            </div>
-            <span class="status" id="status-text">Sẵn sàng</span>
+    <!-- Gist Library -->
+    <div class="card">
+        <label>📚 Kho phụ đề đã lưu</label>
+        <div class="row">
+            <select id="gist-select" onchange="onGistSelected(this.value)">
+                <option value="">-- Đang tải kho... --</option>
+            </select>
+            <button class="btn-sm" style="width:40px" onclick="loadGistLibrary()">🔄</button>
         </div>
-        <div class="sub-settings-panel" id="sub-settings-panel">
-            <div class="setting-row"><label>Chữ Hán</label><input type="range" min="14" max="36" value="20" oninput="updateSubFontSize('cn', this.value)"><span id="val-cn">20px</span></div>
-            <div class="setting-row"><label>Pinyin</label><input type="range" min="12" max="28" value="16" oninput="updateSubFontSize('py', this.value)"><span id="val-py">16px</span></div>
-            <div class="setting-row"><label>Tiếng Việt</label><input type="range" min="10" max="24" value="14" oninput="updateSubFontSize('vi', this.value)"><span id="val-vi">14px</span></div>
-        </div>
+        <p style="font-size:10px;color:var(--text-secondary);margin-top:4px" id="matched-sub-note">Sẵn sàng</p>
     </div>
 
-    <div id="subtitle-box"><span style="color: var(--text-secondary); font-size: 14px;">Nhập link YouTube và bấm Tải...</span></div>
+    <!-- Player -->
+    <div class="player-wrap hidden" id="video-wrapper"><div id="player"></div></div>
+
+    <!-- Subtitle -->
+    <div id="subtitle-box"><span style="color:var(--text-secondary);font-size:14px">Nhập link và bấm TẢI...</span></div>
+
+    <!-- Log -->
+    <div class="card">
+        <label>📋 Tiến trình</label>
+        <div id="logBox">🟢 Sẵn sàng</div>
+    </div>
 </div>
 
 <script>
 // ===== STATE =====
-let player, subtitles=[], syncInterval=null, activeSubIndex=-1, selectedSubFile=null;
-let isSeeking=false, videoDuration=0, isLoadingState=false, isLoopEnabled=false;
-const speeds=[0.5,0.75,1.0,1.25,1.5,2.0]; let currentSpeedIndex=2;
-let lastProcessedVideoId="", processingVid=null, playingVid=null;
+let player, subtitles=[], syncInterval=null, activeSubIndex=-1;
+let isLoadingState=false, processingVid=null, playingVid=null;
 let pc_url='', gh_cloud_map={};
 
 // ===== INIT =====
@@ -209,7 +151,7 @@ function saveSettings(){
     let tok=document.getElementById('ghToken').value.trim();
     localStorage.gh_token=tok; localStorage.gh_pat_token=tok;
     pc_url=document.getElementById('pcUrl').value.trim(); localStorage.pc_url=pc_url;
-    document.getElementById('matched-sub-note').innerText='Đã lưu ✓';
+    log('Đã lưu ✓','ok');
 }
 function toggleSettings(){
     const c=document.getElementById('settings-card');
@@ -218,14 +160,20 @@ function toggleSettings(){
     else{c.style.display='none';b.textContent='⚙️ Cài đặt ▾';}
 }
 
-// ===== GIST LIBRARY (FIX TRÙNG LẶP) =====
+// ===== LOG =====
+function log(m,c=''){
+    const t=new Date().toLocaleTimeString('vi-VN');
+    document.getElementById('logBox').innerHTML+=`<br><span class="log-${c}">[${t}] ${m}</span>`;
+    document.getElementById('logBox').scrollTop=document.getElementById('logBox').scrollHeight;
+}
+function prog(p,t=''){document.getElementById('pb').style.width=p+'%';if(t)document.getElementById('pbText').innerText=t;}
+
+// ===== GIST LIBRARY =====
 async function loadGistLibrary(){
     const select=document.getElementById('gist-select');
-    select.innerHTML='<option value="">-- Đang quét Gist... --</option>';
-    
+    select.innerHTML='<option value="">-- Đang quét... --</option>';
     let token=localStorage.gh_token||localStorage.gh_pat_token;
     let newCloudMap={};
-    
     if(token){
         try{
             let allGists=[];
@@ -236,49 +184,42 @@ async function loadGistLibrary(){
                 if(!gists||!gists.length)break;
                 allGists=allGists.concat(gists);
             }
-            
             for(let gist of allGists){
                 if(gist.files)for(let fn in gist.files){
                     if(fn.endsWith('.vtt')){
                         let vId=fn.replace('.vtt','');
-                        let raw=gist.files[fn].raw_url;
-                        let t=(gist.description||'').replace(/^.*Subtitle\s*-\s*/i,'').trim()||`Video ${vId}`;
-                        // Chỉ lấy Gist MỚI NHẤT cho mỗi videoId
-                        if(!newCloudMap[vId]) newCloudMap[vId]={url:raw,title:t};
+                        if(!newCloudMap[vId]) newCloudMap[vId]={url:gist.files[fn].raw_url,title:(gist.description||'').replace(/^.*Subtitle\s*-\s*/i,'').trim()||`Video ${vId}`};
                     }
                 }
             }
             gh_cloud_map=newCloudMap;
             localStorage.setItem('gh_cloud_map',JSON.stringify(gh_cloud_map));
-        }catch(e){console.error(e);}
+        }catch(e){}
     }
-    
-    // Nếu không có token, dùng cloud map cũ
     if(!Object.keys(newCloudMap).length) newCloudMap=gh_cloud_map;
-    
-    // Tạo items từ newCloudMap (đã loại bỏ trùng lặp)
     let items=[];
-    for(let vId in newCloudMap){
-        let e=newCloudMap[vId];
-        items.push({videoId:vId,rawUrl:e.url,title:e.title});
-    }
+    for(let vId in newCloudMap){ let e=newCloudMap[vId]; items.push({videoId:vId,rawUrl:e.url,title:e.title}); }
     items.sort((a,b)=>b.videoId.localeCompare(a.videoId));
-    
-    select.innerHTML=items.length?`<option value="">-- Chọn video (${items.length}) --</option>`:'<option value="">-- Chưa có video --</option>';
+    select.innerHTML=items.length?`<option value="">-- Chọn (${items.length}) --</option>`:'<option value="">-- Chưa có --</option>';
     items.forEach(i=>{let o=document.createElement('option');o.value=JSON.stringify(i);o.textContent=i.title;select.appendChild(o);});
-    document.getElementById('matched-sub-note').innerText=items.length?`${items.length} video trong kho`:'Chưa có video nào';
+    document.getElementById('matched-sub-note').innerText=items.length?`${items.length} video`:'Chưa có video';
 }
 
+// ===== CHỌN VIDEO TỪ KHO -> LOAD VIDEO + SUB =====
 async function onGistSelected(val){
     if(!val||processingVid)return;
     try{
         let item=JSON.parse(val);
+        // Load subtitle
         let res=await fetch(item.rawUrl);
         if(res.ok){
-            subtitles=parseSRT(await res.text());
+            subtitles=parseVTT(await res.text());
             document.getElementById('matched-sub-note').innerText=`📦 ${item.title}`;
+            // Load video
             playingVid=item.videoId;
+            document.getElementById('yt-link').value=`https://youtu.be/${item.videoId}`;
             showPlayer(item.videoId);
+            log(`Phát: ${item.title}`,'ok');
         }
     }catch(e){}
 }
@@ -293,15 +234,15 @@ function startSync(){if(syncInterval)clearInterval(syncInterval);syncInterval=se
 function syncSub(){
     if(!player?.getCurrentTime||!subtitles.length)return;
     const t=player.getCurrentTime(),idx=subtitles.findIndex(s=>t>=s.start&&t<=s.end);
-    if(idx!==-1&&idx!==activeSubIndex){activeSubIndex=idx;const s=subtitles[idx];document.getElementById('subtitle-box').innerHTML=`<div class="sub-line karaoke-line line-cn"><span class="word highlight">${s.rawLines[0]}</span></div><div class="sub-line karaoke-line line-py"><span class="word highlight">${s.rawLines[1]}</span></div><div class="vietnamese-line">${s.rawLines[2]}</div>`;}
+    if(idx!==-1&&idx!==activeSubIndex){activeSubIndex=idx;const s=subtitles[idx];document.getElementById('subtitle-box').innerHTML=`<div class="cn">${s.rawLines[0]}</div><div class="py">${s.rawLines[1]}</div><div class="vi">${s.rawLines[2]}</div>`;}
 }
 
 // ===== UTILS =====
 function extractVideoID(url){if(!url)return null;const m=url.match(/(?:v=|\/)([\w-]{11})/);return m?m[1]:(url.length===11?url:null);}
-function parseSRT(data){const n=data.replace(/\r\n/g,'\n').replace(/\r/g,'\n'),blocks=n.split('\n\n');let s=[];blocks.forEach(b=>{const l=b.split('\n');let t=-1;for(let i=0;i<l.length;i++){if(l[i].includes('-->')){t=i;break}}if(t!==-1){const ts=l[t].split('-->');if(ts.length===2){const st=parseTime(ts[0].trim()),en=parseTime(ts[1].trim());let r=l.slice(t+1).map(x=>x.replace(/<[^>]*>/g,'').trim()).filter(x=>x!=="");while(r.length<3)r.push("");s.push({start:st,end:en,rawLines:r})}}});return s;}
+function parseVTT(data){const n=data.replace(/\r\n/g,'\n').replace(/\r/g,'\n'),blocks=n.split('\n\n');let s=[];blocks.forEach(b=>{const l=b.split('\n');let t=-1;for(let i=0;i<l.length;i++){if(l[i].includes('-->')){t=i;break}}if(t!==-1){const ts=l[t].split('-->');if(ts.length===2){const st=parseTime(ts[0].trim()),en=parseTime(ts[1].trim());let r=l.slice(t+1).map(x=>x.replace(/<[^>]*>/g,'').trim()).filter(x=>x!=="");while(r.length<3)r.push("");s.push({start:st,end:en,rawLines:r})}}});return s;}
 function parseTime(t){t=t.replace(',','.');const p=t.split(':');return p.length<3?0:parseFloat(p[0])*3600+parseFloat(p[1])*60+parseFloat(p[2]);}
 
-// ===== MAIN =====
+// ===== MAIN: TẢI AUDIO + UPLOAD =====
 async function handleMainAction(){
     const btn=document.getElementById('btn-action');
     const url=document.getElementById('yt-link').value.trim();
@@ -309,113 +250,122 @@ async function handleMainAction(){
     if(!vid){alert('Nhập link YouTube!');return}
 
     if(!isLoadingState){
-        let hasSub=selectedSubFile||gh_cloud_map[vid]||(await checkAndLoadFromCloud(vid));
-        
+        // Kiểm tra có sub chưa
+        let hasSub=gh_cloud_map[vid]||(await checkCloud(vid));
         if(hasSub){
-            isLoadingState=true;btn.innerText='Huỷ';btn.classList.add('cancel-state');
-            playingVid=vid;
-            showPlayer(vid);
+            // CÓ SUB -> PHÁT NGAY
+            isLoadingState=true;btn.innerText='Huỷ';btn.classList.add('cancel');
+            playingVid=vid; showPlayer(vid);
             document.getElementById('matched-sub-note').innerText='✅ Đang phát';
             resetUI();
         }else{
+            // KHÔNG SUB -> PC TẢI
             if(!pc_url){alert('Cấu hình PC Server URL!');return}
-            processingVid=vid;isLoadingState=true;
-            btn.innerText='⏹ DỪNG';btn.classList.add('cancel-state');
-            document.getElementById('matched-sub-note').innerText='⏳ PC đang tải...';
+            processingVid=vid; isLoadingState=true;
+            btn.innerText='⏹ DỪNG';btn.classList.add('cancel');
+            document.getElementById('logBox').innerHTML='';
+            log(`Bắt đầu xử lý: ${vid}`,'info');
+            prog(5,'Đang kiểm tra PC...');
+            
             try{
                 const pc=pc_url.replace(/\/$/,'');
-                const h=await fetch(`${pc}/health`,{signal:AbortSignal.timeout(5000)});if(!h.ok)throw new Error('PC offline');
-                const blob=await new Promise((resolve,reject)=>{const x=new XMLHttpRequest();x.open('GET',`${pc}/download?url=${encodeURIComponent(`https://youtu.be/${vid}`)}`,true);x.responseType='blob';x.timeout=600000;x.onload=()=>x.status===200?resolve(x.response):reject(new Error(`Lỗi ${x.status}`));x.onerror=()=>reject(new Error('Mất kết nối'));x.ontimeout=()=>reject(new Error('Timeout'));x.send();});
+                // Kiểm tra PC
+                const h=await fetch(`${pc}/health`,{signal:AbortSignal.timeout(5000)});
+                if(!h.ok)throw new Error('PC offline');
+                log('PC online ✓','ok');
+                prog(10,'PC đang tải audio...');
+                
+                // Tải audio
+                const blob=await new Promise((resolve,reject)=>{
+                    const x=new XMLHttpRequest();
+                    x.open('GET',`${pc}/download?url=${encodeURIComponent(`https://youtu.be/${vid}`)}`,true);
+                    x.responseType='blob';x.timeout=600000;
+                    x.onload=()=>x.status===200?resolve(x.response):reject(new Error(`Lỗi ${x.status}`));
+                    x.onerror=()=>reject(new Error('Mất kết nối'));
+                    x.ontimeout=()=>reject(new Error('Timeout'));
+                    x.upload.onprogress=function(e){
+                        if(e.lengthComputable){prog(10+(e.loaded/e.total)*30,`PC tải: ${Math.round(e.loaded/1024)}KB`);}
+                    };
+                    x.send();
+                });
+                log(`Tải xong: ${(blob.size/1024/1024).toFixed(1)}MB ✓`,'ok');
+                prog(50,'Đang upload GitHub...');
+                
+                // Upload
                 const b64=await new Promise(r=>{const rd=new FileReader();rd.onload=()=>r(rd.result.split(',')[1]);rd.readAsDataURL(blob);});
-                const token=localStorage.gh_token||localStorage.gh_pat_token,user=localStorage.gh_user,repo=localStorage.gh_repo;
+                const token=localStorage.gh_token||localStorage.gh_pat_token;
+                const user=localStorage.gh_user,repo=localStorage.gh_repo;
                 if(!token||!user){alert('Cấu hình GitHub!');resetUI();return}
+                
                 const api=`https://api.github.com/repos/${user}/${repo}/contents/data/audio/${vid}.m4a`;
                 const headers={"Authorization":`token ${token}`,"Accept":"application/vnd.github.v3+json"};
-                let sha=null;try{const c=await fetch(api,{headers});if(c.ok)sha=(await c.json()).sha}catch(e){}
+                let sha=null;
+                try{const c=await fetch(api,{headers});if(c.ok)sha=(await c.json()).sha}catch(e){}
                 const body={message:`Audio ${vid}`,content:b64,branch:'main'};if(sha)body.sha=sha;
-                const r=await fetch(api,{method:'PUT',headers,body:JSON.stringify(body)});if(!r.ok)throw new Error((await r.json()).message);
-                document.getElementById('matched-sub-note').innerText='⏳ AI đang xử lý... (3-5 phút)';
+                
+                const r=await fetch(api,{method:'PUT',headers,body:JSON.stringify(body)});
+                if(!r.ok)throw new Error((await r.json()).message);
+                
+                log('Upload GitHub ✓','ok');
+                prog(100,'Hoàn tất! Đợi AI xử lý...');
+                document.getElementById('matched-sub-note').innerText='⏳ AI đang tạo phụ đề... (3-5 phút)';
+                
+                // Trigger workflow
                 try{await fetch(`https://api.github.com/repos/${user}/${repo}/dispatches`,{method:'POST',headers,body:JSON.stringify({event_type:'process_audio',client_payload:{video_id:vid}})})}catch(e){}
+                
+                // Auto check sau 3 phút
                 setTimeout(async()=>{
+                    log(`Kiểm tra phụ đề ${vid}...`,'info');
                     const sr=await fetch(`https://api.github.com/repos/${user}/${repo}/contents/output/${vid}.vtt`,{headers});
-                    if(sr.ok){const sd=await sr.json();subtitles=parseSRT(atob(sd.content));gh_cloud_map[vid]={url:sd.download_url,title:`Video ${vid}`};localStorage.setItem('gh_cloud_map',JSON.stringify(gh_cloud_map));loadGistLibrary();document.getElementById('matched-sub-note').innerText='✅ Phụ đề đã có!';processingVid=null;}
+                    if(sr.ok){
+                        const sd=await sr.json();
+                        subtitles=parseVTT(atob(sd.content));
+                        gh_cloud_map[vid]={url:sd.download_url,title:`Video ${vid}`};
+                        localStorage.setItem('gh_cloud_map',JSON.stringify(gh_cloud_map));
+                        loadGistLibrary();
+                        document.getElementById('matched-sub-note').innerText='✅ Phụ đề đã sẵn sàng!';
+                        log('Phụ đề đã có! ✓','ok');
+                        processingVid=null;
+                    }else{
+                        log('Chưa có, thử lại sau 1 phút...','info');
+                        setTimeout(()=>arguments.callee(),60000);
+                    }
                 },180000);
-            }catch(e){alert('Lỗi: '+e.message);document.getElementById('matched-sub-note').innerText='❌ Lỗi';processingVid=null;}
+                
+            }catch(e){
+                log(`LỖI: ${e.message}`,'err');
+                prog(0,'Lỗi');
+                document.getElementById('matched-sub-note').innerText='❌ Lỗi';
+                processingVid=null;
+            }
             resetUI();
         }
-    }else{resetUI();if(player?.stopVideo)player.stopVideo();}
+    }else{
+        resetUI();
+        if(player?.stopVideo)player.stopVideo();
+    }
 }
 
-function resetUI(){isLoadingState=false;const btn=document.getElementById('btn-action');btn.innerText='Tải';btn.classList.remove('cancel-state');}
+function resetUI(){isLoadingState=false;const btn=document.getElementById('btn-action');btn.innerText='▶️ TẢI';btn.classList.remove('cancel');}
 
-async function checkAndLoadFromCloud(vid){
-    // Kiểm tra cloud map local trước
+async function checkCloud(vid){
     if(gh_cloud_map[vid]){
         try{
-            let e=gh_cloud_map[vid], u=typeof e==='object'?e.url:e;
-            if(u){let r=await fetch(u);if(r.ok){loadSubTextContent(await r.text());document.getElementById('matched-sub-note').innerText=`☁️ ${typeof e==='object'?e.title:vid}`;return true;}}
+            let e=gh_cloud_map[vid],u=typeof e==='object'?e.url:e;
+            if(u){let r=await fetch(u);if(r.ok){loadSub(await r.text());document.getElementById('matched-sub-note').innerText=`☁️ ${typeof e==='object'?e.title:vid}`;return true;}}
         }catch(e){}
     }
-    // Kiểm tra Gist
     let token=localStorage.gh_token||localStorage.gh_pat_token;
     if(token){
         try{
             let r=await fetch('https://api.github.com/gists',{headers:{"Authorization":`token ${token}`}});
-            if(r.ok){
-                let gists=await r.json();
-                for(let g of gists){
-                    let fn=`${vid}.vtt`;
-                    if(g.files&&g.files[fn]){
-                        let raw=g.files[fn].raw_url;
-                        let t=(g.description||'').replace(/^.*Subtitle\s*-\s*/i,'').trim()||`Video ${vid}`;
-                        gh_cloud_map[vid]={url:raw,title:t};
-                        localStorage.setItem('gh_cloud_map',JSON.stringify(gh_cloud_map));
-                        let sr=await fetch(raw);
-                        if(sr.ok){loadSubTextContent(await sr.text());document.getElementById('matched-sub-note').innerText=`🌐 ${t}`;return true;}
-                    }
-                }
-            }
+            if(r.ok){let gists=await r.json();for(let g of gists){let fn=`${vid}.vtt`;if(g.files&&g.files[fn]){let raw=g.files[fn].raw_url,t=(g.description||'').replace(/^.*Subtitle\s*-\s*/i,'').trim()||`Video ${vid}`;gh_cloud_map[vid]={url:raw,title:t};localStorage.setItem('gh_cloud_map',JSON.stringify(gh_cloud_map));let sr=await fetch(raw);if(sr.ok){loadSub(await sr.text());document.getElementById('matched-sub-note').innerText=`🌐 ${t}`;return true;}}}}
         }catch(e){}
     }
     return false;
 }
 
-function loadSubTextContent(t){subtitles=parseSRT(t);}
-
-// ===== RENAME (FIXED) =====
-function renameActiveVideo(){
-    let v=playingVid||extractVideoID(document.getElementById('yt-link').value.trim());
-    if(!v){alert('Chưa có video nào! Nhập link hoặc chọn từ kho trước.');return}
-    let cur=v;
-    if(gh_cloud_map[v]&&typeof gh_cloud_map[v]==='object'&&gh_cloud_map[v].title)cur=gh_cloud_map[v].title;
-    let nt=prompt('Nhập tên mới:',cur);
-    if(!nt||!nt.trim())return;
-    nt=nt.trim();
-    if(!gh_cloud_map[v])gh_cloud_map[v]={url:'',title:nt};
-    else if(typeof gh_cloud_map[v]==='object')gh_cloud_map[v].title=nt;
-    else gh_cloud_map[v]={url:gh_cloud_map[v],title:nt};
-    localStorage.setItem('gh_cloud_map',JSON.stringify(gh_cloud_map));
-    loadGistLibrary();
-    document.getElementById('matched-sub-note').innerText=`✏️ Đã đổi: ${nt}`;
-}
-
-// ===== CÁC HÀM CÒN LẠI =====
-async function onUrlInputChanged(){let val=document.getElementById('yt-link').value;document.getElementById('btn-clear').style.display=val.length>0?'block':'none';let v=extractVideoID(val);if(v!==lastProcessedVideoId){lastProcessedVideoId=v;selectedSubFile=null;document.getElementById('selected-file-box').classList.remove('show');document.getElementById('file-label').innerText='Chọn tệp .vtt';subtitles=[];}}
-function clearUrlInput(){let i=document.getElementById('yt-link');i.value='';document.getElementById('btn-clear').style.display='none';document.getElementById('gist-select').value='';lastProcessedVideoId='';selectedSubFile=null;subtitles=[];document.getElementById('selected-file-box').classList.remove('show');document.getElementById('file-label').innerText='Chọn tệp .vtt';i.focus();}
-function toggleSubSettings(){document.getElementById('sub-settings-panel').classList.toggle('show');}
-function updateSubFontSize(t,v){document.documentElement.style.setProperty(`--fs-${t}`,v+'px');document.getElementById(`val-${t}`).innerText=v+'px';}
-function cyclePlaybackRate(){currentSpeedIndex=(currentSpeedIndex+1)%speeds.length;let r=speeds[currentSpeedIndex];document.getElementById('btn-speed').innerText=`⚡ ${r}x`;if(player?.setPlaybackRate)player.setPlaybackRate(r);}
-function toggleLoop(){isLoopEnabled=!isLoopEnabled;document.getElementById('btn-loop').classList.toggle('active',isLoopEnabled);}
-function handleFileSelect(e){let f=e.target.files[0];if(!f)return;if(!f.name.toLowerCase().endsWith('.vtt')){alert('Chọn tệp .vtt!');return}selectedSubFile=f;document.getElementById('file-label').innerText='Đã chọn';document.getElementById('selected-file-name').innerText=f.name;document.getElementById('selected-file-box').classList.add('show');let r=new FileReader();r.onload=function(e){loadSubTextContent(e.target.result);document.getElementById('matched-sub-note').innerText=`🎯 ${f.name}`;};r.readAsText(f,'UTF-8');}
-async function removeSelectedSub(){selectedSubFile=null;document.getElementById('selected-file-box').classList.remove('show');document.getElementById('file-label').innerText='Chọn tệp .vtt';document.getElementById('srt-file').value='';}
-async function syncToGitHub(){let v=extractVideoID(document.getElementById('yt-link').value.trim());if(!v){alert('Nhập link!');return}if(!selectedSubFile){alert('Chọn tệp .vtt!');return}let sub=await selectedSubFile.text(),title=prompt('Tiêu đề:',selectedSubFile.name.replace(/\.[^/.]+$/,''));if(!title)title=selectedSubFile.name;let token=localStorage.gh_token||localStorage.gh_pat_token;if(!token){token=prompt('Token:');if(token){localStorage.gh_token=token;localStorage.gh_pat_token=token}else return}try{let r=await fetch('https://api.github.com/gists',{method:'POST',headers:{...{"Authorization":`token ${token}`,"Accept":"application/vnd.github.v3+json"},"Content-Type":"application/json"},body:JSON.stringify({description:`Pinyin AI Subtitle - ${title}`,public:true,files:{[`${v}.vtt`]:{content:sub}}})});if(!r.ok)throw new Error('Lỗi '+r.status);let d=await r.json();gh_cloud_map[v]={url:d.files[`${v}.vtt`].raw_url,title:title};localStorage.setItem('gh_cloud_map',JSON.stringify(gh_cloud_map));alert(`✅ Đã đẩy: ${title}`);loadGistLibrary();}catch(e){alert('❌ '+e.message);}}
-
-function onPlayerStateChange(e){const c=document.getElementById('input-card');if(e.data==YT.PlayerState.PLAYING){c.classList.add('collapsed');}else if(e.data==YT.PlayerState.PAUSED||e.data==YT.PlayerState.ENDED){c.classList.remove('collapsed');}}
-function togglePlayPause(){if(!player?.getPlayerState)return;if(player.getPlayerState()===YT.PlayerState.PLAYING)player.pauseVideo();else player.playVideo();}
-function toggleVideoVisibility(){document.getElementById('video-wrapper').classList.toggle('hidden');}
-function formatTime(s){let m=Math.floor(s/60),sec=Math.floor(s%60);return`${m<10?'0':''}${m}:${sec<10?'0':''}${sec}`;}
-function onSliderSeek(v){isSeeking=true;if(player?.getDuration){videoDuration=player.getDuration();document.getElementById('time-display').innerText=`${formatTime((v/100)*videoDuration)} / ${formatTime(videoDuration)}`;}}
-function onSliderChange(v){if(player?.seekTo)player.seekTo((v/100)*player.getDuration(),true);isSeeking=false;}
+function loadSub(t){subtitles=parseVTT(t);}
 </script>
 </body>
 </html>
