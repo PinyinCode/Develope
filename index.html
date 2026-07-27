@@ -155,15 +155,10 @@
 
     <div class="settings-toggle" onclick="toggleSettings()">⚙️ Cài đặt GitHub & PC Server ▾</div>
     <div class="card" id="settings-card" style="display:none;">
-        <label>GitHub Username</label>
-        <input type="text" id="ghUser" placeholder="Username">
-        <div class="url-row" style="margin-top:8px">
-            <input type="text" id="ghRepo" placeholder="Repository">
-            <input type="password" id="ghToken" placeholder="Token ghp_...">
-        </div>
-        <label style="margin-top:8px">PC Server URL</label>
-        <input type="text" id="pcUrl" placeholder="https://xxxx.trycloudflare.com">
-        <button class="btn-action-inline btn-save" onclick="saveSettings()">💾 LƯU CÀI ĐẶT</button>
+        <label>GitHub Username</label><input type="text" id="ghUser" placeholder="Username">
+        <div class="url-row" style="margin-top:8px"><input type="text" id="ghRepo" placeholder="Repository"><input type="password" id="ghToken" placeholder="Token ghp_..."></div>
+        <label style="margin-top:8px">PC Server URL</label><input type="text" id="pcUrl" placeholder="https://xxxx.trycloudflare.com">
+        <button class="btn-action-inline btn-save" onclick="saveSettings()">💾 LƯU</button>
     </div>
 
     <div class="player-container hidden" id="video-wrapper"><div id="player"></div></div>
@@ -223,13 +218,13 @@ function toggleSettings(){
     else{c.style.display='none';b.textContent='⚙️ Cài đặt ▾';}
 }
 
-// ===== GIST LIBRARY =====
+// ===== GIST LIBRARY (FIX TRÙNG LẶP) =====
 async function loadGistLibrary(){
     const select=document.getElementById('gist-select');
     select.innerHTML='<option value="">-- Đang quét Gist... --</option>';
     
-    let items=[];
     let token=localStorage.gh_token||localStorage.gh_pat_token;
+    let newCloudMap={};
     
     if(token){
         try{
@@ -242,14 +237,14 @@ async function loadGistLibrary(){
                 allGists=allGists.concat(gists);
             }
             
-            let newCloudMap={};
             for(let gist of allGists){
                 if(gist.files)for(let fn in gist.files){
                     if(fn.endsWith('.vtt')){
-                        let vId=fn.replace('.vtt',''), raw=gist.files[fn].raw_url;
+                        let vId=fn.replace('.vtt','');
+                        let raw=gist.files[fn].raw_url;
                         let t=(gist.description||'').replace(/^.*Subtitle\s*-\s*/i,'').trim()||`Video ${vId}`;
-                        items.push({videoId:vId,rawUrl:raw,title:t});
-                        newCloudMap[vId]={url:raw,title:t};
+                        // Chỉ lấy Gist MỚI NHẤT cho mỗi videoId
+                        if(!newCloudMap[vId]) newCloudMap[vId]={url:raw,title:t};
                     }
                 }
             }
@@ -258,9 +253,17 @@ async function loadGistLibrary(){
         }catch(e){console.error(e);}
     }
     
-    if(!items.length)for(let vId in gh_cloud_map){let e=gh_cloud_map[vId];items.push({videoId:vId,rawUrl:typeof e==='object'?e.url:e,title:typeof e==='object'?e.title:`Video ${vId}`});}
+    // Nếu không có token, dùng cloud map cũ
+    if(!Object.keys(newCloudMap).length) newCloudMap=gh_cloud_map;
     
+    // Tạo items từ newCloudMap (đã loại bỏ trùng lặp)
+    let items=[];
+    for(let vId in newCloudMap){
+        let e=newCloudMap[vId];
+        items.push({videoId:vId,rawUrl:e.url,title:e.title});
+    }
     items.sort((a,b)=>b.videoId.localeCompare(a.videoId));
+    
     select.innerHTML=items.length?`<option value="">-- Chọn video (${items.length}) --</option>`:'<option value="">-- Chưa có video --</option>';
     items.forEach(i=>{let o=document.createElement('option');o.value=JSON.stringify(i);o.textContent=i.title;select.appendChild(o);});
     document.getElementById('matched-sub-note').innerText=items.length?`${items.length} video trong kho`:'Chưa có video nào';
@@ -306,19 +309,15 @@ async function handleMainAction(){
     if(!vid){alert('Nhập link YouTube!');return}
 
     if(!isLoadingState){
-        // Kiểm tra có sub chưa
-        let hasSub=selectedSubFile||gh_cloud_map[vid];
-        if(!hasSub){let r=await checkAndLoadFromCloud(vid);hasSub=r;}
+        let hasSub=selectedSubFile||gh_cloud_map[vid]||(await checkAndLoadFromCloud(vid));
         
         if(hasSub){
-            // CÓ SUB -> PHÁT
             isLoadingState=true;btn.innerText='Huỷ';btn.classList.add('cancel-state');
             playingVid=vid;
             showPlayer(vid);
             document.getElementById('matched-sub-note').innerText='✅ Đang phát';
             resetUI();
         }else{
-            // KHÔNG SUB -> PC TẢI
             if(!pc_url){alert('Cấu hình PC Server URL!');return}
             processingVid=vid;isLoadingState=true;
             btn.innerText='⏹ DỪNG';btn.classList.add('cancel-state');
@@ -350,16 +349,57 @@ async function handleMainAction(){
 function resetUI(){isLoadingState=false;const btn=document.getElementById('btn-action');btn.innerText='Tải';btn.classList.remove('cancel-state');}
 
 async function checkAndLoadFromCloud(vid){
-    if(gh_cloud_map[vid]){try{let e=gh_cloud_map[vid],u=typeof e==='object'?e.url:e;if(u){let r=await fetch(u);if(r.ok){loadSubTextContent(await r.text());document.getElementById('matched-sub-note').innerText=`☁️ ${typeof e==='object'?e.title:vid}`;return true}}}catch(e){}}
+    // Kiểm tra cloud map local trước
+    if(gh_cloud_map[vid]){
+        try{
+            let e=gh_cloud_map[vid], u=typeof e==='object'?e.url:e;
+            if(u){let r=await fetch(u);if(r.ok){loadSubTextContent(await r.text());document.getElementById('matched-sub-note').innerText=`☁️ ${typeof e==='object'?e.title:vid}`;return true;}}
+        }catch(e){}
+    }
+    // Kiểm tra Gist
     let token=localStorage.gh_token||localStorage.gh_pat_token;
-    if(token){try{let r=await fetch('https://api.github.com/gists',{headers:{"Authorization":`token ${token}`}});if(r.ok){let gists=await r.json();for(let g of gists){let fn=`${vid}.vtt`;if(g.files&&g.files[fn]){let raw=g.files[fn].raw_url,t=(g.description||'').replace(/^.*Subtitle\s*-\s*/i,'').trim()||`Video ${vid}`;gh_cloud_map[vid]={url:raw,title:t};localStorage.setItem('gh_cloud_map',JSON.stringify(gh_cloud_map));let sr=await fetch(raw);if(sr.ok){loadSubTextContent(await sr.text());document.getElementById('matched-sub-note').innerText=`🌐 ${t}`;return true}}}}}catch(e){}}
+    if(token){
+        try{
+            let r=await fetch('https://api.github.com/gists',{headers:{"Authorization":`token ${token}`}});
+            if(r.ok){
+                let gists=await r.json();
+                for(let g of gists){
+                    let fn=`${vid}.vtt`;
+                    if(g.files&&g.files[fn]){
+                        let raw=g.files[fn].raw_url;
+                        let t=(g.description||'').replace(/^.*Subtitle\s*-\s*/i,'').trim()||`Video ${vid}`;
+                        gh_cloud_map[vid]={url:raw,title:t};
+                        localStorage.setItem('gh_cloud_map',JSON.stringify(gh_cloud_map));
+                        let sr=await fetch(raw);
+                        if(sr.ok){loadSubTextContent(await sr.text());document.getElementById('matched-sub-note').innerText=`🌐 ${t}`;return true;}
+                    }
+                }
+            }
+        }catch(e){}
+    }
     return false;
 }
 
 function loadSubTextContent(t){subtitles=parseSRT(t);}
 
+// ===== RENAME (FIXED) =====
+function renameActiveVideo(){
+    let v=playingVid||extractVideoID(document.getElementById('yt-link').value.trim());
+    if(!v){alert('Chưa có video nào! Nhập link hoặc chọn từ kho trước.');return}
+    let cur=v;
+    if(gh_cloud_map[v]&&typeof gh_cloud_map[v]==='object'&&gh_cloud_map[v].title)cur=gh_cloud_map[v].title;
+    let nt=prompt('Nhập tên mới:',cur);
+    if(!nt||!nt.trim())return;
+    nt=nt.trim();
+    if(!gh_cloud_map[v])gh_cloud_map[v]={url:'',title:nt};
+    else if(typeof gh_cloud_map[v]==='object')gh_cloud_map[v].title=nt;
+    else gh_cloud_map[v]={url:gh_cloud_map[v],title:nt};
+    localStorage.setItem('gh_cloud_map',JSON.stringify(gh_cloud_map));
+    loadGistLibrary();
+    document.getElementById('matched-sub-note').innerText=`✏️ Đã đổi: ${nt}`;
+}
+
 // ===== CÁC HÀM CÒN LẠI =====
-function renameActiveVideo(){let v=extractVideoID(document.getElementById('yt-link').value.trim());if(!v)return;let cur=v;if(gh_cloud_map[v]&&typeof gh_cloud_map[v]==='object')cur=gh_cloud_map[v].title;let nt=prompt('Tên mới:',cur);if(!nt||!nt.trim())return;nt=nt.trim();if(!gh_cloud_map[v])gh_cloud_map[v]={url:'',title:nt};else if(typeof gh_cloud_map[v]==='object')gh_cloud_map[v].title=nt;else gh_cloud_map[v]={url:gh_cloud_map[v],title:nt};localStorage.setItem('gh_cloud_map',JSON.stringify(gh_cloud_map));loadGistLibrary();}
 async function onUrlInputChanged(){let val=document.getElementById('yt-link').value;document.getElementById('btn-clear').style.display=val.length>0?'block':'none';let v=extractVideoID(val);if(v!==lastProcessedVideoId){lastProcessedVideoId=v;selectedSubFile=null;document.getElementById('selected-file-box').classList.remove('show');document.getElementById('file-label').innerText='Chọn tệp .vtt';subtitles=[];}}
 function clearUrlInput(){let i=document.getElementById('yt-link');i.value='';document.getElementById('btn-clear').style.display='none';document.getElementById('gist-select').value='';lastProcessedVideoId='';selectedSubFile=null;subtitles=[];document.getElementById('selected-file-box').classList.remove('show');document.getElementById('file-label').innerText='Chọn tệp .vtt';i.focus();}
 function toggleSubSettings(){document.getElementById('sub-settings-panel').classList.toggle('show');}
