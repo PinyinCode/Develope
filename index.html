@@ -83,6 +83,7 @@
 <div class="container">
     <div class="app-header"><h3>🎬 Pinyin AI</h3></div>
 
+    <!-- URL Input -->
     <div class="card" id="input-card">
         <label>🔗 Link YouTube (để tải phụ đề mới)</label>
         <div class="row">
@@ -96,6 +97,7 @@
         <p style="font-size:10px;color:var(--text-secondary);margin-top:4px" id="pbText">Sẵn sàng</p>
     </div>
 
+    <!-- Settings -->
     <div class="settings-toggle" onclick="toggleSettings()">⚙️ Cài đặt GitHub & PC Server ▾</div>
     <div class="card" id="settings-card" style="display:none;">
         <label>GitHub Username</label><input type="text" id="ghUser" placeholder="Username" style="margin-bottom:10px">
@@ -105,19 +107,25 @@
         <button class="btn-sm" style="width:100%;background:var(--blue);color:white;padding:12px" onclick="saveSettings()">💾 LƯU</button>
     </div>
 
+    <!-- Gist Library -->
     <div class="card" id="gist-card">
-        <label>📚 Kho phụ đề đã lưu (chọn + Play để phát)</label>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <label>📚 Kho phụ đề</label>
+            <button class="btn-sm" style="padding:4px 8px;font-size:10px;" onclick="renameCurrentVideo()">✏️ Đổi tên</button>
+        </div>
         <div class="row">
             <select id="gist-select" onchange="onGistSelected(this.value)">
                 <option value="">-- Chọn phụ đề... --</option>
             </select>
-            <button class="btn-sm" style="width:40px" onclick="loadGistLibrary(true)">🔄</button>
+            <button class="btn-sm" style="width:40px" id="btn-reload" onclick="reloadGist()">🔄</button>
         </div>
         <p style="font-size:10px;color:var(--text-secondary);margin-top:4px" id="matched-sub-note">Sẵn sàng</p>
     </div>
 
+    <!-- Player -->
     <div class="player-wrap hidden" id="video-wrapper"><div id="player"></div></div>
 
+    <!-- Controls -->
     <div class="card" style="padding:10px 16px">
         <div class="row" style="flex-wrap:wrap;gap:6px">
             <button class="btn-sm" id="btn-play-pause" onclick="togglePlayPause()">⏵ Play</button>
@@ -134,8 +142,10 @@
         </div>
     </div>
 
+    <!-- Subtitle -->
     <div id="subtitle-box"><span style="color:var(--text-secondary);font-size:14px">Chọn phụ đề + Play, hoặc nhập link mới để tải...</span></div>
 
+    <!-- Log -->
     <div class="card" id="log-card"><label>📋 Tiến trình</label><div id="logBox">🟢 Sẵn sàng</div></div>
 </div>
 
@@ -167,8 +177,7 @@ function saveSettings(){
     log('Da luu ✓','ok'); loadGistLibrary(true);
 }
 function toggleSettings(){
-    const c=document.getElementById('settings-card');
-    const b=document.querySelector('.settings-toggle');
+    const c=document.getElementById('settings-card');const b=document.querySelector('.settings-toggle');
     c.style.display=c.style.display==='none'?'block':'none';
     b.textContent=c.style.display==='none'?'⚙️ Cai dat ▾':'⚙️ Cai dat ▴';
 }
@@ -185,39 +194,58 @@ function prog(p,t=''){document.getElementById('pb').style.width=p+'%';if(t)docum
 function onUrlInput(){document.getElementById('btn-clear').style.display=document.getElementById('yt-link').value?'block':'none';}
 function clearUrl(){document.getElementById('yt-link').value='';document.getElementById('btn-clear').style.display='none';}
 
-// ===== GIST (CÓ CACHE 5 PHÚT) =====
+// ===== GIST =====
 async function loadGistLibrary(force=false){
     const select=document.getElementById('gist-select');
     select.innerHTML='<option value="">-- Dang quet... --</option>';
-    
-    let items=[];
-    let token=localStorage.gh_token||localStorage.gh_pat_token;
-    let lastScan=parseInt(localStorage.getItem('gh_last_scan')||'0');
-    let now=Date.now();
-    
-    // Dùng cache nếu < 5 phút và không force
-    if(!force && (now-lastScan)<300000 && Object.keys(gh_cloud_map).length>0){
+    let items=[], token=localStorage.gh_token||localStorage.gh_pat_token;
+    let lastScan=parseInt(localStorage.getItem('gh_last_scan')||'0'), now=Date.now();
+    if(!force&&(now-lastScan)<300000&&Object.keys(gh_cloud_map).length>0){
         for(let vId in gh_cloud_map){let e=gh_cloud_map[vId];items.push({videoId:vId,rawUrl:e.url,title:e.title});}
-        log('Cache: '+items.length+' video','info');
     }else if(token){
-        log('Quet Gist...','info');
         try{
             let res=await fetch('https://api.github.com/gists?per_page=100',{headers:{"Authorization":`token ${token}`}});
-            if(res.ok){
-                let gists=await res.json();
-                let newMap={};
-                for(let g of gists){if(g.files)for(let fn in g.files){if(fn.endsWith('.vtt')){let v=fn.replace('.vtt','');if(!newMap[v])newMap[v]={url:g.files[fn].raw_url,title:(g.description||'').replace(/^.*Subtitle\s*-\s*/i,'').trim()||`Video ${v}`};}}}
-                gh_cloud_map=newMap;localStorage.setItem('gh_cloud_map',JSON.stringify(newMap));localStorage.setItem('gh_last_scan',now);
-                for(let vId in newMap){let e=newMap[vId];items.push({videoId:vId,rawUrl:e.url,title:e.title});}
-                log('Da quet: '+items.length+' video','ok');
-            }else if(res.status===403){log('API limit, dung cache','err');for(let vId in gh_cloud_map){let e=gh_cloud_map[vId];items.push({videoId:vId,rawUrl:e.url,title:e.title});}}
-        }catch(e){log('Loi mang, dung cache','err');for(let vId in gh_cloud_map){let e=gh_cloud_map[vId];items.push({videoId:vId,rawUrl:e.url,title:e.title});}}
-    }else{for(let vId in gh_cloud_map){let e=gh_cloud_map[vId];items.push({videoId:vId,rawUrl:e.url,title:e.title});}}
-    
+            if(res.ok){let gists=await res.json();let newMap={};for(let g of gists){if(g.files)for(let fn in g.files){if(fn.endsWith('.vtt')){let v=fn.replace('.vtt','');if(!newMap[v])newMap[v]={url:g.files[fn].raw_url,title:(g.description||'').replace(/^.*Subtitle\s*-\s*/i,'').trim()||`Video ${v}`};}}}gh_cloud_map=newMap;localStorage.setItem('gh_cloud_map',JSON.stringify(newMap));localStorage.setItem('gh_last_scan',now);for(let vId in newMap){let e=newMap[vId];items.push({videoId:vId,rawUrl:e.url,title:e.title});}}
+        }catch(e){}
+    }
+    if(!items.length)for(let vId in gh_cloud_map){let e=gh_cloud_map[vId];items.push({videoId:vId,rawUrl:e.url,title:e.title});}
     items.sort((a,b)=>b.videoId.localeCompare(a.videoId));
     select.innerHTML=items.length?`<option value="">-- Chon (${items.length}) --</option>`:'<option value="">-- Chua co --</option>';
     items.forEach(i=>{let o=document.createElement('option');o.value=JSON.stringify(i);o.textContent=i.title;select.appendChild(o);});
     document.getElementById('matched-sub-note').innerText=items.length?`${items.length} video`:'Chua co video';
+}
+
+// ===== NÚT RELOAD: NẾU ĐANG CHỌN PHỤ ĐỀ -> LOAD VIDEO ĐÓ, KHÔNG -> LOAD LẠI KHO =====
+async function reloadGist(){
+    if(currentGistItem){
+        // Load video tương ứng với phụ đề đang chọn
+        log(`Load: ${currentGistItem.title}`,'info');
+        let res=await fetch(currentGistItem.rawUrl);
+        if(res.ok){
+            subtitles=parseVTT(await res.text());
+            document.getElementById('matched-sub-note').innerText=`📦 ${currentGistItem.title}`;
+            document.getElementById('video-wrapper').classList.remove('hidden');
+            if(player){player.loadVideoById(currentGistItem.videoId);startSync();}
+            else{player=new YT.Player('player',{height:'100%',width:'100%',videoId:currentGistItem.videoId,playerVars:{playsinline:1,autoplay:1},events:{onReady:startSync,onStateChange:onPlayerStateChange}});}
+        }
+    }else{
+        // Load lại toàn bộ kho
+        loadGistLibrary(true);
+    }
+}
+
+// ===== ĐỔI TÊN =====
+function renameCurrentVideo(){
+    if(!currentGistItem){alert('Chon phu de trong kho truoc!');return}
+    let cur=currentGistItem.title;
+    let nt=prompt('Nhap ten moi:',cur);
+    if(!nt||!nt.trim())return; nt=nt.trim();
+    gh_cloud_map[currentGistItem.videoId].title=nt;
+    localStorage.setItem('gh_cloud_map',JSON.stringify(gh_cloud_map));
+    currentGistItem.title=nt;
+    loadGistLibrary(false);
+    document.getElementById('matched-sub-note').innerText=`✏️ ${nt}`;
+    log(`Da doi ten: ${nt}`,'ok');
 }
 
 // ===== CHỌN PHỤ ĐỀ =====
