@@ -83,7 +83,6 @@
 <div class="container">
     <div class="app-header"><h3>🎬 Pinyin AI</h3></div>
 
-    <!-- URL Input -->
     <div class="card" id="input-card">
         <label>🔗 Link YouTube (để tải phụ đề mới)</label>
         <div class="row">
@@ -97,7 +96,6 @@
         <p style="font-size:10px;color:var(--text-secondary);margin-top:4px" id="pbText">Sẵn sàng</p>
     </div>
 
-    <!-- Settings -->
     <div class="settings-toggle" onclick="toggleSettings()">⚙️ Cài đặt GitHub & PC Server ▾</div>
     <div class="card" id="settings-card" style="display:none;">
         <label>GitHub Username</label><input type="text" id="ghUser" placeholder="Username" style="margin-bottom:10px">
@@ -107,7 +105,6 @@
         <button class="btn-sm" style="width:100%;background:var(--blue);color:white;padding:12px" onclick="saveSettings()">💾 LƯU</button>
     </div>
 
-    <!-- Gist Library -->
     <div class="card" id="gist-card">
         <div style="display:flex;justify-content:space-between;align-items:center;">
             <label>📚 Kho phụ đề</label>
@@ -117,15 +114,13 @@
             <select id="gist-select" onchange="onGistSelected(this.value)">
                 <option value="">-- Chọn phụ đề... --</option>
             </select>
-            <button class="btn-sm" style="width:40px" id="btn-reload" onclick="reloadGist()">🔄</button>
+            <button class="btn-sm" style="width:40px" id="btn-reload" onclick="handleReload()">🔄</button>
         </div>
         <p style="font-size:10px;color:var(--text-secondary);margin-top:4px" id="matched-sub-note">Sẵn sàng</p>
     </div>
 
-    <!-- Player -->
     <div class="player-wrap hidden" id="video-wrapper"><div id="player"></div></div>
 
-    <!-- Controls -->
     <div class="card" style="padding:10px 16px">
         <div class="row" style="flex-wrap:wrap;gap:6px">
             <button class="btn-sm" id="btn-play-pause" onclick="togglePlayPause()">⏵ Play</button>
@@ -142,10 +137,8 @@
         </div>
     </div>
 
-    <!-- Subtitle -->
     <div id="subtitle-box"><span style="color:var(--text-secondary);font-size:14px">Chọn phụ đề + Play, hoặc nhập link mới để tải...</span></div>
 
-    <!-- Log -->
     <div class="card" id="log-card"><label>📋 Tiến trình</label><div id="logBox">🟢 Sẵn sàng</div></div>
 </div>
 
@@ -157,6 +150,7 @@ let currentGistItem=null;
 let isLoopEnabled=false, currentSpeedIndex=2;
 const speeds=[0.5,0.75,1.0,1.25,1.5,2.0];
 let pc_url='', gh_cloud_map={};
+let reloadTimer=null; // Timer cho double-click reload
 
 // ===== INIT =====
 function onYouTubeIframeAPIReady(){ loadSettings(); loadGistLibrary(false); }
@@ -215,22 +209,37 @@ async function loadGistLibrary(force=false){
     document.getElementById('matched-sub-note').innerText=items.length?`${items.length} video`:'Chua co video';
 }
 
-// ===== NÚT RELOAD: NẾU ĐANG CHỌN PHỤ ĐỀ -> LOAD VIDEO ĐÓ, KHÔNG -> LOAD LẠI KHO =====
-async function reloadGist(){
+// ===== RELOAD: 1 LẦN -> LOAD VIDEO, 2 LẦN -> LOAD KHO =====
+function handleReload(){
     if(currentGistItem){
-        // Load video tương ứng với phụ đề đang chọn
-        log(`Load: ${currentGistItem.title}`,'info');
-        let res=await fetch(currentGistItem.rawUrl);
-        if(res.ok){
-            subtitles=parseVTT(await res.text());
-            document.getElementById('matched-sub-note').innerText=`📦 ${currentGistItem.title}`;
-            document.getElementById('video-wrapper').classList.remove('hidden');
-            if(player){player.loadVideoById(currentGistItem.videoId);startSync();}
-            else{player=new YT.Player('player',{height:'100%',width:'100%',videoId:currentGistItem.videoId,playerVars:{playsinline:1,autoplay:1},events:{onReady:startSync,onStateChange:onPlayerStateChange}});}
+        // Nếu đang chọn phụ đề -> load video tương ứng
+        if(reloadTimer){
+            // Double click -> load lại kho
+            clearTimeout(reloadTimer);
+            reloadTimer=null;
+            log('Double click - Load lai kho','info');
+            loadGistLibrary(true);
+        }else{
+            // Single click -> load video
+            loadVideoFromGist(currentGistItem);
+            // Đặt timer để bắt double click
+            reloadTimer=setTimeout(()=>{reloadTimer=null;},500);
         }
     }else{
-        // Load lại toàn bộ kho
+        // Không chọn phụ đề -> load kho
         loadGistLibrary(true);
+    }
+}
+
+async function loadVideoFromGist(item){
+    log(`Load: ${item.title}`,'info');
+    let res=await fetch(item.rawUrl);
+    if(res.ok){
+        subtitles=parseVTT(await res.text());
+        document.getElementById('matched-sub-note').innerText=`📦 ${item.title}`;
+        document.getElementById('video-wrapper').classList.remove('hidden');
+        if(player){player.loadVideoById(item.videoId);startSync();}
+        else{player=new YT.Player('player',{height:'100%',width:'100%',videoId:item.videoId,playerVars:{playsinline:1,autoplay:1},events:{onReady:startSync,onStateChange:onPlayerStateChange}});}
     }
 }
 
@@ -254,13 +263,7 @@ function onGistSelected(val){if(!val){currentGistItem=null;return;}try{currentGi
 // ===== PLAY =====
 function playSelectedGist(){
     if(!currentGistItem){alert('Chon phu de trong kho!');return;}
-    let item=currentGistItem;
-    fetch(item.rawUrl).then(r=>r.text()).then(text=>{
-        subtitles=parseVTT(text);document.getElementById('matched-sub-note').innerText=`📦 ${item.title}`;
-        document.getElementById('video-wrapper').classList.remove('hidden');
-        if(player){player.loadVideoById(item.videoId);startSync();}
-        else{player=new YT.Player('player',{height:'100%',width:'100%',videoId:item.videoId,playerVars:{playsinline:1,autoplay:1},events:{onReady:startSync,onStateChange:onPlayerStateChange}});}
-    }).catch(e=>log('Loi: '+e.message,'err'));
+    loadVideoFromGist(currentGistItem);
 }
 function startSync(){if(syncInterval)clearInterval(syncInterval);syncInterval=setInterval(syncSub,200);}
 function syncSub(){if(!player?.getCurrentTime||!subtitles.length)return;const t=player.getCurrentTime(),idx=subtitles.findIndex(s=>t>=s.start&&t<=s.end);if(idx!==-1&&idx!==activeSubIndex){activeSubIndex=idx;const s=subtitles[idx];document.getElementById('subtitle-box').innerHTML=`<div class="cn">${s.rawLines[0]}</div><div class="py">${s.rawLines[1]}</div><div class="vi">${s.rawLines[2]}</div>`;}}
