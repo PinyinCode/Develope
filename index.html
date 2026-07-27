@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -13,6 +13,8 @@
             --text-secondary: #98989f;
             --accent: #ff2d55;
             --accent-light: rgba(255, 45, 85, 0.15);
+            --blue: #0a84ff;
+            --green: #30d158;
             --border-color: rgba(255, 255, 255, 0.1);
             --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
             --radius: 20px;
@@ -21,7 +23,7 @@
             --fs-py: 16px;
             --fs-vi: 14px;
         }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
@@ -36,26 +38,9 @@
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
         }
-
-        .container {
-            width: 100%;
-            max-width: 540px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .app-header {
-            text-align: center;
-            padding: 6px 0;
-        }
-        .app-header h3 {
-            margin: 0;
-            font-size: 17px;
-            font-weight: 600;
-            color: var(--text-main);
-        }
-
+        .container { width: 100%; max-width: 540px; display: flex; flex-direction: column; gap: 16px; }
+        .app-header { text-align: center; padding: 6px 0; }
+        .app-header h3 { margin: 0; font-size: 17px; font-weight: 600; color: var(--text-main); }
         .card {
             background: var(--card-bg);
             backdrop-filter: blur(25px);
@@ -70,1081 +55,410 @@
             overflow: hidden;
             opacity: 1;
         }
-        
-        .card.collapsed {
-            max-height: 0;
-            padding-top: 0;
-            padding-bottom: 0;
-            margin-top: 0;
-            margin-bottom: 0;
-            opacity: 0;
-            border-color: transparent;
-            pointer-events: none;
-        }
-
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            margin-bottom: 10px;
-        }
+        .card.collapsed { max-height: 0; padding-top: 0; padding-bottom: 0; margin-top: 0; margin-bottom: 0; opacity: 0; border-color: transparent; pointer-events: none; }
+        .input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
         .input-group:last-child { margin-bottom: 0; }
-
-        label {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .url-row {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            position: relative;
-        }
-        
-        .input-wrapper-flex {
-            position: relative;
-            flex: 1;
-            display: flex;
-            align-items: center;
-        }
-
-        .url-row input[type="text"] {
-            width: 100%;
-            padding-right: 36px;
-        }
-
-        .btn-clear-input {
-            position: absolute;
-            right: 10px;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            padding: 0 4px;
-            display: none;
-            z-index: 2;
-        }
+        label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .url-row { display: flex; gap: 8px; align-items: center; position: relative; }
+        .input-wrapper-flex { position: relative; flex: 1; display: flex; align-items: center; }
+        .url-row input[type="text"] { width: 100%; padding-right: 36px; }
+        .btn-clear-input { position: absolute; right: 10px; background: none; border: none; color: var(--text-secondary); font-size: 18px; font-weight: bold; cursor: pointer; padding: 0 4px; display: none; z-index: 2; }
         .btn-clear-input:hover { color: var(--text-main); }
-
         input[type="text"], input[type="password"], select {
-            width: 100%;
-            padding: 12px 14px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            border-radius: var(--element-radius);
-            color: var(--text-main);
-            font-size: 14px;
-            box-sizing: border-box;
-            outline: none;
-            transition: all 0.2s ease;
+            width: 100%; padding: 12px 14px; background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color); border-radius: var(--element-radius);
+            color: var(--text-main); font-size: 14px; box-sizing: border-box; outline: none; transition: all 0.2s ease;
         }
-        
         select {
-            cursor: pointer;
-            appearance: none;
-            -webkit-appearance: none;
+            cursor: pointer; appearance: none; -webkit-appearance: none;
             background-image: url('data:image/svg+xml;utf8,<svg fill="%2398989f" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
-            background-repeat: no-repeat;
-            background-position: right 10px center;
-            padding-right: 32px;
+            background-repeat: no-repeat; background-position: right 10px center; padding-right: 32px;
         }
-
-        select option {
-            background-color: var(--card-solid);
-            color: var(--text-main);
-        }
-
-        input[type="text"]:focus, input[type="password"]:focus, select:focus {
-            background-color: var(--card-solid);
-            border-color: var(--accent);
-            box-shadow: 0 0 0 4px var(--accent-light);
-        }
-
+        select option { background-color: var(--card-solid); color: var(--text-main); }
+        input:focus, select:focus { background-color: var(--card-solid); border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-light); }
         button.btn-action-inline {
-            padding: 12px 16px;
-            background-color: var(--accent);
-            color: white;
-            border: none;
-            border-radius: var(--element-radius);
-            font-weight: 600;
-            font-size: 13px;
-            cursor: pointer;
-            white-space: nowrap;
-            box-shadow: 0 4px 15px var(--accent-light);
-            transition: transform 0.1s, opacity 0.2s;
+            padding: 12px 16px; background-color: var(--accent); color: white; border: none;
+            border-radius: var(--element-radius); font-weight: 600; font-size: 13px; cursor: pointer;
+            white-space: nowrap; box-shadow: 0 4px 15px var(--accent-light); transition: transform 0.1s, opacity 0.2s;
         }
         button.btn-action-inline:active { transform: scale(0.96); opacity: 0.9; }
-        button.btn-action-inline.cancel-state {
-            background-color: var(--text-secondary);
-            box-shadow: none;
-        }
-        button.btn-github {
-            background-color: #2ea043;
-            box-shadow: 0 4px 15px rgba(46, 160, 67, 0.3);
-        }
-
-        .file-options-row {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .file-upload-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-            flex: 1;
-        }
-        .file-upload-wrapper input[type="file"] {
-            position: absolute;
-            left: 0; top: 0;
-            opacity: 0;
-            width: 100%; height: 100%;
-            cursor: pointer;
-        }
+        button.btn-action-inline.cancel-state { background-color: var(--text-secondary); box-shadow: none; }
+        button.btn-github { background-color: #2ea043; box-shadow: 0 4px 15px rgba(46, 160, 67, 0.3); }
+        .file-options-row { display: flex; gap: 8px; align-items: center; }
+        .file-upload-wrapper { position: relative; overflow: hidden; display: inline-block; flex: 1; }
+        .file-upload-wrapper input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
         .btn-file {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            text-align: center;
-            border-radius: var(--element-radius);
-            font-weight: 500;
-            font-size: 13px;
-            box-sizing: border-box;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            display: block; width: 100%; padding: 12px; background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color); color: var(--text-main); text-align: center;
+            border-radius: var(--element-radius); font-weight: 500; font-size: 13px; box-sizing: border-box;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-
         .selected-file-box {
-            display: none;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            padding: 8px 12px;
-            border-radius: var(--element-radius);
-            font-size: 13px;
-            color: var(--accent);
-            font-weight: 500;
-            margin-top: 8px;
+            display: none; align-items: center; justify-content: space-between;
+            background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color);
+            padding: 8px 12px; border-radius: var(--element-radius); font-size: 13px;
+            color: var(--accent); font-weight: 500; margin-top: 8px;
         }
         .selected-file-box.show { display: flex; }
-        .btn-remove-sub {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 16px;
-            cursor: pointer;
-            padding: 0 4px;
-            font-weight: bold;
-        }
+        .btn-remove-sub { background: none; border: none; color: var(--text-secondary); font-size: 16px; cursor: pointer; padding: 0 4px; font-weight: bold; }
         .btn-remove-sub:hover { color: var(--accent); }
-
-        .matched-sub-note {
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-top: 6px;
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .player-container {
-            position: relative;
-            width: 100%;
-            padding-bottom: 56.25%;
-            background: #000;
-            border-radius: var(--radius);
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border-color);
-        }
+        .matched-sub-note { font-size: 12px; color: var(--text-secondary); margin-top: 6px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .player-container { position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border-color); }
         .player-container.hidden { display: none; }
         #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-
         .timeline-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(25px);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius);
-            padding: 14px 18px;
-            box-shadow: var(--shadow);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            background: var(--card-bg); backdrop-filter: blur(25px); border: 1px solid var(--border-color);
+            border-radius: var(--radius); padding: 14px 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px;
         }
-        .timeline-slider-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        input[type="range"] {
-            flex: 1;
-            accent-color: var(--accent);
-            cursor: pointer;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            outline: none;
-            -webkit-appearance: none;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 12px; height: 12px;
-            border-radius: 50%;
-            background: var(--accent);
-            cursor: pointer;
-        }
-
-        .time-info {
-            font-size: 11px;
-            color: var(--text-secondary);
-            font-variant-numeric: tabular-nums;
-            min-width: 75px;
-            text-align: right;
-            font-weight: 500;
-        }
-
-        .control-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 12px;
-            border-top: 1px solid var(--border-color);
-            padding-top: 10px;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
+        .timeline-slider-wrapper { display: flex; align-items: center; gap: 12px; }
+        input[type="range"] { flex: 1; accent-color: var(--accent); cursor: pointer; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; outline: none; -webkit-appearance: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); cursor: pointer; }
+        .time-info { font-size: 11px; color: var(--text-secondary); font-variant-numeric: tabular-nums; min-width: 75px; text-align: right; font-weight: 500; }
+        .control-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-top: 1px solid var(--border-color); padding-top: 10px; gap: 6px; flex-wrap: wrap; }
         .control-buttons-left { display: flex; gap: 5px; flex-wrap: wrap; }
-        .timeline-btn {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            font-weight: 500;
-            cursor: pointer;
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 11px;
-        }
-        .timeline-btn.active {
-            background-color: var(--accent-light);
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-
-        .sub-settings-panel {
-            display: none;
-            flex-direction: column;
-            gap: 10px;
-            border-top: 1px solid var(--border-color);
-            padding-top: 10px;
-        }
+        .timeline-btn { background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-color); color: var(--text-main); font-weight: 500; cursor: pointer; padding: 6px 10px; border-radius: 8px; font-size: 11px; }
+        .timeline-btn.active { background-color: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+        .sub-settings-panel { display: none; flex-direction: column; gap: 10px; border-top: 1px solid var(--border-color); padding-top: 10px; }
         .sub-settings-panel.show { display: flex; }
         .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
         .setting-row label { font-size: 11px; color: var(--text-secondary); text-transform: none; }
         .setting-row span { font-size: 11px; color: var(--text-main); text-align: right; }
-
         #subtitle-box {
-            background: var(--card-bg);
-            backdrop-filter: blur(25px);
-            border: 1px solid var(--border-color);
-            padding: 24px 16px;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            min-height: 120px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 12px;
-            text-align: center;
-            box-sizing: border-box;
+            background: var(--card-bg); backdrop-filter: blur(25px); border: 1px solid var(--border-color);
+            padding: 24px 16px; border-radius: var(--radius); box-shadow: var(--shadow);
+            min-height: 120px; display: flex; flex-direction: column; justify-content: center;
+            align-items: center; gap: 12px; text-align: center; box-sizing: border-box;
         }
-
         .sub-line { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; width: 100%; }
         .line-cn .word { font-size: var(--fs-cn); }
         .line-py .word { font-size: var(--fs-py); }
-
-        .karaoke-line .word {
-            display: inline-block;
-            font-weight: 600;
-            color: var(--text-secondary);
-            transition: color 0.15s ease, transform 0.15s ease;
-        }
-        .karaoke-line .highlight {
-            color: var(--text-main);
-            transform: scale(1.02);
-            text-shadow: 0 0 20px rgba(255, 45, 85, 0.4);
-        }
-
-        .vietnamese-line {
-            font-size: var(--fs-vi);
-            font-weight: 400;
-            color: var(--accent);
-            opacity: 0.95;
-            border-top: 1px solid var(--border-color);
-            padding-top: 8px;
-            width: 80%;
-            text-align: center;
-        }
-
+        .karaoke-line .word { display: inline-block; font-weight: 600; color: var(--text-secondary); transition: color 0.15s ease, transform 0.15s ease; }
+        .karaoke-line .highlight { color: var(--text-main); transform: scale(1.02); text-shadow: 0 0 20px rgba(255, 45, 85, 0.4); }
+        .vietnamese-line { font-size: var(--fs-vi); font-weight: 400; color: var(--accent); opacity: 0.95; border-top: 1px solid var(--border-color); padding-top: 8px; width: 80%; text-align: center; }
         .status { font-size: 11px; color: var(--text-secondary); text-align: right; }
+        .progress { width: 100%; height: 4px; background: #3a3a3c; border-radius: 2px; overflow: hidden; margin-top: 8px; }
+        .progress-bar { height: 100%; background: var(--blue); width: 0; transition: width .3s; }
+        #logBox {
+            background: var(--card-bg); border-radius: 12px; padding: 12px; height: 150px;
+            overflow-y: auto; font-size: 11px; font-family: monospace; color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+        .log-ok{color:var(--green)}.log-err{color:var(--accent)}.log-info{color:var(--blue)}
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
+<div class="container">
+    <div class="app-header"><h3>Pinyin AI - Auto Scan Gist Cross-Browser</h3></div>
 
-    <div class="container">
-        <div class="app-header"><h3>Pinyin AI - Auto Scan Gist Cross-Browser</h3></div>
-
-        <div class="card" id="input-card">
-            <div class="input-group">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <label>Link YouTube hoặc Tên Video</label>
-                    <button type="button" class="timeline-btn" style="padding: 2px 8px; font-size: 10px;" onclick="renameActiveVideo()" title="Sửa tên video đang chạy">✏️ Sửa tên video</button>
-                </div>
-                <div class="url-row">
-                    <div class="input-wrapper-flex">
-                        <input type="text" id="yt-link" placeholder="Dán link hoặc tên video..." oninput="onUrlInputChanged()">
-                        <button type="button" id="btn-clear" class="btn-clear-input" onclick="clearUrlInput()">×</button>
-                    </div>
-                    <button id="btn-action" class="btn-action-inline" onclick="handleMainAction()">Tải</button>
-                </div>
+    <div class="card" id="input-card">
+        <div class="input-group">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label>Link YouTube hoặc Tên Video</label>
+                <button type="button" class="timeline-btn" style="padding: 2px 8px; font-size: 10px;" onclick="renameActiveVideo()" title="Sửa tên video đang chạy">✏️ Sửa tên video</button>
             </div>
-
-            <!-- Kho phụ đề & liên kết GitHub đã lưu -->
-            <div class="input-group" style="margin-top: 10px;">
-                <label>Kho phụ đề & liên kết GitHub đã lưu</label>
-                <div class="url-row">
-                    <select id="gist-select" onchange="onGistSelected(this.value)">
-                        <option value="">-- Mở kho phụ đề & video đã lưu --</option>
-                    </select>
-                    <button type="button" class="timeline-btn" style="padding: 12px 12px; white-space: nowrap;" onclick="loadGistLibrary(false)" title="Làm mới danh sách">🔄</button>
+            <div class="url-row">
+                <div class="input-wrapper-flex">
+                    <input type="text" id="yt-link" placeholder="Dán link hoặc tên video..." oninput="onUrlInputChanged()">
+                    <button type="button" id="btn-clear" class="btn-clear-input" onclick="clearUrlInput()">×</button>
                 </div>
+                <button id="btn-action" class="btn-action-inline" onclick="handleMainAction()">Tải</button>
             </div>
-            
-            <div class="input-group" style="margin-top: 10px;">
-                <label>Chọn tệp phụ đề trực tiếp (.vtt)</label>
-                <div class="file-options-row">
-                    <div class="file-upload-wrapper">
-                        <div class="btn-file" id="file-label">Chọn tệp .vtt</div>
-                        <input type="file" id="srt-file" accept=".vtt" onchange="handleFileSelect(event)">
-                    </div>
-                </div>
-
-                <div class="selected-file-box" id="selected-file-box">
-                    <span id="selected-file-name">Chưa chọn tệp</span>
-                    <button type="button" class="btn-remove-sub" onclick="removeSelectedSub()" title="Xoá sub đã chọn">×</button>
-                </div>
-                
-                <div class="file-options-row" style="margin-top: 10px;">
-                    <button type="button" class="btn-action-inline btn-github" style="width: 100%;" onclick="syncToGitHub()">☁️ Tạo bản sao & Đẩy lên GitHub Gist</button>
-                </div>
-                
-                <div class="matched-sub-note" id="matched-sub-note">Trạng thái: Đang chờ tải dữ liệu...</div>
-            </div>
+            <div class="progress"><div class="progress-bar" id="pb"></div></div>
+            <p style="font-size:10px;color:var(--text-secondary);margin-top:4px" id="pbText">Sẵn sàng</p>
         </div>
 
-        <div class="player-container hidden" id="video-wrapper">
-            <div id="player"></div>
-        </div>
-
-        <div class="timeline-card">
-            <div class="timeline-slider-wrapper">
-                <input type="range" id="time-slider" value="0" min="0" max="100" step="0.1" oninput="onSliderSeek(this.value)" onchange="onSliderChange(this.value)">
-                <span class="time-info" id="time-display">00:00 / 00:00</span>
-            </div>
-            
-            <div class="control-row">
-                <div class="control-buttons-left">
-                    <button class="timeline-btn" id="btn-play-pause" onclick="togglePlayPause()">⏵ Play</button>
-                    <button class="timeline-btn" onclick="toggleVideoVisibility()">🎥 Video</button>
-                    <button class="timeline-btn" onclick="cyclePlaybackRate()" id="btn-speed">⚡ 1.0x</button>
-                    <button class="timeline-btn" id="btn-loop" onclick="toggleLoop()">🔁 Repeat</button>
-                    <button class="timeline-btn" onclick="toggleSubSettings()">⚙️ Size</button>
-                </div>
-                <span class="status" id="status-text">Sẵn sàng</span>
-            </div>
-
-            <div class="sub-settings-panel" id="sub-settings-panel">
-                <div class="setting-row">
-                    <label>Chữ Hán (Line 1)</label>
-                    <input type="range" min="14" max="36" value="20" oninput="updateSubFontSize('cn', this.value)">
-                    <span id="val-cn">20px</span>
-                </div>
-                <div class="setting-row">
-                    <label>Phiên âm (Line 2)</label>
-                    <input type="range" min="12" max="28" value="16" oninput="updateSubFontSize('py', this.value)">
-                    <span id="val-py">16px</span>
-                </div>
-                <div class="setting-row">
-                    <label>Tiếng Việt (Line 3)</label>
-                    <input type="range" min="10" max="24" value="14" oninput="updateSubFontSize('vi', this.value)">
-                    <span id="val-vi">14px</span>
-                </div>
+        <div class="input-group" style="margin-top: 10px;">
+            <label>Kho phụ đề & liên kết GitHub đã lưu</label>
+            <div class="url-row">
+                <select id="gist-select" onchange="onGistSelected(this.value)">
+                    <option value="">-- Mở kho phụ đề & video đã lưu --</option>
+                </select>
+                <button type="button" class="timeline-btn" style="padding: 12px 12px; white-space: nowrap;" onclick="loadGistLibrary(false)" title="Làm mới danh sách">🔄</button>
             </div>
         </div>
-
-        <div id="subtitle-box">
-            <span style="color: var(--text-secondary); font-size: 14px;">Lời bài hát sẽ hiển thị tại đây...</span>
+        
+        <div class="input-group" style="margin-top: 10px;">
+            <label>Chọn tệp phụ đề trực tiếp (.vtt)</label>
+            <div class="file-options-row">
+                <div class="file-upload-wrapper">
+                    <div class="btn-file" id="file-label">Chọn tệp .vtt</div>
+                    <input type="file" id="srt-file" accept=".vtt" onchange="handleFileSelect(event)">
+                </div>
+            </div>
+            <div class="selected-file-box" id="selected-file-box">
+                <span id="selected-file-name">Chưa chọn tệp</span>
+                <button type="button" class="btn-remove-sub" onclick="removeSelectedSub()" title="Xoá sub đã chọn">×</button>
+            </div>
+            <div class="file-options-row" style="margin-top: 10px;">
+                <button type="button" class="btn-action-inline btn-github" style="width: 100%;" onclick="syncToGitHub()">☁️ Tạo bản sao & Đẩy lên GitHub Gist</button>
+            </div>
+            <div class="matched-sub-note" id="matched-sub-note">Trạng thái: Đang chờ tải dữ liệu...</div>
         </div>
     </div>
 
-    <script>
-        let player;
-        let subtitles = [];
-        let syncInterval = null;
-        let activeSubIndex = -1;
-        let selectedSubFile = null; 
-        let isSeeking = false;
-        let videoDuration = 0;
-        let isLoadingState = false;
-        let isLoopEnabled = false;
+    <!-- Settings -->
+    <div class="card">
+        <label>⚙️ GitHub & PC Server</label>
+        <input type="text" id="ghUser" placeholder="GitHub Username">
+        <div class="row" style="margin-top:8px;display:flex;gap:8px;">
+            <input type="text" id="ghRepo" placeholder="Repository" style="flex:1">
+            <input type="password" id="ghToken" placeholder="Token ghp_..." style="flex:1">
+        </div>
+        <input type="text" id="pcUrl" placeholder="PC Server URL (https://xxxx.trycloudflare.com)" style="margin-top:8px">
+        <button class="btn-action-inline" style="background-color:var(--blue);width:100%;margin-top:8px" onclick="saveSettings()">💾 LƯU CÀI ĐẶT</button>
+    </div>
 
-        const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
-        let currentSpeedIndex = 2;
-        let lastProcessedVideoId = "";
+    <div class="player-container hidden" id="video-wrapper"><div id="player"></div></div>
 
-        function onYouTubeIframeAPIReady() {
-            document.getElementById('status-text').innerText = "Hệ thống sẵn sàng";
-            loadGistLibrary(true); 
-        }
+    <div class="timeline-card">
+        <div class="timeline-slider-wrapper">
+            <input type="range" id="time-slider" value="0" min="0" max="100" step="0.1" oninput="onSliderSeek(this.value)" onchange="onSliderChange(this.value)">
+            <span class="time-info" id="time-display">00:00 / 00:00</span>
+        </div>
+        <div class="control-row">
+            <div class="control-buttons-left">
+                <button class="timeline-btn" id="btn-play-pause" onclick="togglePlayPause()">⏵ Play</button>
+                <button class="timeline-btn" onclick="toggleVideoVisibility()">🎥 Video</button>
+                <button class="timeline-btn" onclick="cyclePlaybackRate()" id="btn-speed">⚡ 1.0x</button>
+                <button class="timeline-btn" id="btn-loop" onclick="toggleLoop()">🔁 Repeat</button>
+                <button class="timeline-btn" onclick="toggleSubSettings()">⚙️ Size</button>
+            </div>
+            <span class="status" id="status-text">Sẵn sàng</span>
+        </div>
+        <div class="sub-settings-panel" id="sub-settings-panel">
+            <div class="setting-row"><label>Chữ Hán (Line 1)</label><input type="range" min="14" max="36" value="20" oninput="updateSubFontSize('cn', this.value)"><span id="val-cn">20px</span></div>
+            <div class="setting-row"><label>Phiên âm (Line 2)</label><input type="range" min="12" max="28" value="16" oninput="updateSubFontSize('py', this.value)"><span id="val-py">16px</span></div>
+            <div class="setting-row"><label>Tiếng Việt (Line 3)</label><input type="range" min="10" max="24" value="14" oninput="updateSubFontSize('vi', this.value)"><span id="val-vi">14px</span></div>
+        </div>
+    </div>
 
-        async function loadGistLibrary(silent = false) {
-            const select = document.getElementById('gist-select');
-            select.innerHTML = '<option value="">-- Đang quét kho phụ đề... --</option>';
-            
-            let items = [];
-            let cloudMap = JSON.parse(localStorage.getItem('gh_cloud_map') || "{}");
-            
-            for (let vId in cloudMap) {
-                let entry = cloudMap[vId];
-                if (typeof entry === 'object' && entry !== null) {
-                    items.push({ videoId: vId, rawUrl: entry.url, title: entry.title });
-                } else {
-                    items.push({ videoId: vId, rawUrl: entry, title: `Video ID: ${vId}` });
-                }
+    <div id="subtitle-box"><span style="color: var(--text-secondary); font-size: 14px;">Lời bài hát sẽ hiển thị tại đây...</span></div>
+
+    <!-- Log -->
+    <div class="card">
+        <label>📋 Nhật ký</label>
+        <div id="logBox">🟢 Sẵn sàng</div>
+    </div>
+</div>
+
+<script>
+// ===== STATE =====
+let player, subtitles=[], syncInterval=null, activeSubIndex=-1, selectedSubFile=null;
+let isSeeking=false, videoDuration=0, isLoadingState=false, isLoopEnabled=false;
+const speeds=[0.5,0.75,1.0,1.25,1.5,2.0]; let currentSpeedIndex=2;
+let lastProcessedVideoId="", processingVid=null, playingVid=null;
+
+// ===== HELPERS =====
+function vidFromUrl(u){const m=u.match(/(?:v=|\/)([\w-]{11})/)||u.match(/youtu\.be\/([\w-]{11})/);return m?m[1]:(u.length===11?u:null)}
+function log(m,c=''){const t=new Date().toLocaleTimeString('vi-VN');document.getElementById('logBox').innerHTML+=`<br><span class="log-${c}">[${t}] ${m}</span>`;document.getElementById('logBox').scrollTop=document.getElementById('logBox').scrollHeight}
+function prog(p,t=''){document.getElementById('pb').style.width=p+'%';if(t)document.getElementById('pbText').innerText=t}
+
+// ===== SETTINGS =====
+function loadSettings(){
+    document.getElementById('ghUser').value=localStorage.gh_user||'';
+    document.getElementById('ghRepo').value=localStorage.gh_repo||'subtitle-ai';
+    document.getElementById('ghToken').value=localStorage.gh_token||localStorage.gh_pat_token||'';
+    document.getElementById('pcUrl').value=localStorage.pc_url||'';
+}
+function saveSettings(){
+    localStorage.gh_user=document.getElementById('ghUser').value.trim();
+    localStorage.gh_repo=document.getElementById('ghRepo').value.trim();
+    let tok=document.getElementById('ghToken').value.trim();
+    localStorage.gh_token=tok; localStorage.gh_pat_token=tok;
+    localStorage.pc_url=document.getElementById('pcUrl').value.trim();
+    log('Da luu cai dat ✓','ok');
+}
+function ghHeaders(){let t=localStorage.gh_token||localStorage.gh_pat_token;return{"Authorization":`token ${t}`,"Accept":"application/vnd.github.v3+json"}}
+
+// ===== GIST LIBRARY (DONG BO XOA) =====
+async function loadGistLibrary(silent=false){
+    const select=document.getElementById('gist-select');
+    select.innerHTML='<option value="">-- Dang quet va dong bo... --</option>';
+    let items=[], cloudMap=JSON.parse(localStorage.getItem('gh_cloud_map')||'{}'), newCloudMap={};
+    let token=localStorage.gh_token||localStorage.gh_pat_token;
+    if(token){
+        try{
+            let page=1, allGists=[];
+            while(true){
+                let res=await fetch(`https://api.github.com/gists?page=${page}&per_page=100`,{headers:{"Authorization":`token ${token}`}});
+                if(!res.ok)break; let gists=await res.json();
+                if(gists.length===0)break; allGists=allGists.concat(gists); page++; if(page>10)break;
             }
-
-            let token = localStorage.getItem('gh_pat_token');
-            
-            if (!token && !silent) {
-                token = prompt("Lần đầu sử dụng hoặc chưa kết nối GitHub.\nVui lòng nhập GitHub Personal Access Token (PAT) của bạn để tải dữ liệu:");
-                if (token !== null && token.trim() !== "") {
-                    token = token.trim();
-                    localStorage.setItem('gh_pat_token', token);
-                } else {
-                    token = null;
-                }
-            }
-
-            if (token) {
-                try {
-                    let res = await fetch("https://api.github.com/gists", {
-                        headers: { "Authorization": `token ${token}` }
-                    });
-                    
-                    if (res.ok) {
-                        let gists = await res.json();
-                        for (let gist of gists) {
-                            if (gist.files) {
-                                for (let filename in gist.files) {
-                                    if (filename.endsWith('.vtt')) {
-                                        let vId = filename.replace('.vtt', '');
-                                        let rawUrl = gist.files[filename].raw_url;
-                                        
-                                        let cleanTitle = "";
-                                        if (cloudMap[vId] && typeof cloudMap[vId] === 'object' && cloudMap[vId].title && !cloudMap[vId].title.includes("YouTube ID:")) {
-                                            cleanTitle = cloudMap[vId].title;
-                                        } else {
-                                            let rawDesc = gist.description || `Video ID: ${vId}`;
-                                            cleanTitle = rawDesc.replace(/^Pinyin AI Subtitle\s*-\s*/i, '').trim();
-                                            if (cleanTitle.includes("YouTube ID:") || cleanTitle.startsWith("Video ID:")) {
-                                                cleanTitle = `Video Podcast (${vId})`;
-                                            }
-                                        }
-                                        
-                                        if (!items.some(i => i.videoId === vId)) {
-                                            items.push({
-                                                videoId: vId,
-                                                rawUrl: rawUrl,
-                                                title: cleanTitle
-                                            });
-                                        }
-                                        if (!cloudMap[vId] || (typeof cloudMap[vId] === 'object' && cloudMap[vId].title.includes("YouTube ID:"))) {
-                                            cloudMap[vId] = { url: rawUrl, title: cleanTitle };
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        localStorage.setItem('gh_cloud_map', JSON.stringify(cloudMap));
-                    } else if (res.status === 401) {
-                        localStorage.removeItem('gh_pat_token');
-                        if (!silent) alert("❌ Token GitHub không hợp lệ hoặc đã hết hạn! Vui lòng bấm 'Làm mới' để nhập lại.");
-                    }
-                } catch(e) {
-                    console.error("Lỗi khi quét Gist:", e);
-                    if (!silent) alert("❌ Có lỗi kết nối đến mạng hoặc GitHub.");
-                }
-            }
-
-            select.innerHTML = '<option value="">-- Mở kho phụ đề & video đã lưu --</option>';
-            if (items.length === 0) {
-                select.innerHTML = '<option value="">-- Chưa có video/sub nào được lưu --</option>';
-                if (!silent) document.getElementById('matched-sub-note').innerText = "⚠️ Chưa tìm thấy sub/video nào trong kho.";
-            } else {
-                items.forEach(item => {
-                    let opt = document.createElement('option');
-                    opt.value = JSON.stringify(item);
-                    opt.textContent = `🎬 ${item.title}`;
-                    select.appendChild(opt);
-                });
-                if (!silent) document.getElementById('matched-sub-note').innerText = `✅ Đã cập nhật ${items.length} video trong kho!`;
-            }
-        }
-
-        // Đổi tên video đang chạy trực tiếp ngay lập tức
-        function renameActiveVideo() {
-            const inputVal = document.getElementById('yt-link').value.trim();
-            let videoId = extractVideoID(inputVal);
-            
-            if (!videoId) {
-                alert("Chưa có video nào đang được chọn hoặc chạy! Vui lòng chọn hoặc tải video trước.");
-                return;
-            }
-
-            let cloudMap = JSON.parse(localStorage.getItem('gh_cloud_map') || "{}");
-            let currentTitle = videoId;
-            
-            if (cloudMap[videoId]) {
-                if (typeof cloudMap[videoId] === 'object' && cloudMap[videoId].title) {
-                    currentTitle = cloudMap[videoId].title;
-                }
-            }
-
-            let newTitle = prompt("Nhập tên mới cho video đang chạy:", currentTitle);
-            if (newTitle !== null && newTitle.trim() !== "") {
-                newTitle = newTitle.trim();
-                
-                if (!cloudMap[videoId]) {
-                    cloudMap[videoId] = { url: "", title: newTitle };
-                } else if (typeof cloudMap[videoId] === 'object') {
-                    cloudMap[videoId].title = newTitle;
-                } else {
-                    cloudMap[videoId] = { url: cloudMap[videoId], title: newTitle };
-                }
-                
-                localStorage.setItem('gh_cloud_map', JSON.stringify(cloudMap));
-                loadGistLibrary(true);
-                document.getElementById('matched-sub-note').innerText = `✏️ Đã cập nhật tên video thành: ${newTitle}`;
-            }
-        }
-
-        async function onGistSelected(valueStr) {
-            if (!valueStr) return;
-            try {
-                let item = JSON.parse(valueStr);
-                let videoId = item.videoId;
-                
-                let ytInput = document.getElementById('yt-link');
-                ytInput.value = `https://www.youtube.com/watch?v=${videoId}`;
-                document.getElementById('btn-clear').style.display = 'block';
-                lastProcessedVideoId = videoId;
-
-                document.getElementById('status-text').innerText = "Đang nạp phụ đề từ kho...";
-                let res = await fetch(item.rawUrl);
-                if (res.ok) {
-                    let textContent = await res.text();
-                    loadSubTextContent(textContent, `${videoId}.vtt`);
-                    document.getElementById('matched-sub-note').innerText = `📦 Đã chọn từ kho: ${item.title}`;
-                    
-                    handleMainAction();
-                } else {
-                    alert("Không thể tải file phụ đề từ GitHub!");
-                }
-            } catch(e) {
-                console.error("Lỗi chọn item Gist:", e);
-            }
-        }
-
-        async function evaluateSubtitlePriority(videoId) {
-            if (selectedSubFile) {
-                document.getElementById('matched-sub-note').innerText = `🎯 Đang dùng phụ đề chọn thủ công: ${selectedSubFile.name}`;
-                return true;
-            }
-
-            if (videoId) {
-                let loadedCloud = await checkAndLoadFromCloud(videoId);
-                if (loadedCloud) return true;
-            }
-
-            document.getElementById('matched-sub-note').innerText = "⚠️ Chưa có phụ đề. Vui lòng chọn tệp .vtt hoặc chọn từ Kho đã lưu.";
-            subtitles = [];
-            return false;
-        }
-
-        async function onUrlInputChanged() {
-            const val = document.getElementById('yt-link').value;
-            document.getElementById('btn-clear').style.display = val.length > 0 ? 'block' : 'none';
-            
-            let videoId = extractVideoID(val);
-            if (videoId !== lastProcessedVideoId) {
-                lastProcessedVideoId = videoId;
-                selectedSubFile = null; 
-                document.getElementById('selected-file-box').classList.remove('show');
-                document.getElementById('file-label').innerText = "Chọn tệp .vtt";
-                subtitles = [];
-                
-                if (videoId) {
-                    await evaluateSubtitlePriority(videoId);
-                }
-            }
-        }
-
-        function clearUrlInput() {
-            const input = document.getElementById('yt-link');
-            input.value = '';
-            document.getElementById('btn-clear').style.display = 'none';
-            document.getElementById('gist-select').value = "";
-            lastProcessedVideoId = "";
-            selectedSubFile = null;
-            subtitles = [];
-            document.getElementById('selected-file-box').classList.remove('show');
-            document.getElementById('file-label').innerText = "Chọn tệp .vtt";
-            document.getElementById('matched-sub-note').innerText = "Trạng thái: Đang chờ tải dữ liệu...";
-            input.focus();
-        }
-
-        function toggleSubSettings() {
-            document.getElementById('sub-settings-panel').classList.toggle('show');
-        }
-
-        function updateSubFontSize(type, val) {
-            document.documentElement.style.setProperty(`--fs-${type}`, val + 'px');
-            document.getElementById(`val-${type}`).innerText = val + 'px';
-        }
-
-        function cyclePlaybackRate() {
-            currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
-            let newRate = speeds[currentSpeedIndex];
-            document.getElementById('btn-speed').innerText = `⚡ ${newRate}x`;
-            if (player && typeof player.setPlaybackRate === 'function') {
-                player.setPlaybackRate(newRate);
-            }
-        }
-
-        function toggleLoop() {
-            isLoopEnabled = !isLoopEnabled;
-            const btnLoop = document.getElementById('btn-loop');
-            if (isLoopEnabled) btnLoop.classList.add('active');
-            else btnLoop.classList.remove('active');
-        }
-
-        function extractVideoID(url) {
-            if (!url) return null;
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : (url.length === 11 ? url : null);
-        }
-
-        function loadSubTextContent(textContent, nameSource) {
-            subtitles = parseSRT(textContent);
-            document.getElementById('status-text').innerText = `Đã nạp sub thành công`;
-        }
-
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            if (!file.name.toLowerCase().endsWith('.vtt')) {
-                alert("Vui lòng chọn tệp có định dạng .vtt");
-                return;
-            }
-
-            selectedSubFile = file; 
-            document.getElementById('file-label').innerText = "Đã chọn tệp";
-            document.getElementById('selected-file-name').innerText = file.name;
-            document.getElementById('selected-file-box').classList.add('show');
-            
-            let reader = new FileReader();
-            reader.onload = function(e) {
-                loadSubTextContent(e.target.result, file.name);
-                document.getElementById('matched-sub-note').innerText = `🎯 Đang ưu tiên dùng phụ đề chọn thủ công: ${file.name}`;
-            };
-            reader.readAsText(file, 'UTF-8');
-        }
-
-        async function removeSelectedSub() {
-            selectedSubFile = null; 
-            document.getElementById('selected-file-box').classList.remove('show');
-            document.getElementById('file-label').innerText = "Chọn tệp .vtt";
-            document.getElementById('srt-file').value = ""; 
-
-            let videoId = extractVideoID(document.getElementById('yt-link').value);
-            await evaluateSubtitlePriority(videoId);
-        }
-
-        async function syncToGitHub() {
-            const inputVal = document.getElementById('yt-link').value.trim();
-            const videoId = extractVideoID(inputVal);
-            
-            if (!videoId) {
-                alert("Vui lòng nhập Link YouTube hợp lệ trước khi đẩy lên GitHub!");
-                return;
-            }
-            if (!selectedSubFile) {
-                alert("Vui lòng chọn một tệp phụ đề thủ công trước khi đẩy lên GitHub!");
-                return;
-            }
-
-            let subContent = await selectedSubFile.text();
-            
-            let defaultName = selectedSubFile.name.replace(/\.[^/.]+$/, "");
-            let videoTitle = prompt("Nhập tiêu đề hoặc tên hiển thị của video này:", defaultName);
-            if (!videoTitle || videoTitle.trim() === "") videoTitle = defaultName;
-            
-            let token = localStorage.getItem('gh_pat_token');
-            if (!token) {
-                token = prompt("Nhập GitHub Personal Access Token (PAT) của bạn (sẽ được lưu lại cho các lần sau):");
-                if (token !== null && token.trim() !== "") {
-                    localStorage.setItem('gh_pat_token', token.trim());
-                } else {
-                    return;
-                }
-            }
-            
-            let payloadData = {
-                description: `Pinyin AI Subtitle - ${videoTitle}`,
-                public: true,
-                files: {
-                    [`${videoId}.vtt`]: {
-                        content: subContent
+            for(let gist of allGists){
+                if(gist.files) for(let fn in gist.files){
+                    if(fn.endsWith('.vtt')){
+                        let vId=fn.replace('.vtt',''), rawUrl=gist.files[fn].raw_url;
+                        let title=(gist.description||`Video ${vId}`).replace(/^.*Subtitle\s*-\s*/i,'').trim();
+                        if(!title||title.includes('YouTube ID:')||title.startsWith('Video ID:')) title=`Video ${vId}`;
+                        items.push({videoId:vId,rawUrl:rawUrl,title:title}); newCloudMap[vId]={url:rawUrl,title:title};
                     }
                 }
-            };
-
-            document.getElementById('status-text').innerText = "Đang đẩy lên GitHub Gist...";
-            
-            try {
-                let headers = { "Content-Type": "application/json" };
-                let activeToken = localStorage.getItem('gh_pat_token');
-                if (activeToken && activeToken.trim() !== "") {
-                    headers["Authorization"] = `token ${activeToken.trim()}`;
-                }
-
-                let response = await fetch("https://api.github.com/gists", {
-                    method: "POST",
-                    headers: headers,
-                    body: JSON.stringify(payloadData)
-                });
-
-                if (!response.ok) {
-                    if(response.status === 401) {
-                        localStorage.removeItem('gh_pat_token');
-                    }
-                    throw new Error("Lỗi kết nối GitHub API (Mã lỗi: " + response.status + ")");
-                }
-
-                let result = await response.json();
-                let rawUrl = result.files[`${videoId}.vtt`].raw_url;
-
-                let cloudMap = JSON.parse(localStorage.getItem('gh_cloud_map') || "{}");
-                cloudMap[videoId] = { url: rawUrl, title: videoTitle };
-                localStorage.setItem('gh_cloud_map', JSON.stringify(cloudMap));
-
-                alert(`✅ Thành công! Đã đẩy bản sao phụ đề lên GitHub Gist với tên: ${videoTitle}`);
-                document.getElementById('status-text').innerText = "Đã đồng bộ GitHub thành công!";
-                
-                loadGistLibrary(true);
-            } catch (err) {
-                alert("❌ Đẩy lên GitHub thất bại: " + err.message);
-                document.getElementById('status-text').innerText = "Lỗi đồng bộ GitHub";
             }
-        }
+            localStorage.setItem('gh_cloud_map',JSON.stringify(newCloudMap));
+        }catch(e){console.error(e);}
+    }
+    if(Object.keys(newCloudMap).length===0){newCloudMap=cloudMap; for(let vId in cloudMap){let e=cloudMap[vId];items.push({videoId:vId,rawUrl:typeof e==='object'?e.url:e,title:typeof e==='object'?e.title:`Video ${vId}`});}}
+    items.sort((a,b)=>b.videoId.localeCompare(a.videoId));
+    select.innerHTML='<option value="">-- Chon video ('+items.length+') --</option>';
+    items.forEach(item=>{let o=document.createElement('option');o.value=JSON.stringify(item);o.textContent=`${item.title}`;select.appendChild(o);});
+    let msg=`${items.length} video`; if(Object.keys(newCloudMap).length>0){let d=Object.keys(cloudMap).length-Object.keys(newCloudMap).length; if(d>0)msg+=` (da xoa ${d})`;}
+    if(!silent)document.getElementById('matched-sub-note').innerText=msg; log(msg,'ok');
+}
 
-        async function checkAndLoadFromCloud(videoId) {
-            let cloudMap = JSON.parse(localStorage.getItem('gh_cloud_map') || "{}");
-            
-            if (cloudMap[videoId]) {
-                document.getElementById('status-text').innerText = "Đang tải phụ đề từ GitHub Cloud...";
-                try {
-                    let entry = cloudMap[videoId];
-                    let targetUrl = (typeof entry === 'object' && entry !== null) ? entry.url : entry;
-                    if (targetUrl) {
-                        let res = await fetch(targetUrl);
-                        if (res.ok) {
-                            let textContent = await res.text();
-                            loadSubTextContent(textContent, `${videoId}.vtt`);
-                            let displayTitle = (typeof entry === 'object' && entry !== null && entry.title) ? entry.title : videoId;
-                            document.getElementById('matched-sub-note').innerText = `☁️ Đã tự động nạp phụ đề: ${displayTitle}`;
-                            return true;
-                        }
-                    }
-                } catch(e) {}
-            }
+async function onGistSelected(val){
+    if(!val)return;
+    try{
+        let item=JSON.parse(val), videoId=item.videoId;
+        document.getElementById('yt-link').value=`https://www.youtube.com/watch?v=${videoId}`;
+        document.getElementById('btn-clear').style.display='block'; lastProcessedVideoId=videoId;
+        document.getElementById('status-text').innerText="Đang nạp phụ đề từ kho...";
+        let res=await fetch(item.rawUrl);
+        if(res.ok){let t=await res.text();loadSubTextContent(t,`${videoId}.vtt`);document.getElementById('matched-sub-note').innerText=`📦 ${item.title}`;handleMainAction();}
+        else alert("Không thể tải file phụ đề từ GitHub!");
+    }catch(e){}
+}
 
-            let token = localStorage.getItem('gh_pat_token');
-            if (token) {
-                document.getElementById('status-text').innerText = "Đang quét danh sách Gist...";
-                try {
-                    let res = await fetch("https://api.github.com/gists", {
-                        headers: { "Authorization": `token ${token.trim()}` }
-                    });
-                    if (res.ok) {
-                        let gists = await res.json();
-                        for (let gist of gists) {
-                            let files = gist.files;
-                            let targetFileName = `${videoId}.vtt`;
-                            if (files && files[targetFileName]) {
-                                let rawUrl = files[targetFileName].raw_url;
-                                let cleanTitle = (gist.description || `Video ID: ${videoId}`).replace(/^Pinyin AI Subtitle\s*-\s*/i, '').trim();
-                                
-                                if (cleanTitle.includes("YouTube ID:") || cleanTitle.startsWith("Video ID:")) {
-                                    cleanTitle = `Video Podcast (${videoId})`;
-                                }
+function renameActiveVideo(){
+    let videoId=extractVideoID(document.getElementById('yt-link').value.trim());
+    if(!videoId){alert("Chưa có video nào!");return}
+    let cloudMap=JSON.parse(localStorage.getItem('gh_cloud_map')||'{}'), cur=videoId;
+    if(cloudMap[videoId]&&typeof cloudMap[videoId]==='object'&&cloudMap[videoId].title)cur=cloudMap[videoId].title;
+    let nt=prompt("Nhập tên mới:",cur); if(!nt||!nt.trim())return; nt=nt.trim();
+    if(!cloudMap[videoId])cloudMap[videoId]={url:"",title:nt};else if(typeof cloudMap[videoId]==='object')cloudMap[videoId].title=nt;else cloudMap[videoId]={url:cloudMap[videoId],title:nt};
+    localStorage.setItem('gh_cloud_map',JSON.stringify(cloudMap)); loadGistLibrary(true);
+    document.getElementById('matched-sub-note').innerText=`✏️ Đã cập nhật: ${nt}`;
+}
 
-                                if(!cloudMap[videoId] || typeof cloudMap[videoId] !== 'object') {
-                                    cloudMap[videoId] = { url: rawUrl, title: cleanTitle };
-                                } else {
-                                    cloudMap[videoId].url = rawUrl;
-                                    if(!cloudMap[videoId].title) cloudMap[videoId].title = cleanTitle;
-                                }
-                                localStorage.setItem('gh_cloud_map', JSON.stringify(cloudMap));
+async function evaluateSubtitlePriority(videoId){
+    if(selectedSubFile){document.getElementById('matched-sub-note').innerText=`🎯 ${selectedSubFile.name}`;return true}
+    if(videoId){let r=await checkAndLoadFromCloud(videoId); if(r)return true}
+    document.getElementById('matched-sub-note').innerText="⚠️ Chưa có phụ đề."; subtitles=[]; return false;
+}
 
-                                let subRes = await fetch(rawUrl);
-                                if (subRes.ok) {
-                                    let textContent = await subRes.text();
-                                    loadSubTextContent(textContent, targetFileName);
-                                    document.getElementById('matched-sub-note').innerText = `🌐 Đã tự động nạp sub: ${cleanTitle}`;
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                } catch(e) {}
-            }
+async function onUrlInputChanged(){
+    let val=document.getElementById('yt-link').value; document.getElementById('btn-clear').style.display=val.length>0?'block':'none';
+    let videoId=extractVideoID(val);
+    if(videoId!==lastProcessedVideoId){lastProcessedVideoId=videoId;selectedSubFile=null;document.getElementById('selected-file-box').classList.remove('show');document.getElementById('file-label').innerText="Chọn tệp .vtt";subtitles=[]; if(videoId)await evaluateSubtitlePriority(videoId);}
+}
 
-            return false;
-        }
+function clearUrlInput(){
+    let i=document.getElementById('yt-link');i.value='';document.getElementById('btn-clear').style.display='none';
+    document.getElementById('gist-select').value="";lastProcessedVideoId="";selectedSubFile=null;subtitles=[];
+    document.getElementById('selected-file-box').classList.remove('show');document.getElementById('file-label').innerText="Chọn tệp .vtt";
+    document.getElementById('matched-sub-note').innerText="Trạng thái: Đang chờ...";i.focus();
+}
 
-        async function handleMainAction() {
-            const btn = document.getElementById('btn-action');
-            if (!isLoadingState) {
-                const inputVal = document.getElementById('yt-link').value.trim();
-                let videoId = extractVideoID(inputVal);
-                
-                if (!videoId) {
-                    alert("Vui lòng nhập Link YouTube hợp lệ!");
-                    return;
-                }
+function toggleSubSettings(){document.getElementById('sub-settings-panel').classList.toggle('show')}
+function updateSubFontSize(t,v){document.documentElement.style.setProperty(`--fs-${t}`,v+'px');document.getElementById(`val-${t}`).innerText=v+'px'}
+function cyclePlaybackRate(){currentSpeedIndex=(currentSpeedIndex+1)%speeds.length;let r=speeds[currentSpeedIndex];document.getElementById('btn-speed').innerText=`⚡ ${r}x`;if(player?.setPlaybackRate)player.setPlaybackRate(r)}
+function toggleLoop(){isLoopEnabled=!isLoopEnabled;document.getElementById('btn-loop').classList.toggle('active',isLoopEnabled)}
+function extractVideoID(url){if(!url)return null;const m=url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);return(m&&m[2].length===11)?m[2]:(url.length===11?url:null)}
+function loadSubTextContent(t,n){subtitles=parseSRT(t);document.getElementById('status-text').innerText="Đã nạp sub";}
+function handleFileSelect(e){
+    let f=e.target.files[0];if(!f)return;if(!f.name.toLowerCase().endsWith('.vtt')){alert("Vui lòng chọn tệp .vtt");return}
+    selectedSubFile=f;document.getElementById('file-label').innerText="Đã chọn tệp";document.getElementById('selected-file-name').innerText=f.name;document.getElementById('selected-file-box').classList.add('show');
+    let r=new FileReader();r.onload=function(e){loadSubTextContent(e.target.result,f.name);document.getElementById('matched-sub-note').innerText=`🎯 ${f.name}`};r.readAsText(f,'UTF-8');
+}
+async function removeSelectedSub(){selectedSubFile=null;document.getElementById('selected-file-box').classList.remove('show');document.getElementById('file-label').innerText="Chọn tệp .vtt";document.getElementById('srt-file').value="";let v=extractVideoID(document.getElementById('yt-link').value);await evaluateSubtitlePriority(v);}
 
-                let hasSubReady = await evaluateSubtitlePriority(videoId);
-                if (!hasSubReady) {
-                    alert("⚠️ Không tìm thấy phụ đề hợp lệ! Vui lòng chọn tệp .vtt hoặc kiểm tra lại kết nối GitHub.");
-                    return;
-                }
+async function syncToGitHub(){
+    let videoId=extractVideoID(document.getElementById('yt-link').value.trim());
+    if(!videoId){alert("Nhập link YouTube!");return} if(!selectedSubFile){alert("Chọn tệp .vtt trước!");return}
+    let sub=await selectedSubFile.text(), title=prompt("Nhập tiêu đề:",selectedSubFile.name.replace(/\.[^/.]+$/,"")); if(!title||!title.trim())title=selectedSubFile.name.replace(/\.[^/.]+$/,"");
+    let token=localStorage.gh_token||localStorage.gh_pat_token;
+    if(!token){token=prompt("Nhập GitHub Token:");if(token){localStorage.gh_token=token;localStorage.gh_pat_token=token}else return}
+    document.getElementById('status-text').innerText="Đang đẩy lên Gist...";
+    try{
+        let r=await fetch("https://api.github.com/gists",{method:"POST",headers:{...ghHeaders(),"Content-Type":"application/json"},body:JSON.stringify({description:`Pinyin AI Subtitle - ${title}`,public:true,files:{[`${videoId}.vtt`]:{content:sub}}})});
+        if(!r.ok){if(r.status===401){localStorage.removeItem('gh_token');localStorage.removeItem('gh_pat_token')}throw new Error("Lỗi "+r.status)}
+        let d=await r.json(), cloudMap=JSON.parse(localStorage.getItem('gh_cloud_map')||'{}'); cloudMap[videoId]={url:d.files[`${videoId}.vtt`].raw_url,title:title};
+        localStorage.setItem('gh_cloud_map',JSON.stringify(cloudMap)); alert(`✅ Đã đẩy lên Gist: ${title}`); document.getElementById('status-text').innerText="Đã đồng bộ!"; loadGistLibrary(true);
+    }catch(e){alert("❌ "+e.message)}
+}
 
-                isLoadingState = true;
-                btn.innerText = "Huỷ";
-                btn.classList.add('cancel-state');
+async function checkAndLoadFromCloud(videoId){
+    let cloudMap=JSON.parse(localStorage.getItem('gh_cloud_map')||'{}');
+    if(cloudMap[videoId]){try{let e=cloudMap[videoId],u=typeof e==='object'?e.url:e;if(u){let r=await fetch(u);if(r.ok){loadSubTextContent(await r.text(),`${videoId}.vtt`);document.getElementById('matched-sub-note').innerText=`☁️ ${typeof e==='object'?e.title:videoId}`;return true}}}catch(e){}}
+    let token=localStorage.gh_token||localStorage.gh_pat_token;
+    if(token){try{let r=await fetch("https://api.github.com/gists",{headers:{"Authorization":`token ${token}`}});if(r.ok){let gists=await r.json();for(let g of gists){let fn=`${videoId}.vtt`;if(g.files&&g.files[fn]){let raw=g.files[fn].raw_url,title=(g.description||`Video ${videoId}`).replace(/^.*Subtitle\s*-\s*/i,'').trim();
+    cloudMap[videoId]={url:raw,title:title};localStorage.setItem('gh_cloud_map',JSON.stringify(cloudMap));
+    let sr=await fetch(raw);if(sr.ok){loadSubTextContent(await sr.text(),fn);document.getElementById('matched-sub-note').innerText=`🌐 ${title}`;return true}}}}}catch(e){}}
+    return false;
+}
 
-                if (!player) {
-                    player = new YT.Player('player', {
-                        height: '100%', width: '100%',
-                        videoId: videoId,
-                        playerVars: { 'playsinline': 1, 'autoplay': 1 },
-                        events: {
-                            'onReady': (event) => {
-                                event.target.playVideo();
-                                event.target.setPlaybackRate(speeds[currentSpeedIndex]);
-                                startSubtitleSync();
-                                resetToLoadState();
-                                updatePlayPauseButtonState(true);
-                            },
-                            'onStateChange': onPlayerStateChange
-                        }
-                    });
-                } else {
-                    player.loadVideoById(videoId);
-                    player.setPlaybackRate(speeds[currentSpeedIndex]);
-                    startSubtitleSync();
-                    resetToLoadState();
-                    updatePlayPauseButtonState(true);
-                }
-            } else {
-                resetToLoadState();
-                if (player && typeof player.stopVideo === 'function') player.stopVideo();
-            }
-        }
+// ===== MAIN: TẢI AUDIO + UPLOAD (KHÔNG ẢNH HƯỞNG VIDEO ĐANG PHÁT) =====
+async function handleMainAction(){
+    const btn=document.getElementById('btn-action');
+    if(!isLoadingState){
+        const url=document.getElementById('yt-link').value.trim(), vid=vidFromUrl(url);
+        if(!vid){alert('Link không hợp lệ!');return}
+        if(!localStorage.gh_token&&!localStorage.gh_pat_token||!localStorage.pc_url){alert('Cấu hình GitHub + PC URL!');return}
 
-        function resetToLoadState() {
-            isLoadingState = false;
-            const btn = document.getElementById('btn-action');
-            btn.innerText = "Tải";
-            btn.classList.remove('cancel-state');
-        }
+        processingVid=vid; isLoadingState=true;
+        btn.innerText='⏹ DỪNG';btn.classList.add('cancel-state');
+        document.getElementById('logBox').innerHTML=''; prog(5,'Đang kiểm tra PC...'); log(`Xu ly: ${vid}`,'info');
+        if(playingVid&&playingVid!==vid)log(`Video dang phat: ${playingVid}`,'info');
 
-        function onPlayerStateChange(event) {
-            const inputCard = document.getElementById('input-card');
-
-            if (event.data == YT.PlayerState.PLAYING) {
-                updatePlayPauseButtonState(true);
-                inputCard.classList.add('collapsed');
-            } else if (event.data == YT.PlayerState.PAUSED) {
-                updatePlayPauseButtonState(false);
-                inputCard.classList.remove('collapsed');
-            } else if (event.data == YT.PlayerState.ENDED) {
-                updatePlayPauseButtonState(false);
-                inputCard.classList.remove('collapsed');
-                if (subtitles.length > 0) displaySubtitleBlock(subtitles[subtitles.length - 1], true);
-                if (isLoopEnabled && player) { player.seekTo(0, true); player.playVideo(); }
-            }
-        }
-
-        function togglePlayPause() {
-            if (!player || typeof player.getPlayerState !== 'function') return;
-            if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo();
-            else player.playVideo();
-        }
-
-        function updatePlayPauseButtonState(isPlaying) {
-            const btnPlay = document.getElementById('btn-play-pause');
-            if (btnPlay) btnPlay.innerHTML = isPlaying ? "⏸ Pause" : "⏵ Play";
-        }
-
-        function toggleVideoVisibility() {
-            document.getElementById('video-wrapper').classList.toggle('hidden');
-        }
-
-        function formatTime(seconds) {
-            let m = Math.floor(seconds / 60);
-            let s = Math.floor(seconds % 60);
-            return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
-        }
-
-        function onSliderSeek(val) {
-            isSeeking = true;
-            if (player && typeof player.getDuration === 'function') {
-                videoDuration = player.getDuration();
-                let targetTime = (val / 100) * videoDuration;
-                document.getElementById('time-display').innerText = `${formatTime(targetTime)} / ${formatTime(videoDuration)}`;
-            }
-        }
-
-        function onSliderChange(val) {
-            if (player && typeof player.seekTo === 'function') {
-                player.seekTo((val / 100) * player.getDuration(), true);
-            }
-            isSeeking = false;
-        }
-
-        function smartTokenize(line) {
-            let trimmed = line.trim();
-            return trimmed.includes(' ') ? trimmed.split(/\s+/) : Array.from(trimmed);
-        }
-
-        function parseSRT(data) {
-            const normalized = data.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-            const blocks = normalized.split('\n\n');
-            let subs = [];
-            blocks.forEach(block => {
-                const lines = block.split('\n');
-                let timeLineIdx = -1;
-                for (let i = 0; i < lines.length; i++) {
-                    if (lines[i].includes('-->')) { timeLineIdx = i; break; }
-                }
-                if (timeLineIdx !== -1) {
-                    const times = lines[timeLineIdx].split('-->');
-                    if (times.length === 2) {
-                        const start = parseTime(times[0].trim());
-                        const end = parseTime(times[1].trim());
-                        let rawLines = lines.slice(timeLineIdx + 1).map(l => l.replace(/<[^>]*>/g, '').trim()).filter(l => l !== "");
-                        while(rawLines.length < 3) rawLines.push("");
-                        subs.push({ start, end, rawLines });
-                    }
-                }
+        try{
+            const pcUrl=localStorage.pc_url.replace(/\/$/,'');
+            const h=await fetch(`${pcUrl}/health`,{signal:AbortSignal.timeout(5000)}); if(!h.ok)throw new Error('PC offline');
+            log('PC online ✓','ok'); prog(10,'PC đang tải audio...');
+            const blob=await new Promise((resolve,reject)=>{
+                const x=new XMLHttpRequest(); x.open('GET',`${pcUrl}/download?url=${encodeURIComponent(`https://youtu.be/${vid}`)}`,true);
+                x.responseType='blob';x.timeout=600000; x.onload=()=>x.status===200?resolve(x.response):reject(new Error(`Lỗi ${x.status}`));
+                x.onerror=()=>reject(new Error('Mất kết nối'));x.ontimeout=()=>reject(new Error('Timeout'));x.send();
             });
-            return subs;
-        }
+            log(`Tải xong: ${(blob.size/1024/1024).toFixed(1)}MB ✓`,'ok'); prog(50,'Đang upload GitHub...');
+            const b64=await new Promise(r=>{const rd=new FileReader();rd.onload=()=>r(rd.result.split(',')[1]);rd.readAsDataURL(blob)});
+            const user=localStorage.gh_user,repo=localStorage.gh_repo,api=`https://api.github.com/repos/${user}/${repo}/contents/data/audio/${vid}.m4a`;
+            let sha=null; try{const c=await fetch(api,{headers:ghHeaders()});if(c.ok)sha=(await c.json()).sha}catch(e){}
+            const body={message:`Audio ${vid}`,content:b64,branch:'main'};if(sha)body.sha=sha;
+            const r=await fetch(api,{method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)}); if(!r.ok)throw new Error((await r.json()).message);
+            log('Upload GitHub ✓','ok'); prog(100,'Hoàn tất!');
+            try{await fetch(`https://api.github.com/repos/${user}/${repo}/dispatches`,{method:'POST',headers:ghHeaders(),body:JSON.stringify({event_type:'process_audio',client_payload:{video_id:vid}})})}catch(e){}
+            log(`⏳ Đợi 3 phút...`,'info'); setTimeout(()=>checkAndLoadSub(vid),180000);
+        }catch(e){log('LỖI: '+e.message,'err');prog(0,'Lỗi');alert('Lỗi: '+e.message)}
+        finally{isLoadingState=false;btn.innerText='Tải';btn.classList.remove('cancel-state')}
+    }else{isLoadingState=false;btn.innerText='Tải';btn.classList.remove('cancel-state');prog(0,'Đã hủy');log('Đã hủy','info')}
+}
 
-        function parseTime(tStr) {
-            tStr = tStr.replace(',', '.');
-            const parts = tStr.split(':');
-            return parts.length < 3 ? 0 : parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
-        }
+async function checkAndLoadSub(vid){
+    const user=localStorage.gh_user,repo=localStorage.gh_repo,api=`https://api.github.com/repos/${user}/${repo}/contents/output/${vid}.vtt`;
+    log(`Kiểm tra phụ đề ${vid}...`,'info');
+    try{
+        const r=await fetch(api,{headers:ghHeaders()});
+        if(r.ok){const d=await r.json(),text=atob(d.content);
+            try{await fetch('https://api.github.com/gists',{method:'POST',headers:ghHeaders(),body:JSON.stringify({description:`YouTube Subtitle - ${vid}`,public:true,files:{[`${vid}.vtt`]:{content:d.content}}})});log(`Gist ✓`,'ok')}catch(e){}
+            let cm=JSON.parse(localStorage.getItem('gh_cloud_map')||'{}');cm[vid]={url:d.download_url,title:`Video ${vid}`};localStorage.setItem('gh_cloud_map',JSON.stringify(cm));
+            loadGistLibrary(true); if(vid===playingVid){subtitles=parseSRT(text);showSub();log('Đã cập nhật phụ đề ✓','ok')}
+            log(`Phụ đề ${vid} sẵn sàng!`,'ok');
+        }else{setTimeout(()=>checkAndLoadSub(vid),60000)}
+    }catch(e){log('Lỗi: '+e.message,'err')}
+}
 
-        function displaySubtitleBlock(sub, isFullHighlight = false) {
-            const subBox = document.getElementById('subtitle-box');
-            let tokensLine1 = smartTokenize(sub.rawLines[0]);
-            let tokensLine2 = smartTokenize(sub.rawLines[1]);
-            let vietnameseText = sub.rawLines[2];
-            
-            let html = '<div class="sub-line karaoke-line line-cn">';
-            tokensLine1.forEach(tok => { html += `<span class="${isFullHighlight ? ' word highlight' : ' word'}">${tok}&nbsp;</span>`; });
-            html += '</div><div class="sub-line karaoke-line line-py">';
-            tokensLine2.forEach(tok => { html += `<span class="${isFullHighlight ? ' word highlight' : ' word'}">${tok}&nbsp;</span>`; });
-            html += '</div>';
-            if (vietnameseText) html += `<div class="vietnamese-line">${vietnameseText}</div>`;
-            subBox.innerHTML = html;
-        }
+// ===== SUBTITLE =====
+function parseSRT(data){const n=data.replace(/\r\n/g,'\n').replace(/\r/g,'\n'),blocks=n.split('\n\n');let s=[];blocks.forEach(b=>{const l=b.split('\n');let t=-1;for(let i=0;i<l.length;i++){if(l[i].includes('-->')){t=i;break}}if(t!==-1){const ts=l[t].split('-->');if(ts.length===2){const st=parseTime(ts[0].trim()),en=parseTime(ts[1].trim());let r=l.slice(t+1).map(x=>x.replace(/<[^>]*>/g,'').trim()).filter(x=>x!=="");while(r.length<3)r.push("");s.push({start:st,end:en,rawLines:r})}}});return s}
+function parseTime(t){t=t.replace(',','.');const p=t.split(':');return p.length<3?0:parseFloat(p[0])*3600+parseFloat(p[1])*60+parseFloat(p[2])}
+function formatTime(s){let m=Math.floor(s/60),sec=Math.floor(s%60);return`${m<10?'0':''}${m}:${sec<10?'0':''}${sec}`}
+function smartTokenize(l){let t=l.trim();return t.includes(' ')?t.split(/\s+/):Array.from(t)}
+function displaySubtitleBlock(sub,full=false){const b=document.getElementById('subtitle-box');let t1=smartTokenize(sub.rawLines[0]),t2=smartTokenize(sub.rawLines[1]),vi=sub.rawLines[2];let h='<div class="sub-line karaoke-line line-cn">';t1.forEach(t=>{h+=`<span class="${full?'word highlight':'word'}">${t}&nbsp;</span>`});h+='</div><div class="sub-line karaoke-line line-py">';t2.forEach(t=>{h+=`<span class="${full?'word highlight':'word'}">${t}&nbsp;</span>`});h+='</div>';if(vi)h+=`<div class="vietnamese-line">${vi}</div>`;b.innerHTML=h}
+function showSub(){if(!subtitles.length)return;let s=subtitles[0];document.getElementById('subtitle-box').innerHTML=`<div class="sub-line line-cn"><span class="word">${s.rawLines[0]}</span></div><div class="sub-line line-py"><span class="word">${s.rawLines[1]}</span></div><div class="vietnamese-line">${s.rawLines[2]}</div>`}
 
-        function startSubtitleSync() {
-            if (syncInterval) clearInterval(syncInterval);
-            const subBox = document.getElementById('subtitle-box');
-            
-            syncInterval = setInterval(() => {
-                if (player && typeof player.getCurrentTime === 'function' && typeof player.getDuration === 'function') {
-                    try {
-                        let currentTime = player.getCurrentTime();
-                        videoDuration = player.getDuration();
+// ===== PLAYER =====
+function onPlayerStateChange(e){const c=document.getElementById('input-card');if(e.data==YT.PlayerState.PLAYING){updatePlayPauseButtonState(true);c.classList.add('collapsed')}else if(e.data==YT.PlayerState.PAUSED){updatePlayPauseButtonState(false);c.classList.remove('collapsed')}else if(e.data==YT.PlayerState.ENDED){updatePlayPauseButtonState(false);c.classList.remove('collapsed');if(subtitles.length>0)displaySubtitleBlock(subtitles[subtitles.length-1],true);if(isLoopEnabled&&player){player.seekTo(0,true);player.playVideo()}}}
+function togglePlayPause(){if(!player?.getPlayerState)return;if(player.getPlayerState()===YT.PlayerState.PLAYING)player.pauseVideo();else player.playVideo()}
+function updatePlayPauseButtonState(p){const b=document.getElementById('btn-play-pause');if(b)b.innerHTML=p?"⏸ Pause":"⏵ Play"}
+function toggleVideoVisibility(){document.getElementById('video-wrapper').classList.toggle('hidden')}
+function onSliderSeek(v){isSeeking=true;if(player?.getDuration){videoDuration=player.getDuration();document.getElementById('time-display').innerText=`${formatTime((v/100)*videoDuration)} / ${formatTime(videoDuration)}`}}
+function onSliderChange(v){if(player?.seekTo)player.seekTo((v/100)*player.getDuration(),true);isSeeking=false}
+function startSubtitleSync(){if(syncInterval)clearInterval(syncInterval);const b=document.getElementById('subtitle-box');syncInterval=setInterval(()=>{if(!player?.getCurrentTime||!player?.getDuration)return;try{let t=player.getCurrentTime();videoDuration=player.getDuration();if(videoDuration>0&&!isSeeking){document.getElementById('time-slider').value=(t/videoDuration)*100;document.getElementById('time-display').innerText=`${formatTime(t)} / ${formatTime(videoDuration)}`}let i=subtitles.findIndex(s=>t>=s.start&&t<=s.end);if(i!==-1){let s=subtitles[i];if(activeSubIndex!==i){activeSubIndex=i;displaySubtitleBlock(s,false)}let d=s.end-s.start,el=t-s.start,p=d>0?Math.min(Math.max(el/d,0),1):1;b.querySelectorAll('.karaoke-line').forEach(l=>{let w=l.querySelectorAll('.word'),hc=Math.floor(p*w.length);w.forEach((e,wi)=>{if(wi<hc)e.classList.add('highlight');else e.classList.remove('highlight')})})}else{if(player.getPlayerState()!==YT.PlayerState.ENDED){activeSubIndex=-1;b.innerHTML='<span style="color: var(--text-secondary); font-size: 14px;">Đang đợi...</span>'}}}catch(e){}},100)}
 
-                        if (videoDuration > 0 && !isSeeking) {
-                            let sliderVal = (currentTime / videoDuration) * 100;
-                            document.getElementById('time-slider').value = sliderVal;
-                            document.getElementById('time-display').innerText = `${formatTime(currentTime)} / ${formatTime(videoDuration)}`;
-                        }
+function onYouTubeIframeAPIReady(){document.getElementById('status-text').innerText="Hệ thống sẵn sàng";loadGistLibrary(true)}
 
-                        let subIndex = subtitles.findIndex(sub => currentTime >= sub.start && currentTime <= sub.end);
-                        if (subIndex !== -1) {
-                            let sub = subtitles[subIndex];
-                            if (activeSubIndex !== subIndex) {
-                                activeSubIndex = subIndex;
-                                displaySubtitleBlock(sub, false);
-                            }
-                            let duration = sub.end - sub.start;
-                            let elapsed = currentTime - sub.start;
-                            let progress = duration > 0 ? Math.min(Math.max(elapsed / duration, 0), 1) : 1;
-                            
-                            subBox.querySelectorAll('.karaoke-line').forEach(lineEl => {
-                                let wordElements = lineEl.querySelectorAll('.word');
-                                let highlightCount = Math.floor(progress * wordElements.length);
-                                wordElements.forEach((el, wIdx) => {
-                                    if (wIdx < highlightCount) el.classList.add('highlight');
-                                    else el.classList.remove('highlight');
-                                });
-                            });
-                        } else {
-                            if (player.getPlayerState() !== YT.PlayerState.ENDED) {
-                                activeSubIndex = -1;
-                                subBox.innerHTML = '<span style="color: var(--text-secondary); font-size: 14px;">Đang đợi lời bài hát...</span>';
-                            }
-                        }
-                    } catch(e) {}
-                }
-            }, 100);
-        }
-    </script>
+// ===== INIT =====
+loadSettings();
+log('🟢 Sẵn sàng! Bấm 🔄 để đồng bộ Gist','ok');
+</script>
 </body>
 </html>
