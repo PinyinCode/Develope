@@ -1,0 +1,60 @@
+name: 🎬 AI Subtitle Generator
+
+on:
+  workflow_dispatch:
+    inputs:
+      youtube_url:
+        description: 'YouTube URL'
+        required: false
+  repository_dispatch:
+    types: [process_video]
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 🐍 Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    
+    - name: 🎵 Cài FFmpeg (Hub)
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq ffmpeg
+        ffmpeg -version | head -1
+    
+    - name: 📦 Cài Python packages (Hub)
+      run: |
+        pip install --quiet --upgrade pip
+        pip install --quiet openai-whisper
+        pip install --quiet deep-translator
+        pip install --quiet pypinyin
+        pip install --quiet PyGithub
+        pip install --quiet requests
+    
+    - name: 🎤 Lấy audio từ PC Proxy
+      env:
+        PROXY_URL: ${{ secrets.PROXY_URL }}
+        YOUTUBE_URL: ${{ github.event.client_payload.youtube_url || github.event.inputs.youtube_url }}
+      run: |
+        python scripts/fetch_audio.py
+    
+    - name: 🤖 AI Whisper tạo phụ đề
+      run: |
+        python scripts/generate_subtitles.py
+    
+    - name: 📤 Đẩy lên Gist
+      env:
+        GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+      run: |
+        python scripts/push_to_gist.py
+    
+    - name: 🗑️ Dọn dẹp
+      run: |
+        rm -f data/audio.*
+        echo "✅ Done"
