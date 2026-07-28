@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -242,9 +242,9 @@ function prog(p,t=''){document.getElementById('pb').style.width=p+'%';if(t)docum
 
 // ===== URL =====
 function onUrlInput(){document.getElementById('btn-clear').style.display=document.getElementById('yt-link').value?'block':'none';}
-function clearUrl(){document.getElementById('yt-link').value='';document.getElementById('btn-clear').style.display='// ===== GIST =====
-none';}
+function clearUrl(){document.getElementById('yt-link').value='';document.getElementById('btn-clear').style.display='none';}
 
+// ===== GIST =====
 async function loadGistLibrary(force=false){
     const select=document.getElementById('gist-select');
     select.innerHTML='<option value="">-- Scan... --</option>';
@@ -313,6 +313,7 @@ async function loadGistLibrary(force=false){
     items.forEach(i=>{let o=document.createElement('option');o.value=JSON.stringify(i);o.textContent=i.title;select.appendChild(o);});
     document.getElementById('matched-sub-note').innerText=items.length?`${items.length} video`:'Chưa có video';
 }
+
 // ===== RELOAD: 1 LẦN -> LOAD VIDEO, 2 LẦN -> LOAD KHO =====
 function handleReload(){
     if(currentGistItem){
@@ -677,6 +678,3 @@ async function handleMainAction(){
 function resetUI(){isLoadingState=false;const btn=document.getElementById('btn-action');btn.innerText='▶️ TAI';btn.classList.remove('cancel');}
 async function checkCloud(vid){if(gh_cloud_map[vid])return true;let token=localStorage.gh_token||localStorage.gh_pat_token;if(token){try{let r=await fetch('https://api.github.com/gists',{headers:{"Authorization":`token ${token}`}});if(r.ok){let g=await r.json();for(let x of g){if(x.files&&x.files[`${vid}.vtt`])return true;}}}catch(e){}}return false;}
 </script>
-
-</body>
-</html>
