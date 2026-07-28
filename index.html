@@ -390,8 +390,22 @@ async function deleteCurrentVideo() {
     let token = localStorage.gh_token || localStorage.gh_pat_token;
     if (!token) { alert('Cần cấu hình GitHub Token!'); return; }
     
+    // Xóa local trước
+    delete gh_cloud_map[vid];
+    localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
+    currentGistItem = null;
+    loadGistLibrary(false);
+    document.getElementById('subtitle-box').innerHTML = '<span style="color:var(--text-secondary)">Đã xóa</span>';
+    document.getElementById('matched-sub-note').innerText = `Đã xóa: ${title}`;
+    
+    // Xóa trên Gist (dùng URL từ currentGistItem)
     try {
-        // Tìm Gist ID - QUÉT NHIỀU TRANG
+        // Lấy Gist ID từ raw URL
+        // rawUrl có dạng: https://gist.githubusercontent.com/.../raw/.../file.vtt
+        // Cần chuyển thành: https://api.github.com/gists/GIST_ID
+        let rawUrl = currentGistItem.rawUrl;
+        
+        // Tìm Gist ID bằng cách gọi API
         let gistId = null;
         for (let page = 1; page <= 10; page++) {
             let res = await fetch(`https://api.github.com/gists?page=${page}&per_page=100`, {
@@ -411,35 +425,18 @@ async function deleteCurrentVideo() {
         }
         
         if (gistId) {
-            console.log('Đang xóa Gist ID:', gistId);
             let delRes = await fetch(`https://api.github.com/gists/${gistId}`, {
                 method: 'DELETE',
                 headers: { "Authorization": `token ${token}` }
             });
             if (delRes.status === 204 || delRes.ok) {
-                log(`Đã xóa Gist #${gistId}: ${vid}`, 'ok');
-            } else {
-                console.log('Lỗi xóa Gist:', delRes.status);
-                throw new Error('Không thể xóa Gist (status: ' + delRes.status + ')');
+                log(`Đã xóa Gist: ${vid}`, 'ok');
             }
         } else {
-            console.log('Không tìm thấy Gist cho video:', vid);
-            log('Không tìm thấy Gist, chỉ xóa local', 'err');
+            log('Không tìm thấy Gist (có thể đã xóa trước đó)', 'err');
         }
-        
-        // Xóa khỏi local (luôn làm dù có tìm thấy Gist hay không)
-        delete gh_cloud_map[vid];
-        localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
-        currentGistItem = null;
-        
-        // Cập nhật UI
-        loadGistLibrary(false);
-        document.getElementById('subtitle-box').innerHTML = '<span style="color:var(--text-secondary)">Đã xóa</span>';
-        document.getElementById('matched-sub-note').innerText = `Đã xóa: ${title}`;
-        
     } catch (e) {
-        log('Lỗi xóa: ' + e.message, 'err');
-        alert('Lỗi: ' + e.message);
+        log('Lỗi xóa Gist: ' + e.message, 'err');
     }
 }
 // ===== CHỌN PHỤ ĐỀ =====
