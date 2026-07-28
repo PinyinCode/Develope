@@ -255,7 +255,6 @@ async function loadGistLibrary(force=false){
         for(let vId in gh_cloud_map){let e=gh_cloud_map[vId];items.push({videoId:vId,rawUrl:e.url,title:e.title});}
     }else if(token){
         try{
-            // Quét TẤT CẢ Gist (tối đa 10 trang)
             let allGists=[];
             for(let page=1;page<=10;page++){
                 let res=await fetch(`https://api.github.com/gists?page=${page}&per_page=100`,{headers:{"Authorization":`token ${token}`}});
@@ -264,53 +263,63 @@ async function loadGistLibrary(force=false){
                 if(!gists||gists.length===0)break;
                 allGists=allGists.concat(gists);
             }
-            log(`Tìm thấy ${allGists.length} Gists`,'info');
+            log(`Tim thay ${allGists.length} Gists`,'info');
             
-            // Phát hiện trùng & tự động xóa Gist trùng
-            let seenVideos={};
-            let newMap={};
-            let deletedCount=0;
-            
+            // Tạo map: videoId -> danh sách Gist
+            let videoGists={};
             for(let g of allGists){
                 if(g.files)for(let fn in g.files){
                     if(fn.endsWith('.vtt')){
                         let v=fn.replace('.vtt','');
-                        
-                        if(seenVideos[v]){
-                            // TRÙNG! Xóa Gist cũ hơn
-                            try{
-                                await fetch(`https://api.github.com/gists/${g.id}`,{
-                                    method:'DELETE',
-                                    headers:{"Authorization":`token ${token}`}
-                                });
-                                deletedCount++;
-                            }catch(e){}
-                        }else{
-                            seenVideos[v]=g.id;
-                            newMap[v]={
-                                url:g.files[fn].raw_url,
-                                title:(g.description||'').replace(/^.*Subtitle\s*-\s*/i,'').trim()||`Video ${v}`
-                            };
-                        }
+                        if(!videoGists[v])videoGists[v]=[];
+                        videoGists[v].push(g);
                     }
                 }
             }
             
-            if(deletedCount>0)log(`Đã dọn ${deletedCount} Gist trùng`,'ok');
+            // Xử lý từng video
+            let newMap={};
+            let deletedCount=0;
+            
+            for(let v in videoGists){
+                let gists=videoGists[v];
+                // Sắp xếp Gist mới nhất lên đầu
+                gists.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+                
+                // Giữ Gist đầu tiên (mới nhất)
+                let keepGist=gists[0];
+                newMap[v]={
+                    url:keepGist.files[`${v}.vtt`].raw_url,
+                    title:(keepGist.description||'').replace(/^.*Subtitle\s*-\s*/i,'').trim()||`Video ${v}`
+                };
+                
+                // Xóa các Gist trùng còn lại
+                for(let i=1;i<gists.length;i++){
+                    try{
+                        await fetch(`https://api.github.com/gists/${gists[i].id}`,{
+                            method:'DELETE',
+                            headers:{"Authorization":`token ${token}`}
+                        });
+                        deletedCount++;
+                    }catch(e){}
+                }
+            }
+            
+            if(deletedCount>0)log(`Da don ${deletedCount} Gist trung`,'ok');
             
             gh_cloud_map=newMap;
             localStorage.setItem('gh_cloud_map',JSON.stringify(newMap));
             localStorage.setItem('gh_last_scan',now);
             
             for(let vId in newMap){let e=newMap[vId];items.push({videoId:vId,rawUrl:e.url,title:e.title});}
-        }catch(e){log('Lỗi quét: '+e.message,'err');}
+        }catch(e){log('Loi: '+e.message,'err');}
     }
     
     if(!items.length)for(let vId in gh_cloud_map){let e=gh_cloud_map[vId];items.push({videoId:vId,rawUrl:e.url,title:e.title});}
     items.sort((a,b)=>b.videoId.localeCompare(a.videoId));
-    select.innerHTML=items.length?`<option value="">-- Chọn (${items.length}) --</option>`:'<option value="">-- Chưa có --</option>';
+    select.innerHTML=items.length?`<option value="">-- Chon (${items.length}) --</option>`:'<option value="">-- Chua co --</option>';
     items.forEach(i=>{let o=document.createElement('option');o.value=JSON.stringify(i);o.textContent=i.title;select.appendChild(o);});
-    document.getElementById('matched-sub-note').innerText=items.length?`${items.length} video`:'Chưa có video';
+    document.getElementById('matched-sub-note').innerText=items.length?`${items.length} video`:'Chua co video';
 }
 
 // ===== RELOAD: 1 LẦN -> LOAD VIDEO, 2 LẦN -> LOAD KHO =====
