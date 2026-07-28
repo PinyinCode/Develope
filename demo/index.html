@@ -1,0 +1,71 @@
+async function scanDemoFiles() {
+    const repo = 'Develope';
+    const user = 'PinyinCode';
+    const path = 'demo';
+    
+    try {
+        let res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${path}`);
+        if (res.ok) {
+            let files = await res.json();
+            files.forEach(f => {
+                // Bỏ qua index.html và file ẩn
+                if (f.name === 'index.html' || f.name.startsWith('.')) return;
+                
+                // Chấp nhận mọi định dạng
+                let ext = f.name.split('.').pop().toUpperCase();
+                let name = f.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
+                
+                // Icon theo định dạng
+                let icon = '📄';
+                if (ext === 'HTML') icon = '🌐';
+                else if (ext === 'JS') icon = '📜';
+                else if (ext === 'CSS') icon = '🎨';
+                else if (ext === 'PY') icon = '🐍';
+                else if (ext === 'MD') icon = '📝';
+                else if (ext === 'JSON') icon = '📋';
+                else if (ext === 'TXT') icon = '📃';
+                
+                demoFiles.push({
+                    name: name,
+                    file: f.name,
+                    url: f.name,
+                    icon: icon,
+                    ext: ext,
+                    size: f.size
+                });
+            });
+        }
+    } catch (e) {
+        loadFallbackList();
+    }
+    
+    renderList();
+}
+
+function renderList() {
+    document.getElementById('count').innerText = `${demoFiles.length} files`;
+    
+    if (demoFiles.length === 0) {
+        document.getElementById('list').innerHTML = '<div class="card"><span style="color:var(--sub)">Chưa có file nào. Thêm file vào thư mục demo/</span></div>';
+        return;
+    }
+    
+    // Sắp xếp: HTML trước, rồi theo tên
+    demoFiles.sort((a, b) => {
+        if (a.ext === 'HTML' && b.ext !== 'HTML') return -1;
+        if (a.ext !== 'HTML' && b.ext === 'HTML') return 1;
+        return a.name.localeCompare(b.name);
+    });
+    
+    let html = '';
+    demoFiles.forEach((f, i) => {
+        let size = f.size ? `${(f.size/1024).toFixed(1)}KB` : '';
+        html += `
+            <div class="card">
+                <a href="${f.url}">${f.icon} ${f.name}</a>
+                <span class="badge" style="background:#30363d;color:var(--sub);margin-left:8px">${f.ext}</span>
+                ${size ? `<span style="color:var(--sub);font-size:10px;margin-left:8px">${size}</span>` : ''}
+            </div>`;
+    });
+    document.getElementById('list').innerHTML = html;
+}
