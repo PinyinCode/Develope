@@ -359,12 +359,12 @@ async function renameCurrentVideo() {
 }
 
 // ===== CHỌN PHỤ ĐỀ =====
-function onGistSelected(val){if(!val){currentGistItem=null;return;}try{currentGistItem=JSON.parse(val);document.getElementById('matched-sub-note').innerText=`📦 ${currentGistItem.title}`;}catch(e){currentGistItem=null;}}
-// ===== CONTEXT MENU (NHẤN GIỮ ĐỂ XÓA) =====
+function onGistSelected(val){if(!val){currentGistItem=null;return;}try{currentGistItem=JSON.parse(val);document.getElementById('matched-sub-note').innerText=`📦 ${currentGistItem.title}`;}catch(e){currentGistItem=// ===== CONTEXT MENU (NHẤN GIỮ ĐỂ XÓA) =====
 let contextTimer = null;
 
-document.addEventListener('DOMContentLoaded', () => {
+setTimeout(() => {
     const subBox = document.getElementById('subtitle-box');
+    if (!subBox) return;
     
     subBox.addEventListener('touchstart', (e) => {
         if (!currentGistItem) return;
@@ -375,12 +375,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     subBox.addEventListener('touchend', () => { clearTimeout(contextTimer); });
     subBox.addEventListener('touchmove', () => { clearTimeout(contextTimer); });
-    
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.context-menu')) {
-            document.getElementById('context-menu').style.display = 'none';
-        }
-    });
+}, 1000);
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.context-menu')) {
+        const menu = document. getElementById('context-menu');
+        if (menu) menu.style.display = 'none';
+    }
 });
 
 function showContextMenu(x, y) {
@@ -564,6 +565,8 @@ async function handleMainAction(){
 function resetUI(){isLoadingState=false;const btn=document.getElementById('btn-action');btn.innerText='▶️ TAI';btn.classList.remove('cancel');}
 async function checkCloud(vid){if(gh_cloud_map[vid])return true;let token=localStorage.gh_token||localStorage.gh_pat_token;if(token){try{let r=await fetch('https://api.github.com/gists',{headers:{"Authorization":`token ${token}`}});if(r.ok){let g=await r.json();for(let x of g){if(x.files&&x.files[`${vid}.vtt`])return true;}}}catch(e){}}return false;}
 </script>
+</div>  <!-- ĐÓNG CONTAINER -->
+<!-- Context Menu -->
     <!-- Context Menu -->
 <div class="context-menu" id="context-menu">
     <button onclick="deleteGist()">🗑️ Xóa khỏi Gist vĩnh viễn</button>
