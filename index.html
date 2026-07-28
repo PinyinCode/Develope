@@ -239,7 +239,7 @@ async function loadVideoFromGist(item){
         document.getElementById('matched-sub-note').innerText=`📦 ${item.title}`;
         document.getElementById('video-wrapper').classList.remove('hidden');
         if(player){player.loadVideoById(item.videoId);startSync();}
-        else{player=new YT.Player('player',{height:'100%',width:'100%',videoId:item.videoId,playerVars:{playsinline:1,autoplay:1},events:{onReady:startSync,onStateChange:onPlayerStateChange}});}
+        else{player=new YT.Player('player',{height:'100%',width:'100%',videoId:item.videoId,playerVars:{playsinline:1,autoplay:0},events:{onReady:startSync,onStateChange:onPlayerStateChange}});}
     }
 }
 
