@@ -202,12 +202,27 @@ function loadSettings(){
     gh_cloud_map=JSON.parse(localStorage.getItem('gh_cloud_map')||'{}');
 }
 function saveSettings(){
-    localStorage.gh_user=document.getElementById('ghUser').value.trim();
-    localStorage.gh_repo=document.getElementById('ghRepo').value.trim();
-    let tok=document.getElementById('ghToken').value.trim();
-    localStorage.gh_token=tok; localStorage.gh_pat_token=tok;
-    pc_url=document.getElementById('pcUrl').value.trim(); localStorage.pc_url=pc_url;
-    log('Da luu ✓','ok'); loadGistLibrary(true);
+    let oldToken = localStorage.gh_token || localStorage.gh_pat_token || '';
+    let newToken = document.getElementById('ghToken').value.trim();
+    
+    // Nếu token thay đổi -> XÓA TOÀN BỘ CACHE
+    if (newToken && newToken !== oldToken) {
+        log('Phát hiện token mới, đang xóa cache...', 'info');
+        localStorage.removeItem('gh_last_scan');
+        localStorage.removeItem('gh_cloud_map');
+        gh_cloud_map = {};
+        log('Đã xóa cache cũ ✓', 'ok');
+    }
+    
+    localStorage.gh_user = document.getElementById('ghUser').value.trim();
+    localStorage.gh_repo = document.getElementById('ghRepo').value.trim();
+    localStorage.gh_token = newToken;
+    localStorage.gh_pat_token = newToken;
+    pc_url = document.getElementById('pcUrl').value.trim();
+    localStorage.pc_url = pc_url;
+    
+    log('Da luu ✓','ok');
+    loadGistLibrary(true);
 }
 function toggleSettings(){
     const c=document.getElementById('settings-card');const b=document.querySelector('.settings-toggle');
