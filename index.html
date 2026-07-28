@@ -366,16 +366,28 @@ setTimeout(() => {
     const subBox = document.getElementById('subtitle-box');
     if (!subBox) return;
     
-    subBox.addEventListener('touchstart', (e) => {
+    // Hỗ trợ cả touch và mouse (cho iPhone + PC test)
+    function startLongPress(e) {
         if (!currentGistItem) return;
-        contextTimer = setTimeout(() => {
-            showContextMenu(e.touches[0].clientX, e.touches[0].clientY);
-        }, 800);
-    });
+        e.preventDefault();
+        let x, y;
+        if (e.touches) { x = e.touches[0].clientX; y = e.touches[0].clientY; }
+        else { x = e.clientX; y = e.clientY; }
+        contextTimer = setTimeout(() => { showContextMenu(x, y); }, 800);
+    }
     
-    subBox.addEventListener('touchend', () => { clearTimeout(contextTimer); });
-    subBox.addEventListener('touchmove', () => { clearTimeout(contextTimer); });
-}, 1000);
+    function cancelLongPress() { clearTimeout(contextTimer); }
+    
+    subBox.addEventListener('touchstart', startLongPress, { passive: false });
+    subBox.addEventListener('touchend', cancelLongPress);
+    subBox.addEventListener('touchmove', cancelLongPress);
+    subBox.addEventListener('touchcancel', cancelLongPress);
+    
+    // Fallback cho PC test
+    subBox.addEventListener('mousedown', startLongPress);
+    subBox.addEventListener('mouseup', cancelLongPress);
+    subBox.addEventListener('mouseleave', cancelLongPress);
+}, 2000);
 
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.context-menu')) {
