@@ -243,18 +243,60 @@ async function loadVideoFromGist(item){
     }
 }
 
-// ===== ĐỔI TÊN =====
-function renameCurrentVideo(){
-    if(!currentGistItem){alert('Chon phu de trong kho truoc!');return}
-    let cur=currentGistItem.title;
-    let nt=prompt('Nhap ten moi:',cur);
-    if(!nt||!nt.trim())return; nt=nt.trim();
-    gh_cloud_map[currentGistItem.videoId].title=nt;
-    localStorage.setItem('gh_cloud_map',JSON.stringify(gh_cloud_map));
-    currentGistItem.title=nt;
+async function renameCurrentVideo() {
+    if (!currentGistItem) { alert('Chọn phụ đề trong kho trước!'); return; }
+    
+    let cur = currentGistItem.title;
+    let nt = prompt('Nhập tên mới:', cur);
+    if (!nt || !nt.trim()) return;
+    nt = nt.trim();
+    
+    let token = localStorage.gh_token || localStorage.gh_pat_token;
+    if (!token) { alert('Cần cấu hình GitHub Token!'); return; }
+    
+    let vid = currentGistItem.videoId;
+    
+    try {
+        // Tìm Gist ID từ cloud map
+        let gistId = null;
+        let res = await fetch('https://api.github.com/gists?per_page=100', {
+            headers: { "Authorization": `token ${token}` }
+        });
+        if (res.ok) {
+            let gists = await res.json();
+            for (let g of gists) {
+                if (g.files && g.files[`${vid}.vtt`]) {
+                    gistId = g.id;
+                    break;
+                }
+            }
+        }
+        
+        if (gistId) {
+            // Cập nhật description của Gist
+            await fetch(`https://api.github.com/gists/${gistId}`, {
+                method: 'PATCH',
+                headers: {
+                    "Authorization": `token ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    description: `Pinyin AI Subtitle - ${nt}`
+                })
+            });
+            log(`Đã cập nhật Gist: ${nt}`, 'ok');
+        }
+    } catch (e) {
+        log('Lỗi cập nhật Gist: ' + e.message, 'err');
+    }
+    
+    // Cập nhật local
+    gh_cloud_map[vid].title = nt;
+    localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
+    currentGistItem.title = nt;
     loadGistLibrary(false);
-    document.getElementById('matched-sub-note').innerText=`✏️ ${nt}`;
-    log(`Da doi ten: ${nt}`,'ok');
+    document.getElementById('matched-sub-note').innerText = `✏️ ${nt}`;
+    log(`Đã đổi tên: ${nt}`, 'ok');
 }
 
 // ===== CHỌN PHỤ ĐỀ =====
