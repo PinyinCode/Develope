@@ -117,10 +117,11 @@
         </div>
         <div class="progress-wrap"><div class="progress-bar" id="pb"></div></div>
         <p style="font-size:10px;color:var(--text-secondary);margin-top:4px" id="pbText">Sẵn sàng</p>
-    </div>
-    <div class="settings-toggle" id="toggle-all-btn" onclick="toggleAllCards()">👁️ Ẩn tất cả</div>
-
-    <div class="settings-toggle" onclick="toggleSettings()">⚙️ Cài đặt GitHub & PC Server ▾</div>
+    
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+    <span class="settings-toggle" onclick="toggleSettings()">⚙️ Cài đặt ▾</span>
+    <span class="settings-toggle" id="toggle-all-btn" onclick="toggleAllCards()">👁️ Ẩn</span>
+</div>
     <div class="card" id="settings-card" style="display:none;">
         <label>GitHub Username</label><input type="text" id="ghUser" placeholder="Username" style="margin-bottom:10px">
         <label>Repository</label><input type="text" id="ghRepo" placeholder="Repository" style="margin-bottom:10px">
@@ -216,10 +217,11 @@ function toggleSettings(){
 function toggleSubSettings(){const p=document.getElementById('sub-settings-panel');p.style.display=p.style.display==='none'?'block':'none';}
 let allCardsVisible = true;
 
+let allCardsVisible = true;
+
 function toggleAllCards() {
     const btn = document.getElementById('toggle-all-btn');
     const cards = ['input-card', 'gist-card', 'settings-card', 'log-card'];
-    const toggle = document.querySelector('.settings-toggle');
     
     allCardsVisible = !allCardsVisible;
     
@@ -228,9 +230,8 @@ function toggleAllCards() {
         if (el) el.classList.toggle('hidden', !allCardsVisible);
     });
     
-    // Ẩn luôn nút settings toggle
-    if (toggle) toggle.style.display = allCardsVisible ? 'block' : 'none';
-    
+    // Đảm bảo nút luôn hiện
+    btn.classList.remove('hidden');
     btn.textContent = allCardsVisible ? '👁️ Ẩn tất cả' : '👁️ Hiện tất cả';
 }
     function updateFont(t,v){document.documentElement.style.setProperty(`--fs-${t}`,v+'px');document.getElementById(`val-${t}`).innerText=v+'px';}
