@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -250,68 +250,19 @@ async function loadGistLibrary(force=false){
     select.innerHTML='<option value="">-- Scan... --</option>';
     let items=[], token=localStorage.gh_token||localStorage.gh_pat_token;
     let lastScan=parseInt(localStorage.getItem('gh_last_scan')||'0'), now=Date.now();
-    
     if(!force&&(now-lastScan)<300000&&Object.keys(gh_cloud_map).length>0){
         for(let vId in gh_cloud_map){let e=gh_cloud_map[vId];items.push({videoId:vId,rawUrl:e.url,title:e.title});}
     }else if(token){
         try{
-            // Quét TẤT CẢ trang Gist
-            let allGists=[];
-            for(let page=1;page<=5;page++){
-                let res=await fetch(`https://api.github.com/gists?page=${page}&per_page=100`,{headers:{"Authorization":`token ${token}`}});
-                if(!res.ok)break;
-                let gists=await res.json();
-                if(!gists||gists.length===0)break;
-                allGists=allGists.concat(gists);
-            }
-            log(`Tìm thấy ${allGists.length} Gists`,'info');
-            
-            // Phát hiện & xóa Gist trùng
-            let seenVideos={};
-            let newMap={};
-            let deletedCount=0;
-            
-            for(let g of allGists){
-                if(g.files)for(let fn in g.files){
-                    if(fn.endsWith('.vtt')){
-                        let v=fn.replace('.vtt','');
-                        
-                        if(seenVideos[v]){
-                            // Gist trùng - xóa khỏi GitHub
-                            try{
-                                await fetch(`https://api.github.com/gists/${g.id}`,{
-                                    method:'DELETE',
-                                    headers:{"Authorization":`token ${token}`}
-                                });
-                                deletedCount++;
-                                console.log('Đã xóa Gist trùng:',g.id,v);
-                            }catch(e){}
-                        }else{
-                            seenVideos[v]=g.id;
-                            newMap[v]={
-                                url:g.files[fn].raw_url,
-                                title:(g.description||'').replace(/^.*Subtitle\s*-\s*/i,'').trim()||`Video ${v}`
-                            };
-                        }
-                    }
-                }
-            }
-            
-            if(deletedCount>0)log(`Đã dọn ${deletedCount} Gist trùng`,'ok');
-            
-            gh_cloud_map=newMap;
-            localStorage.setItem('gh_cloud_map',JSON.stringify(newMap));
-            localStorage.setItem('gh_last_scan',now);
-            
-            for(let vId in newMap){let e=newMap[vId];items.push({videoId:vId,rawUrl:e.url,title:e.title});}
+            let res=await fetch('https://api.github.com/gists?per_page=100',{headers:{"Authorization":`token ${token}`}});
+            if(res.ok){let gists=await res.json();let newMap={};for(let g of gists){if(g.files)for(let fn in g.files){if(fn.endsWith('.vtt')){let v=fn.replace('.vtt','');if(!newMap[v])newMap[v]={url:g.files[fn].raw_url,title:(g.description||'').replace(/^.*Subtitle\s*-\s*/i,'').trim()||`Video ${v}`};}}}gh_cloud_map=newMap;localStorage.setItem('gh_cloud_map',JSON.stringify(newMap));localStorage.setItem('gh_last_scan',now);for(let vId in newMap){let e=newMap[vId];items.push({videoId:vId,rawUrl:e.url,title:e.title});}}
         }catch(e){}
     }
-    
     if(!items.length)for(let vId in gh_cloud_map){let e=gh_cloud_map[vId];items.push({videoId:vId,rawUrl:e.url,title:e.title});}
     items.sort((a,b)=>b.videoId.localeCompare(a.videoId));
-    select.innerHTML=items.length?`<option value="">-- Chọn (${items.length}) --</option>`:'<option value="">-- Chưa có --</option>';
+    select.innerHTML=items.length?`<option value="">-- Select (${items.length}) --</option>`:'<option value="">-- Chua co --</option>';
     items.forEach(i=>{let o=document.createElement('option');o.value=JSON.stringify(i);o.textContent=i.title;select.appendChild(o);});
-    document.getElementById('matched-sub-note').innerText=items.length?`${items.length} video`:'Chưa có video';
+    document.getElementById('matched-sub-note').innerText=items.length?`${items.length} video`:'Chua co video';
 }
 
 // ===== RELOAD: 1 LẦN -> LOAD VIDEO, 2 LẦN -> LOAD KHO =====
@@ -439,53 +390,38 @@ async function deleteCurrentVideo() {
     let token = localStorage.gh_token || localStorage.gh_pat_token;
     if (!token) { alert('Cần cấu hình GitHub Token!'); return; }
     
-    // Xóa local trước
-    delete gh_cloud_map[vid];
-    localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
-    currentGistItem = null;
-    loadGistLibrary(false);
-    document.getElementById('subtitle-box').innerHTML = '<span style="color:var(--text-secondary)">Đã xóa</span>';
-    document.getElementById('matched-sub-note').innerText = `Đã xóa: ${title}`;
-    
-    // Xóa trên Gist (dùng URL từ currentGistItem)
     try {
-        // Lấy Gist ID từ raw URL
-        // rawUrl có dạng: https://gist.githubusercontent.com/.../raw/.../file.vtt
-        // Cần chuyển thành: https://api.github.com/gists/GIST_ID
-        let rawUrl = currentGistItem.rawUrl;
-        
-        // Tìm Gist ID bằng cách gọi API
-        let gistId = null;
-        for (let page = 1; page <= 10; page++) {
-            let res = await fetch(`https://api.github.com/gists?page=${page}&per_page=100`, {
-                headers: { "Authorization": `token ${token}` }
-            });
-            if (!res.ok) break;
+        // Tìm và xóa Gist
+        let res = await fetch('https://api.github.com/gists?per_page=100', {
+            headers: { "Authorization": `token ${token}` }
+        });
+        if (res.ok) {
             let gists = await res.json();
-            if (!gists || gists.length === 0) break;
-            
             for (let g of gists) {
                 if (g.files && g.files[`${vid}.vtt`]) {
-                    gistId = g.id;
+                    await fetch(`https://api.github.com/gists/${g.id}`, {
+                        method: 'DELETE',
+                        headers: { "Authorization": `token ${token}` }
+                    });
                     break;
                 }
             }
-            if (gistId) break;
         }
         
-        if (gistId) {
-            let delRes = await fetch(`https://api.github.com/gists/${gistId}`, {
-                method: 'DELETE',
-                headers: { "Authorization": `token ${token}` }
-            });
-            if (delRes.status === 204 || delRes.ok) {
-                log(`Đã xóa Gist: ${vid}`, 'ok');
-            }
-        } else {
-            log('Không tìm thấy Gist (có thể đã xóa trước đó)', 'err');
-        }
+        // Xóa khỏi local
+        delete gh_cloud_map[vid];
+        localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
+        currentGistItem = null;
+        
+        // Cập nhật UI
+        loadGistLibrary(false);
+        document.getElementById('subtitle-box').innerHTML = '<span style="color:var(--text-secondary)">Đã xóa</span>';
+        document.getElementById('matched-sub-note').innerText = `Đã xóa: ${title}`;
+        log(`Đã xóa: ${title}`, 'ok');
+        
     } catch (e) {
-        log('Lỗi xóa Gist: ' + e.message, 'err');
+        log('Lỗi xóa: ' + e.message, 'err');
+        alert('Lỗi: ' + e.message);
     }
 }
 // ===== CHỌN PHỤ ĐỀ =====
