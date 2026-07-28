@@ -191,7 +191,7 @@ function clearUrl(){document.getElementById('yt-link').value='';document.getElem
 // ===== GIST =====
 async function loadGistLibrary(force=false){
     const select=document.getElementById('gist-select');
-    select.innerHTML='<option value="">-- Dang quet... --</option>';
+    select.innerHTML='<option value="">-- Scan... --</option>';
     let items=[], token=localStorage.gh_token||localStorage.gh_pat_token;
     let lastScan=parseInt(localStorage.getItem('gh_last_scan')||'0'), now=Date.now();
     if(!force&&(now-lastScan)<300000&&Object.keys(gh_cloud_map).length>0){
@@ -204,7 +204,7 @@ async function loadGistLibrary(force=false){
     }
     if(!items.length)for(let vId in gh_cloud_map){let e=gh_cloud_map[vId];items.push({videoId:vId,rawUrl:e.url,title:e.title});}
     items.sort((a,b)=>b.videoId.localeCompare(a.videoId));
-    select.innerHTML=items.length?`<option value="">-- Chon (${items.length}) --</option>`:'<option value="">-- Chua co --</option>';
+    select.innerHTML=items.length?`<option value="">-- Select (${items.length}) --</option>`:'<option value="">-- Chua co --</option>';
     items.forEach(i=>{let o=document.createElement('option');o.value=JSON.stringify(i);o.textContent=i.title;select.appendChild(o);});
     document.getElementById('matched-sub-note').innerText=items.length?`${items.length} video`:'Chua co video';
 }
@@ -231,18 +231,42 @@ function handleReload(){
     }
 }
 
-async function loadVideoFromGist(item){
+async function loadVideoFromGist(item) {
     log(`Load: ${item.title}`,'info');
-    let res=await fetch(item.rawUrl);
-    if(res.ok){
-        subtitles=parseVTT(await res.text());
-        document.getElementById('matched-sub-note').innerText=`📦 ${item.title}`;
+    let res = await fetch(item.rawUrl);
+    if (res.ok) {
+        subtitles = parseVTT(await res.text());
+        document.getElementById('matched-sub-note').innerText = `📦 ${item.title}`;
         document.getElementById('video-wrapper').classList.remove('hidden');
-        if(player){player.loadVideoById(item.videoId);startSync();}
-        else{player=new YT.Player('player',{height:'100%',width:'100%',videoId:item.videoId,playerVars:{playsinline:1,autoplay:0},events:{onReady:startSync,onStateChange:onPlayerStateChange}});}
+        if (player) {
+            player.loadVideoById(item.videoId);
+            // ĐỢI VIDEO LOAD XONG RỒI PAUSE NGAY
+            setTimeout(() => {
+                if (player && typeof player.pauseVideo === 'function') {
+                    player.pauseVideo();
+                    player.seekTo(0, true);
+                }
+            }, 300);
+        } else {
+            player = new YT.Player('player', {
+                height: '100%', width: '100%',
+                videoId: item.videoId,
+                playerVars: { 
+                    playsinline: 1, 
+                    autoplay: 0 
+                },
+                events: {
+                    onReady: (e) => {
+                        startSync();
+                        e.target.pauseVideo();  // PAUSE NGAY KHI READY
+                        e.target.seekTo(0, true);
+                    },
+                    onStateChange: onPlayerStateChange
+                }
+            });
+        }
     }
 }
-
 async function renameCurrentVideo() {
     if (!currentGistItem) { alert('Chọn phụ đề trong kho trước!'); return; }
     
