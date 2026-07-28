@@ -283,8 +283,8 @@ async function renameCurrentVideo() {
     
     let vid = currentGistItem.videoId;
     
+    // Cập nhật lên Gist
     try {
-        // Tìm Gist ID từ cloud map
         let gistId = null;
         let res = await fetch('https://api.github.com/gists?per_page=100', {
             headers: { "Authorization": `token ${token}` }
@@ -300,7 +300,6 @@ async function renameCurrentVideo() {
         }
         
         if (gistId) {
-            // Cập nhật description của Gist
             await fetch(`https://api.github.com/gists/${gistId}`, {
                 method: 'PATCH',
                 headers: {
@@ -311,7 +310,6 @@ async function renameCurrentVideo() {
                     description: `Pinyin AI Subtitle - ${nt}`
                 })
             });
-            log(`Đã cập nhật Gist: ${nt}`, 'ok');
         }
     } catch (e) {
         log('Lỗi cập nhật Gist: ' + e.message, 'err');
