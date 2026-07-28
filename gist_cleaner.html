@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gist Cleaner - Xóa Gist Trùng</title>
+    <style>
+        :root {
+            --bg: #000; --card: #1c1c1e; --text: #fff; --sub: #8e8e93;
+            --red: #ff453a; --green: #30d158; --blue: #0a84ff;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, sans-serif; background: var(--bg);
+            color: var(--text); padding: 16px; display: flex; flex-direction: column;
+            align-items: center; min-height: 100vh;
+        }
+        .container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 12px; }
+        h2 { color: var(--red); text-align: center; }
+        .card { background: var(--card); border-radius: 16px; padding: 16px; border: 1px solid #38383a; }
+        label { font-size: 11px; color: var(--sub); text-transform: uppercase; display: block; margin-bottom: 4px; }
+        input { width: 100%; padding: 12px; background: #2c2c2e; border: 1px solid #38383a; border-radius: 10px; color: var(--text); font-size: 14px; }
+        button { padding: 12px; border: none; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; width: 100%; margin-top: 8px; }
+        .btn-blue { background: var(--blue); color: white; }
+        .btn-red { background: var(--red); color: white; }
+        .btn-green { background: var(--green); color: black; }
+        #log { background: var(--card); border-radius: 12px; padding: 12px; height: 300px; overflow-y: auto; font-size: 11px; font-family: monospace; color: var(--sub); border: 1px solid #38383a; }
+        .ok { color: var(--green); } .err { color: var(--red); } .info { color: var(--blue); }
+        .stats { display: flex; gap: 8px; justify-content: space-between; }
+        .stat { flex: 1; background: var(--card); border-radius: 10px; padding: 12px; text-align: center; border: 1px solid #38383a; }
+        .stat .num { font-size: 28px; font-weight: 700; }
+        .stat .label { font-size: 10px; color: var(--sub); }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>🗑️ Gist Cleaner</h2>
+    
+    <div class="card">
+        <label>🔑 GitHub Token (cần quyền gist + delete)</label>
+        <input type="password" id="token" placeholder="ghp_...">
+        <button class="btn-blue" onclick="loadToken()">📥 Lấy token từ app</button>
+        <button class="btn-green" onclick="scanGists()">🔍 QUÉT GIST</button>
+        <button class="btn-red" onclick="deleteDuplicates()">🗑️ XÓA TẤT CẢ GIST TRÙNG</button>
+    </div>
+    
+    <div class="stats">
+        <div class="stat">
+            <div class="num" id="totalCount">0</div>
+            <div class="label">Tổng Gist</div>
+        </div>
+        <div class="stat">
+            <div class="num" id="vttCount">0</div>
+            <div class="label">File .vtt</div>
+        </div>
+        <div class="stat">
+            <div class="num" id="dupCount">0</div>
+            <div class="label">Gist trùng</div>
+        </div>
+        <div class="stat">
+            <div class="num" id="delCount">0</div>
+            <div class="label">Đã xóa</div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <label>📋 Nhật ký</label>
+        <div id="log">Sẵn sàng...</div>
+    </div>
+</div>
+
+<script>
+let allGists = [];
+let duplicates = [];
+let deletedCount = 0;
+
+function log(msg, cls = '') {
+    const t = new Date().toLocaleTimeString('vi-VN');
+    document.getElementById('log').innerHTML += `<br><span class="${cls}">[${t}] ${msg}</span>`;
+    document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+}
+
+function loadToken() {
+    let tok = localStorage.getItem('gh_token') || localStorage.getItem('gh_pat_token');
+    if (tok) {
+        document.getElementById('token').value = tok;
+        log('Đã lấy token từ app ✓', 'ok');
+    } else {
+        log('Không tìm thấy token trong app!', 'err');
+    }
+}
+
+async function scanGists() {
+    let token = document.getElementById('token').value.trim();
+    if (!token) { alert('Nhập token!'); return; }
+    
+    // Lưu token
+    localStorage.setItem('gh_token', token);
+    
+    allGists = [];
+    duplicates = [];
+    deletedCount = 0;
+    document.getElementById('log').innerHTML = '';
+    log('Bắt đầu quét...', 'info');
+    
+    try {
+        // Quét tất cả Gist
+        for (let page = 1; page <= 20; page++) {
+            let res = await fetch(`https://api.github.com/gists?page=${page}&per_page=100`, {
+                headers: { "Authorization": `token ${token}` }
+            });
+            if (!res.ok) break;
+            let gists = await res.json();
+            if (!gists || gists.length === 0) break;
+            allGists = allGists.concat(gists);
+            log(`Trang ${page}: ${gists.length} Gists`, 'info');
+        }
+        
+        document.getElementById('totalCount').innerText = allGists.length;
+        log(`Tổng: ${allGists.length} Gists`, 'ok');
+        
+        // Phân tích
+        let videoMap = {};
+        let vttCount = 0;
+        
+        for (let g of allGists) {
+            if (g.files) for (let fn in g.files) {
+                if (fn.endsWith('.vtt')) {
+                    vttCount++;
+                    let v = fn.replace('.vtt', '');
+                    if (!videoMap[v]) videoMap[v] = [];
+                    videoMap[v].push(g);
+                }
+            }
+        }
+        
+        document.getElementById('vttCount').innerText = vttCount;
+        log(`File .vtt: ${vttCount}`, 'ok');
+        
+        // Tìm trùng
+        for (let v in videoMap) {
+            if (videoMap[v].length > 1) {
+                // Sắp xếp mới nhất trước
+                videoMap[v].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+                // Giữ cái đầu, còn lại là trùng
+                for (let i = 1; i < videoMap[v].length; i++) {
+                    duplicates.push({
+                        gist: videoMap[v][i],
+                        videoId: v,
+                        keepGist: videoMap[v][0]
+                    });
+                }
+            }
+        }
+        
+        document.getElementById('dupCount').innerText = duplicates.length;
+        log(`Gist trùng: ${duplicates.length}`, duplicates.length > 0 ? 'err' : 'ok');
+        
+        if (duplicates.length > 0) {
+            log('', 'info');
+            log('Danh sách Gist trùng sẽ bị xóa:', 'err');
+            let shown = {};
+            for (let d of duplicates) {
+                if (!shown[d.videoId]) {
+                    shown[d.videoId] = true;
+                    let title = (d.gist.description || '').substring(0, 60);
+                    log(`  📹 ${d.videoId}: ${title}`, 'err');
+                }
+            }
+        }
+        
+    } catch (e) {
+        log('Lỗi: ' + e.message, 'err');
+    }
+}
+
+async function deleteDuplicates() {
+    if (duplicates.length === 0) {
+        alert('Chưa quét hoặc không có Gist trùng!');
+        return;
+    }
+    
+    if (!confirm(`Xóa ${duplicates.length} Gist trùng?\n\nKHÔNG THỂ HOÀN TÁC!`)) return;
+    
+    let token = document.getElementById('token').value.trim();
+    if (!token) { alert('Nhập token!'); return; }
+    
+    log('', 'info');
+    log(`Bắt đầu xóa ${duplicates.length} Gist...`, 'info');
+    
+    for (let d of duplicates) {
+        try {
+            let res = await fetch(`https://api.github.com/gists/${d.gist.id}`, {
+                method: 'DELETE',
+                headers: { "Authorization": `token ${token}` }
+            });
+            if (res.status === 204 || res.ok) {
+                deletedCount++;
+                document.getElementById('delCount').innerText = deletedCount;
+                log(`✓ Đã xóa: ${d.videoId} (${d.gist.id})`, 'ok');
+            } else {
+                log(`✗ Lỗi xóa ${d.videoId}: ${res.status}`, 'err');
+            }
+        } catch (e) {
+            log(`✗ Lỗi: ${d.videoId} - ${e.message}`, 'err');
+        }
+    }
+    
+    log('', 'info');
+    log(`✅ Hoàn tất! Đã xóa ${deletedCount}/${duplicates.length} Gist`, 'ok');
+    duplicates = [];
+    document.getElementById('dupCount').innerText = 0;
+}
+
+// Tự động lấy token khi mở trang
+setTimeout(loadToken, 500);
+</script>
+</body>
+</html>
