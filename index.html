@@ -327,18 +327,52 @@ async function renameCurrentVideo() {
 // ===== CHỌN PHỤ ĐỀ =====
 function onGistSelected(val){if(!val){currentGistItem=null;return;}try{currentGistItem=JSON.parse(val);document.getElementById('matched-sub-note').innerText=`📦 ${currentGistItem.title}`;}catch(e){currentGistItem=null;}}
 
-// ===== PLAY =====
-function playSelectedGist(){
-    if(!currentGistItem){alert('Chon phu de trong kho!');return;}
-    loadVideoFromGist(currentGistItem);
-}
+
 function startSync(){if(syncInterval)clearInterval(syncInterval);syncInterval=setInterval(syncSub,200);}
 function syncSub(){if(!player?.getCurrentTime||!subtitles.length)return;const t=player.getCurrentTime(),idx=subtitles.findIndex(s=>t>=s.start&&t<=s.end);if(idx!==-1&&idx!==activeSubIndex){activeSubIndex=idx;const s=subtitles[idx];document.getElementById('subtitle-box').innerHTML=`<div class="cn">${s.rawLines[0]}</div><div class="py">${s.rawLines[1]}</div><div class="vi">${s.rawLines[2]}</div>`;}}
 function onPlayerStateChange(e){
     if(e.data==YT.PlayerState.PLAYING){updatePlayPauseBtn(true);document.getElementById('input-card').classList.add('hidden');document.getElementById('log-card').classList.add('hidden');document.getElementById('gist-card').classList.add('hidden');}
     else if(e.data==YT.PlayerState.PAUSED||e.data==YT.PlayerState.ENDED){updatePlayPauseBtn(false);document.getElementById('input-card').classList.remove('hidden');document.getElementById('log-card').classList.remove('hidden');document.getElementById('gist-card').classList.remove('hidden');if(e.data==YT.PlayerState.ENDED&&isLoopEnabled&&player){player.seekTo(0,true);player.playVideo();}}
 }
-function togglePlayPause(){if(!currentGistItem&&!player){alert('Chon phu de + Play!');return;}if(!player||typeof player.getPlayerState!=='function'){playSelectedGist();return;}if(player.getPlayerState()===YT.PlayerState.PLAYING)player.pauseVideo();else if(player.getPlayerState()===YT.PlayerState.PAUSED||player.getPlayerState()===YT.PlayerState.ENDED||player.getPlayerState()===YT.PlayerState.CUED)player.playVideo();else playSelectedGist();}
+// ===== PLAY =====
+function playSelectedGist() {
+    if (!currentGistItem) { alert('Chọn phụ đề trong kho!'); return; }
+    let item = currentGistItem;
+    fetch(item.rawUrl).then(r => r.text()).then(text => {
+        subtitles = parseVTT(text);
+        document.getElementById('matched-sub-note').innerText = `📦 ${item.title}`;
+        document.getElementById('video-wrapper').classList.remove('hidden');
+        if (player) { player.destroy(); player = null; }
+        player = new YT.Player('player', {
+            height: '100%', width: '100%',
+            videoId: item.videoId,
+            playerVars: { playsinline: 1, autoplay: 0 },
+            events: {
+                onReady: (e) => {
+                    startSync();
+                    e.target.pauseVideo();
+                    e.target.seekTo(0, true);
+                    updatePlayPauseBtn(false);
+                },
+                onStateChange: onPlayerStateChange
+            }
+        });
+    }).catch(e => log('Lỗi: ' + e.message, 'err'));
+}
+
+// ===== TOGGLE PLAY/PAUSE =====
+function togglePlayPause() {
+    if (!player || typeof player.getPlayerState !== 'function') {
+        playSelectedGist();
+        return;
+    }
+    const state = player.getPlayerState();
+    if (state === YT.PlayerState.PLAYING) {
+        player.pauseVideo();
+    } else {
+        player.playVideo();
+    }
+}
 function updatePlayPauseBtn(p){const b=document.getElementById('btn-play-pause');if(b)b.innerHTML=p?'⏸ Pause':'⏵ Play';}
 function toggleVideoVisibility(){document.getElementById('video-wrapper').classList.toggle('hidden');}
 
