@@ -76,6 +76,29 @@
         .setting-row label { font-size: 11px; color: var(--text-secondary); text-transform: none; margin: 0; }
         .setting-row span { font-size: 11px; color: var(--text-main); text-align: right; min-width: 35px; }
         input[type="range"] { flex: 1; accent-color: var(--accent); height: 4px; }
+        .context-menu {
+    position: fixed;
+    background: var(--card-solid);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 8px;
+    z-index: 999;
+    display: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.context-menu button {
+    display: block;
+    width: 100%;
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 8px;
+}
+.context-menu button:active { background: rgba(255,45,85,0.15); }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
@@ -337,7 +360,70 @@ async function renameCurrentVideo() {
 
 // ===== CHỌN PHỤ ĐỀ =====
 function onGistSelected(val){if(!val){currentGistItem=null;return;}try{currentGistItem=JSON.parse(val);document.getElementById('matched-sub-note').innerText=`📦 ${currentGistItem.title}`;}catch(e){currentGistItem=null;}}
+// ===== CONTEXT MENU (NHẤN GIỮ ĐỂ XÓA) =====
+let contextTimer = null;
 
+document.addEventListener('DOMContentLoaded', () => {
+    const subBox = document.getElementById('subtitle-box');
+    
+    subBox.addEventListener('touchstart', (e) => {
+        if (!currentGistItem) return;
+        contextTimer = setTimeout(() => {
+            showContextMenu(e.touches[0].clientX, e.touches[0].clientY);
+        }, 800);
+    });
+    
+    subBox.addEventListener('touchend', () => { clearTimeout(contextTimer); });
+    subBox.addEventListener('touchmove', () => { clearTimeout(contextTimer); });
+    
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.context-menu')) {
+            document.getElementById('context-menu').style.display = 'none';
+        }
+    });
+});
+
+function showContextMenu(x, y) {
+    const menu = document.getElementById('context-menu');
+    menu.style.display = 'block';
+    menu.style.left = Math.min(x, window.innerWidth - 180) + 'px';
+    menu.style.top = Math.min(y, window.innerHeight - 80) + 'px';
+}
+
+async function deleteGist() {
+    if (!currentGistItem) return;
+    let vid = currentGistItem.videoId;
+    let token = localStorage.gh_token || localStorage.gh_pat_token;
+    if (!token) { alert('Cần cấu hình GitHub Token!'); return; }
+    if (!confirm(`Xóa vĩnh viễn "${currentGistItem.title}"?`)) return;
+    
+    try {
+        let gistId = null;
+        let res = await fetch('https://api.github.com/gists?per_page=100', {
+            headers: { "Authorization": `token ${token}` }
+        });
+        if (res.ok) {
+            let gists = await res.json();
+            for (let g of gists) {
+                if (g.files && g.files[`${vid}.vtt`]) { gistId = g.id; break; }
+            }
+        }
+        if (gistId) {
+            await fetch(`https://api.github.com/gists/${gistId}`, {
+                method: 'DELETE', headers: { "Authorization": `token ${token}` }
+            });
+            log(`Đã xóa Gist: ${vid}`, 'ok');
+        }
+    } catch (e) { log('Lỗi: ' + e.message, 'err'); }
+    
+    delete gh_cloud_map[vid];
+    localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
+    currentGistItem = null;
+    document.getElementById('matched-sub-note').innerText = 'Đã xóa';
+    document.getElementById('subtitle-box').innerHTML = '<span style="color:var(--text-secondary)">Đã xóa</span>';
+    loadGistLibrary(false);
+    document.getElementById('context-menu').style.display = 'none';
+}
 
 function startSync(){if(syncInterval)clearInterval(syncInterval);syncInterval=setInterval(syncSub,200);}
 function syncSub(){updateTimeline();if(!player?.getCurrentTime||!subtitles.length)return;const t=player.getCurrentTime(),idx=subtitles.findIndex(s=>t>=s.start&&t<=s.end);if(idx!==-1&&idx!==activeSubIndex){activeSubIndex=idx;const s=subtitles[idx];document.getElementById('subtitle-box').innerHTML=`<div class="cn">${s.rawLines[0]}</div><div class="py">${s.rawLines[1]}</div><div class="vi">${s.rawLines[2]}</div>`;}}
@@ -478,5 +564,9 @@ async function handleMainAction(){
 function resetUI(){isLoadingState=false;const btn=document.getElementById('btn-action');btn.innerText='▶️ TAI';btn.classList.remove('cancel');}
 async function checkCloud(vid){if(gh_cloud_map[vid])return true;let token=localStorage.gh_token||localStorage.gh_pat_token;if(token){try{let r=await fetch('https://api.github.com/gists',{headers:{"Authorization":`token ${token}`}});if(r.ok){let g=await r.json();for(let x of g){if(x.files&&x.files[`${vid}.vtt`])return true;}}}catch(e){}}return false;}
 </script>
+    <!-- Context Menu -->
+<div class="context-menu" id="context-menu">
+    <button onclick="deleteGist()">🗑️ Xóa khỏi Gist vĩnh viễn</button>
+</div>
 </body>
 </html>
