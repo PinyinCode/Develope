@@ -118,6 +118,7 @@
         <div class="progress-wrap"><div class="progress-bar" id="pb"></div></div>
         <p style="font-size:10px;color:var(--text-secondary);margin-top:4px" id="pbText">Sẵn sàng</p>
     </div>
+    <div class="settings-toggle" id="toggle-all-btn" onclick="toggleAllCards()">👁️ Ẩn tất cả</div>
 
     <div class="settings-toggle" onclick="toggleSettings()">⚙️ Cài đặt GitHub & PC Server ▾</div>
     <div class="card" id="settings-card" style="display:none;">
@@ -130,10 +131,12 @@
 
     <div class="card" id="gist-card">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-            <label>📚 Kho phụ đề</label>
-            <button class="btn-sm" style="padding:4px 8px;font-size:10px;" onclick="renameCurrentVideo()">✏️ Đổi tên</button>
-<button class="btn-sm" style="padding:4px 8px;font-size:10px;color:var(--accent);" onclick="deleteCurrentVideo()">🗑️ Xóa</button>
-        </div>
+    <label>📚 Kho phụ đề</label>
+    <div style="display:flex;gap:6px;">
+        <button class="btn-sm" style="padding:4px 8px;font-size:10px;" onclick="renameCurrentVideo()">✏️</button>
+        <button class="btn-sm" style="padding:4px 8px;font-size:10px;color:var(--accent);" onclick="deleteCurrentVideo()">🗑️</button>
+    </div>
+</div>
         <div class="row">
             <select id="gist-select" onchange="onGistSelected(this.value)">
                 <option value="">-- Chọn phụ đề... --</option>
@@ -211,7 +214,26 @@ function toggleSettings(){
     b.textContent=c.style.display==='none'?'⚙️ Cai dat ▾':'⚙️ Cai dat ▴';
 }
 function toggleSubSettings(){const p=document.getElementById('sub-settings-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function updateFont(t,v){document.documentElement.style.setProperty(`--fs-${t}`,v+'px');document.getElementById(`val-${t}`).innerText=v+'px';}
+let allCardsVisible = true;
+
+function toggleAllCards() {
+    const btn = document.getElementById('toggle-all-btn');
+    const cards = ['input-card', 'gist-card', 'settings-card', 'log-card'];
+    const toggle = document.querySelector('.settings-toggle');
+    
+    allCardsVisible = !allCardsVisible;
+    
+    cards.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('hidden', !allCardsVisible);
+    });
+    
+    // Ẩn luôn nút settings toggle
+    if (toggle) toggle.style.display = allCardsVisible ? 'block' : 'none';
+    
+    btn.textContent = allCardsVisible ? '👁️ Ẩn tất cả' : '👁️ Hiện tất cả';
+}
+    function updateFont(t,v){document.documentElement.style.setProperty(`--fs-${t}`,v+'px');document.getElementById(`val-${t}`).innerText=v+'px';}
 function cyclePlaybackRate(){currentSpeedIndex=(currentSpeedIndex+1)%speeds.length;let r=speeds[currentSpeedIndex];document.getElementById('btn-speed').innerText=`⚡ ${r}x`;if(player?.setPlaybackRate)player.setPlaybackRate(r);}
 function toggleLoop(){isLoopEnabled=!isLoopEnabled;document.getElementById('btn-loop').classList.toggle('active',isLoopEnabled);}
 
@@ -454,14 +476,19 @@ function syncSub(){updateTimeline();if(!player?.getCurrentTime||!subtitles.lengt
 function onPlayerStateChange(e) {
     if (e.data == YT.PlayerState.PLAYING) {
         updatePlayPauseBtn(true);
-        document.getElementById('input-card').classList.add('hidden');
-        document.getElementById('log-card').classList.add('hidden');
-        document.getElementById('gist-card').classList.add('hidden');
+        // CHỈ ẨN KHI NÚT ẨN/HIỆN ĐÃ ĐƯỢC BẤM
+        if (!allCardsVisible) {
+            document.getElementById('input-card').classList.add('hidden');
+            document.getElementById('gist-card').classList.add('hidden');
+            document.getElementById('log-card').classList.add('hidden');
+        }
     } else if (e.data == YT.PlayerState.PAUSED || e.data == YT.PlayerState.ENDED) {
         updatePlayPauseBtn(false);
-        document.getElementById('input-card').classList.remove('hidden');
-        document.getElementById('log-card').classList.remove('hidden');
-        document.getElementById('gist-card').classList.remove('hidden');
+        if (!allCardsVisible) {
+            document.getElementById('input-card').classList.remove('hidden');
+            document.getElementById('gist-card').classList.remove('hidden');
+            document.getElementById('log-card').classList.remove('hidden');
+        }
         if (e.data == YT.PlayerState.ENDED && isLoopEnabled && player) {
             player.seekTo(0, true); player.playVideo();
         }
