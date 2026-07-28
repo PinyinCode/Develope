@@ -117,7 +117,7 @@
         </div>
         <div class="progress-wrap"><div class="progress-bar" id="pb"></div></div>
         <p style="font-size:10px;color:var(--text-secondary);margin-top:4px" id="pbText">Sẵn sàng</p>
-    
+        </div>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
     <span class="settings-toggle" onclick="toggleSettings()">⚙️ Cài đặt ▾</span>
     <span class="settings-toggle" id="toggle-all-btn" onclick="toggleAllCards()">👁️ Ẩn</span>
@@ -145,7 +145,7 @@
             <button class="btn-sm" style="width:40px" id="btn-reload" onclick="handleReload()">🔄</button>
         </div>
         <p style="font-size:10px;color:var(--text-secondary);margin-top:4px" id="matched-sub-note">Sẵn sàng</p>
-    </div>
+        </div>
 
     <div class="player-wrap hidden" id="video-wrapper"><div id="player"></div></div>
     <!-- Player -->
@@ -215,10 +215,8 @@ function toggleSettings(){
     b.textContent=c.style.display==='none'?'⚙️ Cai dat ▾':'⚙️ Cai dat ▴';
 }
 function toggleSubSettings(){const p=document.getElementById('sub-settings-panel');p.style.display=p.style.display==='none'?'block':'none';}
-let allCardsVisible = true;
 
 let allCardsVisible = true;
-
 function toggleAllCards() {
     const btn = document.getElementById('toggle-all-btn');
     const cards = ['input-card', 'gist-card', 'settings-card', 'log-card'];
@@ -616,7 +614,6 @@ async function handleMainAction(){
 function resetUI(){isLoadingState=false;const btn=document.getElementById('btn-action');btn.innerText='▶️ TAI';btn.classList.remove('cancel');}
 async function checkCloud(vid){if(gh_cloud_map[vid])return true;let token=localStorage.gh_token||localStorage.gh_pat_token;if(token){try{let r=await fetch('https://api.github.com/gists',{headers:{"Authorization":`token ${token}`}});if(r.ok){let g=await r.json();for(let x of g){if(x.files&&x.files[`${vid}.vtt`])return true;}}}catch(e){}}return false;}
 </script>
-</div>
 
 </body>
 </html>
