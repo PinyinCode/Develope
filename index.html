@@ -232,39 +232,42 @@ function handleReload(){
 }
 
 async function loadVideoFromGist(item) {
-    log(`Load: ${item.title}`,'info');
+    log(`Load: ${item.title}`, 'info');
     let res = await fetch(item.rawUrl);
     if (res.ok) {
         subtitles = parseVTT(await res.text());
         document.getElementById('matched-sub-note').innerText = `📦 ${item.title}`;
         document.getElementById('video-wrapper').classList.remove('hidden');
+        
         if (player) {
-            player.loadVideoById(item.videoId);
-            // ĐỢI VIDEO LOAD XONG RỒI PAUSE NGAY
-            setTimeout(() => {
-                if (player && typeof player.pauseVideo === 'function') {
-                    player.pauseVideo();
-                    player.seekTo(0, true);
-                }
-            }, 300);
-        } else {
-            player = new YT.Player('player', {
-                height: '100%', width: '100%',
-                videoId: item.videoId,
-                playerVars: { 
-                    playsinline: 1, 
-                    autoplay: 0 
-                },
-                events: {
-                    onReady: (e) => {
-                        startSync();
-                        e.target.pauseVideo();  // PAUSE NGAY KHI READY
-                        e.target.seekTo(0, true);
-                    },
-                    onStateChange: onPlayerStateChange
-                }
-            });
+            // Hủy player cũ, tạo mới để tránh tự động play
+            player.destroy();
+            player = null;
         }
+        
+        // Tạo player mới với autoplay=0
+        player = new YT.Player('player', {
+            height: '100%',
+            width: '100%',
+            videoId: item.videoId,
+            playerVars: {
+                playsinline: 1,
+                autoplay: 0,        // KHÔNG tự động play
+                controls: 0,        // Ẩn controls YouTube
+                rel: 0,             // Không gợi ý video liên quan
+                showinfo: 0         // Không hiện thông tin
+            },
+            events: {
+                onReady: (e) => {
+                    startSync();
+                    // PAUSE NGAY LẬP TỨC
+                    e.target.pauseVideo();
+                    e.target.seekTo(0, true);
+                    updatePlayPauseBtn(false);
+                },
+                onStateChange: onPlayerStateChange
+            }
+        });
     }
 }
 async function renameCurrentVideo() {
