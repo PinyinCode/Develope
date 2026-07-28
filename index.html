@@ -132,6 +132,7 @@
         <div style="display:flex;justify-content:space-between;align-items:center;">
             <label>📚 Kho phụ đề</label>
             <button class="btn-sm" style="padding:4px 8px;font-size:10px;" onclick="renameCurrentVideo()">✏️ Đổi tên</button>
+<button class="btn-sm" style="padding:4px 8px;font-size:10px;color:var(--accent);" onclick="deleteCurrentVideo()">🗑️ Xóa</button>
         </div>
         <div class="row">
             <select id="gist-select" onchange="onGistSelected(this.value)">
@@ -357,44 +358,54 @@ async function renameCurrentVideo() {
     document.getElementById('matched-sub-note').innerText = `✏️ ${nt}`;
     log(`Đã đổi tên: ${nt}`, 'ok');
 }
-
+async function deleteCurrentVideo() {
+    if (!currentGistItem) { alert('Chọn phụ đề trong kho trước!'); return; }
+    
+    let vid = currentGistItem.videoId;
+    let title = currentGistItem.title;
+    
+    if (!confirm(`Xóa "${title}"?\n\nFile .vtt sẽ bị xóa vĩnh viễn khỏi Gist!`)) return;
+    
+    let token = localStorage.gh_token || localStorage.gh_pat_token;
+    if (!token) { alert('Cần cấu hình GitHub Token!'); return; }
+    
+    try {
+        // Tìm và xóa Gist
+        let res = await fetch('https://api.github.com/gists?per_page=100', {
+            headers: { "Authorization": `token ${token}` }
+        });
+        if (res.ok) {
+            let gists = await res.json();
+            for (let g of gists) {
+                if (g.files && g.files[`${vid}.vtt`]) {
+                    await fetch(`https://api.github.com/gists/${g.id}`, {
+                        method: 'DELETE',
+                        headers: { "Authorization": `token ${token}` }
+                    });
+                    break;
+                }
+            }
+        }
+        
+        // Xóa khỏi local
+        delete gh_cloud_map[vid];
+        localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
+        currentGistItem = null;
+        
+        // Cập nhật UI
+        loadGistLibrary(false);
+        document.getElementById('subtitle-box').innerHTML = '<span style="color:var(--text-secondary)">Đã xóa</span>';
+        document.getElementById('matched-sub-note').innerText = `Đã xóa: ${title}`;
+        log(`Đã xóa: ${title}`, 'ok');
+        
+    } catch (e) {
+        log('Lỗi xóa: ' + e.message, 'err');
+        alert('Lỗi: ' + e.message);
+    }
+}
 // ===== CHỌN PHỤ ĐỀ =====
     function onGistSelected(val){if(!val){currentGistItem=null;return;}try{currentGistItem=JSON.parse(val);document.getElementById('matched-sub-note').innerText=`📦 ${currentGistItem.title}`;}catch(e){currentGistItem=null;}}
-let contextTimer = null;
 
-setTimeout(() => {
-    const subBox = document.getElementById('subtitle-box');
-    if (!subBox) return;
-    
-    // Hỗ trợ cả touch và mouse (cho iPhone + PC test)
-    function startLongPress(e) {
-        if (!currentGistItem) return;
-        e.preventDefault();
-        let x, y;
-        if (e.touches) { x = e.touches[0].clientX; y = e.touches[0].clientY; }
-        else { x = e.clientX; y = e.clientY; }
-        contextTimer = setTimeout(() => { showContextMenu(x, y); }, 800);
-    }
-    
-    function cancelLongPress() { clearTimeout(contextTimer); }
-    
-    subBox.addEventListener('touchstart', startLongPress, { passive: false });
-    subBox.addEventListener('touchend', cancelLongPress);
-    subBox.addEventListener('touchmove', cancelLongPress);
-    subBox.addEventListener('touchcancel', cancelLongPress);
-    
-    // Fallback cho PC test
-    subBox.addEventListener('mousedown', startLongPress);
-    subBox.addEventListener('mouseup', cancelLongPress);
-    subBox.addEventListener('mouseleave', cancelLongPress);
-}, 2000);
-
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('.context-menu')) {
-        const menu = document.getElementById('context-menu');
-        if (menu) menu.style.display = 'none';
-    }
-});
 
 function showContextMenu(x, y) {
     const menu = document.getElementById('context-menu');
@@ -578,8 +589,6 @@ function resetUI(){isLoadingState=false;const btn=document.getElementById('btn-a
 async function checkCloud(vid){if(gh_cloud_map[vid])return true;let token=localStorage.gh_token||localStorage.gh_pat_token;if(token){try{let r=await fetch('https://api.github.com/gists',{headers:{"Authorization":`token ${token}`}});if(r.ok){let g=await r.json();for(let x of g){if(x.files&&x.files[`${vid}.vtt`])return true;}}}catch(e){}}return false;}
 </script>
 </div>
-<div class="context-menu" id="context-menu">
-    <button onclick="deleteGist()">🗑️ Xóa khỏi Gist vĩnh viễn</button>
-</div>
+
 </body>
 </html>
