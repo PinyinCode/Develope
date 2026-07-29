@@ -613,98 +613,41 @@ function parseVTT(d){const n=d.replace(/\r\n/g,'\n').replace(/\r/g,'\n'),b=n.spl
 function parseTime(t){t=t.replace(',','.');const p=t.split(':');return p.length<3?0:parseFloat(p[0])*3600+parseFloat(p[1])*60+parseFloat(p[2]);}
 
 // ===== MAIN =====
-async function handleMainAction(){
-    const btn=document.getElementById('btn-action');
-    const url=document.getElementById('yt-link').value.trim();
-    const vid=extractVideoID(url);
+async function handleMainAction() {
+    const url = document.getElementById('yt-link').value.trim();
+    const vid = extractVideoID(url);
+    const token = localStorage.gh_token || localStorage.gh_pat_token;
+    const user = localStorage.gh_user;
+    const repo = localStorage.gh_repo || 'subtitle-ai';
     
-    // === NẾU ĐANG XỬ LÝ -> HỦY ===
-    if(isLoadingState){
-        btn.innerText='⏹ ĐANG HỦY...';
-        btn.disabled=true;
-        await cancelDownload();
-        resetUI();
+    if (!vid || !pc_url || !token || !user) {
+        alert('Thiếu cấu hình!');
         return;
     }
     
-    if(!vid){alert('Nhap link!');return}
-    let hasSub=gh_cloud_map[vid]||(await checkCloud(vid));
-    if(hasSub){alert('Phu de da co trong kho! Chon + Play.');return;}
-    if(!pc_url){alert('Cau hinh PC Server URL!');return}
+    log(`Gửi yêu cầu: ${vid}`, 'info');
     
-    processingVid=vid;
-    isLoadingState=true;
-    btn.innerText='⏹ DUNG';
-    btn.classList.add('cancel');
-    document.getElementById('logBox').innerHTML='';
-    log(`Tai: ${vid}`,'info');
-    prog(5,'Kiem tra PC...');
-    
-    // === BẮT ĐẦU POLLING TIẾN ĐỘ ===
-    if (progressInterval) clearInterval(progressInterval);
-    progressInterval = setInterval(() => fetchProgress(vid), 500);
-    
-    try{
-        const pc=pc_url.replace(/\/$/,'');
-        const h=await fetch(`${pc}/health`,{signal:AbortSignal.timeout(5000)});
-        if(!h.ok)throw new Error('PC offline');
-        log('PC online ✓','ok');
+    try {
+        const pc = pc_url.replace(/\/$/, '');
         
-        // Tải audio - không cần cập nhật prog ở đây vì fetchProgress đã làm
-        const blob=await new Promise((r,j)=>{
-            const x=new XMLHttpRequest();
-            x.open('GET',`${pc}/download?url=${encodeURIComponent(`https://youtu.be/${vid}`)}`,true);
-            x.responseType='blob';x.timeout=600000;
-            x.onload=()=>x.status===200?r(x.response):j(new Error(`Loi ${x.status}`));
-            x.onerror=()=>j(new Error('Mat ket noi'));
-            x.ontimeout=()=>j(new Error('Timeout'));
-            x.send();
-        });
+        // Gọi server download + upload GitHub (có truyền token)
+        const res = await fetch(`${pc}/download?url=${encodeURIComponent(url)}&gh_user=${user}&gh_repo=${repo}&gh_token=${token}`);
         
-        log(`Tai xong: ${(blob.size/1024/1024).toFixed(1)}MB ✓`,'ok');
-        prog(50,'Upload GitHub...');
-        
-        const b64=await new Promise(r=>{const rd=new FileReader();rd.onload=()=>r(rd.result.split(',')[1]);rd.readAsDataURL(blob);});
-        const token=localStorage.gh_token||localStorage.gh_pat_token,user=localStorage.gh_user,repo=localStorage.gh_repo;
-        if(!token||!user){alert('Cau hinh GitHub!');resetUI();return}
-        const api=`https://api.github.com/repos/${user}/${repo}/contents/data/audio/${vid}.m4a`;
-        const headers={"Authorization":`token ${token}`,"Accept":"application/vnd.github.v3+json"};
-        let sha=null;try{const c=await fetch(api,{headers});if(c.ok)sha=(await c.json()).sha}catch(e){}
-        const body={message:`Audio ${vid}`,content:b64,branch:'main'};if(sha)body.sha=sha;
-        const r=await fetch(api,{method:'PUT',headers,body:JSON.stringify(body)});if(!r.ok)throw new Error((await r.json()).message);
-        
-        log('Upload ✓','ok');
-        prog(100,'Hoan tat!');
-        clearUrl();
-        document.getElementById('matched-sub-note').innerText='⏳ AI tao phu de... (3-5 phut)';
-        
-        try{await fetch(`https://api.github.com/repos/${user}/${repo}/dispatches`,{method:'POST',headers,body:JSON.stringify({event_type:'process_audio',client_payload:{video_id:vid}})})}catch(e){}
-        
-        setTimeout(async()=>{
-            const sr=await fetch(`https://api.github.com/repos/${user}/${repo}/contents/output/${vid}.vtt`,{headers});
-            if(sr.ok){
-                const sd=await sr.json();
-                gh_cloud_map[vid]={url:sd.download_url,title:`Video ${vid}`};
-                localStorage.setItem('gh_cloud_map',JSON.stringify(gh_cloud_map));
-                loadGistLibrary(true);
-                document.getElementById('matched-sub-note').innerText='✅ Phu de moi!';
-                log('Phu de moi ✓','ok');
-                processingVid=null;
-            }
-        },180000);
-        
-    }catch(e){
-        log(`LOI: ${e.message}`,'err');
-        prog(0,'Loi');
-        processingVid=null;
+        if (res.ok) {
+            const data = await res.json();
+            log('✅ Đã upload lên GitHub!', 'ok');
+            log('⏳ AI đang xử lý...', 'info');
+            document.getElementById('matched-sub-note').innerText = '⏳ AI đang tạo phụ đề...';
+            
+            // Tự động kiểm tra sau 3 phút
+            setTimeout(() => checkAndLoadGist(vid), 180000);
+        } else {
+            const err = await res.json();
+            log('❌ Lỗi: ' + err.error, 'err');
+        }
+    } catch (e) {
+        log('❌ Lỗi: ' + e.message, 'err');
     }
-    
-    // === DỪNG POLLING ===
-    if (progressInterval) {
-        clearInterval(progressInterval);
-        progressInterval = null;
-    }
-    resetUI();
 }
 // ===== HỦY TẢI =====
 async function cancelDownload() {
