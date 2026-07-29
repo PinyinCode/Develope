@@ -729,6 +729,7 @@ async function cancelDownload() {
 }
 
 // ===== LẤY TIẾN ĐỘ TỪ SERVER =====
+// ===== LẤY TIẾN ĐỘ TỪ SERVER =====
 async function fetchProgress(vid) {
     if (!pc_url || !vid) return;
     
@@ -742,9 +743,12 @@ async function fetchProgress(vid) {
             if (data.status === 'downloading') {
                 let downloaded = (data.downloaded / 1024 / 1024).toFixed(1);
                 let total = (data.total / 1024 / 1024).toFixed(1);
-                prog(data.percent, `⬇️ Tải: ${downloaded}/${total}MB - ${data.speed}`);
+                prog(data.percent, `⬇️ Tải: ${data.percent}% - ${downloaded}/${total}MB - ${data.speed}`);
+                
             } else if (data.status === 'uploading') {
-                prog(data.upload_percent || 50, `📤 Upload: ${data.speed}`);
+                let upPct = data.upload_percent || 0;
+                prog(upPct, `📤 Upload: ${upPct}% - ${data.speed}`);
+                
             } else if (data.status === 'done') {
                 prog(100, '✅ Hoàn tất! Đợi AI xử lý...');
                 if (progressInterval) {
@@ -757,11 +761,16 @@ async function fetchProgress(vid) {
                     clearInterval(progressInterval);
                     progressInterval = null;
                 }
+            } else if (data.status === 'cancelled') {
+                prog(0, '🚫 Đã hủy');
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
             }
         }
     } catch (e) {}
 }
-
 function resetUI(){
     isLoadingState=false;
     const btn=document.getElementById('btn-action');
