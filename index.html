@@ -350,6 +350,7 @@ async function cancelDownload() {
 }
 
 // ===== MAIN =====
+// ===== MAIN =====
 async function handleMainAction(){
     const btn=document.getElementById('btn-action');
     const url=document.getElementById('yt-link').value.trim();
@@ -372,36 +373,38 @@ async function handleMainAction(){
         log('PC online ✓','ok');prog(20,'PC đang tải...');
         
         const response = await fetch(`${pc}/download?url=${encodeURIComponent(`https://youtu.be/${vid}`)}`, {signal: AbortSignal.timeout(600000)});
-if (!response.ok) throw new Error('Server lỗi ' + response.status);
+        if (!response.ok) throw new Error('Server lỗi ' + response.status);
 
-let result;
-try {
-    result = await response.json();
-} catch (e) {
-    // Không đọc được response (mobile tắt app) nhưng server vẫn upload
-    log('⚠️ Server đang xử lý...', 'info');
-    prog(100, 'Hoàn tất! AI đang xử lý...');
-    clearUrl();
-    document.getElementById('matched-sub-note').innerText = '⏳ AI tạo phụ đề... (3-5 phút)';
-    
-    setTimeout(async () => {
-        const token = localStorage.gh_token || localStorage.gh_pat_token;
-        const headers = { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" };
-        const sr = await fetch(`https://api.github.com/repos/${localStorage.gh_user}/${localStorage.gh_repo}/contents/output/${vid}.vtt`, { headers });
-        if (sr.ok) {
-            const sd = await sr.json();
-            gh_cloud_map[vid] = { url: sd.download_url, title: `Video ${vid}` };
-            localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
-            loadGistLibrary(true);
-            document.getElementById('matched-sub-note').innerText = '✅ Phụ đề mới!';
-            log('Phụ đề mới ✓', 'ok');
-            processingVid = null;
+        let result;
+        try {
+            result = await response.json();
+        } catch (e) {
+            // Không đọc được response (mobile tắt app) nhưng server vẫn upload
+            log('⚠️ Server đang xử lý...', 'info');
+            prog(100, 'Hoàn tất! AI đang xử lý...');
+            clearUrl();
+            document.getElementById('matched-sub-note').innerText = '⏳ AI tạo phụ đề... (3-5 phút)';
+            
+            setTimeout(async () => {
+                const token = localStorage.gh_token || localStorage.gh_pat_token;
+                const headers = { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" };
+                const sr = await fetch(`https://api.github.com/repos/${localStorage.gh_user}/${localStorage.gh_repo}/contents/output/${vid}.vtt`, { headers });
+                if (sr.ok) {
+                    const sd = await sr.json();
+                    gh_cloud_map[vid] = { url: sd.download_url, title: `Video ${vid}` };
+                    localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
+                    loadGistLibrary(true);
+                    document.getElementById('matched-sub-note').innerText = '✅ Phụ đề mới!';
+                    log('Phụ đề mới ✓', 'ok');
+                    processingVid = null;
+                }
+            }, 180000);
+            
+            resetUI();
+            return;
         }
-    }, 180000);
-    
-    resetUI();
-    return;
-}
+        
+        // Xử lý khi parse JSON thành công
         if(result.status==='ok'){
             log('✅ Server đã upload lên GitHub!','ok');
             prog(100,'Hoàn tất! AI đang xử lý...');
@@ -414,11 +417,16 @@ try {
                 const sr=await fetch(`https://api.github.com/repos/${localStorage.gh_user}/${localStorage.gh_repo}/contents/output/${vid}.vtt`,{headers});
                 if(sr.ok){const sd=await sr.json();gh_cloud_map[vid]={url:sd.download_url,title:`Video ${vid}`};localStorage.setItem('gh_cloud_map',JSON.stringify(gh_cloud_map));loadGistLibrary(true);document.getElementById('matched-sub-note').innerText='✅ Phụ đề mới!';log('Phụ đề mới ✓','ok');processingVid=null;}
             },180000);
-        }else{throw new Error(result.message||'Upload thất bại');}
-    }catch(e){log(`LOI: ${e.message}`,'err');prog(0,'Lỗi');processingVid=null;}
+        }else{
+            throw new Error(result.message||'Upload thất bại');
+        }
+    }catch(e){
+        log(`LOI: ${e.message}`,'err');
+        prog(0,'Lỗi');
+        processingVid=null;
+    }
     resetUI();
 }
-
 function resetUI(){isLoadingState=false;const btn=document.getElementById('btn-action');btn.innerText='▶️ TẢI';btn.classList.remove('cancel');}
 
 async function checkCloud(vid){if(gh_cloud_map[vid])return true;let token=localStorage.gh_token||localStorage.gh_pat_token;if(token){try{let r=await fetch('https://api.github.com/gists',{headers:{"Authorization":`token ${token}`}});if(r.ok){let g=await r.json();for(let x of g){if(x.files&&x.files[`${vid}.vtt`])return true;}}}catch(e){}}return false;}
