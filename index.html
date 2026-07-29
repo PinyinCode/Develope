@@ -189,8 +189,8 @@ let currentGistItem=null;
 let isLoopEnabled=false, currentSpeedIndex=2;
 const speeds=[0.5,0.75,1.0,1.25,1.5,2.0];
 let pc_url='', gh_cloud_map={};
-let reloadTimer=null; // Timer cho double-click reload
-
+let reloadTimer=null;
+let progressInterval=null; // THÊM DÒNG NÀY
 // ===== INIT =====
 function onYouTubeIframeAPIReady(){ loadSettings(); loadGistLibrary(false); }
 function loadSettings(){
@@ -617,18 +617,53 @@ async function handleMainAction(){
     const btn=document.getElementById('btn-action');
     const url=document.getElementById('yt-link').value.trim();
     const vid=extractVideoID(url);
+    
+    // === NẾU ĐANG XỬ LÝ -> HỦY ===
+    if(isLoadingState){
+        btn.innerText='⏹ ĐANG HỦY...';
+        btn.disabled=true;
+        await cancelDownload();
+        resetUI();
+        return;
+    }
+    
     if(!vid){alert('Nhap link!');return}
-    if(isLoadingState)return;
     let hasSub=gh_cloud_map[vid]||(await checkCloud(vid));
     if(hasSub){alert('Phu de da co trong kho! Chon + Play.');return;}
     if(!pc_url){alert('Cau hinh PC Server URL!');return}
-    processingVid=vid;isLoadingState=true;btn.innerText='⏹ DUNG';btn.classList.add('cancel');
-    document.getElementById('logBox').innerHTML='';log(`Tai: ${vid}`,'info');prog(5,'Kiem tra PC...');
+    
+    processingVid=vid;
+    isLoadingState=true;
+    btn.innerText='⏹ DUNG';
+    btn.classList.add('cancel');
+    document.getElementById('logBox').innerHTML='';
+    log(`Tai: ${vid}`,'info');
+    prog(5,'Kiem tra PC...');
+    
+    // === BẮT ĐẦU POLLING TIẾN ĐỘ ===
+    if (progressInterval) clearInterval(progressInterval);
+    progressInterval = setInterval(() => fetchProgress(vid), 500);
+    
     try{
-        const pc=pc_url.replace(/\/$/,'');const h=await fetch(`${pc}/health`,{signal:AbortSignal.timeout(5000)});if(!h.ok)throw new Error('PC offline');
-        log('PC online ✓','ok');prog(10,'PC tai audio...');
-        const blob=await new Promise((r,j)=>{const x=new XMLHttpRequest();x.open('GET',`${pc}/download?url=${encodeURIComponent(`https://youtu.be/${vid}`)}`,true);x.responseType='blob';x.timeout=600000;x.onload=()=>x.status===200?r(x.response):j(new Error(`Loi ${x.status}`));x.onerror=()=>j(new Error('Mat ket noi'));x.ontimeout=()=>j(new Error('Timeout'));x.send();});
-        log(`Tai xong: ${(blob.size/1024/1024).toFixed(1)}MB ✓`,'ok');prog(50,'Upload GitHub...');
+        const pc=pc_url.replace(/\/$/,'');
+        const h=await fetch(`${pc}/health`,{signal:AbortSignal.timeout(5000)});
+        if(!h.ok)throw new Error('PC offline');
+        log('PC online ✓','ok');
+        
+        // Tải audio - không cần cập nhật prog ở đây vì fetchProgress đã làm
+        const blob=await new Promise((r,j)=>{
+            const x=new XMLHttpRequest();
+            x.open('GET',`${pc}/download?url=${encodeURIComponent(`https://youtu.be/${vid}`)}`,true);
+            x.responseType='blob';x.timeout=600000;
+            x.onload=()=>x.status===200?r(x.response):j(new Error(`Loi ${x.status}`));
+            x.onerror=()=>j(new Error('Mat ket noi'));
+            x.ontimeout=()=>j(new Error('Timeout'));
+            x.send();
+        });
+        
+        log(`Tai xong: ${(blob.size/1024/1024).toFixed(1)}MB ✓`,'ok');
+        prog(50,'Upload GitHub...');
+        
         const b64=await new Promise(r=>{const rd=new FileReader();rd.onload=()=>r(rd.result.split(',')[1]);rd.readAsDataURL(blob);});
         const token=localStorage.gh_token||localStorage.gh_pat_token,user=localStorage.gh_user,repo=localStorage.gh_repo;
         if(!token||!user){alert('Cau hinh GitHub!');resetUI();return}
@@ -637,13 +672,107 @@ async function handleMainAction(){
         let sha=null;try{const c=await fetch(api,{headers});if(c.ok)sha=(await c.json()).sha}catch(e){}
         const body={message:`Audio ${vid}`,content:b64,branch:'main'};if(sha)body.sha=sha;
         const r=await fetch(api,{method:'PUT',headers,body:JSON.stringify(body)});if(!r.ok)throw new Error((await r.json()).message);
-        log('Upload ✓','ok');prog(100,'Hoan tat!');clearUrl();
+        
+        log('Upload ✓','ok');
+        prog(100,'Hoan tat!');
+        clearUrl();
         document.getElementById('matched-sub-note').innerText='⏳ AI tao phu de... (3-5 phut)';
+        
         try{await fetch(`https://api.github.com/repos/${user}/${repo}/dispatches`,{method:'POST',headers,body:JSON.stringify({event_type:'process_audio',client_payload:{video_id:vid}})})}catch(e){}
-        setTimeout(async()=>{const sr=await fetch(`https://api.github.com/repos/${user}/${repo}/contents/output/${vid}.vtt`,{headers});if(sr.ok){const sd=await sr.json();gh_cloud_map[vid]={url:sd.download_url,title:`Video ${vid}`};localStorage.setItem('gh_cloud_map',JSON.stringify(gh_cloud_map));loadGistLibrary(true);document.getElementById('matched-sub-note').innerText='✅ Phu de moi!';log('Phu de moi ✓','ok');processingVid=null;}},180000);
-    }catch(e){log(`LOI: ${e.message}`,'err');prog(0,'Loi');processingVid=null;}
+        
+        setTimeout(async()=>{
+            const sr=await fetch(`https://api.github.com/repos/${user}/${repo}/contents/output/${vid}.vtt`,{headers});
+            if(sr.ok){
+                const sd=await sr.json();
+                gh_cloud_map[vid]={url:sd.download_url,title:`Video ${vid}`};
+                localStorage.setItem('gh_cloud_map',JSON.stringify(gh_cloud_map));
+                loadGistLibrary(true);
+                document.getElementById('matched-sub-note').innerText='✅ Phu de moi!';
+                log('Phu de moi ✓','ok');
+                processingVid=null;
+            }
+        },180000);
+        
+    }catch(e){
+        log(`LOI: ${e.message}`,'err');
+        prog(0,'Loi');
+        processingVid=null;
+    }
+    
+    // === DỪNG POLLING ===
+    if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+    }
     resetUI();
 }
-function resetUI(){isLoadingState=false;const btn=document.getElementById('btn-action');btn.innerText='▶️ TAI';btn.classList.remove('cancel');}
+// ===== HỦY TẢI =====
+async function cancelDownload() {
+    if (!processingVid) return;
+    
+    const pc = pc_url.replace(/\/$/, '');
+    
+    try {
+        await fetch(`${pc}/cancel?id=${processingVid}`);
+        log('Đã hủy tải ✓', 'ok');
+    } catch (e) {
+        log('Hủy tải thất bại: ' + e.message, 'err');
+    }
+    
+    // Dừng polling tiến độ
+    if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+    }
+    
+    processingVid = null;
+}
+
+// ===== LẤY TIẾN ĐỘ TỪ SERVER =====
+async function fetchProgress(vid) {
+    if (!pc_url || !vid) return;
+    
+    const pc = pc_url.replace(/\/$/, '');
+    
+    try {
+        let res = await fetch(`${pc}/progress?id=${vid}`);
+        if (res.ok) {
+            let data = await res.json();
+            
+            if (data.status === 'downloading') {
+                let downloaded = (data.downloaded / 1024 / 1024).toFixed(1);
+                let total = (data.total / 1024 / 1024).toFixed(1);
+                prog(data.percent, `⬇️ Tải: ${downloaded}/${total}MB - ${data.speed}`);
+            } else if (data.status === 'uploading') {
+                prog(data.upload_percent || 50, `📤 Upload: ${data.speed}`);
+            } else if (data.status === 'done') {
+                prog(100, '✅ Hoàn tất! Đợi AI xử lý...');
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
+            } else if (data.status === 'error') {
+                prog(0, `❌ Lỗi: ${data.message}`);
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
+            }
+        }
+    } catch (e) {}
+}
+
+function resetUI(){
+    isLoadingState=false;
+    const btn=document.getElementById('btn-action');
+    btn.innerText='▶️ TAI';
+    btn.classList.remove('cancel');
+    // Dừng polling khi reset
+    if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+    }
+}
+    function resetUI(){isLoadingState=false;const btn=document.getElementById('btn-action');btn.innerText='▶️ TAI';btn.classList.remove('cancel');}
 async function checkCloud(vid){if(gh_cloud_map[vid])return true;let token=localStorage.gh_token||localStorage.gh_pat_token;if(token){try{let r=await fetch('https://api.github.com/gists',{headers:{"Authorization":`token ${token}`}});if(r.ok){let g=await r.json();for(let x of g){if(x.files&&x.files[`${vid}.vtt`])return true;}}}catch(e){}}return false;}
 </script>
