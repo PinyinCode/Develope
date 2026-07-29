@@ -350,59 +350,110 @@ async function cancelDownload() {
 }
 
 // ===== MAIN =====
-async function handleMainAction(){
-    const btn=document.getElementById('btn-action');
-    const url=document.getElementById('yt-link').value.trim();
-    const vid=extractVideoID(url);
+async function handleMainAction() {
+    const btn = document.getElementById('btn-action');
+    const url = document.getElementById('yt-link').value.trim();
+    const vid = extractVideoID(url);
     
-    if(isLoadingState){btn.innerText='⏹ ĐANG HỦY...';btn.disabled=true;await cancelDownload();resetUI();return;}
-    if(!vid){alert('Nhập link!');return}
-    if(gh_cloud_map[vid]||(await checkCloud(vid))){alert('Đã có trong kho! Chọn + Play.');return;}
-    if(!pc_url){alert('Cấu hình PC Server URL!');return}
+    if (isLoadingState) {
+        btn.innerText = '⏹ ĐANG HỦY...';
+        btn.disabled = true;
+        await cancelDownload();
+        resetUI();
+        return;
+    }
     
-    processingVid=vid;isLoadingState=true;
-    btn.innerText='⏹ DỪNG';btn.classList.add('cancel');
-    document.getElementById('logBox').innerHTML='';
-    log(`Gửi yêu cầu: ${vid}`,'info');prog(10,'Đang gửi đến PC...');
+    if (!vid) {
+        alert('Nhập link!');
+        return;
+    }
     
-    try{
-        const pc=pc_url.replace(/\/$/,'');
-        const h=await fetch(`${pc}/health`,{signal:AbortSignal.timeout(5000)});
-        if(!h.ok)throw new Error('PC offline');
-        log('PC online ✓','ok');prog(20,'PC đang tải...');
+    if (gh_cloud_map[vid] || (await checkCloud(vid))) {
+        alert('Đã có trong kho! Chọn + Play.');
+        return;
+    }
+    
+    if (!pc_url) {
+        alert('Cấu hình PC Server URL!');
+        return;
+    }
+    
+    processingVid = vid;
+    isLoadingState = true;
+    btn.innerText = '⏹ DỪNG';
+    btn.classList.add('cancel');
+    document.getElementById('logBox').innerHTML = '';
+    log(`Gửi yêu cầu: ${vid}`, 'info');
+    prog(10, 'Đang gửi đến PC...');
+    
+    try {
+        const pc = pc_url.replace(/\/$/, '');
+        const h = await fetch(`${pc}/health`, { signal: AbortSignal.timeout(5000) });
+        if (!h.ok) throw new Error('PC offline');
+        log('PC online ✓', 'ok');
+        prog(20, 'PC đang tải...');
         
-        const response = await fetch(`${pc}/download?url=${encodeURIComponent(`https://youtu.be/${vid}`)}`, {signal: AbortSignal.timeout(600000)});
-if (!response.ok) throw new Error('Server lỗi ' + response.status);
-
-let result;
-try {
-    result = await response.json();
-} catch (e) {
-    // Không đọc được response (mobile tắt app) nhưng server vẫn upload
-    log('⚠️ Server đang xử lý...', 'info');
-    prog(100, 'Hoàn tất! AI đang xử lý...');
-    clearUrl();
-    document.getElementById('matched-sub-note').innerText = '⏳ AI tạo phụ đề... (3-5 phút)';
-    
-    setTimeout(async () => {
-        const token = localStorage.gh_token || localStorage.gh_pat_token;
-        const headers = { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" };
-        const sr = await fetch(`https://api.github.com/repos/${localStorage.gh_user}/${localStorage.gh_repo}/contents/output/${vid}.vtt`, { headers });
-        if (sr.ok) {
-            const sd = await sr.json();
-            gh_cloud_map[vid] = { url: sd.download_url, title: `Video ${vid}` };
-            localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
-            loadGistLibrary(true);
-            document.getElementById('matched-sub-note').innerText = '✅ Phụ đề mới!';
-            log('Phụ đề mới ✓', 'ok');
-            processingVid = null;
+        const response = await fetch(`${pc}/download?url=${encodeURIComponent(url)}`, {
+            signal: AbortSignal.timeout(600000)
+        });
+        
+        if (!response.ok) throw new Error('Server lỗi ' + response.status);
+        
+        let result;
+        try {
+            result = await response.json();
+        } catch (e) {
+            log('⚠️ Server đang xử lý...', 'info');
+            prog(100, 'Hoàn tất! AI đang xử lý...');
+            clearUrl();
+            document.getElementById('matched-sub-note').innerText = '⏳ AI tạo phụ đề... (3-5 phút)';
+            setTimeout(async () => {
+                const token = localStorage.gh_token || localStorage.gh_pat_token;
+                const headers = { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" };
+                const sr = await fetch(`https://api.github.com/repos/${localStorage.gh_user}/${localStorage.gh_repo}/contents/output/${vid}.vtt`, { headers });
+                if (sr.ok) {
+                    const sd = await sr.json();
+                    gh_cloud_map[vid] = { url: sd.download_url, title: `Video ${vid}` };
+                    localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
+                    loadGistLibrary(true);
+                    document.getElementById('matched-sub-note').innerText = '✅ Phụ đề mới!';
+                    log('Phụ đề mới ✓', 'ok');
+                    processingVid = null;
+                }
+            }, 180000);
+            resetUI();
+            return;
         }
-    }, 180000);
-    
+        
+        if (result && result.status === 'ok') {
+            log('✅ Server đã upload lên GitHub!', 'ok');
+            prog(100, 'Hoàn tất! AI đang xử lý...');
+            clearUrl();
+            document.getElementById('matched-sub-note').innerText = '⏳ AI tạo phụ đề... (3-5 phút)';
+            setTimeout(async () => {
+                const token = localStorage.gh_token || localStorage.gh_pat_token;
+                const headers = { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" };
+                const sr = await fetch(`https://api.github.com/repos/${localStorage.gh_user}/${localStorage.gh_repo}/contents/output/${vid}.vtt`, { headers });
+                if (sr.ok) {
+                    const sd = await sr.json();
+                    gh_cloud_map[vid] = { url: sd.download_url, title: `Video ${vid}` };
+                    localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
+                    loadGistLibrary(true);
+                    document.getElementById('matched-sub-note').innerText = '✅ Phụ đề mới!';
+                    log('Phụ đề mới ✓', 'ok');
+                    processingVid = null;
+                }
+            }, 180000);
+        } else {
+            throw new Error(result ? result.message : 'Upload thất bại');
+        }
+    } catch (e) {
+        log(`LOI: ${e.message}`, 'err');
+        prog(0, 'Lỗi');
+        processingVid = null;
+    }
     resetUI();
-    return;
 }
-
 // Nếu đọc được JSON
 if (result.status === 'ok') {
     log('✅ Server đã upload lên GitHub!', 'ok');
