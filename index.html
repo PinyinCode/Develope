@@ -1029,10 +1029,19 @@ async function handleMainAction() {
     const btn = document.getElementById('btn-action');
     const url = document.getElementById('yt-link').value.trim();
     const vid = extractVideoID(url);
-    const token = localStorage.gh_token || localStorage.gh_pat_token;
-    const user = localStorage.gh_user;
+    
+    // Lấy token từ localStorage (nếu có), nếu không thì để trống (server tự lấy từ config)
+    const token = localStorage.gh_token || localStorage.gh_pat_token || '';
+    const user = localStorage.gh_user || 'PinyinCode';
     const repo = localStorage.gh_repo || 'subtitle-ai';
-
+    
+    // ❌ KHÔNG KIỂM TRA TOKEN - Chỉ kiểm tra URL và PC_URL
+    if (!vid || !pc_url) {
+        alert('Thiếu cấu hình! Cần: Link YouTube, PC Server URL');
+        return;
+    }
+    
+    // Nếu đang tải, hủy
     if (isLoadingState) {
         btn.innerText = '⏹ ĐANG HỦY...';
         btn.disabled = true;
@@ -1040,33 +1049,25 @@ async function handleMainAction() {
         resetUI();
         return;
     }
-
-    if (!vid || !pc_url || !token || !user) {
-        alert('Thiếu cấu hình! Cần: Link YouTube, PC Server URL, GitHub Token, Username');
-        return;
-    }
-
+    
+    // Kiểm tra video đã có trong kho chưa
     if (gh_cloud_map[vid] || (await checkCloud(vid))) {
         alert('Video đã có trong kho! Chọn và nhấn Play.');
         return;
     }
-
-    // Xóa trạng thái cũ
-    clearStoredProgress();
-
+    
     processingVid = vid;
     isLoadingState = true;
     btn.innerText = '⏹ DỪNG';
     btn.classList.add('cancel');
     document.getElementById('logBox').innerHTML = '';
     log(`🎬 Gửi yêu cầu: ${vid}`, 'info');
-    prog(5, 'Đang kết nối...', '');
-    document.getElementById('status-text').innerHTML = '⏳ Connecting...';
-
+    prog(10, 'Đang kết nối...');
+    
     try {
         const pc = pc_url.replace(/\/$/, '');
-
-        // Kiểm tra PC
+        
+        // Kiểm tra PC online
         log('Kiểm tra PC...', 'info');
         try {
             const h = await fetch(`${pc}/health`, { signal: AbortSignal.timeout(15000) });
@@ -1077,19 +1078,17 @@ async function handleMainAction() {
             if (!h.ok) throw new Error('PC offline');
         }
         log('✅ PC online', 'ok');
-        prog(10, 'Đã kết nối PC', '');
-
+        prog(20, 'Đang gửi...');
+        
         // Polling tiến độ
         if (progressInterval) clearInterval(progressInterval);
-        progressInterval = setInterval(() => fetchProgress(vid), 1500);
-
-        // Gửi request
-        log('📤 Đang gửi yêu cầu tải...', 'info');
-        const res = await fetch(
-            `${pc}/download?url=${encodeURIComponent(url)}&gh_user=${user}&gh_repo=${repo}&gh_token=${token}`, {
-                signal: AbortSignal.timeout(600000)
-            });
-
+        progressInterval = setInterval(() => fetchProgress(vid), 2000);
+        
+        // Gửi request - KHÔNG CẦN TOKEN (server tự lấy từ config)
+        const res = await fetch(`${pc}/download?url=${encodeURIComponent(url)}&gh_user=${user}&gh_repo=${repo}&gh_token=${token}`, {
+            signal: AbortSignal.timeout(600000)
+        });
+        
         if (!res.ok) {
             let errMsg = `Lỗi server (${res.status})`;
             try {
@@ -1098,71 +1097,32 @@ async function handleMainAction() {
             } catch (e) {}
             throw new Error(errMsg);
         }
-
-        const result = await res.json();
-        log(`✅ ${result.message || 'Đã gửi thành công!'}`, 'ok');
-        prog(20, 'Đang tải...', '');
+        
+        log('✅ Server đã nhận!', 'ok');
+        prog(100, 'AI đang xử lý...');
         clearUrl();
-        document.getElementById('matched-sub-note').innerText = '⏳ AI đang xử lý... (3-5 phút)';
-
-        // Lưu trạng thái ban đầu
-        storeProgressState(vid, { url: url, percent: 20 });
-
-        // Chờ check kết quả
-        setTimeout(() => checkAndLoadGist(vid), 180000);
-
-    } catch (e) {
-        log(`❌ Lỗi: ${e.message}`, 'err');
-        prog(0, 'Thất bại', '');
-        document.getElementById('status-text').innerHTML = `<span class="status-badge error">❌ Error</span>`;
+        document.getElementById('matched-sub-note').innerText = '⏳ AI tạo phụ đề... (3-5 phút)';
+        
         if (progressInterval) {
             clearInterval(progressInterval);
             progressInterval = null;
         }
-        clearStoredProgress();
+        
+        // Chờ check kết quả sau 3 phút
+        setTimeout(() => checkAndLoadGist(vid), 180000);
+        
+    } catch (e) {
+        log(`❌ Lỗi: ${e.message}`, 'err');
+        prog(0, 'Thất bại');
+        if (progressInterval) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+        }
     }
-
+    
+    processingVid = null;
     resetUI();
 }
-
-// ===== CHECK & LOAD =====
-async function checkAndLoadGist(vid) {
-    log('🔍 Kiểm tra phụ đề mới...', 'info');
-    const token = localStorage.gh_token || localStorage.gh_pat_token;
-    if (!token) return;
-
-    try {
-        const res = await fetch('https://api.github.com/gists?per_page=100', {
-            headers: { "Authorization": `token ${token}` }
-        });
-
-        if (res.ok) {
-            const gists = await res.json();
-            for (let g of gists) {
-                if (g.files && g.files[`${vid}.vtt`]) {
-                    gh_cloud_map[vid] = {
-                        url: g.files[`${vid}.vtt`].raw_url,
-                        title: (g.description || '').replace(/^.*Subtitle\s*-\s*/i, '').trim() || `Video ${vid}`
-                    };
-                    localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
-                    await loadGistLibrary(true);
-                    document.getElementById('matched-sub-note').innerText = '✅ Phụ đề mới!';
-                    log('🎉 Phụ đề đã sẵn sàng!', 'ok');
-                    prog(100, '✅ Hoàn tất!', '');
-                    document.getElementById('status-text').innerHTML = `<span class="status-badge done">✅ Done</span>`;
-                    clearStoredProgress();
-                    return;
-                }
-            }
-        }
-        log('⏳ Chưa thấy, thử lại sau...', 'info');
-        // Thử lại sau 30s nếu chưa có
-        setTimeout(() => checkAndLoadGist(vid), 30000);
-    } catch (e) {
-        log('Lỗi kiểm tra: ' + e.message, 'err');
-    }
-}
-
 function resetUI() {
     isLoadingState = false;
     const btn = document.getElementById('btn-action');
