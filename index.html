@@ -379,12 +379,27 @@ let progressInterval=null;
 let lastProgressData = {};
 let restoreData = null;
 let isRestoring = false;
+let currentAbortController = null;  // ✅ Quản lý request hiện tại
+
+// ===== CANCEL REQUEST =====
+function cancelCurrentRequest() {
+    if (currentAbortController) {
+        try {
+            currentAbortController.abort();
+            console.log('[DEBUG] Đã hủy request cũ');
+        } catch (e) {}
+        currentAbortController = null;
+    }
+    if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+    }
+}
 
 // ===== INIT =====
 function onYouTubeIframeAPIReady() {
     loadSettings();
     loadGistLibrary(false);
-    // Sau khi load xong, kiểm tra trạng thái cũ
     setTimeout(checkStoredProgress, 1000);
 }
 
@@ -395,8 +410,6 @@ function loadSettings() {
     document.getElementById('pcUrl').value = localStorage.pc_url || '';
     pc_url = localStorage.pc_url || '';
     gh_cloud_map = JSON.parse(localStorage.getItem('gh_cloud_map') || '{}');
-    
-    // Lưu trạng thái download vào localStorage
     restoreData = JSON.parse(localStorage.getItem('download_restore_data') || 'null');
 }
 
@@ -864,9 +877,8 @@ function checkStoredProgress() {
 
     try {
         const state = JSON.parse(stored);
-        const elapsed = (Date.now() - state.timestamp) / 1000; // giây
+        const elapsed = (Date.now() - state.timestamp) / 1000;
 
-        // Chỉ khôi phục nếu trong vòng 5 phút
         if (elapsed < 300 && state.data) {
             restoreData = state;
             document.getElementById('restore-banner').style.display = 'flex';
@@ -894,14 +906,12 @@ async function restoreProgress() {
     log(`🔄 Đang khôi phục tiến trình cho ${vid}...`, 'info');
 
     try {
-        // Kiểm tra trạng thái từ server
         const pc = pc_url.replace(/\/$/, '');
         const res = await fetch(`${pc}/download-status/${vid}`);
 
         if (res.ok) {
             const status = await res.json();
             if (status.status === 'downloading' || status.status === 'uploading') {
-                // Tiếp tục theo dõi
                 processingVid = vid;
                 if (progressInterval) clearInterval(progressInterval);
                 progressInterval = setInterval(() => fetchProgress(vid), 1500);
@@ -910,7 +920,6 @@ async function restoreProgress() {
             }
         }
 
-        // Nếu server không có, thử tải lại từ đầu
         log('🔄 Server không có trạng thái, thử tải lại...', 'info');
         const url = restoreData.data.url;
         if (url) {
@@ -930,6 +939,10 @@ async function restoreProgress() {
 async function cancelDownload() {
     if (!processingVid) return;
     const pc = pc_url.replace(/\/$/, '');
+    
+    // ✅ Hủy request fetch
+    cancelCurrentRequest();
+    
     try {
         await fetch(`${pc}/cancel?id=${processingVid}`);
         log('Đã hủy ✓', 'ok');
@@ -955,10 +968,8 @@ async function fetchProgress(vid) {
             let data = await res.json();
             lastProgressData = data;
 
-            // Lưu trạng thái để khôi phục sau
             storeProgressState(vid, data);
 
-            // Cập nhật UI với thông tin chi tiết
             if (data.status === 'downloading') {
                 let percent = data.percent || 0;
                 let downloaded = data.downloaded || 0;
@@ -966,14 +977,12 @@ async function fetchProgress(vid) {
                 let speed = data.speed || 'N/A';
                 let eta = data.eta || '';
 
-                // Format MB
                 let d_mb = downloaded / 1024 / 1024;
                 let t_mb = total / 1024 / 1024;
                 let text = `⬇️ ${d_mb.toFixed(1)}/${t_mb.toFixed(1)}MB - ${percent}%`;
 
                 prog(percent, text, speed, eta);
 
-                // Cập nhật log mỗi 10%
                 if (percent % 10 < 5) {
                     document.getElementById('status-text').innerHTML =
                         `<span class="status-badge downloading">${percent}%</span>`;
@@ -994,7 +1003,6 @@ async function fetchProgress(vid) {
                     progressInterval = null;
                 }
                 clearStoredProgress();
-                // Tự động tải lại danh sách
                 setTimeout(() => loadGistLibrary(true), 3000);
 
             } else if (data.status === 'error') {
@@ -1030,7 +1038,6 @@ async function handleMainAction() {
     const url = document.getElementById('yt-link').value.trim();
     const vid = extractVideoID(url);
     
-    // Lấy token từ localStorage (nếu có), nếu không thì để trống (server tự lấy từ config)
     const token = localStorage.gh_token || localStorage.gh_pat_token || '';
     const user = localStorage.gh_user || 'PinyinCode';
     const repo = localStorage.gh_repo || 'subtitle-ai';
@@ -1050,7 +1057,9 @@ async function handleMainAction() {
         return;
     }
     
-    // Kiểm tra video đã có trong kho chưa
+    // ✅ HỦY REQUEST CŨ TRƯỚC KHI BẮT ĐẦU MỚI
+    cancelCurrentRequest();
+    
     if (gh_cloud_map[vid] || (await checkCloud(vid))) {
         alert('Video đã có trong kho! Chọn và nhấn Play.');
         return;
@@ -1067,26 +1076,32 @@ async function handleMainAction() {
     try {
         const pc = pc_url.replace(/\/$/, '');
         
-        // Kiểm tra PC online
+        // ✅ TẠO ABORT CONTROLLER MỚI
+        currentAbortController = new AbortController();
+        const signal = currentAbortController.signal;
+        
         log('Kiểm tra PC...', 'info');
         try {
-            const h = await fetch(`${pc}/health`, { signal: AbortSignal.timeout(15000) });
+            const h = await fetch(`${pc}/health`, { signal: signal, timeout: 15000 });
             if (!h.ok) throw new Error('PC offline');
         } catch (e) {
+            if (e.name === 'AbortError') {
+                log('Đã hủy kiểm tra PC', 'info');
+                return;
+            }
             log('Thử lại...', 'info');
-            const h = await fetch(`${pc}/health`, { signal: AbortSignal.timeout(15000) });
+            const h = await fetch(`${pc}/health`, { signal: signal, timeout: 15000 });
             if (!h.ok) throw new Error('PC offline');
         }
         log('✅ PC online', 'ok');
         prog(20, 'Đang gửi...');
         
-        // Polling tiến độ
         if (progressInterval) clearInterval(progressInterval);
         progressInterval = setInterval(() => fetchProgress(vid), 2000);
         
-        // Gửi request - KHÔNG CẦN TOKEN (server tự lấy từ config)
+        // ✅ GỬI REQUEST VỚI SIGNAL
         const res = await fetch(`${pc}/download?url=${encodeURIComponent(url)}&gh_user=${user}&gh_repo=${repo}&gh_token=${token}`, {
-            signal: AbortSignal.timeout(600000)
+            signal: signal
         });
         
         if (!res.ok) {
@@ -1108,27 +1123,72 @@ async function handleMainAction() {
             progressInterval = null;
         }
         
-        // Chờ check kết quả sau 3 phút
         setTimeout(() => checkAndLoadGist(vid), 180000);
         
     } catch (e) {
+        // ✅ BỎ QUA LỖI ABORT (DO NGƯỜI DÙNG HỦY)
+        if (e.name === 'AbortError') {
+            log('Đã hủy yêu cầu tải', 'info');
+            prog(0, 'Đã hủy');
+            return;
+        }
+        
         log(`❌ Lỗi: ${e.message}`, 'err');
         prog(0, 'Thất bại');
         if (progressInterval) {
             clearInterval(progressInterval);
             progressInterval = null;
         }
+    } finally {
+        currentAbortController = null;
     }
     
     processingVid = null;
     resetUI();
 }
+
 function resetUI() {
     isLoadingState = false;
     const btn = document.getElementById('btn-action');
     btn.innerText = '▶️ TẢI';
     btn.classList.remove('cancel');
     btn.disabled = false;
+}
+
+async function checkAndLoadGist(vid) {
+    log('🔍 Kiểm tra phụ đề mới...', 'info');
+    const token = localStorage.gh_token || localStorage.gh_pat_token;
+    if (!token) return;
+    
+    try {
+        const res = await fetch('https://api.github.com/gists?per_page=100', {
+            headers: { "Authorization": `token ${token}` }
+        });
+        
+        if (res.ok) {
+            const gists = await res.json();
+            for (let g of gists) {
+                if (g.files && g.files[`${vid}.vtt`]) {
+                    gh_cloud_map[vid] = {
+                        url: g.files[`${vid}.vtt`].raw_url,
+                        title: (g.description || '').replace(/^.*Subtitle\s*-\s*/i, '').trim() || `Video ${vid}`
+                    };
+                    localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
+                    await loadGistLibrary(true);
+                    document.getElementById('matched-sub-note').innerText = '✅ Phụ đề mới!';
+                    log('🎉 Phụ đề đã sẵn sàng!', 'ok');
+                    prog(100, '✅ Hoàn tất!', '');
+                    document.getElementById('status-text').innerHTML = `<span class="status-badge done">✅ Done</span>`;
+                    clearStoredProgress();
+                    return;
+                }
+            }
+        }
+        log('⏳ Chưa thấy, thử lại sau...', 'info');
+        setTimeout(() => checkAndLoadGist(vid), 30000);
+    } catch (e) {
+        log('Lỗi kiểm tra: ' + e.message, 'err');
+    }
 }
 
 async function checkCloud(vid) {
@@ -1151,7 +1211,6 @@ async function checkCloud(vid) {
 }
 
 // ===== AUTO REFRESH =====
-// Kiểm tra progress ngay cả khi không có download mới
 setInterval(() => {
     if (processingVid && progressInterval) {
         fetchProgress(processingVid);
@@ -1163,11 +1222,12 @@ window.addEventListener('beforeunload', function() {
     if (processingVid && lastProgressData) {
         storeProgressState(processingVid, lastProgressData);
     }
+    // Hủy request khi đóng trang
+    cancelCurrentRequest();
 });
 
 // ===== KHÔI PHỤC TỰ ĐỘNG KHI TẢI LẠI TRANG =====
 document.addEventListener('DOMContentLoaded', function() {
-    // Kiểm tra state trong localStorage
     setTimeout(checkStoredProgress, 2000);
 });
 
@@ -1175,7 +1235,6 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('change', function(e) {
     if (e.target.id === 'pcUrl' || e.target.id === 'ghToken' ||
         e.target.id === 'ghUser' || e.target.id === 'ghRepo') {
-        // Tự động lưu khi thay đổi
         setTimeout(saveSettings, 500);
     }
 });
