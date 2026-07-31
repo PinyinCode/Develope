@@ -288,6 +288,7 @@
         .status-badge.processing { background: #ff9f0a; color: black; }
         .status-badge.converting { background: #5856d6; color: white; }
         .status-badge.hint { background: #0a84ff; color: white; }
+        .status-badge.warning { background: #ff9f0a; color: black; }
         .badge-group {
             display: flex;
             gap: 6px;
@@ -327,16 +328,6 @@
             color: var(--accent);
             border: 1px solid rgba(255,45,85,0.2);
         }
-        .sub-preview {
-            background: rgba(255,255,255,0.03);
-            border-radius: 8px;
-            padding: 12px;
-            margin-top: 8px;
-            border-left: 3px solid var(--accent);
-        }
-        .sub-preview .line-cn { font-size: 18px; font-weight: 600; }
-        .sub-preview .line-py { font-size: 14px; color: var(--text-secondary); }
-        .sub-preview .line-vi { font-size: 12px; color: var(--accent); }
         .upload-id-hint {
             background: rgba(10,132,255,0.1);
             border: 1px solid rgba(10,132,255,0.2);
@@ -384,6 +375,21 @@
         }
         .upload-guide .step .text {
             line-height: 1.4;
+        }
+        .upload-guide .step .text code {
+            background: rgba(255,255,255,0.1);
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .file-status-ok {
+            color: var(--green);
+        }
+        .file-status-warning {
+            color: var(--warning);
+        }
+        .file-status-error {
+            color: var(--accent);
         }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -462,7 +468,7 @@
                 </div>
                 <div class="step">
                     <span class="num">2</span>
-                    <span class="text">Đặt tên file theo cú pháp: <strong style="color:var(--accent);">[VideoID].m4a</strong> (ví dụ: <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;">dQw4w9WgXcQ.m4a</code>)</span>
+                    <span class="text">Đặt tên file theo cú pháp: <strong style="color:var(--accent);">[VideoID].m4a</strong> (ví dụ: <code>dQw4w9WgXcQ.m4a</code>)</span>
                 </div>
                 <div class="step">
                     <span class="num">3</span>
@@ -588,7 +594,6 @@ let gh_cloud_map={};
 let selectedFile = null;
 let isUploading = false;
 let currentVideoId = null;
-let currentYtLink = '';
 let pendingVideoId = null;
 
 // ===== INIT =====
@@ -741,7 +746,7 @@ function clearYtLink() {
     }
 }
 
-// ===== LẤY ID VÀ CHUYỂN SANG UPLOAD (KHÔNG LẤY PHỤ ĐỀ) =====
+// ===== LẤY ID VÀ CHUYỂN SANG UPLOAD =====
 function extractAndGoToUpload() {
     const url = document.getElementById('yt-link').value.trim();
     const vid = extractVideoID(url);
@@ -760,15 +765,11 @@ function extractAndGoToUpload() {
     
     // Chuyển sang tab Upload
     switchTab('upload');
-    
-    // Cập nhật hiển thị ID
     updateUploadTabWithVideoId();
     
-    // Log hướng dẫn
     log(`📤 Hãy tải audio từ YouTube và upload lên GitHub để AI xử lý`, 'info');
-    log(`💡 Tên file: ${vid}.m4a (hoặc .mp3, .webm)`, 'warning');
+    log(`💡 Tên file nên đặt: ${vid}.m4a (hoặc .mp3, .webm)`, 'warning');
     
-    // Hiển thị thông báo trên giao diện
     document.getElementById('pb-upload-text').innerHTML = `🎯 Sẵn sàng upload cho video: <strong style="color:var(--accent);">${vid}</strong>`;
 }
 
@@ -958,49 +959,53 @@ function extractVideoIdFromFilename(filename) {
 function handleFileSelect(file) {
     if (!file) return;
     selectedFile = file;
-    const vid = extractVideoIdFromFilename(file.name);
     
     document.getElementById('file-name').textContent = `📄 ${file.name}`;
     document.getElementById('file-name').style.color = 'var(--green)';
     
+    // Lấy ID từ tên file
+    let vidFromFile = extractVideoIdFromFilename(file.name);
+    // Lấy ID từ YouTube (nếu có)
+    const vidFromYt = pendingVideoId || currentVideoId;
+    
     const info = document.getElementById('file-info');
     
     // Nếu file có ID trong tên
-    if (vid) {
+    if (vidFromFile) {
         info.innerHTML = `
             <span class="status-badge processing">📄 ${file.name}</span>
             <span class="status-badge done">${(file.size/1024/1024).toFixed(2)} MB</span>
-            <span class="status-badge done">🎯 ${vid}</span>
+            <span class="status-badge done">🎯 ${vidFromFile}</span>
         `;
         document.getElementById('btn-upload').disabled = false;
-        progUpload(0, `Sẵn sàng upload: ${vid}`);
-        log(`📄 Đã chọn file: ${file.name} (ID: ${vid})`, 'info');
+        progUpload(0, `Sẵn sàng upload: ${vidFromFile}`);
+        log(`📄 Đã chọn file: ${file.name} (ID: ${vidFromFile})`, 'info');
         return;
     }
     
-    // Nếu file không có ID, dùng ID đã lấy từ YouTube
-    const existingVid = pendingVideoId || currentVideoId;
-    if (existingVid) {
+    // Nếu file không có ID trong tên nhưng đã có ID từ YouTube
+    if (vidFromYt) {
         info.innerHTML = `
             <span class="status-badge processing">📄 ${file.name}</span>
             <span class="status-badge done">${(file.size/1024/1024).toFixed(2)} MB</span>
-            <span class="status-badge warning">⚠️ Thiếu ID trong tên</span>
-            <span class="status-badge done">🎯 Dùng ID: ${existingVid}</span>
+            <span class="status-badge warning">⚠️ Tên file thiếu ID</span>
+            <span class="status-badge done">🎯 Sẽ dùng ID: ${vidFromYt}</span>
         `;
         document.getElementById('btn-upload').disabled = false;
-        progUpload(0, `Sẽ upload với ID: ${existingVid}`);
-        log(`📄 Đã chọn file: ${file.name} (dùng ID: ${existingVid})`, 'info');
+        progUpload(0, `Sẽ upload với ID: ${vidFromYt}`);
+        log(`📄 Đã chọn file: ${file.name} (sẽ dùng ID từ YouTube: ${vidFromYt})`, 'info');
         return;
     }
     
-    // Không có ID nào
+    // Không có ID nào cả
     info.innerHTML = `
         <span class="status-badge processing">📄 ${file.name}</span>
-        <span class="status-badge error">⚠️ Không có Video ID</span>
+        <span class="status-badge done">${(file.size/1024/1024).toFixed(2)} MB</span>
+        <span class="status-badge error">❌ Không có Video ID</span>
     `;
     document.getElementById('btn-upload').disabled = true;
     progUpload(0, '❌ Không có Video ID');
-    log(`❌ File ${file.name} không có ID và chưa có ID từ YouTube`, 'err');
+    log(`❌ File ${file.name} không có ID và chưa có ID từ YouTube. Vui lòng nhập link YouTube trước.`, 'err');
 }
 
 const dropArea = document.getElementById('drop-area');
@@ -1028,6 +1033,7 @@ async function uploadToGitHub() {
     const user = localStorage.gh_user || document.getElementById('ghUser').value.trim() || 'PinyinCode';
     const repo = localStorage.gh_repo || document.getElementById('ghRepo').value.trim() || 'subtitle-ai';
     
+    // Lấy ID: ưu tiên từ tên file, nếu không có thì dùng ID từ YouTube
     let vid = extractVideoIdFromFilename(selectedFile.name);
     if (!vid) {
         vid = pendingVideoId || currentVideoId;
