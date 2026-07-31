@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tải Audio YouTube</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #000;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: rgba(28, 28, 30, 0.75);
+            backdrop-filter: blur(25px);
+            border-radius: 20px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        h1 { font-size: 20px; margin-bottom: 20px; text-align: center; }
+        input {
+            width: 100%;
+            padding: 14px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 14px;
+            margin-bottom: 12px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        input:focus { border-color: #ff2d55; }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #ff2d55;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover { opacity: 0.85; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .info {
+            margin-top: 12px;
+            font-size: 12px;
+            color: #8e8e93;
+            text-align: center;
+        }
+        .result {
+            margin-top: 16px;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            display: none;
+        }
+        .result.show { display: block; }
+        .result a {
+            color: #0a84ff;
+            text-decoration: none;
+            display: block;
+            padding: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            margin-top: 6px;
+            text-align: center;
+        }
+        .result a:hover { background: rgba(255,255,255,0.05); }
+        .progress {
+            width: 100%;
+            height: 4px;
+            background: #3a3a3c;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 12px;
+            display: none;
+        }
+        .progress.show { display: block; }
+        .progress-bar {
+            height: 100%;
+            background: #0a84ff;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        .badge.done { background: #30d158; color: #000; }
+        .badge.error { background: #ff2d55; color: #fff; }
+        .badge.loading { background: #0a84ff; color: #fff; }
+        .tab-group {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .tab-group button {
+            flex: 1;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .tab-group button.active {
+            background: #ff2d55;
+            border-color: #ff2d55;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🎵 Tải Audio YouTube</h1>
+    
+    <div class="tab-group">
+        <button class="active" onclick="switchTab('y2mate')">Y2Mate</button>
+        <button onclick="switchTab('api')">API</button>
+        <button onclick="switchTab('direct')">Trực tiếp</button>
+    </div>
+    
+    <div id="tab-y2mate">
+        <input type="text" id="yt-url" placeholder="Dán link YouTube..." value="https://youtu.be/dQw4w9WgXcQ">
+        <div style="display:flex;gap:8px;">
+            <button onclick="downloadY2Mate()" id="btn-download" style="flex:3;">⬇️ Tải Audio</button>
+            <button onclick="openY2Mate()" style="flex:1;background:#0a84ff;">🔗 Mở</button>
+        </div>
+        
+        <div class="progress" id="progress"><div class="progress-bar" id="progress-bar"></div></div>
+        <div id="status" class="info">Nhập link YouTube để tải audio</div>
+        <div class="result" id="result"></div>
+    </div>
+    
+    <div id="tab-api" style="display:none;">
+        <input type="text" id="api-url" placeholder="Dán link YouTube...">
+        <button onclick="downloadViaAPI()">⬇️ Tải bằng API</button>
+        <div id="api-status" class="info">Dùng API trung gian</div>
+    </div>
+    
+    <div id="tab-direct" style="display:none;">
+        <input type="text" id="direct-url" placeholder="Dán link YouTube...">
+        <button onclick="downloadDirect()">⬇️ Tải trực tiếp</button>
+        <div id="direct-status" class="info">⚠️ Có thể không hoạt động do CORS</div>
+    </div>
+</div>
+
+<script>
+// ===== SWITCH TAB =====
+function switchTab(tab) {
+    document.querySelectorAll('.tab-group button').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.tab-group button[onclick*="${tab}"]`).classList.add('active');
+    document.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
+    document.getElementById(`tab-${tab}`).style.display = 'block';
+}
+
+// ===== EXTRACT VIDEO ID =====
+function extractVideoID(url) {
+    if (!url) return null;
+    const m = url.match(/(?:v=|\/)([\w-]{11})/);
+    return m ? m[1] : (url.length === 11 ? url : null);
+}
+
+// ===== Y2MATE - CÁCH 1 =====
+function openY2Mate() {
+    const url = document.getElementById('yt-url').value.trim();
+    if (!url) { alert('Vui lòng nhập link YouTube!'); return; }
+    window.open(`https://www.y2mate.com/vi/youtube-mp3?url=${encodeURIComponent(url)}`, '_blank');
+}
+
+async function downloadY2Mate() {
+    const url = document.getElementById('yt-url').value.trim();
+    const vid = extractVideoID(url);
+    if (!vid) { alert('Link YouTube không hợp lệ!'); return; }
+    
+    const btn = document.getElementById('btn-download');
+    const status = document.getElementById('status');
+    const progress = document.getElementById('progress');
+    const progressBar = document.getElementById('progress-bar');
+    const result = document.getElementById('result');
+    
+    btn.disabled = true;
+    btn.textContent = '⏳ ĐANG TẢI...';
+    progress.classList.add('show');
+    progressBar.style.width = '10%';
+    status.innerHTML = '🔄 Đang kết nối...';
+    result.classList.remove('show');
+    result.innerHTML = '';
+    
+    try {
+        // Bước 1: Lấy video info
+        progressBar.style.width = '30%';
+        status.innerHTML = '📊 Đang lấy thông tin video...';
+        
+        // Bước 2: Tạo link tải
+        progressBar.style.width = '60%';
+        status.innerHTML = '📥 Đang tạo link tải...';
+        
+        // Sử dụng y2mate API thông qua proxy
+        const apiUrl = `https://api.vevioz.com/api/button/mp3/${vid}`;
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) throw new Error('Không thể lấy link tải');
+        
+        const data = await response.json();
+        
+        progressBar.style.width = '90%';
+        status.innerHTML = '✅ Đã sẵn sàng!';
+        
+        // Hiển thị kết quả
+        result.classList.add('show');
+        result.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-weight:600;">🎵 ${vid}</span>
+                <span class="badge done">Sẵn sàng</span>
+            </div>
+            <a href="${data.downloadUrl || data.link || '#'}" target="_blank" download>
+                ⬇️ Tải xuống (MP3)
+            </a>
+            <p style="font-size:11px;color:#8e8e93;margin-top:8px;">
+                🔗 Link: ${data.downloadUrl || data.link || 'Không có link'}
+            </p>
+        `;
+        
+        progressBar.style.width = '100%';
+        status.innerHTML = '✅ Click vào link để tải xuống!';
+        
+        // Mở link tự động
+        if (data.downloadUrl) {
+            window.open(data.downloadUrl, '_blank');
+        }
+        
+    } catch (e) {
+        status.innerHTML = `❌ Lỗi: ${e.message}`;
+        result.classList.add('show');
+        result.innerHTML = `
+            <div style="color:#ff2d55;text-align:center;padding:12px;">
+                ❌ Không thể tải audio từ video này
+            </div>
+            <div style="text-align:center;margin-top:8px;">
+                <button onclick="openY2Mate()" style="background:#0a84ff;padding:8px 16px;width:auto;">
+                    🔗 Mở trên Y2Mate
+                </button>
+            </div>
+        `;
+    }
+    
+    btn.disabled = false;
+    btn.textContent = '⬇️ Tải Audio';
+    setTimeout(() => progress.classList.remove('show'), 3000);
+}
+
+// ===== API - CÁCH 2 =====
+async function downloadViaAPI() {
+    const url = document.getElementById('api-url').value.trim();
+    const vid = extractVideoID(url);
+    if (!vid) { alert('Link không hợp lệ!'); return; }
+    
+    const status = document.getElementById('api-status');
+    status.innerHTML = '🔄 Đang tải...';
+    
+    try {
+        // Dùng API của y2mate
+        const res = await fetch(`https://y2mate.is/api/json?url=https://youtu.be/${vid}`);
+        const data = await res.json();
+        
+        if (data && data.link) {
+            status.innerHTML = `✅ <a href="${data.link}" target="_blank" style="color:#0a84ff;">Tải xuống</a>`;
+            window.open(data.link, '_blank');
+        } else {
+            status.innerHTML = '❌ Không tìm thấy link tải';
+        }
+    } catch (e) {
+        status.innerHTML = `❌ Lỗi: ${e.message}`;
+    }
+}
+
+// ===== DIRECT - CÁCH 3 =====
+function downloadDirect() {
+    const url = document.getElementById('direct-url').value.trim();
+    const vid = extractVideoID(url);
+    if (!vid) { alert('Link không hợp lệ!'); return; }
+    
+    const status = document.getElementById('direct-status');
+    status.innerHTML = '⚠️ Trình duyệt chặn tải trực tiếp. Dùng Y2Mate hoặc API.';
+    
+    // Thử dùng link trực tiếp (có thể bị CORS)
+    try {
+        const link = `https://www.youtube.com/watch?v=${vid}`;
+        status.innerHTML = `
+            🔗 <a href="${link}" target="_blank" style="color:#0a84ff;">Mở trên YouTube</a>
+            <br><br>
+            💡 Dùng Y2Mate để tải audio
+        `;
+    } catch (e) {
+        status.innerHTML = `❌ Lỗi: ${e.message}`;
+    }
+}
+
+// ===== TỰ ĐỘNG LẤY VIDEO ID TỪ URL =====
+document.addEventListener('DOMContentLoaded', function() {
+    // Lấy video ID từ URL nếu có
+    const params = new URLSearchParams(window.location.search);
+    const v = params.get('v');
+    if (v) {
+        document.getElementById('yt-url').value = `https://youtu.be/${v}`;
+        document.getElementById('api-url').value = `https://youtu.be/${v}`;
+        document.getElementById('direct-url').value = `https://youtu.be/${v}`;
+    }
+});
+</script>
+</body>
+</html>
