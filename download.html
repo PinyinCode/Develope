@@ -135,17 +135,42 @@
         .btn-accent { background-color: var(--accent); color: white; }
         .btn-accent.cancel { background-color: var(--text-secondary); }
         .btn-sm {
-            padding: 8px 12px;
+            padding: 8px 10px;
             font-size: 11px;
             background: rgba(255,255,255,0.08);
             border: 1px solid var(--border-color);
             color: var(--text-main);
+            min-width: 32px;
+            text-align: center;
         }
         .btn-sm.active {
             background-color: var(--accent-light);
             border-color: var(--accent);
             color: var(--accent);
         }
+        .btn-icon {
+            padding: 8px 10px;
+            font-size: 16px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            min-width: 36px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: var(--element-radius);
+            transition: 0.2s;
+            line-height: 1;
+        }
+        .btn-icon:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        .btn-icon.active {
+            background-color: var(--accent-light);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .btn-icon:active { transform: scale(0.96); opacity: 0.9; }
+        .btn-icon:disabled { opacity: 0.4; pointer-events: none; }
         .file-upload-area {
             border: 2px dashed var(--border-color);
             border-radius: var(--element-radius);
@@ -392,6 +417,9 @@
             gap: 6px;
             align-items: center;
         }
+        .controls-row .btn-icon {
+            flex: 0 1 auto;
+        }
         .controls-row .btn-sm {
             flex: 0 1 auto;
         }
@@ -603,20 +631,20 @@
     <!-- === CONTROLS === -->
     <div class="card" style="padding:10px 16px">
         <div class="controls-row">
-            <button class="btn-sm" id="btn-play-pause" onclick="togglePlayPause()">⏵ Play</button>
-            <button class="btn-sm" onclick="toggleVideoVisibility()">🎥 Video</button>
-            <button class="btn-sm" onclick="cyclePlaybackRate()" id="btn-speed">⚡ 1.0x</button>
-            <button class="btn-sm" id="btn-loop" onclick="toggleLoop()">🔁 Repeat</button>
-            <button class="btn-sm" onclick="toggleSubSettings()">⚙️ Size</button>
+            <button class="btn-icon" id="btn-play-pause" onclick="togglePlayPause()">⏵</button>
+            <button class="btn-icon" onclick="toggleVideoVisibility()">🎥</button>
+            <button class="btn-icon" onclick="cyclePlaybackRate()" id="btn-speed">⚡1.0x</button>
+            <button class="btn-icon" id="btn-loop" onclick="toggleLoop()">🔁</button>
+            <button class="btn-icon" onclick="toggleSubSettings()">⚙️</button>
             
             <span class="spacer"></span>
             
-            <button class="btn-sm" id="btn-toggle-settings" onclick="toggleFullSettings()" style="background:rgba(10,132,255,0.15);border-color:var(--blue);color:var(--blue);">
-                ⚙️ Settings
+            <button class="btn-icon" id="btn-toggle-settings" onclick="toggleFullSettings()" style="background:rgba(10,132,255,0.15);border-color:var(--blue);color:var(--blue);">
+                ⚙️
             </button>
             
-            <button class="btn-sm" id="btn-toggle-hide" onclick="toggleHideMode()" style="background:var(--accent-light);border-color:var(--accent);color:var(--accent);">
-                👁️ Hide
+            <button class="btn-icon" id="btn-toggle-hide" onclick="toggleHideMode()" style="background:var(--accent-light);border-color:var(--accent);color:var(--accent);">
+                👁️
             </button>
             
             <span style="font-size:11px;color:var(--text-secondary);margin-left:4px" id="status-text">Ready</span>
@@ -633,7 +661,7 @@
 
     <!-- === SETTINGS GROUP === -->
     <div class="settings-group" id="settings-group">
-        <!-- SETTINGS CARD - CHỈ 3 Ô -->
+        <!-- SETTINGS CARD -->
         <div class="card" id="settings-card">
             <label>⚙️ GITHUB SETTINGS</label>
             
@@ -701,14 +729,14 @@ function toggleHideMode() {
     
     if (isHideMode) {
         hideables.forEach(el => el.classList.add('hidden'));
-        btn.innerHTML = '👁️ Show';
+        btn.innerHTML = '👁️';
         btn.style.background = 'rgba(255,45,85,0.2)';
         btn.style.borderColor = 'var(--accent)';
         btn.style.color = 'var(--accent)';
         log('👁️ Hidden extra elements', 'info');
     } else {
         hideables.forEach(el => el.classList.remove('hidden'));
-        btn.innerHTML = '👁️ Hide';
+        btn.innerHTML = '👁️';
         btn.style.background = 'var(--accent-light)';
         btn.style.borderColor = 'var(--accent)';
         btn.style.color = 'var(--accent)';
@@ -726,7 +754,7 @@ function toggleFullSettings() {
     if (isSettingsVisible) {
         settingsGroup.classList.remove('hidden');
         logCard.classList.remove('hidden');
-        btn.innerHTML = '⚙️ Settings';
+        btn.innerHTML = '⚙️';
         btn.style.background = 'rgba(10,132,255,0.15)';
         btn.style.borderColor = 'var(--blue)';
         btn.style.color = 'var(--blue)';
@@ -734,7 +762,7 @@ function toggleFullSettings() {
     } else {
         settingsGroup.classList.add('hidden');
         logCard.classList.add('hidden');
-        btn.innerHTML = '⚙️ Hide settings';
+        btn.innerHTML = '⚙️';
         btn.style.background = 'rgba(255,45,85,0.15)';
         btn.style.borderColor = 'var(--accent)';
         btn.style.color = 'var(--accent)';
@@ -810,7 +838,7 @@ function updateFont(t, v) {
 function cyclePlaybackRate() {
     currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
     let r = speeds[currentSpeedIndex];
-    document.getElementById('btn-speed').innerText = `⚡ ${r}x`;
+    document.getElementById('btn-speed').innerHTML = `⚡${r}x`;
     if (player?.setPlaybackRate) player.setPlaybackRate(r);
 }
 
@@ -1070,7 +1098,7 @@ function togglePlayPause() {
 
 function updatePlayPauseBtn(p) {
     const b = document.getElementById('btn-play-pause');
-    if (b) b.innerHTML = p ? '⏸ Pause' : '⏵ Play';
+    if (b) b.innerHTML = p ? '⏸' : '⏵';
 }
 
 function toggleVideoVisibility() {
