@@ -6,83 +6,282 @@
     <title>Pinyin AI - Auto Scan Gist</title>
     <style>
         :root {
-            --bg-color: #000000; --card-bg: rgba(28, 28, 30, 0.75); --card-solid: #1c1c1e;
-            --text-main: #f5f5f7; --text-secondary: #98989f; --accent: #ff2d55;
-            --accent-light: rgba(255, 45, 85, 0.15); --blue: #0a84ff; --green: #30d158;
-            --border-color: rgba(255, 255, 255, 0.1); --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-            --radius: 20px; --element-radius: 12px; --fs-cn: 35px; --fs-py: 16px; --fs-vi: 10px;
+            --bg-color: #000000;
+            --card-bg: rgba(28, 28, 30, 0.75);
+            --card-solid: #1c1c1e;
+            --text-main: #f5f5f7;
+            --text-secondary: #98989f;
+            --accent: #ff2d55;
+            --accent-light: rgba(255, 45, 85, 0.15);
+            --blue: #0a84ff;
+            --green: #30d158;
+            --yellow: #ffd60a;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            --radius: 20px;
+            --element-radius: 12px;
+            --fs-cn: 35px;
+            --fs-py: 16px;
+            --fs-vi: 10px;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
-            background-color: var(--bg-color); color: var(--text-main);
-            margin: 0; padding: 16px; display: flex; flex-direction: column; align-items: center;
-            min-height: 100vh; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
         }
         .container { width: 100%; max-width: 540px; display: flex; flex-direction: column; gap: 14px; }
         .app-header { text-align: center; padding: 6px 0; }
         .app-header h3 { margin: 0; font-size: 17px; font-weight: 600; color: var(--text-main); }
         .card {
-            background: var(--card-bg); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow);
-            border: 1px solid var(--border-color); transition: all 0.3s ease;
+            background: var(--card-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
         }
         .card.hidden { display: none; }
-        label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px; }
+        label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 4px;
+        }
         .row { display: flex; gap: 8px; align-items: center; }
         .input-wrap { position: relative; flex: 1; }
         .input-wrap input { width: 100%; padding-right: 36px; }
         .btn-clear-input {
-            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-            background: none; border: none; color: var(--text-secondary);
-            font-size: 18px; font-weight: bold; cursor: pointer; display: none; z-index: 2;
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none;
+            z-index: 2;
         }
         .btn-clear-input:hover { color: var(--text-main); }
         input[type="text"], input[type="password"], select {
-            width: 100%; padding: 12px 14px; background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color); border-radius: var(--element-radius);
-            color: var(--text-main); font-size: 14px; outline: none; transition: all 0.2s ease;
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: var(--element-radius);
+            color: var(--text-main);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s ease;
         }
         select {
-            cursor: pointer; appearance: none; -webkit-appearance: none;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
             background-image: url('data:image/svg+xml;utf8,<svg fill="%2398989f" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
-            background-repeat: no-repeat; background-position: right 10px center; padding-right: 32px;
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 32px;
         }
         select option { background-color: var(--card-solid); color: var(--text-main); }
-        input:focus, select:focus { background-color: var(--card-solid); border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-light); }
-        button { padding: 12px 16px; border: none; border-radius: var(--element-radius); font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+        input:focus, select:focus {
+            background-color: var(--card-solid);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-light);
+        }
+        button {
+            padding: 12px 16px;
+            border: none;
+            border-radius: var(--element-radius);
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
         button:active { transform: scale(0.96); opacity: 0.9; }
         button:disabled { opacity: 0.4; pointer-events: none; }
         .btn-accent { background-color: var(--accent); color: white; }
         .btn-accent.cancel { background-color: var(--text-secondary); }
-        .btn-sm { padding: 8px 12px; font-size: 11px; background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); color: var(--text-main); }
-        .btn-sm.active { background-color: var(--accent-light); border-color: var(--accent); color: var(--accent); }
-        .progress-wrap { width: 100%; height: 4px; background: #3a3a3c; border-radius: 2px; overflow: hidden; margin-top: 8px; }
-        .progress-bar { height: 100%; background: var(--blue); width: 0; transition: width 0.3s; }
-        .player-wrap { position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: var(--radius); overflow: hidden; }
+        .btn-sm {
+            padding: 8px 12px;
+            font-size: 11px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+        .btn-sm.active {
+            background-color: var(--accent-light);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .progress-wrap {
+            width: 100%;
+            height: 4px;
+            background: #3a3a3c;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-bar {
+            height: 100%;
+            background: var(--blue);
+            width: 0;
+            transition: width 0.3s;
+        }
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        .progress-info .speed { color: var(--blue); }
+        .progress-info .eta { color: var(--yellow); font-size: 10px; }
+        .restore-banner {
+            background: var(--blue);
+            color: white;
+            padding: 10px 16px;
+            border-radius: var(--element-radius);
+            margin-bottom: 10px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .restore-banner .btn-sm {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        .restore-banner .btn-sm:hover { background: rgba(255,255,255,0.3); }
+        .player-wrap {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            background: #000;
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
         .player-wrap.hidden { display: none; }
-        #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        #player {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
         #subtitle-box {
-            background: var(--card-bg); backdrop-filter: blur(25px); border: 1px solid var(--border-color);
-            padding: 24px 16px; border-radius: var(--radius); min-height: 100px;
-            display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; text-align: center;
+            background: var(--card-bg);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--border-color);
+            padding: 24px 16px;
+            border-radius: var(--radius);
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            text-align: center;
         }
         .cn { font-size: var(--fs-cn); font-weight: 700; }
         .py { font-size: var(--fs-py); color: var(--text-secondary); }
-        .vi { font-size: var(--fs-vi); color: var(--accent); border-top: 1px solid var(--border-color); padding-top: 8px; width: 80%; }
-        .settings-toggle { cursor: pointer; color: var(--text-secondary); font-size: 11px; text-align: right; user-select: none; }
-        #logBox { background: var(--card-bg); border-radius: 12px; padding: 12px; height: 100px; overflow-y: auto; font-size: 11px; font-family: monospace; color: var(--text-secondary); border: 1px solid var(--border-color); }
-        .log-ok { color: var(--green); } .log-err { color: var(--accent); } .log-info { color: var(--blue); }
-        .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; }
-        .setting-row label { font-size: 11px; color: var(--text-secondary); text-transform: none; margin: 0; }
-        .setting-row span { font-size: 11px; color: var(--text-main); text-align: right; min-width: 35px; }
-        input[type="range"] { flex: 1; accent-color: var(--accent); height: 4px; }
+        .vi {
+            font-size: var(--fs-vi);
+            color: var(--accent);
+            border-top: 1px solid var(--border-color);
+            padding-top: 8px;
+            width: 80%;
+        }
+        .settings-toggle {
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 11px;
+            text-align: right;
+            user-select: none;
+        }
+        #logBox {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 12px;
+            height: 100px;
+            overflow-y: auto;
+            font-size: 11px;
+            font-family: monospace;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+        .log-ok { color: var(--green); }
+        .log-err { color: var(--accent); }
+        .log-info { color: var(--blue); }
+        .log-progress { color: var(--yellow); }
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 6px;
+        }
+        .setting-row label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: none;
+            margin: 0;
+        }
+        .setting-row span {
+            font-size: 11px;
+            color: var(--text-main);
+            text-align: right;
+            min-width: 35px;
+        }
+        input[type="range"] {
+            flex: 1;
+            accent-color: var(--accent);
+            height: 4px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .status-badge.downloading { background: var(--blue); color: white; }
+        .status-badge.uploading { background: var(--yellow); color: black; }
+        .status-badge.done { background: var(--green); color: black; }
+        .status-badge.error { background: var(--accent); color: white; }
+        .status-badge.pending { background: var(--text-secondary); color: white; }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
 <div class="container">
     <div class="app-header"><h3>🎬 Pinyin AI</h3></div>
+
+    <!-- Restore Banner -->
+    <div class="restore-banner" id="restore-banner">
+        <span id="restore-message">🔄 Đang khôi phục tiến trình...</span>
+        <button class="btn-sm" onclick="restoreProgress()">🔄 Khôi phục</button>
+        <button class="btn-sm" onclick="clearStoredProgress()" style="background:rgba(255,0,0,0.3);border-color:rgba(255,0,0,0.5);">✕</button>
+    </div>
 
     <div class="card" id="input-card">
         <label>🔗 Link YouTube (để tải phụ đề mới)</label>
@@ -94,7 +293,11 @@
             <button class="btn-accent" id="btn-action" style="width:80px" onclick="handleMainAction()">▶️ TẢI</button>
         </div>
         <div class="progress-wrap"><div class="progress-bar" id="pb"></div></div>
-        <p style="font-size:10px;color:var(--text-secondary);margin-top:4px" id="pbText">Sẵn sàng</p>
+        <div class="progress-info">
+            <span id="pbText">Sẵn sàng</span>
+            <span class="speed" id="pbSpeed">--</span>
+            <span class="eta" id="pbEta"></span>
+        </div>
     </div>
 
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
@@ -103,10 +306,14 @@
     </div>
 
     <div class="card" id="settings-card" style="display:none;">
-        <label>GitHub Username</label><input type="text" id="ghUser" placeholder="Username" style="margin-bottom:10px">
-        <label>Repository</label><input type="text" id="ghRepo" placeholder="Repository" style="margin-bottom:10px">
-        <label>GitHub Token (cần quyền gist)</label><input type="password" id="ghToken" placeholder="Token ghp_..." style="margin-bottom:10px">
-        <label>PC Server URL</label><input type="text" id="pcUrl" placeholder="https://xxxx.trycloudflare.com" style="margin-bottom:10px">
+        <label>GitHub Username</label>
+        <input type="text" id="ghUser" placeholder="Username" style="margin-bottom:10px">
+        <label>Repository</label>
+        <input type="text" id="ghRepo" placeholder="Repository" style="margin-bottom:10px">
+        <label>GitHub Token (cần quyền gist)</label>
+        <input type="password" id="ghToken" placeholder="Token ghp_..." style="margin-bottom:10px">
+        <label>PC Server URL</label>
+        <input type="text" id="pcUrl" placeholder="https://xxxx.trycloudflare.com" style="margin-bottom:10px">
         <button class="btn-sm" style="width:100%;background:var(--blue);color:white;padding:12px" onclick="saveSettings()">💾 LƯU</button>
     </div>
 
@@ -169,20 +376,44 @@ const speeds=[0.5,0.75,1.0,1.25,1.5,2.0];
 let pc_url='', gh_cloud_map={};
 let reloadTimer=null;
 let progressInterval=null;
+let lastProgressData = {};
+let restoreData = null;
+let isRestoring = false;
+let currentAbortController = null;  // ✅ Quản lý request hiện tại
 
-// ===== INIT =====
-function onYouTubeIframeAPIReady(){ loadSettings(); loadGistLibrary(false); }
-
-function loadSettings(){
-    document.getElementById('ghUser').value=localStorage.gh_user||'';
-    document.getElementById('ghRepo').value=localStorage.gh_repo||'subtitle-ai';
-    document.getElementById('ghToken').value=localStorage.gh_token||localStorage.gh_pat_token||'';
-    document.getElementById('pcUrl').value=localStorage.pc_url||'';
-    pc_url=localStorage.pc_url||'';
-    gh_cloud_map=JSON.parse(localStorage.getItem('gh_cloud_map')||'{}');
+// ===== CANCEL REQUEST =====
+function cancelCurrentRequest() {
+    if (currentAbortController) {
+        try {
+            currentAbortController.abort();
+            console.log('[DEBUG] Đã hủy request cũ');
+        } catch (e) {}
+        currentAbortController = null;
+    }
+    if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+    }
 }
 
-function saveSettings(){
+// ===== INIT =====
+function onYouTubeIframeAPIReady() {
+    loadSettings();
+    loadGistLibrary(false);
+    setTimeout(checkStoredProgress, 1000);
+}
+
+function loadSettings() {
+    document.getElementById('ghUser').value = localStorage.gh_user || '';
+    document.getElementById('ghRepo').value = localStorage.gh_repo || 'subtitle-ai';
+    document.getElementById('ghToken').value = localStorage.gh_token || localStorage.gh_pat_token || '';
+    document.getElementById('pcUrl').value = localStorage.pc_url || '';
+    pc_url = localStorage.pc_url || '';
+    gh_cloud_map = JSON.parse(localStorage.getItem('gh_cloud_map') || '{}');
+    restoreData = JSON.parse(localStorage.getItem('download_restore_data') || 'null');
+}
+
+function saveSettings() {
     let oldToken = localStorage.gh_token || localStorage.gh_pat_token || '';
     let newToken = document.getElementById('ghToken').value.trim();
     
@@ -200,18 +431,18 @@ function saveSettings(){
     pc_url = document.getElementById('pcUrl').value.trim();
     localStorage.pc_url = pc_url;
     
-    log('Đã lưu ✓','ok');
+    log('Đã lưu ✓', 'ok');
     loadGistLibrary(true);
 }
 
-function toggleSettings(){
-    const c=document.getElementById('settings-card');
-    c.style.display=c.style.display==='none'?'block':'none';
+function toggleSettings() {
+    const c = document.getElementById('settings-card');
+    c.style.display = c.style.display === 'none' ? 'block' : 'none';
 }
 
-function toggleSubSettings(){
-    const p=document.getElementById('sub-settings-panel');
-    p.style.display=p.style.display==='none'?'block':'none';
+function toggleSubSettings() {
+    const p = document.getElementById('sub-settings-panel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
 }
 
 let allCardsVisible = true;
@@ -226,117 +457,124 @@ function toggleAllCards() {
     btn.textContent = allCardsVisible ? '👁️ Ẩn tất cả' : '👁️ Hiện tất cả';
 }
 
-function updateFont(t,v){
-    document.documentElement.style.setProperty(`--fs-${t}`,v+'px');
-    document.getElementById(`val-${t}`).innerText=v+'px';
+function updateFont(t, v) {
+    document.documentElement.style.setProperty(`--fs-${t}`, v + 'px');
+    document.getElementById(`val-${t}`).innerText = v + 'px';
 }
 
-function cyclePlaybackRate(){
-    currentSpeedIndex=(currentSpeedIndex+1)%speeds.length;
-    let r=speeds[currentSpeedIndex];
-    document.getElementById('btn-speed').innerText=`⚡ ${r}x`;
-    if(player?.setPlaybackRate)player.setPlaybackRate(r);
+function cyclePlaybackRate() {
+    currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
+    let r = speeds[currentSpeedIndex];
+    document.getElementById('btn-speed').innerText = `⚡ ${r}x`;
+    if (player?.setPlaybackRate) player.setPlaybackRate(r);
 }
 
-function toggleLoop(){
-    isLoopEnabled=!isLoopEnabled;
-    document.getElementById('btn-loop').classList.toggle('active',isLoopEnabled);
+function toggleLoop() {
+    isLoopEnabled = !isLoopEnabled;
+    document.getElementById('btn-loop').classList.toggle('active', isLoopEnabled);
 }
 
 // ===== LOG =====
-function log(m,c=''){
-    const t=new Date().toLocaleTimeString('vi-VN');
+function log(m, c = '') {
+    const t = new Date().toLocaleTimeString('vi-VN');
     const logBox = document.getElementById('logBox');
-    logBox.innerHTML+=`<br><span class="log-${c}">[${t}] ${m}</span>`;
-    logBox.scrollTop=logBox.scrollHeight;
+    logBox.innerHTML += `<br><span class="log-${c}">[${t}] ${m}</span>`;
+    logBox.scrollTop = logBox.scrollHeight;
 }
 
-function prog(p,t=''){
-    document.getElementById('pb').style.width=p+'%';
-    if(t)document.getElementById('pbText').innerText=t;
+function prog(p, text = '', speed = '', eta = '') {
+    document.getElementById('pb').style.width = Math.min(p, 100) + '%';
+    if (text) document.getElementById('pbText').innerText = text;
+    if (speed) document.getElementById('pbSpeed').innerText = speed;
+    if (eta) document.getElementById('pbEta').innerText = '⏱ ' + eta;
 }
 
 // ===== URL =====
-function onUrlInput(){
-    document.getElementById('btn-clear').style.display=document.getElementById('yt-link').value?'block':'none';
+function onUrlInput() {
+    document.getElementById('btn-clear').style.display = document.getElementById('yt-link').value ? 'block' : 'none';
 }
 
-function clearUrl(){
-    document.getElementById('yt-link').value='';
-    document.getElementById('btn-clear').style.display='none';
+function clearUrl() {
+    document.getElementById('yt-link').value = '';
+    document.getElementById('btn-clear').style.display = 'none';
 }
 
 // ===== GIST =====
-async function loadGistLibrary(force=false){
-    const select=document.getElementById('gist-select');
-    select.innerHTML='<option value="">-- Scan... --</option>';
-    let items=[], token=localStorage.gh_token||localStorage.gh_pat_token;
-    let lastScan=parseInt(localStorage.getItem('gh_last_scan')||'0'), now=Date.now();
-    
-    if(!force&&(now-lastScan)<300000&&Object.keys(gh_cloud_map).length>0){
-        for(let vId in gh_cloud_map){
-            let e=gh_cloud_map[vId];
-            items.push({videoId:vId,rawUrl:e.url,title:e.title});
+async function loadGistLibrary(force = false) {
+    const select = document.getElementById('gist-select');
+    select.innerHTML = '<option value="">-- Scan... --</option>';
+    let items = [],
+        token = localStorage.gh_token || localStorage.gh_pat_token;
+    let lastScan = parseInt(localStorage.getItem('gh_last_scan') || '0'),
+        now = Date.now();
+
+    if (!force && (now - lastScan) < 300000 && Object.keys(gh_cloud_map).length > 0) {
+        for (let vId in gh_cloud_map) {
+            let e = gh_cloud_map[vId];
+            items.push({ videoId: vId, rawUrl: e.url, title: e.title });
         }
-    }else if(token){
-        try{
-            let res=await fetch('https://api.github.com/gists?per_page=100',{
-                headers:{"Authorization":`token ${token}`}
+    } else if (token) {
+        try {
+            let res = await fetch('https://api.github.com/gists?per_page=100', {
+                headers: { "Authorization": `token ${token}` }
             });
-            if(res.ok){
-                let gists=await res.json();
-                let newMap={};
-                for(let g of gists){
-                    if(g.files)for(let fn in g.files){
-                        if(fn.endsWith('.vtt')){
-                            let v=fn.replace('.vtt','');
-                            if(!newMap[v])newMap[v]={
-                                url:g.files[fn].raw_url,
-                                title:(g.description||'').replace(/^.*Subtitle\s*-\s*/i,'').trim()||`Video ${v}`
-                            };
+            if (res.ok) {
+                let gists = await res.json();
+                let newMap = {};
+                for (let g of gists) {
+                    if (g.files)
+                        for (let fn in g.files) {
+                            if (fn.endsWith('.vtt')) {
+                                let v = fn.replace('.vtt', '');
+                                if (!newMap[v]) newMap[v] = {
+                                    url: g.files[fn].raw_url,
+                                    title: (g.description || '').replace(/^.*Subtitle\s*-\s*/i, '').trim() || `Video ${v}`
+                                };
+                            }
                         }
-                    }
                 }
-                gh_cloud_map=newMap;
-                localStorage.setItem('gh_cloud_map',JSON.stringify(newMap));
-                localStorage.setItem('gh_last_scan',now);
-                for(let vId in newMap){
-                    let e=newMap[vId];
-                    items.push({videoId:vId,rawUrl:e.url,title:e.title});
+                gh_cloud_map = newMap;
+                localStorage.setItem('gh_cloud_map', JSON.stringify(newMap));
+                localStorage.setItem('gh_last_scan', now);
+                for (let vId in newMap) {
+                    let e = newMap[vId];
+                    items.push({ videoId: vId, rawUrl: e.url, title: e.title });
                 }
             }
-        }catch(e){}
+        } catch (e) {}
     }
-    
-    if(!items.length)for(let vId in gh_cloud_map){
-        let e=gh_cloud_map[vId];
-        items.push({videoId:vId,rawUrl:e.url,title:e.title});
-    }
-    
-    items.sort((a,b)=>b.videoId.localeCompare(a.videoId));
-    select.innerHTML=items.length?`<option value="">-- Chọn (${items.length}) --</option>`:'<option value="">-- Chưa có --</option>';
-    items.forEach(i=>{
-        let o=document.createElement('option');
-        o.value=JSON.stringify(i);
-        o.textContent=i.title;
+
+    if (!items.length)
+        for (let vId in gh_cloud_map) {
+            let e = gh_cloud_map[vId];
+            items.push({ videoId: vId, rawUrl: e.url, title: e.title });
+        }
+
+    items.sort((a, b) => b.videoId.localeCompare(a.videoId));
+    select.innerHTML = items.length ? `<option value="">-- Chọn (${items.length}) --</option>` :
+        '<option value="">-- Chưa có --</option>';
+    items.forEach(i => {
+        let o = document.createElement('option');
+        o.value = JSON.stringify(i);
+        o.textContent = i.title;
         select.appendChild(o);
     });
-    document.getElementById('matched-sub-note').innerText=items.length?`${items.length} video`:'Chưa có video';
+    document.getElementById('matched-sub-note').innerText = items.length ? `${items.length} video` : 'Chưa có video';
 }
 
 // ===== RELOAD =====
-function handleReload(){
-    if(currentGistItem){
-        if(reloadTimer){
+function handleReload() {
+    if (currentGistItem) {
+        if (reloadTimer) {
             clearTimeout(reloadTimer);
-            reloadTimer=null;
-            log('Double click - Load lại kho','info');
+            reloadTimer = null;
+            log('Double click - Load lại kho', 'info');
             loadGistLibrary(true);
-        }else{
+        } else {
             loadVideoFromGist(currentGistItem);
-            reloadTimer=setTimeout(()=>{reloadTimer=null;},500);
+            reloadTimer = setTimeout(() => { reloadTimer = null; }, 500);
         }
-    }else{
+    } else {
         loadGistLibrary(true);
     }
 }
@@ -348,14 +586,15 @@ async function loadVideoFromGist(item) {
         subtitles = parseVTT(await res.text());
         document.getElementById('matched-sub-note').innerText = `📦 ${item.title}`;
         document.getElementById('video-wrapper').classList.remove('hidden');
-        
+
         if (player) {
             player.destroy();
             player = null;
         }
-        
+
         player = new YT.Player('player', {
-            height: '100%', width: '100%',
+            height: '100%',
+            width: '100%',
             videoId: item.videoId,
             playerVars: { playsinline: 1, autoplay: 0, controls: 0, rel: 0, showinfo: 0 },
             events: {
@@ -376,11 +615,11 @@ async function renameCurrentVideo() {
     let nt = prompt('Nhập tên mới:', currentGistItem.title);
     if (!nt || !nt.trim()) return;
     nt = nt.trim();
-    
+
     let token = localStorage.gh_token || localStorage.gh_pat_token;
     if (!token) { alert('Cần Token!'); return; }
     let vid = currentGistItem.videoId;
-    
+
     try {
         let res = await fetch('https://api.github.com/gists?per_page=100', {
             headers: { "Authorization": `token ${token}` }
@@ -399,7 +638,7 @@ async function renameCurrentVideo() {
             }
         }
     } catch (e) {}
-    
+
     gh_cloud_map[vid].title = nt;
     localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
     currentGistItem.title = nt;
@@ -409,12 +648,13 @@ async function renameCurrentVideo() {
 
 async function deleteCurrentVideo() {
     if (!currentGistItem) { alert('Chọn phụ đề trước!'); return; }
-    let vid = currentGistItem.videoId, title = currentGistItem.title;
+    let vid = currentGistItem.videoId,
+        title = currentGistItem.title;
     if (!confirm(`Xóa "${title}"?`)) return;
-    
+
     let token = localStorage.gh_token || localStorage.gh_pat_token;
     if (!token) { alert('Cần Token!'); return; }
-    
+
     try {
         for (let page = 1; page <= 10; page++) {
             let res = await fetch(`https://api.github.com/gists?page=${page}&per_page=100`, {
@@ -434,7 +674,7 @@ async function deleteCurrentVideo() {
             }
         }
     } catch (e) {}
-    
+
     delete gh_cloud_map[vid];
     localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
     currentGistItem = null;
@@ -443,29 +683,29 @@ async function deleteCurrentVideo() {
     document.getElementById('matched-sub-note').innerText = `Đã xóa: ${title}`;
 }
 
-function onGistSelected(val){
-    if(!val){currentGistItem=null;return;}
-    try{
-        currentGistItem=JSON.parse(val);
-        document.getElementById('matched-sub-note').innerText=`📦 ${currentGistItem.title}`;
-    }catch(e){currentGistItem=null;}
+function onGistSelected(val) {
+    if (!val) { currentGistItem = null; return; }
+    try {
+        currentGistItem = JSON.parse(val);
+        document.getElementById('matched-sub-note').innerText = `📦 ${currentGistItem.title}`;
+    } catch (e) { currentGistItem = null; }
 }
 
 // ===== SYNC =====
-function startSync(){
-    if(syncInterval)clearInterval(syncInterval);
-    syncInterval=setInterval(syncSub,200);
+function startSync() {
+    if (syncInterval) clearInterval(syncInterval);
+    syncInterval = setInterval(syncSub, 200);
 }
 
-function syncSub(){
+function syncSub() {
     updateTimeline();
-    if(!player?.getCurrentTime||!subtitles.length)return;
-    const t=player.getCurrentTime();
-    const idx=subtitles.findIndex(s=>t>=s.start&&t<=s.end);
-    if(idx!==-1&&idx!==activeSubIndex){
-        activeSubIndex=idx;
-        const s=subtitles[idx];
-        document.getElementById('subtitle-box').innerHTML=`
+    if (!player?.getCurrentTime || !subtitles.length) return;
+    const t = player.getCurrentTime();
+    const idx = subtitles.findIndex(s => t >= s.start && t <= s.end);
+    if (idx !== -1 && idx !== activeSubIndex) {
+        activeSubIndex = idx;
+        const s = subtitles[idx];
+        document.getElementById('subtitle-box').innerHTML = `
             <div class="cn">${s.rawLines[0]}</div>
             <div class="py">${s.rawLines[1]}</div>
             <div class="vi">${s.rawLines[2]}</div>`;
@@ -495,11 +735,13 @@ function onPlayerStateChange(e) {
 }
 
 // ===== TIMELINE =====
-let videoDuration = 0, isSeeking = false;
+let videoDuration = 0,
+    isSeeking = false;
 
 function formatTime(seconds) {
     if (isNaN(seconds)) return '00:00';
-    let m = Math.floor(seconds / 60), s = Math.floor(seconds % 60);
+    let m = Math.floor(seconds / 60),
+        s = Math.floor(seconds % 60);
     return `${m<10?'0':''}${m}:${s<10?'0':''}${s}`;
 }
 
@@ -512,102 +754,200 @@ function onSliderSeek(val) {
 }
 
 function onSliderChange(val) {
-    if (player?.seekTo) player.seekTo((val/100)*player.getDuration(), true);
-    setTimeout(()=>{isSeeking=false;},200);
+    if (player?.seekTo) player.seekTo((val / 100) * player.getDuration(), true);
+    setTimeout(() => { isSeeking = false; }, 200);
 }
 
 function updateTimeline() {
-    if (!player?.getCurrentTime||isSeeking) return;
-    let t=player.getCurrentTime(), d=player.getDuration();
-    if(d>0){
-        videoDuration=d;
-        document.getElementById('time-slider').value=(t/d)*100;
-        document.getElementById('time-display').innerText=`${formatTime(t)} / ${formatTime(d)}`;
+    if (!player?.getCurrentTime || isSeeking) return;
+    let t = player.getCurrentTime(),
+        d = player.getDuration();
+    if (d > 0) {
+        videoDuration = d;
+        document.getElementById('time-slider').value = (t / d) * 100;
+        document.getElementById('time-display').innerText = `${formatTime(t)} / ${formatTime(d)}`;
     }
 }
 
 // ===== PLAY =====
 function playSelectedGist() {
     if (!currentGistItem) { alert('Chọn phụ đề!'); return; }
-    fetch(currentGistItem.rawUrl).then(r=>r.text()).then(text=>{
-        subtitles=parseVTT(text);
-        document.getElementById('matched-sub-note').innerText=`📦 ${currentGistItem.title}`;
+    fetch(currentGistItem.rawUrl).then(r => r.text()).then(text => {
+        subtitles = parseVTT(text);
+        document.getElementById('matched-sub-note').innerText = `📦 ${currentGistItem.title}`;
         document.getElementById('video-wrapper').classList.remove('hidden');
-        if(player){player.destroy();player=null;}
-        player=new YT.Player('player',{
-            height:'100%',width:'100%',
-            videoId:currentGistItem.videoId,
-            playerVars:{playsinline:1,autoplay:0},
-            events:{
-                onReady:(e)=>{
+        if (player) { player.destroy();
+            player = null; }
+        player = new YT.Player('player', {
+            height: '100%',
+            width: '100%',
+            videoId: currentGistItem.videoId,
+            playerVars: { playsinline: 1, autoplay: 0 },
+            events: {
+                onReady: (e) => {
                     startSync();
                     e.target.pauseVideo();
-                    e.target.seekTo(0,true);
+                    e.target.seekTo(0, true);
                     updatePlayPauseBtn(false);
                 },
-                onStateChange:onPlayerStateChange
+                onStateChange: onPlayerStateChange
             }
         });
     });
 }
 
-function togglePlayPause(){
-    if(!player?.getPlayerState){playSelectedGist();return;}
-    if(player.getPlayerState()===YT.PlayerState.PLAYING)player.pauseVideo();
+function togglePlayPause() {
+    if (!player?.getPlayerState) { playSelectedGist(); return; }
+    if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo();
     else player.playVideo();
 }
 
-function updatePlayPauseBtn(p){
-    const b=document.getElementById('btn-play-pause');
-    if(b)b.innerHTML=p?'⏸ Pause':'⏵ Play';
+function updatePlayPauseBtn(p) {
+    const b = document.getElementById('btn-play-pause');
+    if (b) b.innerHTML = p ? '⏸ Pause' : '⏵ Play';
 }
 
-function toggleVideoVisibility(){
+function toggleVideoVisibility() {
     document.getElementById('video-wrapper').classList.toggle('hidden');
 }
 
 // ===== UTILS =====
-function extractVideoID(url){
-    if(!url)return null;
-    const m=url.match(/(?:v=|\/)([\w-]{11})/);
-    return m?m[1]:(url.length===11?url:null);
+function extractVideoID(url) {
+    if (!url) return null;
+    const m = url.match(/(?:v=|\/)([\w-]{11})/);
+    return m ? m[1] : (url.length === 11 ? url : null);
 }
 
-function parseVTT(d){
-    const n=d.replace(/\r\n/g,'\n').replace(/\r/g,'\n'),b=n.split('\n\n');
-    let s=[];
-    b.forEach(b=>{
-        const l=b.split('\n');
-        let t=-1;
-        for(let i=0;i<l.length;i++){
-            if(l[i].includes('-->')){t=i;break;}
+function parseVTT(d) {
+    const n = d.replace(/\r\n/g, '\n').replace(/\r/g, '\n'),
+        b = n.split('\n\n');
+    let s = [];
+    b.forEach(b => {
+        const l = b.split('\n');
+        let t = -1;
+        for (let i = 0; i < l.length; i++) {
+            if (l[i].includes('-->')) { t = i; break; }
         }
-        if(t!==-1){
-            const ts=l[t].split('-->');
-            if(ts.length===2){
-                const st=parseTime(ts[0].trim()),en=parseTime(ts[1].trim());
-                let r=l.slice(t+1).map(x=>x.replace(/<[^>]*>/g,'').trim()).filter(x=>x!=="");
-                while(r.length<3)r.push("");
-                s.push({start:st,end:en,rawLines:r});
+        if (t !== -1) {
+            const ts = l[t].split('-->');
+            if (ts.length === 2) {
+                const st = parseTime(ts[0].trim()),
+                    en = parseTime(ts[1].trim());
+                let r = l.slice(t + 1).map(x => x.replace(/<[^>]*>/g, '').trim()).filter(x => x !== "");
+                while (r.length < 3) r.push("");
+                s.push({ start: st, end: en, rawLines: r });
             }
         }
     });
     return s;
 }
 
-function parseTime(t){
-    t=t.replace(',','.');
-    const p=t.split(':');
-    return p.length<3?0:parseFloat(p[0])*3600+parseFloat(p[1])*60+parseFloat(p[2]);
+function parseTime(t) {
+    t = t.replace(',', '.');
+    const p = t.split(':');
+    return p.length < 3 ? 0 : parseFloat(p[0]) * 3600 + parseFloat(p[1]) * 60 + parseFloat(p[2]);
+}
+
+function formatSize(bytes) {
+    if (bytes === 0 || !bytes) return '0B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + sizes[i];
+}
+
+// ===== STORE PROGRESS STATE =====
+function storeProgressState(vid, data) {
+    const state = {
+        video_id: vid,
+        timestamp: Date.now(),
+        data: data
+    };
+    localStorage.setItem('download_restore_data', JSON.stringify(state));
+}
+
+function clearStoredProgress() {
+    localStorage.removeItem('download_restore_data');
+    document.getElementById('restore-banner').style.display = 'none';
+}
+
+function checkStoredProgress() {
+    const stored = localStorage.getItem('download_restore_data');
+    if (!stored) return;
+
+    try {
+        const state = JSON.parse(stored);
+        const elapsed = (Date.now() - state.timestamp) / 1000;
+
+        if (elapsed < 300 && state.data) {
+            restoreData = state;
+            document.getElementById('restore-banner').style.display = 'flex';
+            document.getElementById('restore-message').innerHTML =
+                `🔄 Phát hiện tiến trình đang chạy: ${state.data.percent || 0}%`;
+            log('📦 Phát hiện tiến trình cũ, nhấn "Khôi phục" để tiếp tục', 'info');
+        } else {
+            clearStoredProgress();
+        }
+    } catch (e) {
+        clearStoredProgress();
+    }
+}
+
+async function restoreProgress() {
+    if (!restoreData || !restoreData.video_id) {
+        clearStoredProgress();
+        return;
+    }
+
+    isRestoring = true;
+    const vid = restoreData.video_id;
+    document.getElementById('restore-banner').style.display = 'none';
+
+    log(`🔄 Đang khôi phục tiến trình cho ${vid}...`, 'info');
+
+    try {
+        const pc = pc_url.replace(/\/$/, '');
+        const res = await fetch(`${pc}/download-status/${vid}`);
+
+        if (res.ok) {
+            const status = await res.json();
+            if (status.status === 'downloading' || status.status === 'uploading') {
+                processingVid = vid;
+                if (progressInterval) clearInterval(progressInterval);
+                progressInterval = setInterval(() => fetchProgress(vid), 1500);
+                log(`✅ Đã khôi phục tiến trình cho ${vid}`, 'ok');
+                return;
+            }
+        }
+
+        log('🔄 Server không có trạng thái, thử tải lại...', 'info');
+        const url = restoreData.data.url;
+        if (url) {
+            document.getElementById('yt-link').value = url;
+            await handleMainAction();
+        }
+
+    } catch (e) {
+        log(`❌ Khôi phục thất bại: ${e.message}`, 'err');
+    } finally {
+        isRestoring = false;
+        clearStoredProgress();
+    }
 }
 
 // ===== CANCEL =====
 async function cancelDownload() {
     if (!processingVid) return;
     const pc = pc_url.replace(/\/$/, '');
+    
+    // ✅ Hủy request fetch
+    cancelCurrentRequest();
+    
     try {
         await fetch(`${pc}/cancel?id=${processingVid}`);
-        log('Đã hủy ✓','ok');
+        log('Đã hủy ✓', 'ok');
+        prog(0, 'Đã hủy', '');
+        clearStoredProgress();
     } catch (e) {
         log('Hủy thất bại: ' + e.message, 'err');
     }
@@ -626,17 +966,70 @@ async function fetchProgress(vid) {
         let res = await fetch(`${pc}/progress?id=${vid}`);
         if (res.ok) {
             let data = await res.json();
+            lastProgressData = data;
+
+            storeProgressState(vid, data);
+
             if (data.status === 'downloading') {
-                prog(data.percent, `⬇️ ${data.percent}% - ${data.speed}`);
-            } else if (data.status === 'done') {
-                prog(100, '✅ Hoàn tất!');
+                let percent = data.percent || 0;
+                let downloaded = data.downloaded || 0;
+                let total = data.total || 0;
+                let speed = data.speed || 'N/A';
+                let eta = data.eta || '';
+
+                let d_mb = downloaded / 1024 / 1024;
+                let t_mb = total / 1024 / 1024;
+                let text = `⬇️ ${d_mb.toFixed(1)}/${t_mb.toFixed(1)}MB - ${percent}%`;
+
+                prog(percent, text, speed, eta);
+
+                if (percent % 10 < 5) {
+                    document.getElementById('status-text').innerHTML =
+                        `<span class="status-badge downloading">${percent}%</span>`;
+                }
+
+            } else if (data.status === 'uploading') {
+                let percent = data.percent || 80;
+                prog(percent, `📤 Upload: ${percent}%`, '');
+                document.getElementById('status-text').innerHTML =
+                    `<span class="status-badge uploading">Uploading</span>`;
+
+            } else if (data.status === 'done' || data.status === 'completed') {
+                prog(100, '✅ Hoàn tất!', '');
+                document.getElementById('status-text').innerHTML =
+                    `<span class="status-badge done">✅ Done</span>`;
                 if (progressInterval) {
                     clearInterval(progressInterval);
                     progressInterval = null;
                 }
+                clearStoredProgress();
+                setTimeout(() => loadGistLibrary(true), 3000);
+
+            } else if (data.status === 'error') {
+                let msg = data.message || 'Lỗi không xác định';
+                prog(0, `❌ ${msg}`, '');
+                document.getElementById('status-text').innerHTML =
+                    `<span class="status-badge error">❌ Error</span>`;
+                log(`❌ Lỗi: ${msg}`, 'err');
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
+                clearStoredProgress();
+
+            } else if (data.status === 'cancelled') {
+                prog(0, '🚫 Đã hủy', '');
+                document.getElementById('status-text').innerHTML = '🚫 Cancelled';
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
+                clearStoredProgress();
             }
         }
-    } catch (e) {}
+    } catch (e) {
+        // Không log lỗi để tránh spam
+    }
 }
 
 // ===== MAIN =====
@@ -644,10 +1037,18 @@ async function handleMainAction() {
     const btn = document.getElementById('btn-action');
     const url = document.getElementById('yt-link').value.trim();
     const vid = extractVideoID(url);
-    const token = localStorage.gh_token || localStorage.gh_pat_token;
-    const user = localStorage.gh_user;
+    
+    const token = localStorage.gh_token || localStorage.gh_pat_token || '';
+    const user = localStorage.gh_user || 'PinyinCode';
     const repo = localStorage.gh_repo || 'subtitle-ai';
     
+    // ❌ KHÔNG KIỂM TRA TOKEN - Chỉ kiểm tra URL và PC_URL
+    if (!vid || !pc_url) {
+        alert('Thiếu cấu hình! Cần: Link YouTube, PC Server URL');
+        return;
+    }
+    
+    // Nếu đang tải, hủy
     if (isLoadingState) {
         btn.innerText = '⏹ ĐANG HỦY...';
         btn.disabled = true;
@@ -656,10 +1057,8 @@ async function handleMainAction() {
         return;
     }
     
-    if (!vid || !pc_url || !token || !user) {
-        alert('Thiếu cấu hình! Cần: Link YouTube, PC Server URL, GitHub Token, Username');
-        return;
-    }
+    // ✅ HỦY REQUEST CŨ TRƯỚC KHI BẮT ĐẦU MỚI
+    cancelCurrentRequest();
     
     if (gh_cloud_map[vid] || (await checkCloud(vid))) {
         alert('Video đã có trong kho! Chọn và nhấn Play.');
@@ -677,26 +1076,32 @@ async function handleMainAction() {
     try {
         const pc = pc_url.replace(/\/$/, '');
         
-        // Kiểm tra PC
+        // ✅ TẠO ABORT CONTROLLER MỚI
+        currentAbortController = new AbortController();
+        const signal = currentAbortController.signal;
+        
         log('Kiểm tra PC...', 'info');
         try {
-            const h = await fetch(`${pc}/health`, { signal: AbortSignal.timeout(15000) });
+            const h = await fetch(`${pc}/health`, { signal: signal, timeout: 15000 });
             if (!h.ok) throw new Error('PC offline');
         } catch (e) {
+            if (e.name === 'AbortError') {
+                log('Đã hủy kiểm tra PC', 'info');
+                return;
+            }
             log('Thử lại...', 'info');
-            const h = await fetch(`${pc}/health`, { signal: AbortSignal.timeout(15000) });
+            const h = await fetch(`${pc}/health`, { signal: signal, timeout: 15000 });
             if (!h.ok) throw new Error('PC offline');
         }
         log('✅ PC online', 'ok');
         prog(20, 'Đang gửi...');
         
-        // Polling tiến độ
         if (progressInterval) clearInterval(progressInterval);
         progressInterval = setInterval(() => fetchProgress(vid), 2000);
         
-        // Gửi request
+        // ✅ GỬI REQUEST VỚI SIGNAL
         const res = await fetch(`${pc}/download?url=${encodeURIComponent(url)}&gh_user=${user}&gh_repo=${repo}&gh_token=${token}`, {
-            signal: AbortSignal.timeout(600000)
+            signal: signal
         });
         
         if (!res.ok) {
@@ -721,19 +1126,35 @@ async function handleMainAction() {
         setTimeout(() => checkAndLoadGist(vid), 180000);
         
     } catch (e) {
+        // ✅ BỎ QUA LỖI ABORT (DO NGƯỜI DÙNG HỦY)
+        if (e.name === 'AbortError') {
+            log('Đã hủy yêu cầu tải', 'info');
+            prog(0, 'Đã hủy');
+            return;
+        }
+        
         log(`❌ Lỗi: ${e.message}`, 'err');
         prog(0, 'Thất bại');
         if (progressInterval) {
             clearInterval(progressInterval);
             progressInterval = null;
         }
+    } finally {
+        currentAbortController = null;
     }
     
     processingVid = null;
     resetUI();
 }
 
-// ===== CHECK & LOAD =====
+function resetUI() {
+    isLoadingState = false;
+    const btn = document.getElementById('btn-action');
+    btn.innerText = '▶️ TẢI';
+    btn.classList.remove('cancel');
+    btn.disabled = false;
+}
+
 async function checkAndLoadGist(vid) {
     log('🔍 Kiểm tra phụ đề mới...', 'info');
     const token = localStorage.gh_token || localStorage.gh_pat_token;
@@ -756,46 +1177,67 @@ async function checkAndLoadGist(vid) {
                     await loadGistLibrary(true);
                     document.getElementById('matched-sub-note').innerText = '✅ Phụ đề mới!';
                     log('🎉 Phụ đề đã sẵn sàng!', 'ok');
+                    prog(100, '✅ Hoàn tất!', '');
+                    document.getElementById('status-text').innerHTML = `<span class="status-badge done">✅ Done</span>`;
+                    clearStoredProgress();
                     return;
                 }
             }
         }
         log('⏳ Chưa thấy, thử lại sau...', 'info');
+        setTimeout(() => checkAndLoadGist(vid), 30000);
     } catch (e) {
         log('Lỗi kiểm tra: ' + e.message, 'err');
     }
 }
 
-function resetUI(){
-    isLoadingState=false;
-    const btn=document.getElementById('btn-action');
-    btn.innerText='▶️ TẢI';
-    btn.classList.remove('cancel');
-    btn.disabled = false;
-    if (progressInterval) {
-        clearInterval(progressInterval);
-        progressInterval = null;
-    }
-}
-
-async function checkCloud(vid){
-    if(gh_cloud_map[vid])return true;
-    let token=localStorage.gh_token||localStorage.gh_pat_token;
-    if(token){
-        try{
-            let r=await fetch('https://api.github.com/gists',{
-                headers:{"Authorization":`token ${token}`}
+async function checkCloud(vid) {
+    if (gh_cloud_map[vid]) return true;
+    let token = localStorage.gh_token || localStorage.gh_pat_token;
+    if (token) {
+        try {
+            let r = await fetch('https://api.github.com/gists', {
+                headers: { "Authorization": `token ${token}` }
             });
-            if(r.ok){
-                let g=await r.json();
-                for(let x of g){
-                    if(x.files&&x.files[`${vid}.vtt`])return true;
+            if (r.ok) {
+                let g = await r.json();
+                for (let x of g) {
+                    if (x.files && x.files[`${vid}.vtt`]) return true;
                 }
             }
-        }catch(e){}
+        } catch (e) {}
     }
     return false;
 }
+
+// ===== AUTO REFRESH =====
+setInterval(() => {
+    if (processingVid && progressInterval) {
+        fetchProgress(processingVid);
+    }
+}, 5000);
+
+// Lưu trạng thái khi đóng trang
+window.addEventListener('beforeunload', function() {
+    if (processingVid && lastProgressData) {
+        storeProgressState(processingVid, lastProgressData);
+    }
+    // Hủy request khi đóng trang
+    cancelCurrentRequest();
+});
+
+// ===== KHÔI PHỤC TỰ ĐỘNG KHI TẢI LẠI TRANG =====
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(checkStoredProgress, 2000);
+});
+
+// ===== LƯU CẤU HÌNH KHI THAY ĐỔI =====
+document.addEventListener('change', function(e) {
+    if (e.target.id === 'pcUrl' || e.target.id === 'ghToken' ||
+        e.target.id === 'ghUser' || e.target.id === 'ghRepo') {
+        setTimeout(saveSettings, 500);
+    }
+});
 </script>
 </body>
 </html>
