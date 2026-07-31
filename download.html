@@ -38,8 +38,18 @@
             -webkit-backdrop-filter: blur(20px);
         }
         .container { width: 100%; max-width: 540px; display: flex; flex-direction: column; gap: 14px; }
+        
+        /* === CÁC THÀNH PHẦN CÓ THỂ ẨN === */
+        .hideable {
+            transition: all 0.3s ease;
+        }
+        .hideable.hidden {
+            display: none !important;
+        }
+        
         .app-header { text-align: center; padding: 6px 0; }
         .app-header h3 { margin: 0; font-size: 17px; font-weight: 600; color: var(--text-main); }
+        
         .card {
             background: var(--card-bg);
             backdrop-filter: blur(25px);
@@ -127,6 +137,18 @@
         }
         .btn-sm.active {
             background-color: var(--accent-light);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .btn-toggle {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 11px;
+            padding: 8px 12px;
+        }
+        .btn-toggle.active {
+            background: var(--accent-light);
             border-color: var(--accent);
             color: var(--accent);
         }
@@ -382,22 +404,43 @@
             border-radius: 4px;
             font-size: 11px;
         }
+        .controls-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+        .controls-row .btn-sm {
+            flex: 0 1 auto;
+        }
+        .controls-row .spacer {
+            flex: 1;
+        }
+        .btn-toggle-group {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .btn-toggle-group .btn-sm {
+            font-size: 10px;
+            padding: 6px 10px;
+        }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
 <div class="container">
-    <div class="app-header"><h3>🎬 Pinyin AI</h3></div>
+    <div class="app-header hideable" id="header"><h3>🎬 Pinyin AI</h3></div>
 
-    <!-- === TABS === -->
-    <div class="tab-group">
+    <!-- === TABS (có thể ẩn) === -->
+    <div class="tab-group hideable" id="tab-group">
         <button class="btn-sm active" onclick="switchTab('youtube')" id="tab-youtube">🎬 YouTube</button>
         <button class="btn-sm" onclick="switchTab('upload')" id="tab-upload">📤 Upload</button>
         <button class="btn-sm" onclick="switchTab('library')" id="tab-library">📚 Thư viện</button>
     </div>
 
     <!-- === TAB 1: YOUTUBE === -->
-    <div class="tab-content active" id="content-youtube">
+    <div class="tab-content active hideable" id="content-youtube">
         <div class="card">
             <label>🔗 Link YouTube</label>
             <div class="row">
@@ -438,39 +481,35 @@
     </div>
 
     <!-- === TAB 2: UPLOAD === -->
-    <div class="tab-content" id="content-upload">
+    <div class="tab-content hideable" id="content-upload">
         <div class="card">
             <label>📤 Upload Audio lên GitHub</label>
             
-            <!-- Hiển thị Video ID đã lấy -->
             <div class="upload-id-hint" id="upload-id-hint">
                 🎯 Video ID: <span class="id-value" id="upload-vid-display">---</span>
-                <span style="font-size:10px;color:var(--text-secondary);margin-left:8px;">
-                    (từ link YouTube)
-                </span>
+                <span style="font-size:10px;color:var(--text-secondary);margin-left:8px;">(từ link YouTube)</span>
             </div>
             
-            <!-- Hướng dẫn chi tiết -->
             <div class="upload-guide">
                 <div style="font-weight:600;color:var(--text-main);margin-bottom:6px;">📋 Hướng dẫn:</div>
                 <div class="step">
                     <span class="num">1</span>
-                    <span class="text">Tải audio từ YouTube bằng <strong style="color:var(--blue);">y2mate.com</strong> hoặc công cụ khác</span>
+                    <span class="text">Tải audio từ YouTube bằng <strong style="color:var(--blue);">y2mate.com</strong></span>
                 </div>
                 <div class="step">
                     <span class="num">2</span>
-                    <span class="text">Chọn file audio bất kỳ (không cần đúng tên, hệ thống tự động dùng ID từ YouTube)</span>
+                    <span class="text">Chọn file audio bất kỳ (tự động dùng ID từ YouTube)</span>
                 </div>
                 <div class="step">
                     <span class="num">3</span>
-                    <span class="text">Kéo thả file vào đây hoặc click để chọn</span>
+                    <span class="text">Kéo thả file hoặc click để chọn</span>
                 </div>
                 <div class="step">
                     <span class="num">4</span>
-                    <span class="text">Nhấn <strong style="color:var(--accent);">UPLOAD</strong> để gửi lên GitHub, AI sẽ tự động xử lý</span>
+                    <span class="text">Nhấn <strong style="color:var(--accent);">UPLOAD</strong> để gửi lên GitHub</span>
                 </div>
                 <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border-color);font-size:11px;color:var(--text-secondary);">
-                    ⏱️ Quá trình xử lý mất 3-5 phút, phụ đề sẽ tự động xuất hiện trong <strong style="color:var(--blue);">📚 Thư viện</strong>
+                    ⏱️ Xử lý 3-5 phút, phụ đề xuất hiện trong <strong style="color:var(--blue);">📚 Thư viện</strong>
                 </div>
             </div>
             
@@ -496,7 +535,7 @@
     </div>
 
     <!-- === TAB 3: LIBRARY === -->
-    <div class="tab-content" id="content-library">
+    <div class="tab-content hideable" id="content-library">
         <div class="card" id="gist-card">
             <div style="display:flex;justify-content:space-between;align-items:center;">
                 <label>📚 Kho phụ đề</label>
@@ -536,15 +575,23 @@
         </div>
     </div>
 
-    <!-- === CONTROLS === -->
+    <!-- === CONTROLS (có nút ẨN) === -->
     <div class="card" style="padding:10px 16px">
-        <div class="row" style="flex-wrap:wrap;gap:6px">
+        <div class="controls-row">
             <button class="btn-sm" id="btn-play-pause" onclick="togglePlayPause()">⏵ Play</button>
             <button class="btn-sm" onclick="toggleVideoVisibility()">🎥 Video</button>
             <button class="btn-sm" onclick="cyclePlaybackRate()" id="btn-speed">⚡ 1.0x</button>
             <button class="btn-sm" id="btn-loop" onclick="toggleLoop()">🔁 Repeat</button>
             <button class="btn-sm" onclick="toggleSubSettings()">⚙️ Size</button>
-            <span style="font-size:11px;color:var(--text-secondary);margin-left:auto" id="status-text">Sẵn sàng</span>
+            
+            <span class="spacer"></span>
+            
+            <!-- Nút ẨN - ở cùng hàng -->
+            <button class="btn-sm" id="btn-toggle-hide" onclick="toggleHideMode()" style="background:var(--accent-light);border-color:var(--accent);color:var(--accent);">
+                👁️ Ẩn
+            </button>
+            
+            <span style="font-size:11px;color:var(--text-secondary);margin-left:4px" id="status-text">Sẵn sàng</span>
         </div>
         <div id="sub-settings-panel" style="display:none;margin-top:8px">
             <div class="setting-row"><label>Chữ Hán</label><input type="range" min="14" max="36" value="20" oninput="updateFont('cn',this.value)"><span id="val-cn">20px</span></div>
@@ -557,7 +604,7 @@
     <div id="subtitle-box"><span style="color:var(--text-secondary);font-size:14px">Chọn phụ đề + Play, hoặc nhập link mới...</span></div>
 
     <!-- === SETTINGS === -->
-    <div class="card" id="settings-card" style="display:none;">
+    <div class="card hideable" id="settings-card" style="display:none;">
         <label>⚙️ CÀI ĐẶT</label>
         <input type="text" id="ghUser" placeholder="GitHub Username" value="PinyinCode">
         <input type="text" id="ghRepo" placeholder="Repository" value="subtitle-ai">
@@ -568,11 +615,11 @@
 
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
         <span class="settings-toggle" onclick="toggleSettings()">⚙️ Cài đặt ▾</span>
-        <span class="settings-toggle" id="toggle-all-btn" onclick="toggleAllCards()">👁️ Ẩn</span>
+        <span style="font-size:10px;color:var(--text-secondary);">v1.0</span>
     </div>
 
     <!-- === LOG === -->
-    <div class="card" id="log-card"><label>📋 Tiến trình</label><div id="logBox">🟢 Sẵn sàng</div></div>
+    <div class="card hideable" id="log-card"><label>📋 Tiến trình</label><div id="logBox">🟢 Sẵn sàng</div></div>
 </div>
 
 <script>
@@ -586,6 +633,32 @@ let selectedFile = null;
 let isUploading = false;
 let currentVideoId = null;
 let pendingVideoId = null;
+let isHideMode = false;
+
+// ===== CHẾ ĐỘ ẨN =====
+function toggleHideMode() {
+    isHideMode = !isHideMode;
+    const btn = document.getElementById('btn-toggle-hide');
+    const hideables = document.querySelectorAll('.hideable');
+    
+    if (isHideMode) {
+        // Ẩn các thành phần thừa
+        hideables.forEach(el => el.classList.add('hidden'));
+        btn.innerHTML = '👁️ Hiện';
+        btn.style.background = 'rgba(255,45,85,0.2)';
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        log('👁️ Đã ẩn các thành phần thừa', 'info');
+    } else {
+        // Hiện lại
+        hideables.forEach(el => el.classList.remove('hidden'));
+        btn.innerHTML = '👁️ Ẩn';
+        btn.style.background = 'var(--accent-light)';
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        log('👁️ Đã hiện lại đầy đủ', 'info');
+    }
+}
 
 // ===== INIT =====
 function onYouTubeIframeAPIReady() {
@@ -621,14 +694,6 @@ function toggleSettings() {
 function toggleSubSettings() {
     const p = document.getElementById('sub-settings-panel');
     p.style.display = p.style.display === 'none' ? 'block' : 'none';
-}
-
-function toggleAllCards() {
-    const cards = ['settings-card'];
-    cards.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.toggle('hidden');
-    });
 }
 
 function updateFont(t, v) {
@@ -753,7 +818,6 @@ function extractAndGoToUpload() {
     document.getElementById('status-text').innerHTML = `<span class="status-badge done">🎯 ${vid}</span>`;
     document.getElementById('yt-info').innerHTML = `<span class="status-badge done">✅ Đã lấy ID: ${vid}</span>`;
     
-    // Chuyển sang tab Upload
     switchTab('upload');
     updateUploadTabWithVideoId();
     
@@ -762,36 +826,9 @@ function extractAndGoToUpload() {
     
     document.getElementById('pb-upload-text').innerHTML = `🎯 Sẵn sàng upload cho video: <strong style="color:var(--accent);">${vid}</strong>`;
     
-    // Bật nút upload nếu đã có file
     if (selectedFile) {
         document.getElementById('btn-upload').disabled = false;
-        // Cập nhật lại thông tin file
         updateFileInfo();
-    }
-}
-
-// ===== CẬP NHẬT THÔNG TIN FILE =====
-function updateFileInfo() {
-    if (!selectedFile) return;
-    const vid = pendingVideoId || currentVideoId;
-    const info = document.getElementById('file-info');
-    
-    if (vid) {
-        info.innerHTML = `
-            <span class="status-badge processing">📄 ${selectedFile.name}</span>
-            <span class="status-badge done">${(selectedFile.size/1024/1024).toFixed(2)} MB</span>
-            <span class="status-badge done">🎯 Sẽ dùng ID: ${vid}</span>
-        `;
-        document.getElementById('btn-upload').disabled = false;
-        progUpload(0, `Sẵn sàng upload với ID: ${vid}`);
-    } else {
-        info.innerHTML = `
-            <span class="status-badge processing">📄 ${selectedFile.name}</span>
-            <span class="status-badge done">${(selectedFile.size/1024/1024).toFixed(2)} MB</span>
-            <span class="status-badge error">❌ Chưa có Video ID</span>
-        `;
-        document.getElementById('btn-upload').disabled = true;
-        progUpload(0, '❌ Chưa có Video ID. Nhập link YouTube trước.');
     }
 }
 
@@ -972,6 +1009,30 @@ function parseTime(t) {
 }
 
 // ===== FILE UPLOAD =====
+function updateFileInfo() {
+    if (!selectedFile) return;
+    const vid = pendingVideoId || currentVideoId;
+    const info = document.getElementById('file-info');
+    
+    if (vid) {
+        info.innerHTML = `
+            <span class="status-badge processing">📄 ${selectedFile.name}</span>
+            <span class="status-badge done">${(selectedFile.size/1024/1024).toFixed(2)} MB</span>
+            <span class="status-badge done">🎯 Sẽ dùng ID: ${vid}</span>
+        `;
+        document.getElementById('btn-upload').disabled = false;
+        progUpload(0, `Sẵn sàng upload với ID: ${vid}`);
+    } else {
+        info.innerHTML = `
+            <span class="status-badge processing">📄 ${selectedFile.name}</span>
+            <span class="status-badge done">${(selectedFile.size/1024/1024).toFixed(2)} MB</span>
+            <span class="status-badge error">❌ Chưa có Video ID</span>
+        `;
+        document.getElementById('btn-upload').disabled = true;
+        progUpload(0, '❌ Chưa có Video ID. Nhập link YouTube trước.');
+    }
+}
+
 function handleFileSelect(file) {
     if (!file) return;
     selectedFile = file;
@@ -979,7 +1040,6 @@ function handleFileSelect(file) {
     document.getElementById('file-name').textContent = `📄 ${file.name}`;
     document.getElementById('file-name').style.color = 'var(--green)';
     
-    // KHÔNG BẮT LỖI TÊN FILE - Luôn dùng ID từ YouTube
     const vid = pendingVideoId || currentVideoId;
     const info = document.getElementById('file-info');
     
@@ -1029,7 +1089,6 @@ async function uploadToGitHub() {
     const user = localStorage.gh_user || document.getElementById('ghUser').value.trim() || 'PinyinCode';
     const repo = localStorage.gh_repo || document.getElementById('ghRepo').value.trim() || 'subtitle-ai';
     
-    // LUÔN DÙNG ID TỪ YOUTUBE, KHÔNG QUAN TÂM TÊN FILE
     const vid = pendingVideoId || currentVideoId;
     if (!vid) {
         alert('Không có Video ID! Vui lòng nhập link YouTube trước.');
