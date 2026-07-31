@@ -336,6 +336,22 @@
         .sub-preview .line-cn { font-size: 18px; font-weight: 600; }
         .sub-preview .line-py { font-size: 14px; color: var(--text-secondary); }
         .sub-preview .line-vi { font-size: 12px; color: var(--accent); }
+        .upload-id-hint {
+            background: rgba(10,132,255,0.1);
+            border: 1px solid rgba(10,132,255,0.2);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: none;
+        }
+        .upload-id-hint .id-value {
+            color: var(--accent);
+            font-weight: 600;
+            font-family: monospace;
+            font-size: 14px;
+        }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
@@ -403,8 +419,17 @@
     <div class="tab-content" id="content-upload">
         <div class="card">
             <label>📤 Upload Audio lên GitHub</label>
-            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">
-                Tên file phải chứa Video ID (11 ký tự)
+            
+            <!-- Hiển thị Video ID đã lấy -->
+            <div class="upload-id-hint" id="upload-id-hint">
+                🎯 Video ID hiện tại: <span class="id-value" id="upload-vid-display">---</span>
+                <span style="font-size:10px;color:var(--text-secondary);margin-left:8px;">
+                    (tự động lấy từ link YouTube)
+                </span>
+            </div>
+            
+            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;margin-top:8px;">
+                Tên file phải chứa Video ID (11 ký tự) - hiện tại: <strong id="upload-vid-hint" style="color:var(--accent);">chưa có</strong>
             </p>
             
             <div class="file-upload-area" id="drop-area" onclick="document.getElementById('file-input').click()">
@@ -519,7 +544,7 @@ let selectedFile = null;
 let isUploading = false;
 let currentVideoId = null;
 let currentYtLink = '';
-let pendingVideoId = null;
+let pendingVideoId = null; // ID được lấy từ link YouTube
 
 // ===== INIT =====
 function onYouTubeIframeAPIReady() {
@@ -588,6 +613,31 @@ function switchTab(tab) {
     document.querySelectorAll('.tab-group .btn-sm').forEach(el => el.classList.remove('active'));
     document.getElementById(`content-${tab}`).classList.add('active');
     document.getElementById(`tab-${tab}`).classList.add('active');
+    
+    // Nếu chuyển sang tab Upload, tự động cập nhật Video ID
+    if (tab === 'upload') {
+        updateUploadTabWithVideoId();
+    }
+}
+
+// ===== CẬP NHẬT TAB UPLOAD VỚI VIDEO ID =====
+function updateUploadTabWithVideoId() {
+    const vid = pendingVideoId || currentVideoId;
+    const hint = document.getElementById('upload-id-hint');
+    const display = document.getElementById('upload-vid-display');
+    const hintText = document.getElementById('upload-vid-hint');
+    
+    if (vid) {
+        hint.style.display = 'block';
+        display.textContent = vid;
+        hintText.textContent = vid;
+        hintText.style.color = 'var(--accent)';
+        log(`📌 Đã tự động gắn Video ID: ${vid} vào tab Upload`, 'info');
+    } else {
+        hint.style.display = 'none';
+        hintText.textContent = 'chưa có (hãy nhập link YouTube trước)';
+        hintText.style.color = 'var(--text-secondary)';
+    }
 }
 
 // ===== LOG & PROGRESS =====
@@ -627,6 +677,12 @@ function onYtLinkInput() {
         document.getElementById('btn-get-subs').disabled = false;
         document.getElementById('yt-info').innerHTML = `<span class="status-badge done">🎯 ${vid}</span>`;
         pendingVideoId = vid;
+        currentVideoId = vid;
+        
+        // Cập nhật luôn tab Upload nếu đang ở tab đó
+        if (document.getElementById('content-upload').classList.contains('active')) {
+            updateUploadTabWithVideoId();
+        }
     } else {
         document.getElementById('yt-id-display').style.display = 'none';
         document.getElementById('yt-info').innerHTML = '';
@@ -642,6 +698,10 @@ function clearYtLink() {
     document.getElementById('yt-info').innerHTML = '';
     document.getElementById('btn-get-subs').disabled = true;
     pendingVideoId = null;
+    // Cập nhật tab Upload nếu đang mở
+    if (document.getElementById('content-upload').classList.contains('active')) {
+        updateUploadTabWithVideoId();
+    }
 }
 
 function getYouTubeLink(videoId) {
@@ -703,7 +763,6 @@ function syncSub() {
     if (idx !== -1 && idx !== activeSubIndex) {
         activeSubIndex = idx;
         const s = subtitles[idx];
-        // Hiển thị 3 dòng: CN - PY - VI
         document.getElementById('subtitle-box').innerHTML = `
             <div class="cn">${s.rawLines[0] || ''}</div>
             <div class="py">${s.rawLines[1] || ''}</div>
@@ -776,73 +835,127 @@ function updateTimeline() {
 
 // ===== CHUẨN HÓA PHỤ ĐỀ THEO MÃ PYTHON =====
 
-/**
- * Chuẩn hóa phụ đề về định dạng 3 dòng: CN - Pinyin - Việt
- * Tương tự như hàm align_texts_by_meaning trong mã Python
- */
-function normalizeSubtitles(subs, lang = 'zh') {
-    return subs.map(s => {
-        let raw = s.rawLines || [];
-        let text = raw.join(' ').trim();
+async function normalizeSubtitleLines(subs, lang = 'zh') {
+    const result = [];
+    let processed = 0;
+    const total = subs.length;
+    
+    for (const s of subs) {
+        let lines = s.rawLines || [];
+        let text = lines.join(' ').trim();
         
-        // Nếu không có nội dung, bỏ qua
-        if (!text) return null;
+        if (!text) continue;
         
-        // Loại bỏ các thẻ HTML
         text = text.replace(/<[^>]+>/g, '').trim();
         
-        // Tách thành 3 dòng: CN, Pinyin, Việt
-        // Mặc định: dòng 1 là tiếng Trung, dòng 2 là Pinyin, dòng 3 là tiếng Việt
-        let cn = raw[0] || text;
-        let py = raw[1] || '';
-        let vi = raw[2] || '';
+        let cn = '';
+        let py = '';
+        let vi = '';
         
-        // Nếu chỉ có 1 dòng, xử lý thông minh
-        if (raw.length === 1) {
-            // Nếu ngôn ngữ là tiếng Trung, giữ nguyên dòng 1
+        if (lines.length === 1) {
             if (lang.startsWith('zh')) {
                 cn = text;
-                // Tạo Pinyin từ text (sẽ được xử lý sau)
-                py = text; // placeholder
-                vi = ''; // placeholder
+                const processedText = await processSubtitleLine(cn);
+                py = processedText.pinyin || cn;
+                vi = processedText.vietnamese || '';
             } else {
-                // Nếu không phải tiếng Trung, dịch sang tiếng Trung
-                cn = text; // placeholder, sẽ dịch sau
-                py = '';
-                vi = '';
+                try {
+                    const zhResponse = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${lang}&tl=zh-CN&dt=t&q=${encodeURIComponent(text)}`);
+                    if (zhResponse.ok) {
+                        const data = await zhResponse.json();
+                        if (data && data[0] && data[0][0]) {
+                            cn = data[0][0][0];
+                            const processedText = await processSubtitleLine(cn);
+                            py = processedText.pinyin || cn;
+                            vi = processedText.vietnamese || '';
+                        } else {
+                            cn = text;
+                            py = text;
+                            vi = text;
+                        }
+                    } else {
+                        cn = text;
+                        py = text;
+                        vi = text;
+                    }
+                } catch (e) {
+                    cn = text;
+                    py = text;
+                    vi = text;
+                }
+            }
+        } else if (lines.length === 2) {
+            cn = lines[0] || '';
+            if (lines[1] && lines[1].match(/[a-zA-Z\s]/)) {
+                py = lines[1];
+                const processedText = await processSubtitleLine(cn);
+                vi = processedText.vietnamese || '';
+            } else {
+                vi = lines[1];
+                const processedText = await processSubtitleLine(cn);
+                py = processedText.pinyin || cn;
+            }
+        } else {
+            cn = lines[0] || '';
+            py = lines[1] || '';
+            vi = lines[2] || '';
+            
+            if (!py && cn) {
+                const processedText = await processSubtitleLine(cn);
+                py = processedText.pinyin || cn;
+            }
+            if (!vi && cn) {
+                const processedText = await processSubtitleLine(cn);
+                vi = processedText.vietnamese || '';
             }
         }
         
-        // Đảm bảo có đủ 3 dòng
-        return {
+        if (!cn) cn = text;
+        if (!py) py = cn;
+        if (!vi) vi = '';
+        
+        processed++;
+        if (total > 0) {
+            const pct = 50 + (processed / total) * 45;
+            progYt(pct, `🔄 Đang xử lý dòng ${processed}/${total}...`);
+        }
+        
+        result.push({
             start: s.start,
             end: s.end,
             rawLines: [cn, py, vi]
-        };
-    }).filter(s => s !== null);
-}
-
-/**
- * Tạo Pinyin từ văn bản tiếng Trung
- * Tương tự như pypinyin trong mã Python
- */
-function generatePinyin(text) {
-    // Sử dụng API pinyin từ internet hoặc thư viện
-    // Đây là phiên bản đơn giản, có thể mở rộng
-    if (!text) return '';
+        });
+    }
     
-    // Tạm thời trả về text (sẽ được xử lý bởi API bên ngoài)
-    return text;
+    return result;
 }
 
-/**
- * Dịch văn bản sang tiếng Việt
- * Tương tự như GoogleTranslator trong mã Python
- */
+async function processSubtitleLine(zhText) {
+    if (!zhText) return { pinyin: '', vietnamese: '' };
+    
+    const pinyin = await generatePinyinAPI(zhText);
+    const vietnamese = await translateToVietnamese(zhText);
+    
+    return { pinyin, vietnamese };
+}
+
+async function generatePinyinAPI(text) {
+    if (!text) return '';
+    try {
+        const response = await fetch(`https://api.pinyin.cc/pinyin?text=${encodeURIComponent(text)}&tone=true`);
+        if (response.ok) {
+            const data = await response.json();
+            return data.pinyin || text;
+        }
+        return text;
+    } catch (e) {
+        return text;
+    }
+}
+
 async function translateToVietnamese(text) {
     if (!text) return '';
     try {
-        // Sử dụng Google Translate API miễn phí
         const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=vi&dt=t&q=${encodeURIComponent(text)}`);
         if (response.ok) {
             const data = await response.json();
@@ -850,42 +963,6 @@ async function translateToVietnamese(text) {
                 return data[0][0][0];
             }
         }
-        return text;
-    } catch (e) {
-        log(`❌ Lỗi dịch: ${e.message}`, 'err');
-        return text;
-    }
-}
-
-/**
- * Xử lý một dòng phụ đề: tạo Pinyin và dịch sang tiếng Việt
- * Tương tự như align_texts_by_meaning trong mã Python
- */
-async function processSubtitleLine(zhText) {
-    if (!zhText) return { pinyin: '', vietnamese: '' };
-    
-    // Tạo Pinyin (sử dụng API hoặc thư viện)
-    const pinyin = await generatePinyinAPI(zhText);
-    
-    // Dịch sang tiếng Việt
-    const vietnamese = await translateToVietnamese(zhText);
-    
-    return { pinyin, vietnamese };
-}
-
-/**
- * API tạo Pinyin (sử dụng dịch vụ bên ngoài hoặc thư viện)
- */
-async function generatePinyinAPI(text) {
-    if (!text) return '';
-    try {
-        // Sử dụng API pinyin
-        const response = await fetch(`https://api.pinyin.cc/pinyin?text=${encodeURIComponent(text)}&tone=true`);
-        if (response.ok) {
-            const data = await response.json();
-            return data.pinyin || text;
-        }
-        // Fallback: trả về text
         return text;
     } catch (e) {
         return text;
@@ -908,14 +985,12 @@ async function getYouTubeSubtitles(videoId) {
     progYt(10, 'Đang kết nối...');
     
     try {
-        // Sử dụng API để lấy phụ đề
         const apiUrl = `https://yt-api-proxy.vercel.app/api/subtitles?videoId=${vid}`;
         const response = await fetch(apiUrl);
         
         if (response.ok) {
             const data = await response.json();
             if (data.subtitles && data.subtitles.length > 0) {
-                // Ưu tiên tiếng Trung
                 let subs = data.subtitles.find(s => s.language === 'zh') || 
                            data.subtitles.find(s => s.language === 'zh-CN') ||
                            data.subtitles.find(s => s.language === 'zh-TW') ||
@@ -927,13 +1002,10 @@ async function getYouTubeSubtitles(videoId) {
                     const vttRes = await fetch(subs.url);
                     const vttText = await vttRes.text();
                     
-                    // Parse VTT
                     let parsed = parseVTT(vttText);
                     progYt(50, 'Đang chuẩn hóa 3 dòng...');
                     
-                    // CHUẨN HÓA THEO MÃ PYTHON: CN - Pinyin - Việt
                     let normalized = await normalizeSubtitleLines(parsed, subs.language);
-                    
                     subtitles = normalized;
                     
                     if (subtitles.length > 0) {
@@ -941,10 +1013,7 @@ async function getYouTubeSubtitles(videoId) {
                         progYt(100, `✅ ${subtitles.length} phụ đề đã chuẩn hóa 3 dòng`);
                         document.getElementById('status-text').innerHTML = `<span class="status-badge done">✅ ${subtitles.length} subs</span>`;
                         
-                        // Hiển thị preview
                         showPreview(subtitles[0]);
-                        
-                        // Tự động phát video
                         loadPlayer(vid);
                         return true;
                     }
@@ -969,119 +1038,6 @@ async function getYouTubeSubtitles(videoId) {
     btn.textContent = '📝 Lấy';
     btn.disabled = false;
     return false;
-}
-
-// ===== CHUẨN HÓA 3 DÒNG THEO MÃ PYTHON =====
-
-async function normalizeSubtitleLines(subs, lang = 'zh') {
-    const result = [];
-    let processed = 0;
-    const total = subs.length;
-    
-    for (const s of subs) {
-        let lines = s.rawLines || [];
-        let text = lines.join(' ').trim();
-        
-        if (!text) continue;
-        
-        // Loại bỏ thẻ HTML
-        text = text.replace(/<[^>]+>/g, '').trim();
-        
-        let cn = '';
-        let py = '';
-        let vi = '';
-        
-        if (lines.length === 1) {
-            // Nếu chỉ có 1 dòng: xử lý theo ngôn ngữ
-            if (lang.startsWith('zh')) {
-                cn = text;
-                // Tạo Pinyin và dịch
-                const processed = await processSubtitleLine(cn);
-                py = processed.pinyin || cn;
-                vi = processed.vietnamese || '';
-            } else {
-                // Nếu không phải tiếng Trung, dịch sang tiếng Trung trước
-                try {
-                    // Dịch sang tiếng Trung
-                    const zhResponse = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${lang}&tl=zh-CN&dt=t&q=${encodeURIComponent(text)}`);
-                    if (zhResponse.ok) {
-                        const data = await zhResponse.json();
-                        if (data && data[0] && data[0][0]) {
-                            cn = data[0][0][0];
-                            // Tạo Pinyin và dịch sang Việt
-                            const processed = await processSubtitleLine(cn);
-                            py = processed.pinyin || cn;
-                            vi = processed.vietnamese || '';
-                        } else {
-                            cn = text;
-                            py = text;
-                            vi = text;
-                        }
-                    } else {
-                        cn = text;
-                        py = text;
-                        vi = text;
-                    }
-                } catch (e) {
-                    cn = text;
-                    py = text;
-                    vi = text;
-                }
-            }
-        } else if (lines.length === 2) {
-            // Nếu có 2 dòng: dòng 1 là CN, dòng 2 là PY hoặc VI
-            cn = lines[0] || '';
-            // Kiểm tra dòng 2 là Pinyin hay tiếng Việt
-            if (lines[1] && lines[1].match(/[a-zA-Z\s]/)) {
-                py = lines[1];
-                // Dịch CN sang VI
-                const processed = await processSubtitleLine(cn);
-                vi = processed.vietnamese || '';
-            } else {
-                vi = lines[1];
-                // Tạo Pinyin cho CN
-                const processed = await processSubtitleLine(cn);
-                py = processed.pinyin || cn;
-            }
-        } else {
-            // Có 3 dòng hoặc hơn
-            cn = lines[0] || '';
-            py = lines[1] || '';
-            vi = lines[2] || '';
-            
-            // Nếu PY rỗng, tạo từ CN
-            if (!py && cn) {
-                const processed = await processSubtitleLine(cn);
-                py = processed.pinyin || cn;
-            }
-            
-            // Nếu VI rỗng, dịch từ CN
-            if (!vi && cn) {
-                const processed = await processSubtitleLine(cn);
-                vi = processed.vietnamese || '';
-            }
-        }
-        
-        // Đảm bảo có đủ 3 dòng
-        if (!cn) cn = text;
-        if (!py) py = cn;
-        if (!vi) vi = '';
-        
-        // Cập nhật tiến trình
-        processed++;
-        if (total > 0) {
-            const pct = 50 + (processed / total) * 45;
-            progYt(pct, `🔄 Đang xử lý dòng ${processed}/${total}...`);
-        }
-        
-        result.push({
-            start: s.start,
-            end: s.end,
-            rawLines: [cn, py, vi]
-        });
-    }
-    
-    return result;
 }
 
 // ===== PARSE VTT =====
@@ -1148,6 +1104,9 @@ async function extractAndProcess() {
     progYt(5, `📌 ID: ${vid}`);
     document.getElementById('status-text').innerHTML = `<span class="status-badge processing">⏳ Đang xử lý...</span>`;
     
+    // Cập nhật tab Upload ngay lập tức
+    updateUploadTabWithVideoId();
+    
     // Lấy và xử lý phụ đề
     await getYouTubeSubtitles(vid);
     
@@ -1183,6 +1142,9 @@ function switchToVideoTab() {
     currentVideoId = vid;
     loadPlayer(vid);
     switchTab('library');
+    
+    // Cập nhật tab Upload
+    updateUploadTabWithVideoId();
     
     setTimeout(() => {
         const select = document.getElementById('gist-select');
@@ -1229,6 +1191,20 @@ function handleFileSelect(file) {
         document.getElementById('btn-upload').disabled = false;
         progUpload(0, `Sẵn sàng upload: ${vid}`);
     } else {
+        // Nếu file không có ID, kiểm tra xem đã có ID từ YouTube chưa
+        const existingVid = pendingVideoId || currentVideoId;
+        if (existingVid) {
+            info.innerHTML = `
+                <span class="status-badge processing">📄 ${file.name}</span>
+                <span class="status-badge done">${(file.size/1024/1024).toFixed(2)} MB</span>
+                <span class="status-badge warning">⚠️ Tên file thiếu ID</span>
+                <span class="status-badge done">🎯 Sẽ dùng ID: ${existingVid}</span>
+            `;
+            document.getElementById('btn-upload').disabled = false;
+            progUpload(0, `Sẽ upload với ID: ${existingVid}`);
+            // Lưu ý: sẽ dùng ID có sẵn
+            return;
+        }
         info.innerHTML = `
             <span class="status-badge processing">📄 ${file.name}</span>
             <span class="status-badge error">⚠️ Không có Video ID</span>
@@ -1263,14 +1239,20 @@ async function uploadToGitHub() {
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
     const user = localStorage.gh_user || document.getElementById('ghUser').value.trim() || 'PinyinCode';
     const repo = localStorage.gh_repo || document.getElementById('ghRepo').value.trim() || 'subtitle-ai';
-    const vid = extractVideoIdFromFilename(selectedFile.name);
+    
+    // Ưu tiên lấy ID từ tên file, nếu không có thì dùng ID đã lấy từ YouTube
+    let vid = extractVideoIdFromFilename(selectedFile.name);
+    if (!vid) {
+        vid = pendingVideoId || currentVideoId;
+        if (!vid) {
+            alert('Không có Video ID! Vui lòng nhập link YouTube trước.');
+            return;
+        }
+        log(`📌 Dùng Video ID từ YouTube: ${vid}`, 'info');
+    }
     
     if (!token) {
         alert('Vui lòng nhập GitHub Token trong Cài đặt!');
-        return;
-    }
-    if (!vid) {
-        alert('Tên file không có Video ID!');
         return;
     }
     
@@ -1279,7 +1261,7 @@ async function uploadToGitHub() {
     btn.textContent = '⏳ ĐANG UPLOAD...';
     btn.disabled = true;
     
-    log(`📤 Upload ${selectedFile.name} lên GitHub...`, 'info');
+    log(`📤 Upload ${selectedFile.name} lên GitHub (ID: ${vid})...`, 'info');
     progUpload(10, 'Đang đọc file...');
     document.getElementById('status-text').innerHTML = `<span class="status-badge uploading">Uploading</span>`;
     
@@ -1474,8 +1456,6 @@ async function loadVideoFromGist(item) {
         const response = await fetch(item.rawUrl);
         const text = await response.text();
         let parsed = parseVTT(text);
-        
-        // Chuẩn hóa 3 dòng theo mã Python
         let normalized = await normalizeSubtitleLines(parsed);
         subtitles = normalized;
         
@@ -1484,7 +1464,6 @@ async function loadVideoFromGist(item) {
         currentVideoId = item.videoId;
         loadPlayer(item.videoId);
         
-        // Hiển thị preview
         if (subtitles.length > 0) {
             showPreview(subtitles[0]);
         }
