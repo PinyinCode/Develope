@@ -311,6 +311,7 @@
         .status-badge.converting { background: #5856d6; color: white; }
         .status-badge.hint { background: #0a84ff; color: white; }
         .status-badge.warning { background: #ff9f0a; color: black; }
+        .status-badge.exists { background: #30d158; color: black; }
         .badge-group {
             display: flex;
             gap: 6px;
@@ -425,6 +426,22 @@
             font-size: 10px;
             padding: 6px 10px;
         }
+        .notification {
+            background: rgba(48, 209, 88, 0.15);
+            border: 1px solid var(--green);
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-main);
+            display: none;
+        }
+        .notification .highlight {
+            color: var(--green);
+        }
+        .notification .btn-sm {
+            margin-top: 6px;
+        }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
@@ -450,6 +467,15 @@
                 </div>
                 <button class="btn-accent" id="btn-get-subs" onclick="extractAndGoToUpload()" style="width:80px">
                     📝 Lấy
+                </button>
+            </div>
+            
+            <!-- Thông báo video đã tồn tại -->
+            <div class="notification" id="exists-notification">
+                ✅ Video này đã có trong kho! <span class="highlight" id="exists-vid">---</span>
+                <br>
+                <button class="btn-sm" onclick="goToExistingVideo()" style="background:var(--green);color:black;margin-top:4px;">
+                    ▶️ Chuyển đến video
                 </button>
             </div>
             
@@ -586,7 +612,12 @@
             
             <span class="spacer"></span>
             
-            <!-- Nút ẨN - ở cùng hàng -->
+            <!-- Nút Cài đặt - ẩn/hiện cả phần cài đặt GitHub và log -->
+            <button class="btn-sm" id="btn-toggle-settings" onclick="toggleFullSettings()" style="background:rgba(10,132,255,0.15);border-color:var(--blue);color:var(--blue);">
+                ⚙️ Cài đặt
+            </button>
+            
+            <!-- Nút ẨN - cùng hàng -->
             <button class="btn-sm" id="btn-toggle-hide" onclick="toggleHideMode()" style="background:var(--accent-light);border-color:var(--accent);color:var(--accent);">
                 👁️ Ẩn
             </button>
@@ -603,9 +634,9 @@
     <!-- === SUBTITLE === -->
     <div id="subtitle-box"><span style="color:var(--text-secondary);font-size:14px">Chọn phụ đề + Play, hoặc nhập link mới...</span></div>
 
-    <!-- === SETTINGS === -->
+    <!-- === SETTINGS (có thể ẩn cùng với log) === -->
     <div class="card hideable" id="settings-card" style="display:none;">
-        <label>⚙️ CÀI ĐẶT</label>
+        <label>⚙️ CÀI ĐẶT GITHUB</label>
         <input type="text" id="ghUser" placeholder="GitHub Username" value="PinyinCode">
         <input type="text" id="ghRepo" placeholder="Repository" value="subtitle-ai">
         <input type="password" id="ghToken" placeholder="GitHub Token (cần quyền repo)">
@@ -634,6 +665,22 @@ let isUploading = false;
 let currentVideoId = null;
 let pendingVideoId = null;
 let isHideMode = false;
+let isSettingsVisible = true;
+let existingVideoData = null; // Lưu thông tin video đã tồn tại
+
+// ===== KIỂM TRA VIDEO ĐÃ TỒN TẠI =====
+function checkVideoExists(videoId) {
+    if (!videoId) return null;
+    // Kiểm tra trong gh_cloud_map
+    if (gh_cloud_map && gh_cloud_map[videoId]) {
+        return {
+            videoId: videoId,
+            title: gh_cloud_map[videoId].title || `Video ${videoId}`,
+            url: gh_cloud_map[videoId].url
+        };
+    }
+    return null;
+}
 
 // ===== CHẾ ĐỘ ẨN =====
 function toggleHideMode() {
@@ -642,7 +689,6 @@ function toggleHideMode() {
     const hideables = document.querySelectorAll('.hideable');
     
     if (isHideMode) {
-        // Ẩn các thành phần thừa
         hideables.forEach(el => el.classList.add('hidden'));
         btn.innerHTML = '👁️ Hiện';
         btn.style.background = 'rgba(255,45,85,0.2)';
@@ -650,7 +696,6 @@ function toggleHideMode() {
         btn.style.color = 'var(--accent)';
         log('👁️ Đã ẩn các thành phần thừa', 'info');
     } else {
-        // Hiện lại
         hideables.forEach(el => el.classList.remove('hidden'));
         btn.innerHTML = '👁️ Ẩn';
         btn.style.background = 'var(--accent-light)';
@@ -658,6 +703,66 @@ function toggleHideMode() {
         btn.style.color = 'var(--accent)';
         log('👁️ Đã hiện lại đầy đủ', 'info');
     }
+}
+
+// ===== CHẾ ĐỘ CÀI ĐẶT (ẩn/hiện cả GitHub và Log) =====
+function toggleFullSettings() {
+    isSettingsVisible = !isSettingsVisible;
+    const btn = document.getElementById('btn-toggle-settings');
+    const settingsCard = document.getElementById('settings-card');
+    const logCard = document.getElementById('log-card');
+    
+    if (isSettingsVisible) {
+        settingsCard.style.display = 'block';
+        logCard.classList.remove('hidden');
+        btn.innerHTML = '⚙️ Cài đặt';
+        btn.style.background = 'rgba(10,132,255,0.15)';
+        btn.style.borderColor = 'var(--blue)';
+        btn.style.color = 'var(--blue)';
+        log('⚙️ Đã hiện cài đặt và log', 'info');
+    } else {
+        settingsCard.style.display = 'none';
+        logCard.classList.add('hidden');
+        btn.innerHTML = '⚙️ Ẩn cài đặt';
+        btn.style.background = 'rgba(255,45,85,0.15)';
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        log('⚙️ Đã ẩn cài đặt và log', 'info');
+    }
+}
+
+// ===== CHUYỂN ĐẾN VIDEO ĐÃ TỒN TẠI =====
+function goToExistingVideo() {
+    if (!existingVideoData) return;
+    
+    const vid = existingVideoData.videoId;
+    const title = existingVideoData.title;
+    
+    log(`📌 Chuyển đến video đã có: ${title} (${vid})`, 'ok');
+    
+    // Chuyển sang tab Library
+    switchTab('library');
+    
+    // Tìm và chọn video trong danh sách
+    setTimeout(() => {
+        const select = document.getElementById('gist-select');
+        for (let i = 0; i < select.options.length; i++) {
+            const opt = select.options[i];
+            if (opt.value) {
+                try {
+                    const item = JSON.parse(opt.value);
+                    if (item.videoId === vid) {
+                        select.selectedIndex = i;
+                        onGistSelected(opt.value);
+                        document.getElementById('matched-sub-note').innerHTML = `✅ <span class="highlight">Đã chọn: ${item.title}</span>`;
+                        // Tự động play
+                        loadVideoFromGist(item);
+                        break;
+                    }
+                } catch(e) {}
+            }
+        }
+    }, 300);
 }
 
 // ===== INIT =====
@@ -688,7 +793,16 @@ function saveSettings() {
 
 function toggleSettings() {
     const c = document.getElementById('settings-card');
-    c.style.display = c.style.display === 'none' ? 'block' : 'none';
+    if (c.style.display === 'none') {
+        c.style.display = 'block';
+        // Nếu đang ở chế độ ẩn cài đặt, bật lại
+        if (!isSettingsVisible) {
+            isSettingsVisible = true;
+            document.getElementById('btn-toggle-settings').innerHTML = '⚙️ Cài đặt';
+        }
+    } else {
+        c.style.display = 'none';
+    }
 }
 
 function toggleSubSettings() {
@@ -770,6 +884,11 @@ function onYtLinkInput() {
     const val = document.getElementById('yt-link').value;
     document.getElementById('btn-clear-yt').style.display = val ? 'block' : 'none';
     const vid = extractVideoID(val);
+    
+    // Ẩn thông báo tồn tại
+    document.getElementById('exists-notification').style.display = 'none';
+    existingVideoData = null;
+    
     if (vid) {
         document.getElementById('yt-id-display').style.display = 'block';
         document.getElementById('extracted-vid').textContent = vid;
@@ -777,6 +896,17 @@ function onYtLinkInput() {
         document.getElementById('yt-info').innerHTML = `<span class="status-badge done">🎯 ${vid}</span>`;
         pendingVideoId = vid;
         currentVideoId = vid;
+        
+        // KIỂM TRA VIDEO ĐÃ TỒN TẠI
+        const existing = checkVideoExists(vid);
+        if (existing) {
+            existingVideoData = existing;
+            const notification = document.getElementById('exists-notification');
+            notification.style.display = 'block';
+            document.getElementById('exists-vid').textContent = `${vid} - ${existing.title}`;
+            document.getElementById('yt-info').innerHTML = `<span class="status-badge exists">✅ Đã có: ${existing.title}</span>`;
+            log(`✅ Video ${vid} đã có trong kho: ${existing.title}`, 'ok');
+        }
         
         if (document.getElementById('content-upload').classList.contains('active')) {
             updateUploadTabWithVideoId();
@@ -795,6 +925,8 @@ function clearYtLink() {
     document.getElementById('yt-id-display').style.display = 'none';
     document.getElementById('yt-info').innerHTML = '';
     document.getElementById('btn-get-subs').disabled = true;
+    document.getElementById('exists-notification').style.display = 'none';
+    existingVideoData = null;
     pendingVideoId = null;
     if (document.getElementById('content-upload').classList.contains('active')) {
         updateUploadTabWithVideoId();
@@ -807,6 +939,22 @@ function extractAndGoToUpload() {
     const vid = extractVideoID(url);
     if (!vid) {
         alert('Link YouTube không hợp lệ!');
+        return;
+    }
+    
+    // KIỂM TRA VIDEO ĐÃ TỒN TẠI
+    const existing = checkVideoExists(vid);
+    if (existing) {
+        existingVideoData = existing;
+        const notification = document.getElementById('exists-notification');
+        notification.style.display = 'block';
+        document.getElementById('exists-vid').textContent = `${vid} - ${existing.title}`;
+        log(`✅ Video ${vid} đã có trong kho. Chuyển đến video...`, 'ok');
+        
+        // Tự động chuyển đến video
+        setTimeout(() => {
+            goToExistingVideo();
+        }, 1000);
         return;
     }
     
