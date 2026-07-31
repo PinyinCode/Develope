@@ -594,10 +594,12 @@
             
             <span class="spacer"></span>
             
+            <!-- Settings button - toggles both GitHub settings AND log -->
             <button class="btn-sm" id="btn-toggle-settings" onclick="toggleFullSettings()" style="background:rgba(10,132,255,0.15);border-color:var(--blue);color:var(--blue);">
                 ⚙️ Settings
             </button>
             
+            <!-- Hide button -->
             <button class="btn-sm" id="btn-toggle-hide" onclick="toggleHideMode()" style="background:var(--accent-light);border-color:var(--accent);color:var(--accent);">
                 👁️ Hide
             </button>
@@ -614,10 +616,10 @@
     <!-- === SUBTITLE === -->
     <div id="subtitle-box"><span style="color:var(--text-secondary);font-size:14px">Select subtitle + Play, or enter new link...</span></div>
 
-    <!-- === SETTINGS GROUP === -->
+    <!-- === SETTINGS GROUP (GitHub settings + Log) === -->
     <div class="settings-group" id="settings-group">
-        <!-- SETTINGS CARD -->
-        <div class="card" id="settings-card" style="display:none;">
+        <!-- SETTINGS CARD - PHẦN NHẬP TOKEN -->
+        <div class="card" id="settings-card">
             <label>⚙️ GITHUB SETTINGS</label>
             <input type="text" id="ghUser" placeholder="GitHub Username" value="PinyinCode">
             <input type="text" id="ghRepo" placeholder="Repository" value="subtitle-ai">
@@ -687,7 +689,7 @@ function toggleHideMode() {
     }
 }
 
-// ===== TOGGLE FULL SETTINGS =====
+// ===== TOGGLE FULL SETTINGS (GitHub Settings + Log) =====
 function toggleFullSettings() {
     isSettingsVisible = !isSettingsVisible;
     const btn = document.getElementById('btn-toggle-settings');
@@ -695,6 +697,7 @@ function toggleFullSettings() {
     const logCard = document.getElementById('log-card');
     
     if (isSettingsVisible) {
+        // HIỆN: Cả phần nhập token và log
         settingsGroup.classList.remove('hidden');
         logCard.classList.remove('hidden');
         btn.innerHTML = '⚙️ Settings';
@@ -703,6 +706,7 @@ function toggleFullSettings() {
         btn.style.color = 'var(--blue)';
         log('⚙️ Settings & Log shown', 'info');
     } else {
+        // ẨN: Cả phần nhập token và log
         settingsGroup.classList.add('hidden');
         logCard.classList.add('hidden');
         btn.innerHTML = '⚙️ Hide settings';
@@ -768,20 +772,6 @@ function saveSettings() {
     gh_cloud_map = {};
     log('✅ Settings saved!', 'ok');
     loadGistLibrary(true);
-}
-
-function toggleSettings() {
-    const c = document.getElementById('settings-card');
-    if (c.style.display === 'none') {
-        c.style.display = 'block';
-        if (!isSettingsVisible) {
-            isSettingsVisible = true;
-            document.getElementById('btn-toggle-settings').innerHTML = '⚙️ Settings';
-            document.getElementById('settings-group').classList.remove('hidden');
-        }
-    } else {
-        c.style.display = 'none';
-    }
 }
 
 function toggleSubSettings() {
