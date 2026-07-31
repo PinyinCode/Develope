@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tải Audio YouTube - X2Convert</title>
+    <title>🎵 Tải Audio YouTube</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
@@ -14,7 +14,7 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            padding: 20px;
+            padding: 16px;
         }
         .container {
             max-width: 500px;
@@ -25,8 +25,9 @@
             padding: 24px;
             border: 1px solid rgba(255,255,255,0.1);
         }
-        h1 { font-size: 20px; margin-bottom: 20px; text-align: center; }
+        h1 { font-size: 20px; margin-bottom: 8px; text-align: center; }
         h1 span { color: #ff2d55; }
+        .subtitle { text-align: center; font-size: 12px; color: #8e8e93; margin-bottom: 20px; }
         input {
             width: 100%;
             padding: 14px;
@@ -43,6 +44,7 @@
         .btn-row {
             display: flex;
             gap: 8px;
+            margin-bottom: 12px;
         }
         .btn-row button {
             flex: 1;
@@ -55,121 +57,220 @@
             transition: 0.2s;
         }
         .btn-row button:hover { opacity: 0.85; }
-        .btn-primary { background: #ff2d55; color: #fff; }
-        .btn-secondary { background: #0a84ff; color: #fff; }
-        .btn-success { background: #30d158; color: #000; }
-        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-download { background: #ff2d55; color: #fff; }
+        .btn-open { background: #0a84ff; color: #fff; }
+        .btn-download:disabled { opacity: 0.4; cursor: not-allowed; }
+        
+        .site-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .site-btn {
+            padding: 10px 8px;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+        }
+        .site-btn:hover { background: rgba(255,255,255,0.1); }
+        .site-btn.active {
+            border-color: #ff2d55;
+            background: rgba(255,45,85,0.15);
+        }
+        .site-btn .icon { font-size: 20px; display: block; margin-bottom: 4px; }
+        .site-btn .name { font-size: 11px; }
+        .site-btn .badge {
+            font-size: 8px;
+            background: rgba(255,255,255,0.1);
+            padding: 1px 6px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-top: 2px;
+        }
+        
         .info {
-            margin-top: 12px;
             font-size: 12px;
             color: #8e8e93;
             text-align: center;
-        }
-        .result {
-            margin-top: 16px;
-            padding: 16px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 12px;
-            display: none;
-        }
-        .result.show { display: block; }
-        .result .title { font-weight: 600; margin-bottom: 8px; }
-        .result .link {
-            color: #0a84ff;
-            text-decoration: none;
-            display: block;
-            padding: 10px;
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
-            margin-top: 6px;
-            text-align: center;
-            word-break: break-all;
-        }
-        .result .link:hover { background: rgba(255,255,255,0.05); }
-        .progress {
-            width: 100%;
-            height: 4px;
-            background: #3a3a3c;
-            border-radius: 2px;
-            overflow: hidden;
-            margin-top: 12px;
-            display: none;
-        }
-        .progress.show { display: block; }
-        .progress-bar {
-            height: 100%;
-            background: #0a84ff;
-            width: 0%;
-            transition: width 0.3s;
-        }
-        .badge {
-            display: inline-block;
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-weight: 600;
             margin-top: 8px;
+            min-height: 20px;
         }
-        .badge.done { background: #30d158; color: #000; }
-        .badge.error { background: #ff2d55; color: #fff; }
-        .badge.loading { background: #0a84ff; color: #fff; }
-        .badge.warning { background: #ffd60a; color: #000; }
-        .tools {
+        .info.success { color: #30d158; }
+        .info.error { color: #ff2d55; }
+        
+        .quick-links {
             display: flex;
             gap: 6px;
             flex-wrap: wrap;
+            justify-content: center;
             margin-top: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
         }
-        .tools button {
-            flex: 1;
-            padding: 8px;
+        .quick-links button {
+            padding: 6px 12px;
             background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.08);
             border-radius: 8px;
-            color: #fff;
-            font-size: 11px;
+            color: #8e8e93;
+            font-size: 10px;
             cursor: pointer;
-            min-width: 60px;
+            transition: 0.2s;
         }
-        .tools button:hover { background: rgba(255,255,255,0.1); }
-        .tools button.active { border-color: #ff2d55; }
+        .quick-links button:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        
+        .recent {
+            margin-top: 12px;
+            padding: 10px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            display: none;
+        }
+        .recent.show { display: block; }
+        .recent .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 12px;
+        }
+        .recent .item:last-child { border-bottom: none; }
+        .recent .item .vid { color: #8e8e93; font-family: monospace; }
+        .recent .item .action {
+            color: #0a84ff;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .recent .item .action:hover { text-decoration: underline; }
+        
+        .footer {
+            text-align: center;
+            font-size: 10px;
+            color: #8e8e93;
+            margin-top: 12px;
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>🎵 <span>Audio</span> Downloader</h1>
+    <div class="subtitle">Tải audio từ YouTube qua các trang web hỗ trợ</div>
     
     <input type="text" id="yt-url" placeholder="Dán link YouTube..." value="https://youtu.be/dQw4w9WgXcQ">
     
+    <!-- === CHỌN TRANG TẢI === -->
+    <div class="site-grid">
+        <button class="site-btn active" onclick="selectSite('yt5s')" id="site-yt5s">
+            <span class="icon">🎵</span>
+            <span class="name">YT5s</span>
+            <span class="badge">Khuyến nghị</span>
+        </button>
+        <button class="site-btn" onclick="selectSite('x2convert')" id="site-x2convert">
+            <span class="icon">🔄</span>
+            <span class="name">X2Convert</span>
+            <span class="badge">Ổn định</span>
+        </button>
+        <button class="site-btn" onclick="selectSite('savedeo')" id="site-savedeo">
+            <span class="icon">💾</span>
+            <span class="name">SaveDeo</span>
+            <span class="badge">Nhanh</span>
+        </button>
+        <button class="site-btn" onclick="selectSite('y2mate')" id="site-y2mate">
+            <span class="icon">📥</span>
+            <span class="name">Y2Mate</span>
+            <span class="badge">Phổ biến</span>
+        </button>
+        <button class="site-btn" onclick="selectSite('yt1s')" id="site-yt1s">
+            <span class="icon">🎶</span>
+            <span class="name">YT1s</span>
+            <span class="badge">Dự phòng</span>
+        </button>
+        <button class="site-btn" onclick="selectSite('snapdown')" id="site-snapdown">
+            <span class="icon">⚡</span>
+            <span class="name">SnapDown</span>
+            <span class="badge">Mới</span>
+        </button>
+    </div>
+    
+    <!-- === NÚT HÀNH ĐỘNG === -->
     <div class="btn-row">
-        <button class="btn-primary" id="btn-download" onclick="downloadWithX2Convert()">⬇️ Tải Audio</button>
-        <button class="btn-secondary" onclick="openX2Convert()">🔗 Mở X2Convert</button>
+        <button class="btn-download" id="btn-download" onclick="downloadAudio()">⬇️ Tải Audio</button>
+        <button class="btn-open" onclick="openSite()">🔗 Mở Trang</button>
     </div>
     
-    <div class="tools">
-        <button onclick="setQuality('mp3')" id="q-mp3" class="active">MP3</button>
-        <button onclick="setQuality('m4a')" id="q-m4a">M4A</button>
-        <button onclick="setQuality('webm')" id="q-webm">WEBM</button>
-        <button onclick="setQuality('128')" id="q-128">128kbps</button>
-        <button onclick="setQuality('64')" id="q-64">64kbps</button>
-        <button onclick="setQuality('32')" id="q-32">32kbps</button>
+    <div id="status" class="info">📥 Chọn trang tải và nhập link YouTube</div>
+    
+    <!-- === LINK NHANH === -->
+    <div class="quick-links">
+        <button onclick="setExample('music')">🎵 Nhạc</button>
+        <button onclick="setExample('podcast')">🎙️ Podcast</button>
+        <button onclick="setExample('hsk')">📚 HSK</button>
+        <button onclick="setExample('story')">📖 Truyện</button>
+        <button onclick="clearInput()">🗑️ Xóa</button>
     </div>
     
-    <div class="progress" id="progress"><div class="progress-bar" id="progress-bar"></div></div>
-    <div id="status" class="info">📥 Nhập link YouTube để tải audio</div>
+    <!-- === LỊCH SỬ === -->
+    <div class="recent" id="recent">
+        <div style="font-size:11px;color:#8e8e93;margin-bottom:6px;">📋 Gần đây</div>
+        <div id="recent-list"></div>
+    </div>
     
-    <div class="result" id="result">
-        <div class="title" id="result-title">🎵 Video Title</div>
-        <a class="link" id="result-link" href="#" target="_blank">⬇️ Tải xuống</a>
-        <div id="result-info" style="font-size:11px;color:#8e8e93;margin-top:8px;"></div>
+    <div class="footer">
+        💡 Click "Tải Audio" để mở trang tải với link đã điền sẵn
     </div>
 </div>
 
 <script>
 // ===== STATE =====
-let currentQuality = 'mp3';
+let currentSite = 'yt5s';
 let currentVideoId = null;
-let isDownloading = false;
+let recentVideos = JSON.parse(localStorage.getItem('recent_audio') || '[]');
+
+// ===== SITE CONFIG =====
+const sites = {
+    yt5s: {
+        name: 'YT5s',
+        url: (url) => `https://yt5s.com/vi/youtube-to-mp3?url=${encodeURIComponent(url)}`,
+        icon: '🎵'
+    },
+    x2convert: {
+        name: 'X2Convert',
+        url: (url) => `https://x2convert.com/en/youtube-to-mp3?url=${encodeURIComponent(url)}`,
+        icon: '🔄'
+    },
+    savedeo: {
+        name: 'SaveDeo',
+        url: (url) => `https://savedeo.com/vi/youtube-to-mp3?url=${encodeURIComponent(url)}`,
+        icon: '💾'
+    },
+    y2mate: {
+        name: 'Y2Mate',
+        url: (url) => `https://www.y2mate.com/vi/youtube-mp3?url=${encodeURIComponent(url)}`,
+        icon: '📥'
+    },
+    yt1s: {
+        name: 'YT1s',
+        url: (url) => `https://yt1s.com/vi/youtube-to-mp3?url=${encodeURIComponent(url)}`,
+        icon: '🎶'
+    },
+    snapdown: {
+        name: 'SnapDown',
+        url: (url) => `https://snapdown.com/vi/youtube-to-mp3?url=${encodeURIComponent(url)}`,
+        icon: '⚡'
+    }
+};
 
 // ===== EXTRACT VIDEO ID =====
 function extractVideoID(url) {
@@ -178,153 +279,172 @@ function extractVideoID(url) {
     return m ? m[1] : (url.length === 11 ? url : null);
 }
 
-// ===== SET QUALITY =====
-function setQuality(q) {
-    currentQuality = q;
-    document.querySelectorAll('.tools button').forEach(b => b.classList.remove('active'));
-    const btn = document.getElementById(`q-${q}`);
-    if (btn) btn.classList.add('active');
-    document.getElementById('status').innerHTML = `🎯 Chất lượng: ${q.toUpperCase()}`;
-}
-
-// ===== OPEN X2CONVERT =====
-function openX2Convert() {
-    const url = document.getElementById('yt-url').value.trim();
-    if (!url) { alert('Vui lòng nhập link YouTube!'); return; }
-    window.open(`https://x2convert.com/en/youtube-to-mp3?url=${encodeURIComponent(url)}`, '_blank');
-}
-
-// ===== DOWNLOAD WITH X2CONVERT =====
-async function downloadWithX2Convert() {
-    const url = document.getElementById('yt-url').value.trim();
-    const vid = extractVideoID(url);
+// ===== SELECT SITE =====
+function selectSite(site) {
+    currentSite = site;
+    document.querySelectorAll('.site-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`site-${site}`).classList.add('active');
     
+    const siteInfo = sites[site];
+    document.getElementById('status').innerHTML = `🌐 Đã chọn: ${siteInfo.icon} ${siteInfo.name}`;
+    document.getElementById('status').className = 'info';
+}
+
+// ===== OPEN SITE =====
+function openSite() {
+    const url = document.getElementById('yt-url').value.trim();
+    if (!url) {
+        alert('❌ Vui lòng nhập link YouTube!');
+        return;
+    }
+    const vid = extractVideoID(url);
     if (!vid) {
         alert('❌ Link YouTube không hợp lệ!');
         return;
     }
     
-    if (isDownloading) return;
-    isDownloading = true;
+    const siteInfo = sites[currentSite];
+    const fullUrl = siteInfo.url(url);
+    window.open(fullUrl, '_blank');
     
-    const btn = document.getElementById('btn-download');
-    const status = document.getElementById('status');
-    const progress = document.getElementById('progress');
-    const progressBar = document.getElementById('progress-bar');
-    const result = document.getElementById('result');
-    const resultTitle = document.getElementById('result-title');
-    const resultLink = document.getElementById('result-link');
-    const resultInfo = document.getElementById('result-info');
-    
-    btn.disabled = true;
-    btn.textContent = '⏳ ĐANG XỬ LÝ...';
-    progress.classList.add('show');
-    progressBar.style.width = '5%';
-    result.classList.remove('show');
-    status.innerHTML = '🔄 Đang kết nối...';
-    
-    try {
-        // Bước 1: Lấy thông tin video
-        progressBar.style.width = '20%';
-        status.innerHTML = '📊 Đang lấy thông tin video...';
-        
-        // Bước 2: Tạo link tải qua X2Convert API
-        progressBar.style.width = '40%';
-        status.innerHTML = '📥 Đang tạo link tải...';
-        
-        // Sử dụng X2Convert API (thông qua proxy)
-        const apiUrl = `https://x2convert.com/api/convert?url=${encodeURIComponent(url)}&format=${currentQuality}`;
-        
-        const response = await fetch(apiUrl, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-        });
-        
-        progressBar.style.width = '60%';
-        status.innerHTML = '⏳ Đang xử lý...';
-        
-        // Nếu API không hoạt động, dùng link trực tiếp
-        let downloadUrl = null;
-        let title = `Video ${vid}`;
-        
-        if (response.ok) {
-            const data = await response.json();
-            downloadUrl = data.downloadUrl || data.link || data.url;
-            title = data.title || `Video ${vid}`;
-        }
-        
-        // Fallback: Dùng link X2Convert
-        if (!downloadUrl) {
-            downloadUrl = `https://x2convert.com/download?url=${encodeURIComponent(url)}&format=${currentQuality}`;
-        }
-        
-        progressBar.style.width = '80%';
-        status.innerHTML = '✅ Đã sẵn sàng!';
-        
-        // Hiển thị kết quả
-        result.classList.add('show');
-        resultTitle.textContent = `🎵 ${title}`;
-        resultLink.textContent = `⬇️ Tải xuống (${currentQuality.toUpperCase()})`;
-        resultLink.href = downloadUrl;
-        resultLink.target = '_blank';
-        
-        resultInfo.innerHTML = `
-            🆔 Video ID: ${vid}
-            <br>📦 Định dạng: ${currentQuality.toUpperCase()}
-            <br>📌 ${new Date().toLocaleString()}
-        `;
-        
-        progressBar.style.width = '100%';
-        status.innerHTML = '✅ Click vào link để tải xuống!';
-        
-        // Tự động mở link tải
-        setTimeout(() => {
-            window.open(downloadUrl, '_blank');
-        }, 500);
-        
-    } catch (e) {
-        status.innerHTML = `❌ Lỗi: ${e.message}`;
-        result.classList.add('show');
-        resultTitle.textContent = '❌ Không thể tải audio';
-        resultLink.textContent = '🔗 Mở X2Convert để tải thủ công';
-        resultLink.href = `https://x2convert.com/en/youtube-to-mp3?url=${encodeURIComponent(url)}`;
-        resultLink.target = '_blank';
-        resultInfo.innerHTML = `💡 X2Convert có thể hoạt động tốt hơn`;
-        
-        // Thêm nút mở X2Convert
-        resultInfo.innerHTML += `<br><button onclick="openX2Convert()" style="background:#0a84ff;color:#fff;border:none;padding:8px 16px;border-radius:8px;margin-top:8px;cursor:pointer;">
-            🔗 Mở X2Convert
-        </button>`;
+    document.getElementById('status').innerHTML = `✅ Đã mở ${siteInfo.name} với video ${vid}`;
+    document.getElementById('status').className = 'info success';
+}
+
+// ===== DOWNLOAD AUDIO =====
+function downloadAudio() {
+    const url = document.getElementById('yt-url').value.trim();
+    if (!url) {
+        alert('❌ Vui lòng nhập link YouTube!');
+        return;
+    }
+    const vid = extractVideoID(url);
+    if (!vid) {
+        alert('❌ Link YouTube không hợp lệ!');
+        return;
     }
     
-    btn.disabled = false;
-    btn.textContent = '⬇️ Tải Audio';
-    isDownloading = false;
+    currentVideoId = vid;
+    const siteInfo = sites[currentSite];
+    const fullUrl = siteInfo.url(url);
+    
+    // Lưu vào lịch sử
+    addToRecent(vid, url);
+    
+    // Mở trang tải
+    window.open(fullUrl, '_blank');
+    
+    document.getElementById('status').innerHTML = `✅ Đang mở ${siteInfo.name} để tải ${vid}`;
+    document.getElementById('status').className = 'info success';
+    
+    // Cập nhật nút
+    const btn = document.getElementById('btn-download');
+    btn.textContent = '⏳ Đã mở...';
+    setTimeout(() => { btn.textContent = '⬇️ Tải Audio'; }, 2000);
+}
+
+// ===== ADD TO RECENT =====
+function addToRecent(vid, url) {
+    // Xóa trùng
+    recentVideos = recentVideos.filter(item => item.vid !== vid);
+    // Thêm vào đầu
+    recentVideos.unshift({ vid, url, time: new Date().toLocaleString() });
+    // Giữ tối đa 5
+    if (recentVideos.length > 5) recentVideos.pop();
+    localStorage.setItem('recent_audio', JSON.stringify(recentVideos));
+    updateRecent();
+}
+
+function updateRecent() {
+    const container = document.getElementById('recent');
+    const list = document.getElementById('recent-list');
+    
+    if (recentVideos.length === 0) {
+        container.classList.remove('show');
+        return;
+    }
+    
+    container.classList.add('show');
+    list.innerHTML = recentVideos.map(item => `
+        <div class="item">
+            <span class="vid">🎬 ${item.vid}</span>
+            <span>
+                <span class="action" onclick="useRecent('${item.vid}')">📋 Dùng</span>
+                <span class="action" onclick="removeRecent('${item.vid}')" style="color:#ff2d55;margin-left:8px;">✕</span>
+            </span>
+        </div>
+    `).join('');
+}
+
+function useRecent(vid) {
+    document.getElementById('yt-url').value = `https://youtu.be/${vid}`;
+    document.getElementById('status').innerHTML = `📋 Đã điền video: ${vid}`;
+    document.getElementById('status').className = 'info success';
+    // Tự động tải
+    setTimeout(() => downloadAudio(), 500);
+}
+
+function removeRecent(vid) {
+    recentVideos = recentVideos.filter(item => item.vid !== vid);
+    localStorage.setItem('recent_audio', JSON.stringify(recentVideos));
+    updateRecent();
+}
+
+// ===== EXAMPLE LINKS =====
+function setExample(type) {
+    const examples = {
+        music: 'https://youtu.be/dQw4w9WgXcQ',
+        podcast: 'https://youtu.be/MeiiVrKWSAc',
+        hsk: 'https://youtu.be/vmsC3SgWTPs',
+        story: 'https://youtu.be/Hbj4kbW8ml4'
+    };
+    document.getElementById('yt-url').value = examples[type] || '';
+    document.getElementById('status').innerHTML = `📝 Đã điền link mẫu: ${type}`;
+    document.getElementById('status').className = 'info';
+}
+
+function clearInput() {
+    document.getElementById('yt-url').value = '';
+    document.getElementById('status').innerHTML = '🗑️ Đã xóa link';
+    document.getElementById('status').className = 'info';
 }
 
 // ===== TỰ ĐỘNG PHÁT HIỆN LINK =====
-document.getElementById('yt-url').addEventListener('paste', function() {
-    setTimeout(() => {
-        const val = this.value.trim();
-        const vid = extractVideoID(val);
-        if (vid) {
-            currentVideoId = vid;
-            document.getElementById('status').innerHTML = `🎯 Video ID: ${vid}`;
-        }
-    }, 100);
+document.getElementById('yt-url').addEventListener('input', function() {
+    const val = this.value.trim();
+    const vid = extractVideoID(val);
+    if (vid) {
+        currentVideoId = vid;
+        document.getElementById('status').innerHTML = `🎯 Video ID: ${vid}`;
+        document.getElementById('status').className = 'info success';
+    }
 });
 
-// ===== LẤY VIDEO ID TỪ URL =====
+// ===== KEYBOARD SHORTCUT =====
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        const active = document.activeElement;
+        if (active && active.id === 'yt-url') {
+            downloadAudio();
+        }
+    }
+});
+
+// ===== INIT =====
 document.addEventListener('DOMContentLoaded', function() {
+    // Lấy video ID từ URL
     const params = new URLSearchParams(window.location.search);
     const v = params.get('v');
     if (v) {
         document.getElementById('yt-url').value = `https://youtu.be/${v}`;
         document.getElementById('status').innerHTML = `🎯 Video ID: ${v}`;
+        document.getElementById('status').className = 'info success';
     }
+    
+    updateRecent();
+    
+    // Mặc định chọn YT5s
+    selectSite('yt5s');
 });
 </script>
 </body>
