@@ -146,18 +146,6 @@
             border-color: var(--accent);
             color: var(--accent);
         }
-        .btn-toggle {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            font-size: 11px;
-            padding: 8px 12px;
-        }
-        .btn-toggle.active {
-            background: var(--accent-light);
-            border-color: var(--accent);
-            color: var(--accent);
-        }
         .file-upload-area {
             border: 2px dashed var(--border-color);
             border-radius: var(--element-radius);
@@ -398,12 +386,6 @@
         .upload-guide .step .text {
             line-height: 1.4;
         }
-        .upload-guide .step .text code {
-            background: rgba(255,255,255,0.1);
-            padding: 1px 6px;
-            border-radius: 4px;
-            font-size: 11px;
-        }
         .controls-row {
             display: flex;
             flex-wrap: wrap;
@@ -415,15 +397,6 @@
         }
         .controls-row .spacer {
             flex: 1;
-        }
-        .btn-toggle-group {
-            display: flex;
-            gap: 4px;
-            align-items: center;
-        }
-        .btn-toggle-group .btn-sm {
-            font-size: 10px;
-            padding: 6px 10px;
         }
         .notification {
             background: rgba(48, 209, 88, 0.15);
@@ -480,7 +453,6 @@
                 </button>
             </div>
             
-            <!-- Notification for existing video -->
             <div class="notification" id="exists-notification">
                 ✅ This video already exists! <span class="highlight" id="exists-vid">---</span>
                 <br>
@@ -622,12 +594,10 @@
             
             <span class="spacer"></span>
             
-            <!-- Settings button - toggles GitHub settings & log -->
             <button class="btn-sm" id="btn-toggle-settings" onclick="toggleFullSettings()" style="background:rgba(10,132,255,0.15);border-color:var(--blue);color:var(--blue);">
                 ⚙️ Settings
             </button>
             
-            <!-- Hide button -->
             <button class="btn-sm" id="btn-toggle-hide" onclick="toggleHideMode()" style="background:var(--accent-light);border-color:var(--accent);color:var(--accent);">
                 👁️ Hide
             </button>
@@ -644,7 +614,7 @@
     <!-- === SUBTITLE === -->
     <div id="subtitle-box"><span style="color:var(--text-secondary);font-size:14px">Select subtitle + Play, or enter new link...</span></div>
 
-    <!-- === SETTINGS GROUP (GitHub settings + Log) === -->
+    <!-- === SETTINGS GROUP === -->
     <div class="settings-group" id="settings-group">
         <!-- SETTINGS CARD -->
         <div class="card" id="settings-card" style="display:none;">
@@ -717,7 +687,7 @@ function toggleHideMode() {
     }
 }
 
-// ===== TOGGLE FULL SETTINGS (GitHub + Log) =====
+// ===== TOGGLE FULL SETTINGS =====
 function toggleFullSettings() {
     isSettingsVisible = !isSettingsVisible;
     const btn = document.getElementById('btn-toggle-settings');
