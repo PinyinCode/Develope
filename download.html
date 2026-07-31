@@ -425,6 +425,23 @@
             font-size: 10px;
             color: var(--text-secondary);
         }
+        .setting-item {
+            margin-bottom: 8px;
+        }
+        .setting-item:last-child {
+            margin-bottom: 0;
+        }
+        .setting-item label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+            display: block;
+        }
+        .setting-item input {
+            width: 100%;
+        }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
@@ -594,12 +611,10 @@
             
             <span class="spacer"></span>
             
-            <!-- Settings button - toggles both GitHub settings AND log -->
             <button class="btn-sm" id="btn-toggle-settings" onclick="toggleFullSettings()" style="background:rgba(10,132,255,0.15);border-color:var(--blue);color:var(--blue);">
                 ⚙️ Settings
             </button>
             
-            <!-- Hide button -->
             <button class="btn-sm" id="btn-toggle-hide" onclick="toggleHideMode()" style="background:var(--accent-light);border-color:var(--accent);color:var(--accent);">
                 👁️ Hide
             </button>
@@ -616,19 +631,31 @@
     <!-- === SUBTITLE === -->
     <div id="subtitle-box"><span style="color:var(--text-secondary);font-size:14px">Select subtitle + Play, or enter new link...</span></div>
 
-    <!-- === SETTINGS GROUP (GitHub settings + Log) === -->
+    <!-- === SETTINGS GROUP === -->
     <div class="settings-group" id="settings-group">
-        <!-- SETTINGS CARD - PHẦN NHẬP TOKEN -->
+        <!-- SETTINGS CARD - CHỈ 3 Ô -->
         <div class="card" id="settings-card">
             <label>⚙️ GITHUB SETTINGS</label>
-            <input type="text" id="ghUser" placeholder="GitHub Username" value="PinyinCode">
-            <input type="text" id="ghRepo" placeholder="Repository" value="subtitle-ai">
-            <input type="password" id="ghToken" placeholder="GitHub Token (repo scope required)">
-            <input type="password" id="gistToken" placeholder="Gist Token (to read subtitles)">
-            <button class="btn-sm" style="width:100%;background:var(--blue);color:white;padding:12px" onclick="saveSettings()">💾 SAVE</button>
+            
+            <div class="setting-item">
+                <label>Username</label>
+                <input type="text" id="ghUser" placeholder="GitHub Username" value="PinyinCode">
+            </div>
+            
+            <div class="setting-item">
+                <label>Repository</label>
+                <input type="text" id="ghRepo" placeholder="Repository name" value="subtitle-ai">
+            </div>
+            
+            <div class="setting-item">
+                <label>Token (GitHub Personal Access Token)</label>
+                <input type="password" id="ghToken" placeholder="GitHub Token (repo + gist scope required)">
+            </div>
+            
+            <button class="btn-sm" style="width:100%;background:var(--blue);color:white;padding:12px;margin-top:4px;" onclick="saveSettings()">💾 SAVE</button>
         </div>
 
-        <!-- FOOTER: Version only -->
+        <!-- FOOTER -->
         <div class="settings-footer" id="settings-footer">
             <span class="version">v1.0</span>
         </div>
@@ -689,7 +716,7 @@ function toggleHideMode() {
     }
 }
 
-// ===== TOGGLE FULL SETTINGS (GitHub Settings + Log) =====
+// ===== TOGGLE FULL SETTINGS =====
 function toggleFullSettings() {
     isSettingsVisible = !isSettingsVisible;
     const btn = document.getElementById('btn-toggle-settings');
@@ -697,7 +724,6 @@ function toggleFullSettings() {
     const logCard = document.getElementById('log-card');
     
     if (isSettingsVisible) {
-        // HIỆN: Cả phần nhập token và log
         settingsGroup.classList.remove('hidden');
         logCard.classList.remove('hidden');
         btn.innerHTML = '⚙️ Settings';
@@ -706,7 +732,6 @@ function toggleFullSettings() {
         btn.style.color = 'var(--blue)';
         log('⚙️ Settings & Log shown', 'info');
     } else {
-        // ẨN: Cả phần nhập token và log
         settingsGroup.classList.add('hidden');
         logCard.classList.add('hidden');
         btn.innerHTML = '⚙️ Hide settings';
@@ -758,7 +783,6 @@ function loadSettings() {
     document.getElementById('ghUser').value = localStorage.gh_user || 'PinyinCode';
     document.getElementById('ghRepo').value = localStorage.gh_repo || 'subtitle-ai';
     document.getElementById('ghToken').value = localStorage.gh_token || '';
-    document.getElementById('gistToken').value = localStorage.gist_token || '';
     gh_cloud_map = JSON.parse(localStorage.getItem('gh_cloud_map') || '{}');
 }
 
@@ -766,7 +790,6 @@ function saveSettings() {
     localStorage.gh_user = document.getElementById('ghUser').value.trim();
     localStorage.gh_repo = document.getElementById('ghRepo').value.trim();
     localStorage.gh_token = document.getElementById('ghToken').value.trim();
-    localStorage.gist_token = document.getElementById('gistToken').value.trim();
     localStorage.removeItem('gh_last_scan');
     localStorage.removeItem('gh_cloud_map');
     gh_cloud_map = {};
@@ -1317,11 +1340,9 @@ async function loadGistLibrary(force = false) {
     const select = document.getElementById('gist-select');
     select.innerHTML = '<option value="">-- Scanning... --</option>';
     let items = [];
-    const token = localStorage.gist_token || document.getElementById('gistToken').value.trim();
-    const ghToken = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    const finalToken = token || ghToken;
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
     
-    if (!finalToken) {
+    if (!token) {
         select.innerHTML = '<option value="">-- Need token --</option>';
         document.getElementById('matched-sub-note').innerText = '⚠️ Missing token! Go to Settings.';
         return;
@@ -1338,7 +1359,7 @@ async function loadGistLibrary(force = false) {
     } else {
         try {
             const res = await fetch('https://api.github.com/gists?per_page=100', {
-                headers: { "Authorization": `token ${finalToken}` }
+                headers: { "Authorization": `token ${token}` }
             });
             if (res.ok) {
                 const gists = await res.json();
@@ -1449,14 +1470,12 @@ function copyYouTubeLink() {
 
 async function checkAndLoadGist(vid) {
     log(`🔍 Checking subtitles for ${vid}...`, 'info');
-    const token = localStorage.gist_token || document.getElementById('gistToken').value.trim();
-    const ghToken = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    const finalToken = token || ghToken;
-    if (!finalToken) return;
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    if (!token) return;
     
     try {
         const res = await fetch('https://api.github.com/gists?per_page=100', {
-            headers: { "Authorization": `token ${finalToken}` }
+            headers: { "Authorization": `token ${token}` }
         });
         if (res.ok) {
             const gists = await res.json();
@@ -1490,15 +1509,13 @@ async function renameCurrentVideo() {
     if (!nt || !nt.trim()) return;
     nt = nt.trim();
     
-    const token = localStorage.gist_token || document.getElementById('gistToken').value.trim();
-    const ghToken = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    const finalToken = token || ghToken;
-    if (!finalToken) { alert('Need Token!'); return; }
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    if (!token) { alert('Need Token!'); return; }
     let vid = currentGistItem.videoId;
     
     try {
         let res = await fetch('https://api.github.com/gists?per_page=100', {
-            headers: { "Authorization": `token ${finalToken}` }
+            headers: { "Authorization": `token ${token}` }
         });
         if (res.ok) {
             let gists = await res.json();
@@ -1506,7 +1523,7 @@ async function renameCurrentVideo() {
                 if (g.files && g.files[`${vid}.vtt`]) {
                     await fetch(`https://api.github.com/gists/${g.id}`, {
                         method: 'PATCH',
-                        headers: { "Authorization": `token ${finalToken}`, "Content-Type": "application/json" },
+                        headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
                         body: JSON.stringify({ description: `Pinyin AI Subtitle - ${nt}` })
                     });
                     break;
@@ -1527,15 +1544,13 @@ async function deleteCurrentVideo() {
     let vid = currentGistItem.videoId, title = currentGistItem.title;
     if (!confirm(`Delete "${title}"?`)) return;
     
-    const token = localStorage.gist_token || document.getElementById('gistToken').value.trim();
-    const ghToken = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    const finalToken = token || ghToken;
-    if (!finalToken) { alert('Need Token!'); return; }
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    if (!token) { alert('Need Token!'); return; }
     
     try {
         for (let page = 1; page <= 10; page++) {
             let res = await fetch(`https://api.github.com/gists?page=${page}&per_page=100`, {
-                headers: { "Authorization": `token ${finalToken}` }
+                headers: { "Authorization": `token ${token}` }
             });
             if (!res.ok) break;
             let gists = await res.json();
@@ -1544,7 +1559,7 @@ async function deleteCurrentVideo() {
                 if (g.files && g.files[`${vid}.vtt`]) {
                     await fetch(`https://api.github.com/gists/${g.id}`, {
                         method: 'DELETE',
-                        headers: { "Authorization": `token ${finalToken}` }
+                        headers: { "Authorization": `token ${token}` }
                     });
                     break;
                 }
@@ -1563,7 +1578,7 @@ async function deleteCurrentVideo() {
 // ===== AUTO SAVE SETTINGS =====
 document.addEventListener('change', function(e) {
     if (e.target.id === 'ghUser' || e.target.id === 'ghRepo' || 
-        e.target.id === 'ghToken' || e.target.id === 'gistToken') {
+        e.target.id === 'ghToken') {
         setTimeout(saveSettings, 500);
     }
 });
