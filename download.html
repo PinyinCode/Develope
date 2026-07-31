@@ -47,6 +47,14 @@
             display: none !important;
         }
         
+        /* === CÀI ĐẶT CÓ THỂ ẨN === */
+        .settings-group {
+            transition: all 0.3s ease;
+        }
+        .settings-group.hidden {
+            display: none !important;
+        }
+        
         .app-header { text-align: center; padding: 6px 0; }
         .app-header h3 { margin: 0; font-size: 17px; font-weight: 600; color: var(--text-main); }
         
@@ -442,6 +450,23 @@
         .notification .btn-sm {
             margin-top: 6px;
         }
+        .settings-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .settings-footer .settings-toggle {
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 11px;
+            text-align: right;
+            user-select: none;
+        }
+        .settings-footer .version {
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
@@ -601,7 +626,7 @@
         </div>
     </div>
 
-    <!-- === CONTROLS (có nút ẨN) === -->
+    <!-- === CONTROLS (có nút ẨN và Cài đặt) === -->
     <div class="card" style="padding:10px 16px">
         <div class="controls-row">
             <button class="btn-sm" id="btn-play-pause" onclick="togglePlayPause()">⏵ Play</button>
@@ -634,19 +659,23 @@
     <!-- === SUBTITLE === -->
     <div id="subtitle-box"><span style="color:var(--text-secondary);font-size:14px">Chọn phụ đề + Play, hoặc nhập link mới...</span></div>
 
-    <!-- === SETTINGS (có thể ẩn cùng với log) === -->
-    <div class="card hideable" id="settings-card" style="display:none;">
-        <label>⚙️ CÀI ĐẶT GITHUB</label>
-        <input type="text" id="ghUser" placeholder="GitHub Username" value="PinyinCode">
-        <input type="text" id="ghRepo" placeholder="Repository" value="subtitle-ai">
-        <input type="password" id="ghToken" placeholder="GitHub Token (cần quyền repo)">
-        <input type="password" id="gistToken" placeholder="Gist Token (để đọc phụ đề)">
-        <button class="btn-sm" style="width:100%;background:var(--blue);color:white;padding:12px" onclick="saveSettings()">💾 LƯU</button>
-    </div>
+    <!-- === NHÓM CÀI ĐẶT (có thể ẩn cùng với log và footer) === -->
+    <div class="settings-group" id="settings-group">
+        <!-- SETTINGS CARD -->
+        <div class="card" id="settings-card" style="display:none;">
+            <label>⚙️ CÀI ĐẶT GITHUB</label>
+            <input type="text" id="ghUser" placeholder="GitHub Username" value="PinyinCode">
+            <input type="text" id="ghRepo" placeholder="Repository" value="subtitle-ai">
+            <input type="password" id="ghToken" placeholder="GitHub Token (cần quyền repo)">
+            <input type="password" id="gistToken" placeholder="Gist Token (để đọc phụ đề)">
+            <button class="btn-sm" style="width:100%;background:var(--blue);color:white;padding:12px" onclick="saveSettings()">💾 LƯU</button>
+        </div>
 
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-        <span class="settings-toggle" onclick="toggleSettings()">⚙️ Cài đặt ▾</span>
-        <span style="font-size:10px;color:var(--text-secondary);">v1.0</span>
+        <!-- FOOTER: Cài đặt ▾ và phiên bản -->
+        <div class="settings-footer" id="settings-footer">
+            <span class="settings-toggle" onclick="toggleSettings()">⚙️ Cài đặt ▾</span>
+            <span class="version">v1.0</span>
+        </div>
     </div>
 
     <!-- === LOG === -->
@@ -666,12 +695,11 @@ let currentVideoId = null;
 let pendingVideoId = null;
 let isHideMode = false;
 let isSettingsVisible = true;
-let existingVideoData = null; // Lưu thông tin video đã tồn tại
+let existingVideoData = null;
 
 // ===== KIỂM TRA VIDEO ĐÃ TỒN TẠI =====
 function checkVideoExists(videoId) {
     if (!videoId) return null;
-    // Kiểm tra trong gh_cloud_map
     if (gh_cloud_map && gh_cloud_map[videoId]) {
         return {
             videoId: videoId,
@@ -705,15 +733,15 @@ function toggleHideMode() {
     }
 }
 
-// ===== CHẾ ĐỘ CÀI ĐẶT (ẩn/hiện cả GitHub và Log) =====
+// ===== CHẾ ĐỘ CÀI ĐẶT (ẩn/hiện cả GitHub, Log và Footer) =====
 function toggleFullSettings() {
     isSettingsVisible = !isSettingsVisible;
     const btn = document.getElementById('btn-toggle-settings');
-    const settingsCard = document.getElementById('settings-card');
+    const settingsGroup = document.getElementById('settings-group');
     const logCard = document.getElementById('log-card');
     
     if (isSettingsVisible) {
-        settingsCard.style.display = 'block';
+        settingsGroup.classList.remove('hidden');
         logCard.classList.remove('hidden');
         btn.innerHTML = '⚙️ Cài đặt';
         btn.style.background = 'rgba(10,132,255,0.15)';
@@ -721,7 +749,7 @@ function toggleFullSettings() {
         btn.style.color = 'var(--blue)';
         log('⚙️ Đã hiện cài đặt và log', 'info');
     } else {
-        settingsCard.style.display = 'none';
+        settingsGroup.classList.add('hidden');
         logCard.classList.add('hidden');
         btn.innerHTML = '⚙️ Ẩn cài đặt';
         btn.style.background = 'rgba(255,45,85,0.15)';
@@ -740,10 +768,8 @@ function goToExistingVideo() {
     
     log(`📌 Chuyển đến video đã có: ${title} (${vid})`, 'ok');
     
-    // Chuyển sang tab Library
     switchTab('library');
     
-    // Tìm và chọn video trong danh sách
     setTimeout(() => {
         const select = document.getElementById('gist-select');
         for (let i = 0; i < select.options.length; i++) {
@@ -755,7 +781,6 @@ function goToExistingVideo() {
                         select.selectedIndex = i;
                         onGistSelected(opt.value);
                         document.getElementById('matched-sub-note').innerHTML = `✅ <span class="highlight">Đã chọn: ${item.title}</span>`;
-                        // Tự động play
                         loadVideoFromGist(item);
                         break;
                     }
@@ -795,10 +820,10 @@ function toggleSettings() {
     const c = document.getElementById('settings-card');
     if (c.style.display === 'none') {
         c.style.display = 'block';
-        // Nếu đang ở chế độ ẩn cài đặt, bật lại
         if (!isSettingsVisible) {
             isSettingsVisible = true;
             document.getElementById('btn-toggle-settings').innerHTML = '⚙️ Cài đặt';
+            document.getElementById('settings-group').classList.remove('hidden');
         }
     } else {
         c.style.display = 'none';
@@ -885,7 +910,6 @@ function onYtLinkInput() {
     document.getElementById('btn-clear-yt').style.display = val ? 'block' : 'none';
     const vid = extractVideoID(val);
     
-    // Ẩn thông báo tồn tại
     document.getElementById('exists-notification').style.display = 'none';
     existingVideoData = null;
     
@@ -897,7 +921,6 @@ function onYtLinkInput() {
         pendingVideoId = vid;
         currentVideoId = vid;
         
-        // KIỂM TRA VIDEO ĐÃ TỒN TẠI
         const existing = checkVideoExists(vid);
         if (existing) {
             existingVideoData = existing;
@@ -942,7 +965,6 @@ function extractAndGoToUpload() {
         return;
     }
     
-    // KIỂM TRA VIDEO ĐÃ TỒN TẠI
     const existing = checkVideoExists(vid);
     if (existing) {
         existingVideoData = existing;
@@ -951,7 +973,6 @@ function extractAndGoToUpload() {
         document.getElementById('exists-vid').textContent = `${vid} - ${existing.title}`;
         log(`✅ Video ${vid} đã có trong kho. Chuyển đến video...`, 'ok');
         
-        // Tự động chuyển đến video
         setTimeout(() => {
             goToExistingVideo();
         }, 1000);
