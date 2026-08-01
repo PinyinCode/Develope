@@ -135,31 +135,44 @@
         .btn-accent { background-color: var(--accent); color: white; }
         .btn-accent.cancel { background-color: var(--text-secondary); }
         .btn-sm {
-            padding: 8px 10px;
+            padding: 8px 12px;
             font-size: 11px;
             background: rgba(255,255,255,0.08);
             border: 1px solid var(--border-color);
             color: var(--text-main);
             min-width: 32px;
             text-align: center;
+            border-radius: var(--element-radius);
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .btn-sm:hover {
+            background: rgba(255,255,255,0.15);
         }
         .btn-sm.active {
             background-color: var(--accent-light);
             border-color: var(--accent);
             color: var(--accent);
         }
+        .btn-sm:active { transform: scale(0.96); opacity: 0.9; }
+        .btn-sm:disabled { opacity: 0.4; pointer-events: none; }
+        
         .btn-icon {
-            padding: 8px 10px;
-            font-size: 16px;
+            padding: 6px 8px;
+            font-size: 14px;
             background: rgba(255,255,255,0.08);
             border: 1px solid var(--border-color);
             color: var(--text-main);
-            min-width: 36px;
+            min-width: 30px;
+            height: 30px;
             text-align: center;
             cursor: pointer;
             border-radius: var(--element-radius);
             transition: 0.2s;
             line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         .btn-icon:hover {
             background: rgba(255,255,255,0.15);
@@ -171,6 +184,12 @@
         }
         .btn-icon:active { transform: scale(0.96); opacity: 0.9; }
         .btn-icon:disabled { opacity: 0.4; pointer-events: none; }
+        
+        .btn-speed {
+            font-size: 11px;
+            padding: 6px 8px;
+            min-width: 42px;
+        }
         .file-upload-area {
             border: 2px dashed var(--border-color);
             border-radius: var(--element-radius);
@@ -414,7 +433,7 @@
         .controls-row {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
+            gap: 4px;
             align-items: center;
         }
         .controls-row .btn-icon {
@@ -425,6 +444,11 @@
         }
         .controls-row .spacer {
             flex: 1;
+        }
+        .controls-row .status-text {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-left: 4px;
         }
         .notification {
             background: rgba(48, 209, 88, 0.15);
@@ -629,25 +653,25 @@
     </div>
 
     <!-- === CONTROLS === -->
-    <div class="card" style="padding:10px 16px">
+    <div class="card" style="padding:10px 12px">
         <div class="controls-row">
-            <button class="btn-icon" id="btn-play-pause" onclick="togglePlayPause()">⏵</button>
+            <button class="btn-icon" id="btn-play-pause" onclick="togglePlayPause()">▶</button>
             <button class="btn-icon" onclick="toggleVideoVisibility()">🎥</button>
-            <button class="btn-icon" onclick="cyclePlaybackRate()" id="btn-speed">⚡1.0x</button>
+            <button class="btn-icon btn-speed" onclick="cyclePlaybackRate()" id="btn-speed">1.0x</button>
             <button class="btn-icon" id="btn-loop" onclick="toggleLoop()">🔁</button>
-            <button class="btn-icon" onclick="toggleSubSettings()">⚙️</button>
+            <button class="btn-icon" onclick="toggleSubSettings()" title="Font Size">🔤</button>
             
             <span class="spacer"></span>
             
-            <button class="btn-icon" id="btn-toggle-settings" onclick="toggleFullSettings()" style="background:rgba(10,132,255,0.15);border-color:var(--blue);color:var(--blue);">
-                ⚙️
+            <button class="btn-icon" id="btn-toggle-settings" onclick="toggleFullSettings()" style="background:rgba(10,132,255,0.15);border-color:var(--blue);color:var(--blue);" title="Settings">
+                ⚙
             </button>
             
-            <button class="btn-icon" id="btn-toggle-hide" onclick="toggleHideMode()" style="background:var(--accent-light);border-color:var(--accent);color:var(--accent);">
-                👁️
+            <button class="btn-icon" id="btn-toggle-hide" onclick="toggleHideMode()" style="background:var(--accent-light);border-color:var(--accent);color:var(--accent);" title="Hide/Show">
+                👁
             </button>
             
-            <span style="font-size:11px;color:var(--text-secondary);margin-left:4px" id="status-text">Ready</span>
+            <span class="status-text" id="status-text">Ready</span>
         </div>
         <div id="sub-settings-panel" style="display:none;margin-top:8px">
             <div class="setting-row"><label>Chinese</label><input type="range" min="14" max="36" value="20" oninput="updateFont('cn',this.value)"><span id="val-cn">20px</span></div>
@@ -729,18 +753,18 @@ function toggleHideMode() {
     
     if (isHideMode) {
         hideables.forEach(el => el.classList.add('hidden'));
-        btn.innerHTML = '👁️';
+        btn.innerHTML = '👁';
         btn.style.background = 'rgba(255,45,85,0.2)';
         btn.style.borderColor = 'var(--accent)';
         btn.style.color = 'var(--accent)';
-        log('👁️ Hidden extra elements', 'info');
+        log('👁 Hidden extra elements', 'info');
     } else {
         hideables.forEach(el => el.classList.remove('hidden'));
-        btn.innerHTML = '👁️';
+        btn.innerHTML = '👁';
         btn.style.background = 'var(--accent-light)';
         btn.style.borderColor = 'var(--accent)';
         btn.style.color = 'var(--accent)';
-        log('👁️ Show all elements', 'info');
+        log('👁 Show all elements', 'info');
     }
 }
 
@@ -754,19 +778,19 @@ function toggleFullSettings() {
     if (isSettingsVisible) {
         settingsGroup.classList.remove('hidden');
         logCard.classList.remove('hidden');
-        btn.innerHTML = '⚙️';
+        btn.innerHTML = '⚙';
         btn.style.background = 'rgba(10,132,255,0.15)';
         btn.style.borderColor = 'var(--blue)';
         btn.style.color = 'var(--blue)';
-        log('⚙️ Settings & Log shown', 'info');
+        log('⚙ Settings & Log shown', 'info');
     } else {
         settingsGroup.classList.add('hidden');
         logCard.classList.add('hidden');
-        btn.innerHTML = '⚙️';
+        btn.innerHTML = '⚙';
         btn.style.background = 'rgba(255,45,85,0.15)';
         btn.style.borderColor = 'var(--accent)';
         btn.style.color = 'var(--accent)';
-        log('⚙️ Settings & Log hidden', 'info');
+        log('⚙ Settings & Log hidden', 'info');
     }
 }
 
@@ -838,7 +862,7 @@ function updateFont(t, v) {
 function cyclePlaybackRate() {
     currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
     let r = speeds[currentSpeedIndex];
-    document.getElementById('btn-speed').innerHTML = `⚡${r}x`;
+    document.getElementById('btn-speed').innerHTML = `${r}x`;
     if (player?.setPlaybackRate) player.setPlaybackRate(r);
 }
 
@@ -979,7 +1003,7 @@ function extractAndGoToUpload() {
     
     log(`📌 Got ID: ${vid}`, 'ok');
     progYt(100, `✅ ID: ${vid}`);
-    document.getElementById('status-text').innerHTML = `<span class="status-badge done">🎯 ${vid}</span>`;
+    document.getElementById('status-text').innerHTML = `🎯 ${vid}`;
     document.getElementById('yt-info').innerHTML = `<span class="status-badge done">✅ Got ID: ${vid}</span>`;
     
     switchTab('upload');
@@ -1098,7 +1122,7 @@ function togglePlayPause() {
 
 function updatePlayPauseBtn(p) {
     const b = document.getElementById('btn-play-pause');
-    if (b) b.innerHTML = p ? '⏸' : '⏵';
+    if (b) b.innerHTML = p ? '⏸' : '▶';
 }
 
 function toggleVideoVisibility() {
@@ -1271,7 +1295,7 @@ async function uploadToGitHub() {
     
     log(`📤 Uploading ${selectedFile.name} to GitHub (ID: ${vid})...`, 'info');
     progUpload(10, 'Reading file...');
-    document.getElementById('status-text').innerHTML = `<span class="status-badge uploading">Uploading</span>`;
+    document.getElementById('status-text').innerHTML = '⏳ Uploading';
     
     try {
         const reader = new FileReader();
@@ -1332,7 +1356,7 @@ async function uploadToGitHub() {
             } catch (e) {}
             
             progUpload(100, '✅ Complete!');
-            document.getElementById('status-text').innerHTML = `<span class="status-badge done">✅ Done</span>`;
+            document.getElementById('status-text').innerHTML = '✅ Done';
             log(`🎉 Audio uploaded, AI is processing... (3-5 mins)`, 'ok');
             document.getElementById('matched-sub-note').innerText = `⏳ AI processing ${vid}...`;
             
@@ -1349,13 +1373,13 @@ async function uploadToGitHub() {
             const err = await uploadRes.json();
             log(`❌ Upload failed: ${err.message || uploadRes.status}`, 'err');
             progUpload(0, 'Failed');
-            document.getElementById('status-text').innerHTML = `<span class="status-badge error">❌ Error</span>`;
+            document.getElementById('status-text').innerHTML = '❌ Error';
         }
         
     } catch (e) {
         log(`❌ Error: ${e.message}`, 'err');
         progUpload(0, 'Error');
-        document.getElementById('status-text').innerHTML = `<span class="status-badge error">❌ Error</span>`;
+        document.getElementById('status-text').innerHTML = '❌ Error';
     }
     
     btn.textContent = '📤 UPLOAD TO GITHUB';
@@ -1517,7 +1541,7 @@ async function checkAndLoadGist(vid) {
                     await loadGistLibrary(true);
                     document.getElementById('matched-sub-note').innerText = '✅ New subtitle!';
                     log('🎉 Subtitles ready!', 'ok');
-                    document.getElementById('status-text').innerHTML = `<span class="status-badge done">✅ Done</span>`;
+                    document.getElementById('status-text').innerHTML = '✅ Done';
                     return true;
                 }
             }
