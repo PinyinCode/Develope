@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pinyin AI - Tải phụ đề</title>
+    <title>Pinyin AI - Subtitle Downloader</title>
     <style>
         :root {
             --bg-color: #000000;
@@ -38,8 +38,24 @@
             -webkit-backdrop-filter: blur(20px);
         }
         .container { width: 100%; max-width: 540px; display: flex; flex-direction: column; gap: 14px; }
+        
+        .hideable {
+            transition: all 0.3s ease;
+        }
+        .hideable.hidden {
+            display: none !important;
+        }
+        
+        .settings-group {
+            transition: all 0.3s ease;
+        }
+        .settings-group.hidden {
+            display: none !important;
+        }
+        
         .app-header { text-align: center; padding: 6px 0; }
         .app-header h3 { margin: 0; font-size: 17px; font-weight: 600; color: var(--text-main); }
+        
         .card {
             background: var(--card-bg);
             backdrop-filter: blur(25px);
@@ -124,11 +140,55 @@
             background: rgba(255,255,255,0.08);
             border: 1px solid var(--border-color);
             color: var(--text-main);
+            min-width: 32px;
+            text-align: center;
+            border-radius: var(--element-radius);
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .btn-sm:hover {
+            background: rgba(255,255,255,0.15);
         }
         .btn-sm.active {
             background-color: var(--accent-light);
             border-color: var(--accent);
             color: var(--accent);
+        }
+        .btn-sm:active { transform: scale(0.96); opacity: 0.9; }
+        .btn-sm:disabled { opacity: 0.4; pointer-events: none; }
+        
+        .btn-icon {
+            padding: 6px 8px;
+            font-size: 14px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            min-width: 30px;
+            height: 30px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: var(--element-radius);
+            transition: 0.2s;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-icon:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        .btn-icon.active {
+            background-color: var(--accent-light);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .btn-icon:active { transform: scale(0.96); opacity: 0.9; }
+        .btn-icon:disabled { opacity: 0.4; pointer-events: none; }
+        
+        .btn-speed {
+            font-size: 11px;
+            padding: 6px 8px;
+            min-width: 42px;
         }
         .file-upload-area {
             border: 2px dashed var(--border-color);
@@ -186,7 +246,7 @@
             margin-top: 4px;
         }
         .progress-info .speed { color: var(--blue); }
-        .progress-info .eta { color: var(--yellow); font-size: 10px; }
+        .progress-info .eta { color: #ffd60a; font-size: 10px; }
         .player-wrap {
             position: relative;
             width: 100%;
@@ -226,13 +286,6 @@
             padding-top: 8px;
             width: 80%;
         }
-        .settings-toggle {
-            cursor: pointer;
-            color: var(--text-secondary);
-            font-size: 11px;
-            text-align: right;
-            user-select: none;
-        }
         #logBox {
             background: var(--card-bg);
             border-radius: 12px;
@@ -247,7 +300,8 @@
         .log-ok { color: var(--green); }
         .log-err { color: var(--accent); }
         .log-info { color: var(--blue); }
-        .log-progress { color: var(--yellow); }
+        .log-progress { color: #ffd60a; }
+        .log-warning { color: #ff9f0a; }
         .setting-row {
             display: flex;
             align-items: center;
@@ -280,10 +334,15 @@
             font-weight: 600;
         }
         .status-badge.downloading { background: var(--blue); color: white; }
-        .status-badge.uploading { background: var(--yellow); color: black; }
+        .status-badge.uploading { background: #ffd60a; color: black; }
         .status-badge.done { background: var(--green); color: black; }
         .status-badge.error { background: var(--accent); color: white; }
         .status-badge.pending { background: var(--text-secondary); color: white; }
+        .status-badge.processing { background: #ff9f0a; color: black; }
+        .status-badge.converting { background: #5856d6; color: white; }
+        .status-badge.hint { background: #0a84ff; color: white; }
+        .status-badge.warning { background: #ff9f0a; color: black; }
+        .status-badge.exists { background: #30d158; color: black; }
         .badge-group {
             display: flex;
             gap: 6px;
@@ -310,46 +369,187 @@
         .tab-content.active {
             display: block;
         }
+        .highlight {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .video-id-display {
+            background: rgba(255,45,85,0.1);
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 13px;
+            color: var(--accent);
+            border: 1px solid rgba(255,45,85,0.2);
+        }
+        .upload-id-hint {
+            background: rgba(10,132,255,0.1);
+            border: 1px solid rgba(10,132,255,0.2);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: none;
+        }
+        .upload-id-hint .id-value {
+            color: var(--accent);
+            font-weight: 600;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .upload-guide {
+            background: rgba(255,45,85,0.08);
+            border: 1px solid rgba(255,45,85,0.15);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .upload-guide .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin: 4px 0;
+        }
+        .upload-guide .step .num {
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .upload-guide .step .text {
+            line-height: 1.4;
+        }
+        .controls-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            align-items: center;
+        }
+        .controls-row .btn-icon {
+            flex: 0 1 auto;
+        }
+        .controls-row .btn-sm {
+            flex: 0 1 auto;
+        }
+        .controls-row .spacer {
+            flex: 1;
+        }
+        .controls-row .status-text {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-left: 4px;
+        }
+        .notification {
+            background: rgba(48, 209, 88, 0.15);
+            border: 1px solid var(--green);
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-main);
+            display: none;
+        }
+        .notification .highlight {
+            color: var(--green);
+        }
+        .notification .btn-sm {
+            margin-top: 6px;
+        }
+        .settings-footer {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+        }
+        .settings-footer .version {
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+        .setting-item {
+            margin-bottom: 8px;
+        }
+        .setting-item:last-child {
+            margin-bottom: 0;
+        }
+        .setting-item label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+            display: block;
+        }
+        .setting-item input {
+            width: 100%;
+        }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
 <div class="container">
-    <div class="app-header"><h3>🎬 Pinyin AI</h3></div>
+    <div class="app-header hideable" id="header"><h3>🎬 Pinyin AI</h3></div>
 
     <!-- === TABS === -->
-    <div class="tab-group">
+    <div class="tab-group hideable" id="tab-group">
         <button class="btn-sm active" onclick="switchTab('youtube')" id="tab-youtube">🎬 YouTube</button>
         <button class="btn-sm" onclick="switchTab('upload')" id="tab-upload">📤 Upload</button>
-        <button class="btn-sm" onclick="switchTab('library')" id="tab-library">📚 Thư viện</button>
+        <button class="btn-sm" onclick="switchTab('library')" id="tab-library">📚 Library</button>
     </div>
 
     <!-- === TAB 1: YOUTUBE === -->
-    <div class="tab-content active" id="content-youtube">
+    <div class="tab-content active hideable" id="content-youtube">
         <div class="card">
-            <label>🔗 Link YouTube</label>
+            <label>🔗 YouTube Link</label>
             <div class="row">
                 <div class="input-wrap">
-                    <input type="text" id="yt-link" placeholder="Dán link YouTube..." oninput="onYtLinkInput()">
+                    <input type="text" id="yt-link" placeholder="Paste YouTube link..." oninput="onYtLinkInput()">
                     <button class="btn-clear-input" id="btn-clear-yt" onclick="clearYtLink()">×</button>
                 </div>
-                <button class="btn-accent" id="btn-get-subs" onclick="getYouTubeSubtitles()" style="width:80px">
-                    📝 Lấy
+                <button class="btn-accent" id="btn-get-subs" onclick="extractAndGoToUpload()" style="width:80px">
+                    📝 Get
+                </button>
+            </div>
+            
+            <div class="notification" id="exists-notification">
+                ✅ This video already exists! <span class="highlight" id="exists-vid">---</span>
+                <br>
+                <button class="btn-sm" onclick="goToExistingVideo()" style="background:var(--green);color:black;margin-top:4px;">
+                    ▶️ Go to video
+                </button>
+            </div>
+            
+            <div id="yt-id-display" style="margin-top:8px;display:none;">
+                <span style="font-size:11px;color:var(--text-secondary);">Video ID:</span>
+                <span class="video-id-display" id="extracted-vid">---</span>
+                <button class="btn-sm" onclick="switchToVideoTab()" style="background:var(--blue);color:white;margin-left:8px;">
+                    ▶️ Select this video
                 </button>
             </div>
             
             <div style="display:flex;gap:6px;margin-top:8px;">
                 <button class="btn-sm" onclick="playYouTubeVideo()" style="background:var(--blue);color:white;flex:1;">
-                    ▶️ Phát video
+                    ▶️ Play
                 </button>
                 <button class="btn-sm" onclick="openYouTubeLink()" style="background:var(--green);color:black;flex:1;">
-                    🔗 Mở YouTube
+                    🔗 Open YouTube
                 </button>
             </div>
             
             <div class="progress-wrap"><div class="progress-bar" id="pb-yt"></div></div>
             <div class="progress-info">
-                <span id="pb-yt-text">Nhập link YouTube để lấy phụ đề</span>
+                <span id="pb-yt-text">Enter YouTube link to get ID</span>
                 <span class="speed" id="pb-yt-speed">--</span>
             </div>
             
@@ -358,39 +558,64 @@
     </div>
 
     <!-- === TAB 2: UPLOAD === -->
-    <div class="tab-content" id="content-upload">
+    <div class="tab-content hideable" id="content-upload">
         <div class="card">
-            <label>📤 Upload Audio lên GitHub</label>
-            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">
-                Tên file phải chứa Video ID (11 ký tự)
-            </p>
+            <label>📤 Upload Audio to GitHub</label>
+            
+            <div class="upload-id-hint" id="upload-id-hint">
+                🎯 Video ID: <span class="id-value" id="upload-vid-display">---</span>
+                <span style="font-size:10px;color:var(--text-secondary);margin-left:8px;">(from YouTube link)</span>
+            </div>
+            
+            <div class="upload-guide">
+                <div style="font-weight:600;color:var(--text-main);margin-bottom:6px;">📋 Guide:</div>
+                <div class="step">
+                    <span class="num">1</span>
+                    <span class="text">Download audio from YouTube using <strong style="color:var(--blue);">y2mate.com</strong></span>
+                </div>
+                <div class="step">
+                    <span class="num">2</span>
+                    <span class="text">Select any audio file (auto uses ID from YouTube)</span>
+                </div>
+                <div class="step">
+                    <span class="num">3</span>
+                    <span class="text">Drag & drop or click to select file</span>
+                </div>
+                <div class="step">
+                    <span class="num">4</span>
+                    <span class="text">Press <strong style="color:var(--accent);">UPLOAD</strong> to send to GitHub</span>
+                </div>
+                <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border-color);font-size:11px;color:var(--text-secondary);">
+                    ⏱️ Processing takes 3-5 mins, subtitles appear in <strong style="color:var(--blue);">📚 Library</strong>
+                </div>
+            </div>
             
             <div class="file-upload-area" id="drop-area" onclick="document.getElementById('file-input').click()">
                 <span class="icon">📁</span>
-                <div class="text">Kéo thả file audio vào đây hoặc click để chọn</div>
-                <div class="filename" id="file-name">Chưa có file</div>
+                <div class="text">Drag & drop audio file (.m4a, .mp3, .webm) or click to select</div>
+                <div class="filename" id="file-name">No file selected</div>
                 <input type="file" id="file-input" accept=".m4a,.mp3,.webm" onchange="handleFileSelect(this.files[0])">
             </div>
             
             <div class="badge-group" id="file-info"></div>
             
             <button class="btn-accent" id="btn-upload" onclick="uploadToGitHub()" disabled style="width:100%;margin-top:8px;">
-                📤 UPLOAD LÊN GITHUB
+                📤 UPLOAD TO GITHUB
             </button>
             
             <div class="progress-wrap"><div class="progress-bar" id="pb-upload"></div></div>
             <div class="progress-info">
-                <span id="pb-upload-text">Chọn file để bắt đầu</span>
+                <span id="pb-upload-text">Select file to start</span>
                 <span class="speed" id="pb-upload-speed">--</span>
             </div>
         </div>
     </div>
 
     <!-- === TAB 3: LIBRARY === -->
-    <div class="tab-content" id="content-library">
+    <div class="tab-content hideable" id="content-library">
         <div class="card" id="gist-card">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-                <label>📚 Kho phụ đề</label>
+                <label>📚 Subtitle Library</label>
                 <div style="display:flex;gap:6px;">
                     <button class="btn-sm" onclick="renameCurrentVideo()">✏️</button>
                     <button class="btn-sm" style="color:var(--accent);" onclick="deleteCurrentVideo()">🗑️</button>
@@ -398,11 +623,11 @@
             </div>
             <div class="row">
                 <select id="gist-select" onchange="onGistSelected(this.value)">
-                    <option value="">-- Chọn phụ đề... --</option>
+                    <option value="">-- Select subtitle... --</option>
                 </select>
                 <button class="btn-sm" onclick="loadGistLibrary(true)">🔄</button>
             </div>
-            <p style="font-size:10px;color:var(--text-secondary);margin-top:4px" id="matched-sub-note">Sẵn sàng</p>
+            <p style="font-size:10px;color:var(--text-secondary);margin-top:4px" id="matched-sub-note">Ready</p>
             
             <div style="display:flex;gap:6px;margin-top:8px;">
                 <button class="btn-sm" onclick="copyYouTubeLink()" style="background:var(--blue);color:white;flex:1;">
@@ -428,42 +653,68 @@
     </div>
 
     <!-- === CONTROLS === -->
-    <div class="card" style="padding:10px 16px">
-        <div class="row" style="flex-wrap:wrap;gap:6px">
-            <button class="btn-sm" id="btn-play-pause" onclick="togglePlayPause()">⏵ Play</button>
-            <button class="btn-sm" onclick="toggleVideoVisibility()">🎥 Video</button>
-            <button class="btn-sm" onclick="cyclePlaybackRate()" id="btn-speed">⚡ 1.0x</button>
-            <button class="btn-sm" id="btn-loop" onclick="toggleLoop()">🔁 Repeat</button>
-            <button class="btn-sm" onclick="toggleSubSettings()">⚙️ Size</button>
-            <span style="font-size:11px;color:var(--text-secondary);margin-left:auto" id="status-text">Sẵn sàng</span>
+    <div class="card" style="padding:10px 12px">
+        <div class="controls-row">
+            <button class="btn-icon" id="btn-play-pause" onclick="togglePlayPause()">▶</button>
+            <button class="btn-icon" onclick="toggleVideoVisibility()">🎥</button>
+            <button class="btn-icon btn-speed" onclick="cyclePlaybackRate()" id="btn-speed">1.0x</button>
+            <button class="btn-icon" id="btn-loop" onclick="toggleLoop()">🔁</button>
+            <button class="btn-icon" onclick="toggleSubSettings()" title="Font Size">🔤</button>
+            
+            <span class="spacer"></span>
+            
+            <button class="btn-icon" id="btn-toggle-settings" onclick="toggleFullSettings()" style="background:rgba(10,132,255,0.15);border-color:var(--blue);color:var(--blue);" title="Settings">
+                ⚙
+            </button>
+            
+            <button class="btn-icon" id="btn-toggle-hide" onclick="toggleHideMode()" style="background:var(--accent-light);border-color:var(--accent);color:var(--accent);" title="Hide/Show">
+                👁
+            </button>
+            
+            <span class="status-text" id="status-text">Ready</span>
         </div>
         <div id="sub-settings-panel" style="display:none;margin-top:8px">
-            <div class="setting-row"><label>Chữ Hán</label><input type="range" min="14" max="36" value="20" oninput="updateFont('cn',this.value)"><span id="val-cn">20px</span></div>
+            <div class="setting-row"><label>Chinese</label><input type="range" min="14" max="36" value="20" oninput="updateFont('cn',this.value)"><span id="val-cn">20px</span></div>
             <div class="setting-row"><label>Pinyin</label><input type="range" min="12" max="28" value="16" oninput="updateFont('py',this.value)"><span id="val-py">16px</span></div>
-            <div class="setting-row"><label>Tiếng Việt</label><input type="range" min="10" max="24" value="14" oninput="updateFont('vi',this.value)"><span id="val-vi">14px</span></div>
+            <div class="setting-row"><label>Vietnamese</label><input type="range" min="10" max="24" value="14" oninput="updateFont('vi',this.value)"><span id="val-vi">14px</span></div>
         </div>
     </div>
 
     <!-- === SUBTITLE === -->
-    <div id="subtitle-box"><span style="color:var(--text-secondary);font-size:14px">Chọn phụ đề + Play, hoặc nhập link mới...</span></div>
+    <div id="subtitle-box"><span style="color:var(--text-secondary);font-size:14px">Select subtitle + Play, or enter new link...</span></div>
 
-    <!-- === SETTINGS === -->
-    <div class="card" id="settings-card" style="display:none;">
-        <label>⚙️ CÀI ĐẶT</label>
-        <input type="text" id="ghUser" placeholder="GitHub Username" value="PinyinCode">
-        <input type="text" id="ghRepo" placeholder="Repository" value="subtitle-ai">
-        <input type="password" id="ghToken" placeholder="GitHub Token (cần quyền repo)">
-        <input type="password" id="gistToken" placeholder="Gist Token (để đọc phụ đề)">
-        <button class="btn-sm" style="width:100%;background:var(--blue);color:white;padding:12px" onclick="saveSettings()">💾 LƯU</button>
-    </div>
+    <!-- === SETTINGS GROUP === -->
+    <div class="settings-group" id="settings-group">
+        <!-- SETTINGS CARD -->
+        <div class="card" id="settings-card">
+            <label>⚙️ GITHUB SETTINGS</label>
+            
+            <div class="setting-item">
+                <label>Username</label>
+                <input type="text" id="ghUser" placeholder="GitHub Username" value="PinyinCode">
+            </div>
+            
+            <div class="setting-item">
+                <label>Repository</label>
+                <input type="text" id="ghRepo" placeholder="Repository name" value="subtitle-ai">
+            </div>
+            
+            <div class="setting-item">
+                <label>Token (GitHub Personal Access Token)</label>
+                <input type="password" id="ghToken" placeholder="GitHub Token (repo + gist scope required)">
+            </div>
+            
+            <button class="btn-sm" style="width:100%;background:var(--blue);color:white;padding:12px;margin-top:4px;" onclick="saveSettings()">💾 SAVE</button>
+        </div>
 
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-        <span class="settings-toggle" onclick="toggleSettings()">⚙️ Cài đặt ▾</span>
-        <span class="settings-toggle" id="toggle-all-btn" onclick="toggleAllCards()">👁️ Ẩn</span>
+        <!-- FOOTER -->
+        <div class="settings-footer" id="settings-footer">
+            <span class="version">v1.0</span>
+        </div>
     </div>
 
     <!-- === LOG === -->
-    <div class="card" id="log-card"><label>📋 Tiến trình</label><div id="logBox">🟢 Sẵn sàng</div></div>
+    <div class="card hideable" id="log-card"><label>📋 Progress Log</label><div id="logBox">🟢 Ready</div></div>
 </div>
 
 <script>
@@ -476,7 +727,103 @@ let gh_cloud_map={};
 let selectedFile = null;
 let isUploading = false;
 let currentVideoId = null;
-let currentYtLink = '';
+let pendingVideoId = null;
+let isHideMode = false;
+let isSettingsVisible = true;
+let existingVideoData = null;
+
+// ===== CHECK EXISTING VIDEO =====
+function checkVideoExists(videoId) {
+    if (!videoId) return null;
+    if (gh_cloud_map && gh_cloud_map[videoId]) {
+        return {
+            videoId: videoId,
+            title: gh_cloud_map[videoId].title || `Video ${videoId}`,
+            url: gh_cloud_map[videoId].url
+        };
+    }
+    return null;
+}
+
+// ===== TOGGLE HIDE MODE =====
+function toggleHideMode() {
+    isHideMode = !isHideMode;
+    const btn = document.getElementById('btn-toggle-hide');
+    const hideables = document.querySelectorAll('.hideable');
+    
+    if (isHideMode) {
+        hideables.forEach(el => el.classList.add('hidden'));
+        btn.innerHTML = '👁';
+        btn.style.background = 'rgba(255,45,85,0.2)';
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        log('👁 Hidden extra elements', 'info');
+    } else {
+        hideables.forEach(el => el.classList.remove('hidden'));
+        btn.innerHTML = '👁';
+        btn.style.background = 'var(--accent-light)';
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        log('👁 Show all elements', 'info');
+    }
+}
+
+// ===== TOGGLE FULL SETTINGS =====
+function toggleFullSettings() {
+    isSettingsVisible = !isSettingsVisible;
+    const btn = document.getElementById('btn-toggle-settings');
+    const settingsGroup = document.getElementById('settings-group');
+    const logCard = document.getElementById('log-card');
+    
+    if (isSettingsVisible) {
+        settingsGroup.classList.remove('hidden');
+        logCard.classList.remove('hidden');
+        btn.innerHTML = '⚙';
+        btn.style.background = 'rgba(10,132,255,0.15)';
+        btn.style.borderColor = 'var(--blue)';
+        btn.style.color = 'var(--blue)';
+        log('⚙ Settings & Log shown', 'info');
+    } else {
+        settingsGroup.classList.add('hidden');
+        logCard.classList.add('hidden');
+        btn.innerHTML = '⚙';
+        btn.style.background = 'rgba(255,45,85,0.15)';
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        log('⚙ Settings & Log hidden', 'info');
+    }
+}
+
+// ===== GO TO EXISTING VIDEO =====
+function goToExistingVideo() {
+    if (!existingVideoData) return;
+    
+    const vid = existingVideoData.videoId;
+    const title = existingVideoData.title;
+    
+    log(`📌 Going to existing video: ${title} (${vid})`, 'ok');
+    
+    switchTab('library');
+    
+    setTimeout(() => {
+        const select = document.getElementById('gist-select');
+        for (let i = 0; i < select.options.length; i++) {
+            const opt = select.options[i];
+            if (opt.value) {
+                try {
+                    const item = JSON.parse(opt.value);
+                    if (item.videoId === vid) {
+                        select.selectedIndex = i;
+                        onGistSelected(opt.value);
+                        document.getElementById('matched-sub-note').innerHTML = `✅ <span class="highlight">Selected: ${item.title}</span>`;
+                        loadVideoFromGist(item);
+                        break;
+                    }
+                } catch(e) {}
+            }
+        }
+    }, 300);
+}
 
 // ===== INIT =====
 function onYouTubeIframeAPIReady() {
@@ -488,7 +835,6 @@ function loadSettings() {
     document.getElementById('ghUser').value = localStorage.gh_user || 'PinyinCode';
     document.getElementById('ghRepo').value = localStorage.gh_repo || 'subtitle-ai';
     document.getElementById('ghToken').value = localStorage.gh_token || '';
-    document.getElementById('gistToken').value = localStorage.gist_token || '';
     gh_cloud_map = JSON.parse(localStorage.getItem('gh_cloud_map') || '{}');
 }
 
@@ -496,30 +842,16 @@ function saveSettings() {
     localStorage.gh_user = document.getElementById('ghUser').value.trim();
     localStorage.gh_repo = document.getElementById('ghRepo').value.trim();
     localStorage.gh_token = document.getElementById('ghToken').value.trim();
-    localStorage.gist_token = document.getElementById('gistToken').value.trim();
     localStorage.removeItem('gh_last_scan');
     localStorage.removeItem('gh_cloud_map');
     gh_cloud_map = {};
-    log('✅ Đã lưu cài đặt!', 'ok');
+    log('✅ Settings saved!', 'ok');
     loadGistLibrary(true);
-}
-
-function toggleSettings() {
-    const c = document.getElementById('settings-card');
-    c.style.display = c.style.display === 'none' ? 'block' : 'none';
 }
 
 function toggleSubSettings() {
     const p = document.getElementById('sub-settings-panel');
     p.style.display = p.style.display === 'none' ? 'block' : 'none';
-}
-
-function toggleAllCards() {
-    const cards = ['settings-card'];
-    cards.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.toggle('hidden');
-    });
 }
 
 function updateFont(t, v) {
@@ -530,7 +862,7 @@ function updateFont(t, v) {
 function cyclePlaybackRate() {
     currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
     let r = speeds[currentSpeedIndex];
-    document.getElementById('btn-speed').innerText = `⚡ ${r}x`;
+    document.getElementById('btn-speed').innerHTML = `${r}x`;
     if (player?.setPlaybackRate) player.setPlaybackRate(r);
 }
 
@@ -545,6 +877,24 @@ function switchTab(tab) {
     document.querySelectorAll('.tab-group .btn-sm').forEach(el => el.classList.remove('active'));
     document.getElementById(`content-${tab}`).classList.add('active');
     document.getElementById(`tab-${tab}`).classList.add('active');
+    
+    if (tab === 'upload') {
+        updateUploadTabWithVideoId();
+    }
+}
+
+// ===== UPDATE UPLOAD TAB =====
+function updateUploadTabWithVideoId() {
+    const vid = pendingVideoId || currentVideoId;
+    const hint = document.getElementById('upload-id-hint');
+    const display = document.getElementById('upload-vid-display');
+    
+    if (vid) {
+        hint.style.display = 'block';
+        display.textContent = vid;
+    } else {
+        hint.style.display = 'none';
+    }
 }
 
 // ===== LOG & PROGRESS =====
@@ -578,21 +928,96 @@ function onYtLinkInput() {
     const val = document.getElementById('yt-link').value;
     document.getElementById('btn-clear-yt').style.display = val ? 'block' : 'none';
     const vid = extractVideoID(val);
+    
+    document.getElementById('exists-notification').style.display = 'none';
+    existingVideoData = null;
+    
     if (vid) {
-        currentVideoId = vid;
-        document.getElementById('yt-info').innerHTML = `<span class="status-badge done">🎯 ${vid}</span>`;
+        document.getElementById('yt-id-display').style.display = 'block';
+        document.getElementById('extracted-vid').textContent = vid;
         document.getElementById('btn-get-subs').disabled = false;
+        document.getElementById('yt-info').innerHTML = `<span class="status-badge done">🎯 ${vid}</span>`;
+        pendingVideoId = vid;
+        currentVideoId = vid;
+        
+        const existing = checkVideoExists(vid);
+        if (existing) {
+            existingVideoData = existing;
+            const notification = document.getElementById('exists-notification');
+            notification.style.display = 'block';
+            document.getElementById('exists-vid').textContent = `${vid} - ${existing.title}`;
+            document.getElementById('yt-info').innerHTML = `<span class="status-badge exists">✅ Exists: ${existing.title}</span>`;
+            log(`✅ Video ${vid} exists in library: ${existing.title}`, 'ok');
+        }
+        
+        if (document.getElementById('content-upload').classList.contains('active')) {
+            updateUploadTabWithVideoId();
+        }
     } else {
+        document.getElementById('yt-id-display').style.display = 'none';
         document.getElementById('yt-info').innerHTML = '';
         document.getElementById('btn-get-subs').disabled = true;
+        pendingVideoId = null;
     }
 }
 
 function clearYtLink() {
     document.getElementById('yt-link').value = '';
     document.getElementById('btn-clear-yt').style.display = 'none';
+    document.getElementById('yt-id-display').style.display = 'none';
     document.getElementById('yt-info').innerHTML = '';
     document.getElementById('btn-get-subs').disabled = true;
+    document.getElementById('exists-notification').style.display = 'none';
+    existingVideoData = null;
+    pendingVideoId = null;
+    if (document.getElementById('content-upload').classList.contains('active')) {
+        updateUploadTabWithVideoId();
+    }
+}
+
+// ===== EXTRACT ID AND GO TO UPLOAD =====
+function extractAndGoToUpload() {
+    const url = document.getElementById('yt-link').value.trim();
+    const vid = extractVideoID(url);
+    if (!vid) {
+        alert('Invalid YouTube link!');
+        return;
+    }
+    
+    const existing = checkVideoExists(vid);
+    if (existing) {
+        existingVideoData = existing;
+        const notification = document.getElementById('exists-notification');
+        notification.style.display = 'block';
+        document.getElementById('exists-vid').textContent = `${vid} - ${existing.title}`;
+        log(`✅ Video ${vid} exists in library. Redirecting...`, 'ok');
+        
+        setTimeout(() => {
+            goToExistingVideo();
+        }, 1000);
+        return;
+    }
+    
+    pendingVideoId = vid;
+    currentVideoId = vid;
+    
+    log(`📌 Got ID: ${vid}`, 'ok');
+    progYt(100, `✅ ID: ${vid}`);
+    document.getElementById('status-text').innerHTML = `🎯 ${vid}`;
+    document.getElementById('yt-info').innerHTML = `<span class="status-badge done">✅ Got ID: ${vid}</span>`;
+    
+    switchTab('upload');
+    updateUploadTabWithVideoId();
+    
+    log(`📤 Select audio file and upload to GitHub for AI processing`, 'info');
+    log(`💡 No need to name file with ID, system auto uses: ${vid}`, 'warning');
+    
+    document.getElementById('pb-upload-text').innerHTML = `🎯 Ready to upload for video: <strong style="color:var(--accent);">${vid}</strong>`;
+    
+    if (selectedFile) {
+        document.getElementById('btn-upload').disabled = false;
+        updateFileInfo();
+    }
 }
 
 function getYouTubeLink(videoId) {
@@ -601,7 +1026,7 @@ function getYouTubeLink(videoId) {
 
 function openYouTubeLink() {
     if (!currentVideoId && !currentGistItem) {
-        alert('Chọn video trước!');
+        alert('Select a video first!');
         return;
     }
     const vid = currentVideoId || currentGistItem?.videoId;
@@ -610,10 +1035,22 @@ function openYouTubeLink() {
 
 function playYouTubeVideo() {
     if (!currentVideoId) {
-        alert('Nhập link YouTube trước!');
+        alert('Enter YouTube link first!');
         return;
     }
     loadPlayer(currentVideoId);
+}
+
+function switchToVideoTab() {
+    if (!pendingVideoId && !currentVideoId) {
+        alert('No video ID!');
+        return;
+    }
+    const vid = pendingVideoId || currentVideoId;
+    currentVideoId = vid;
+    loadPlayer(vid);
+    switchTab('library');
+    updateUploadTabWithVideoId();
 }
 
 // ===== PLAYER =====
@@ -638,7 +1075,7 @@ function loadPlayer(videoId) {
             onStateChange: onPlayerStateChange
         }
     });
-    log(`🎬 Đang tải video: ${videoId}`, 'info');
+    log(`🎬 Loading video: ${videoId}`, 'info');
 }
 
 function startSync() {
@@ -655,9 +1092,9 @@ function syncSub() {
         activeSubIndex = idx;
         const s = subtitles[idx];
         document.getElementById('subtitle-box').innerHTML = `
-            <div class="cn">${s.rawLines[0]}</div>
-            <div class="py">${s.rawLines[1]}</div>
-            <div class="vi">${s.rawLines[2]}</div>`;
+            <div class="cn">${s.rawLines[0] || ''}</div>
+            <div class="py">${s.rawLines[1] || ''}</div>
+            <div class="vi">${s.rawLines[2] || ''}</div>`;
     }
 }
 
@@ -685,7 +1122,7 @@ function togglePlayPause() {
 
 function updatePlayPauseBtn(p) {
     const b = document.getElementById('btn-play-pause');
-    if (b) b.innerHTML = p ? '⏸ Pause' : '⏵ Play';
+    if (b) b.innerHTML = p ? '⏸' : '▶';
 }
 
 function toggleVideoVisibility() {
@@ -724,104 +1161,28 @@ function updateTimeline() {
     }
 }
 
-// ===== GET YOUTUBE SUBTITLES =====
-async function getYouTubeSubtitles() {
-    const url = document.getElementById('yt-link').value.trim();
-    const vid = extractVideoID(url);
-    if (!vid) {
-        alert('Link YouTube không hợp lệ!');
-        return;
-    }
-    
-    currentVideoId = vid;
-    const btn = document.getElementById('btn-get-subs');
-    btn.textContent = '⏳ ĐANG LẤY...';
-    btn.disabled = true;
-    log(`🔍 Đang lấy phụ đề cho ${vid}...`, 'info');
-    progYt(10, 'Đang kết nối...');
-    
-    try {
-        // Sử dụng yt-dlp-style API (qua proxy)
-        const apiUrl = `https://yt-api-proxy.vercel.app/api/subtitles?videoId=${vid}`;
-        const response = await fetch(apiUrl);
-        
-        if (response.ok) {
-            const data = await response.json();
-            if (data.subtitles && data.subtitles.length > 0) {
-                // Lấy phụ đề tiếng Trung hoặc tiếng Anh
-                const subs = data.subtitles.find(s => s.language === 'zh') || 
-                             data.subtitles.find(s => s.language === 'en') || 
-                             data.subtitles[0];
-                
-                if (subs && subs.url) {
-                    // Tải file VTT
-                    const vttRes = await fetch(subs.url);
-                    const vttText = await vttRes.text();
-                    subtitles = parseVTT(vttText);
-                    
-                    if (subtitles.length > 0) {
-                        log(`✅ Đã lấy ${subtitles.length} phụ đề từ YouTube`, 'ok');
-                        progYt(100, `✅ ${subtitles.length} phụ đề`);
-                        document.getElementById('status-text').innerHTML = `<span class="status-badge done">✅ ${subtitles.length} subs</span>`;
-                        
-                        // Hiển thị phụ đề đầu tiên
-                        if (subtitles[0]) {
-                            const s = subtitles[0];
-                            document.getElementById('subtitle-box').innerHTML = `
-                                <div class="cn">${s.rawLines[0] || '...'}</div>
-                                <div class="py">${s.rawLines[1] || ''}</div>
-                                <div class="vi">${s.rawLines[2] || ''}</div>
-                            `;
-                        }
-                        
-                        // Tự động phát video
-                        loadPlayer(vid);
-                        return;
-                    }
-                }
-            }
-            
-            // Nếu không có phụ đề, thông báo
-            log('⚠️ Video này không có phụ đề. Thử upload audio lên GitHub để AI xử lý.', 'info');
-            progYt(0, '❌ Không có phụ đề');
-            document.getElementById('status-text').innerHTML = `<span class="status-badge error">❌ No subs</span>`;
-            
-        } else {
-            log('❌ Không thể lấy phụ đề. Video có thể bị giới hạn.', 'err');
-            progYt(0, '❌ Lỗi');
-        }
-        
-    } catch (e) {
-        log(`❌ Lỗi: ${e.message}`, 'err');
-        progYt(0, '❌ Lỗi');
-        
-        // Fallback: Gợi ý upload audio
-        log('💡 Gợi ý: Tải audio từ y2mate và upload lên GitHub để AI xử lý', 'info');
-        switchTab('upload');
-    }
-    
-    btn.textContent = '📝 Lấy';
-    btn.disabled = false;
-}
-
 // ===== PARSE VTT =====
 function parseVTT(d) {
     const n = d.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     const b = n.split('\n\n');
     let s = [];
-    b.forEach(b => {
-        const l = b.split('\n');
-        let t = -1;
-        for (let i = 0; i < l.length; i++) {
-            if (l[i].includes('-->')) { t = i; break; }
+    b.forEach(block => {
+        const lines = block.split('\n');
+        let timeIndex = -1;
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes('-->')) { timeIndex = i; break; }
         }
-        if (t !== -1) {
-            const ts = l[t].split('-->');
+        if (timeIndex !== -1) {
+            const ts = lines[timeIndex].split('-->');
             if (ts.length === 2) {
-                const st = parseTime(ts[0].trim()), en = parseTime(ts[1].trim());
-                let r = l.slice(t + 1).map(x => x.replace(/<[^>]*>/g, '').trim()).filter(x => x !== "");
-                while (r.length < 3) r.push("");
-                s.push({ start: st, end: en, rawLines: r });
+                const st = parseTime(ts[0].trim());
+                const en = parseTime(ts[1].trim());
+                const raw = lines.slice(timeIndex + 1)
+                    .map(x => x.replace(/<[^>]*>/g, '').trim())
+                    .filter(x => x !== "");
+                if (raw.length > 0) {
+                    s.push({ start: st, end: en, rawLines: raw });
+                }
             }
         }
     });
@@ -831,44 +1192,66 @@ function parseVTT(d) {
 function parseTime(t) {
     t = t.replace(',', '.');
     const p = t.split(':');
-    return p.length < 3 ? 0 : parseFloat(p[0]) * 3600 + parseFloat(p[1]) * 60 + parseFloat(p[2]);
+    if (p.length < 3) return 0;
+    return parseFloat(p[0]) * 3600 + parseFloat(p[1]) * 60 + parseFloat(p[2]);
 }
 
 // ===== FILE UPLOAD =====
-function extractVideoIdFromFilename(filename) {
-    const name = filename.replace(/\.[^.]+$/, '');
-    const match = name.match(/([A-Za-z0-9_-]{11})/);
-    return match ? match[1] : null;
+function updateFileInfo() {
+    if (!selectedFile) return;
+    const vid = pendingVideoId || currentVideoId;
+    const info = document.getElementById('file-info');
+    
+    if (vid) {
+        info.innerHTML = `
+            <span class="status-badge processing">📄 ${selectedFile.name}</span>
+            <span class="status-badge done">${(selectedFile.size/1024/1024).toFixed(2)} MB</span>
+            <span class="status-badge done">🎯 Will use ID: ${vid}</span>
+        `;
+        document.getElementById('btn-upload').disabled = false;
+        progUpload(0, `Ready to upload with ID: ${vid}`);
+    } else {
+        info.innerHTML = `
+            <span class="status-badge processing">📄 ${selectedFile.name}</span>
+            <span class="status-badge done">${(selectedFile.size/1024/1024).toFixed(2)} MB</span>
+            <span class="status-badge error">❌ No Video ID</span>
+        `;
+        document.getElementById('btn-upload').disabled = true;
+        progUpload(0, '❌ No Video ID. Enter YouTube link first.');
+    }
 }
 
 function handleFileSelect(file) {
     if (!file) return;
     selectedFile = file;
-    const vid = extractVideoIdFromFilename(file.name);
     
     document.getElementById('file-name').textContent = `📄 ${file.name}`;
     document.getElementById('file-name').style.color = 'var(--green)';
     
+    const vid = pendingVideoId || currentVideoId;
     const info = document.getElementById('file-info');
+    
     if (vid) {
         info.innerHTML = `
             <span class="status-badge processing">📄 ${file.name}</span>
             <span class="status-badge done">${(file.size/1024/1024).toFixed(2)} MB</span>
-            <span class="status-badge done">🎯 ${vid}</span>
+            <span class="status-badge done">🎯 Will use ID: ${vid}</span>
         `;
         document.getElementById('btn-upload').disabled = false;
-        progUpload(0, `Sẵn sàng upload: ${vid}`);
+        progUpload(0, `Ready to upload with ID: ${vid}`);
+        log(`📄 Selected file: ${file.name} (will use ID: ${vid})`, 'info');
     } else {
         info.innerHTML = `
             <span class="status-badge processing">📄 ${file.name}</span>
-            <span class="status-badge error">⚠️ Không có Video ID</span>
+            <span class="status-badge done">${(file.size/1024/1024).toFixed(2)} MB</span>
+            <span class="status-badge error">❌ No Video ID</span>
         `;
         document.getElementById('btn-upload').disabled = true;
-        progUpload(0, '❌ Tên file không có Video ID');
+        progUpload(0, '❌ No Video ID. Enter YouTube link first.');
+        log(`❌ No Video ID. Please enter YouTube link first.`, 'err');
     }
 }
 
-// Drag and drop
 const dropArea = document.getElementById('drop-area');
 dropArea.addEventListener('dragover', (e) => {
     e.preventDefault();
@@ -893,25 +1276,26 @@ async function uploadToGitHub() {
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
     const user = localStorage.gh_user || document.getElementById('ghUser').value.trim() || 'PinyinCode';
     const repo = localStorage.gh_repo || document.getElementById('ghRepo').value.trim() || 'subtitle-ai';
-    const vid = extractVideoIdFromFilename(selectedFile.name);
     
-    if (!token) {
-        alert('Vui lòng nhập GitHub Token trong Cài đặt!');
+    const vid = pendingVideoId || currentVideoId;
+    if (!vid) {
+        alert('No Video ID! Please enter YouTube link first.');
         return;
     }
-    if (!vid) {
-        alert('Tên file không có Video ID!');
+    
+    if (!token) {
+        alert('Please enter GitHub Token in Settings!');
         return;
     }
     
     isUploading = true;
     const btn = document.getElementById('btn-upload');
-    btn.textContent = '⏳ ĐANG UPLOAD...';
+    btn.textContent = '⏳ UPLOADING...';
     btn.disabled = true;
     
-    log(`📤 Upload ${selectedFile.name} lên GitHub...`, 'info');
-    progUpload(10, 'Đang đọc file...');
-    document.getElementById('status-text').innerHTML = `<span class="status-badge uploading">Uploading</span>`;
+    log(`📤 Uploading ${selectedFile.name} to GitHub (ID: ${vid})...`, 'info');
+    progUpload(10, 'Reading file...');
+    document.getElementById('status-text').innerHTML = '⏳ Uploading';
     
     try {
         const reader = new FileReader();
@@ -920,7 +1304,7 @@ async function uploadToGitHub() {
             reader.readAsDataURL(selectedFile);
         });
         
-        progUpload(30, 'Đang upload...');
+        progUpload(30, 'Uploading...');
         
         const path = `data/audio/${vid}.m4a`;
         const apiUrl = `https://api.github.com/repos/${user}/${repo}/contents/${path}`;
@@ -953,8 +1337,8 @@ async function uploadToGitHub() {
         });
         
         if (uploadRes.ok) {
-            log(`✅ Upload thành công: ${vid}.m4a`, 'ok');
-            progUpload(80, 'Đang kích hoạt GitHub Actions...');
+            log(`✅ Upload successful: ${vid}.m4a`, 'ok');
+            progUpload(80, 'Triggering GitHub Actions...');
             
             try {
                 await fetch(`https://api.github.com/repos/${user}/${repo}/dispatches`, {
@@ -968,38 +1352,37 @@ async function uploadToGitHub() {
                         client_payload: { video_id: vid }
                     })
                 });
-                log('✅ Đã kích hoạt GitHub Actions!', 'ok');
+                log('✅ GitHub Actions triggered!', 'ok');
             } catch (e) {}
             
-            progUpload(100, '✅ Hoàn tất!');
-            document.getElementById('status-text').innerHTML = `<span class="status-badge done">✅ Done</span>`;
-            log(`🎉 Audio đã upload, AI đang xử lý... (3-5 phút)`, 'ok');
-            document.getElementById('matched-sub-note').innerText = `⏳ AI đang xử lý ${vid}...`;
+            progUpload(100, '✅ Complete!');
+            document.getElementById('status-text').innerHTML = '✅ Done';
+            log(`🎉 Audio uploaded, AI is processing... (3-5 mins)`, 'ok');
+            document.getElementById('matched-sub-note').innerText = `⏳ AI processing ${vid}...`;
             
             setTimeout(() => checkAndLoadGist(vid), 10000);
             setTimeout(() => loadGistLibrary(true), 180000);
             
-            // Reset
             selectedFile = null;
-            document.getElementById('file-name').textContent = 'Chưa có file';
+            document.getElementById('file-name').textContent = 'No file selected';
             document.getElementById('file-info').innerHTML = '';
             document.getElementById('file-input').value = '';
             btn.disabled = true;
             
         } else {
             const err = await uploadRes.json();
-            log(`❌ Upload thất bại: ${err.message || uploadRes.status}`, 'err');
-            progUpload(0, 'Thất bại');
-            document.getElementById('status-text').innerHTML = `<span class="status-badge error">❌ Error</span>`;
+            log(`❌ Upload failed: ${err.message || uploadRes.status}`, 'err');
+            progUpload(0, 'Failed');
+            document.getElementById('status-text').innerHTML = '❌ Error';
         }
         
     } catch (e) {
-        log(`❌ Lỗi: ${e.message}`, 'err');
-        progUpload(0, 'Lỗi');
-        document.getElementById('status-text').innerHTML = `<span class="status-badge error">❌ Error</span>`;
+        log(`❌ Error: ${e.message}`, 'err');
+        progUpload(0, 'Error');
+        document.getElementById('status-text').innerHTML = '❌ Error';
     }
     
-    btn.textContent = '📤 UPLOAD LÊN GITHUB';
+    btn.textContent = '📤 UPLOAD TO GITHUB';
     btn.disabled = false;
     isUploading = false;
 }
@@ -1007,15 +1390,13 @@ async function uploadToGitHub() {
 // ===== GIST FUNCTIONS =====
 async function loadGistLibrary(force = false) {
     const select = document.getElementById('gist-select');
-    select.innerHTML = '<option value="">-- Scan... --</option>';
+    select.innerHTML = '<option value="">-- Scanning... --</option>';
     let items = [];
-    const token = localStorage.gist_token || document.getElementById('gistToken').value.trim();
-    const ghToken = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    const finalToken = token || ghToken;
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
     
-    if (!finalToken) {
-        select.innerHTML = '<option value="">-- Cần token --</option>';
-        document.getElementById('matched-sub-note').innerText = '⚠️ Thiếu token! Vào Cài đặt nhập token.';
+    if (!token) {
+        select.innerHTML = '<option value="">-- Need token --</option>';
+        document.getElementById('matched-sub-note').innerText = '⚠️ Missing token! Go to Settings.';
         return;
     }
     
@@ -1030,7 +1411,7 @@ async function loadGistLibrary(force = false) {
     } else {
         try {
             const res = await fetch('https://api.github.com/gists?per_page=100', {
-                headers: { "Authorization": `token ${finalToken}` }
+                headers: { "Authorization": `token ${token}` }
             });
             if (res.ok) {
                 const gists = await res.json();
@@ -1059,7 +1440,7 @@ async function loadGistLibrary(force = false) {
                 }
             }
         } catch (e) {
-            log('❌ Lỗi tải Gist: ' + e.message, 'err');
+            log('❌ Error loading Gist: ' + e.message, 'err');
         }
     }
     
@@ -1071,15 +1452,15 @@ async function loadGistLibrary(force = false) {
     }
     
     items.sort((a, b) => b.videoId.localeCompare(a.videoId));
-    select.innerHTML = items.length ? `<option value="">-- Chọn (${items.length}) --</option>` :
-        '<option value="">-- Chưa có --</option>';
+    select.innerHTML = items.length ? `<option value="">-- Select (${items.length}) --</option>` :
+        '<option value="">-- None --</option>';
     items.forEach(i => {
         let o = document.createElement('option');
         o.value = JSON.stringify(i);
         o.textContent = i.title;
         select.appendChild(o);
     });
-    document.getElementById('matched-sub-note').innerText = items.length ? `${items.length} video` : 'Chưa có video';
+    document.getElementById('matched-sub-note').innerText = items.length ? `${items.length} videos` : 'No videos';
 }
 
 function onGistSelected(val) {
@@ -1092,34 +1473,42 @@ function onGistSelected(val) {
 
 function playFromGist() {
     if (!currentGistItem) {
-        alert('Chọn phụ đề trước!');
+        alert('Select subtitle first!');
         return;
     }
     loadVideoFromGist(currentGistItem);
 }
 
-function loadVideoFromGist(item) {
-    log(`🎬 Load: ${item.title}`, 'info');
-    fetch(item.rawUrl).then(r => r.text()).then(text => {
-        subtitles = parseVTT(text);
+async function loadVideoFromGist(item) {
+    log(`🎬 Loading: ${item.title}`, 'info');
+    try {
+        const response = await fetch(item.rawUrl);
+        const text = await response.text();
+        const parsed = parseVTT(text);
+        subtitles = parsed;
+        
         document.getElementById('matched-sub-note').innerText = `📦 ${item.title}`;
         document.getElementById('video-wrapper').classList.remove('hidden');
         currentVideoId = item.videoId;
         loadPlayer(item.videoId);
-    });
+        
+        log(`✅ Loaded ${subtitles.length} subtitles`, 'ok');
+    } catch (e) {
+        log(`❌ Error loading subtitles: ${e.message}`, 'err');
+    }
 }
 
 function copyYouTubeLink() {
     if (!currentGistItem && !currentVideoId) {
-        alert('Chọn video trước!');
+        alert('Select a video first!');
         return;
     }
     const vid = currentGistItem?.videoId || currentVideoId;
     if (!vid) return;
     const link = `https://youtu.be/${vid}`;
     navigator.clipboard.writeText(link).then(() => {
-        log(`📋 Đã copy link: ${link}`, 'ok');
-        alert('✅ Đã copy link YouTube!');
+        log(`📋 Copied link: ${link}`, 'ok');
+        alert('✅ YouTube link copied!');
     }).catch(() => {
         const textarea = document.createElement('textarea');
         textarea.value = link;
@@ -1127,20 +1516,18 @@ function copyYouTubeLink() {
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        alert('✅ Đã copy link YouTube!');
+        alert('✅ YouTube link copied!');
     });
 }
 
 async function checkAndLoadGist(vid) {
-    log(`🔍 Kiểm tra phụ đề cho ${vid}...`, 'info');
-    const token = localStorage.gist_token || document.getElementById('gistToken').value.trim();
-    const ghToken = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    const finalToken = token || ghToken;
-    if (!finalToken) return;
+    log(`🔍 Checking subtitles for ${vid}...`, 'info');
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    if (!token) return;
     
     try {
         const res = await fetch('https://api.github.com/gists?per_page=100', {
-            headers: { "Authorization": `token ${finalToken}` }
+            headers: { "Authorization": `token ${token}` }
         });
         if (res.ok) {
             const gists = await res.json();
@@ -1152,37 +1539,35 @@ async function checkAndLoadGist(vid) {
                     };
                     localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
                     await loadGistLibrary(true);
-                    document.getElementById('matched-sub-note').innerText = '✅ Phụ đề mới!';
-                    log('🎉 Phụ đề đã sẵn sàng!', 'ok');
-                    document.getElementById('status-text').innerHTML = `<span class="status-badge done">✅ Done</span>`;
+                    document.getElementById('matched-sub-note').innerText = '✅ New subtitle!';
+                    log('🎉 Subtitles ready!', 'ok');
+                    document.getElementById('status-text').innerHTML = '✅ Done';
                     return true;
                 }
             }
         }
-        log('⏳ Chưa thấy phụ đề, thử lại sau...', 'info');
+        log('⏳ No subtitles yet, retrying...', 'info');
         setTimeout(() => checkAndLoadGist(vid), 30000);
         return false;
     } catch (e) {
-        log('Lỗi kiểm tra: ' + e.message, 'err');
+        log('Error checking: ' + e.message, 'err');
         return false;
     }
 }
 
 async function renameCurrentVideo() {
-    if (!currentGistItem) { alert('Chọn phụ đề trước!'); return; }
-    let nt = prompt('Nhập tên mới:', currentGistItem.title);
+    if (!currentGistItem) { alert('Select subtitle first!'); return; }
+    let nt = prompt('Enter new name:', currentGistItem.title);
     if (!nt || !nt.trim()) return;
     nt = nt.trim();
     
-    const token = localStorage.gist_token || document.getElementById('gistToken').value.trim();
-    const ghToken = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    const finalToken = token || ghToken;
-    if (!finalToken) { alert('Cần Token!'); return; }
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    if (!token) { alert('Need Token!'); return; }
     let vid = currentGistItem.videoId;
     
     try {
         let res = await fetch('https://api.github.com/gists?per_page=100', {
-            headers: { "Authorization": `token ${finalToken}` }
+            headers: { "Authorization": `token ${token}` }
         });
         if (res.ok) {
             let gists = await res.json();
@@ -1190,7 +1575,7 @@ async function renameCurrentVideo() {
                 if (g.files && g.files[`${vid}.vtt`]) {
                     await fetch(`https://api.github.com/gists/${g.id}`, {
                         method: 'PATCH',
-                        headers: { "Authorization": `token ${finalToken}`, "Content-Type": "application/json" },
+                        headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
                         body: JSON.stringify({ description: `Pinyin AI Subtitle - ${nt}` })
                     });
                     break;
@@ -1207,19 +1592,17 @@ async function renameCurrentVideo() {
 }
 
 async function deleteCurrentVideo() {
-    if (!currentGistItem) { alert('Chọn phụ đề trước!'); return; }
+    if (!currentGistItem) { alert('Select subtitle first!'); return; }
     let vid = currentGistItem.videoId, title = currentGistItem.title;
-    if (!confirm(`Xóa "${title}"?`)) return;
+    if (!confirm(`Delete "${title}"?`)) return;
     
-    const token = localStorage.gist_token || document.getElementById('gistToken').value.trim();
-    const ghToken = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    const finalToken = token || ghToken;
-    if (!finalToken) { alert('Cần Token!'); return; }
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    if (!token) { alert('Need Token!'); return; }
     
     try {
         for (let page = 1; page <= 10; page++) {
             let res = await fetch(`https://api.github.com/gists?page=${page}&per_page=100`, {
-                headers: { "Authorization": `token ${finalToken}` }
+                headers: { "Authorization": `token ${token}` }
             });
             if (!res.ok) break;
             let gists = await res.json();
@@ -1228,7 +1611,7 @@ async function deleteCurrentVideo() {
                 if (g.files && g.files[`${vid}.vtt`]) {
                     await fetch(`https://api.github.com/gists/${g.id}`, {
                         method: 'DELETE',
-                        headers: { "Authorization": `token ${finalToken}` }
+                        headers: { "Authorization": `token ${token}` }
                     });
                     break;
                 }
@@ -1240,14 +1623,14 @@ async function deleteCurrentVideo() {
     localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
     currentGistItem = null;
     loadGistLibrary(false);
-    document.getElementById('subtitle-box').innerHTML = '<span style="color:var(--text-secondary)">Đã xóa</span>';
-    document.getElementById('matched-sub-note').innerText = `Đã xóa: ${title}`;
+    document.getElementById('subtitle-box').innerHTML = '<span style="color:var(--text-secondary)">Deleted</span>';
+    document.getElementById('matched-sub-note').innerText = `Deleted: ${title}`;
 }
 
 // ===== AUTO SAVE SETTINGS =====
 document.addEventListener('change', function(e) {
     if (e.target.id === 'ghUser' || e.target.id === 'ghRepo' || 
-        e.target.id === 'ghToken' || e.target.id === 'gistToken') {
+        e.target.id === 'ghToken') {
         setTimeout(saveSettings, 500);
     }
 });
