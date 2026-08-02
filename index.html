@@ -546,7 +546,7 @@
                     <div class="step"><span class="num">1</span><span class="text">Download audio from YouTube</span></div>
                     <div class="step"><span class="num">2</span><span class="text">Select file below</span></div>
                     <div class="step"><span class="num">3</span><span class="text">Press UPLOAD (may take 3-5 mins)</span></div>
-                    <div style="margin-top:6px;font-size:11px;color:var(--warning);">⚠️ Keep browser open during upload</div>
+                    <div style="margin-top:6px;font-size:11px;color:#ff9f0a;">⚠️ Keep browser open during upload</div>
                 </div>
                 
                 <div class="file-upload-area" id="drop-area" onclick="document.getElementById('file-input').click()">
@@ -675,8 +675,8 @@
     <!-- === SUBTITLE === -->
     <div id="subtitle-box"><span style="color:var(--text-secondary);font-size:14px">Select subtitle + Play, or enter new link...</span></div>
 
-    <!-- === SETTINGS GROUP === -->
-    <div class="settings-group" id="settings-group">
+    <!-- === SETTINGS GROUP (MẶC ĐỊNH ẨN) === -->
+    <div class="settings-group hidden" id="settings-group">
         <div class="card" id="settings-card">
             <label>⚙️ GITHUB SETTINGS</label>
             
@@ -703,8 +703,11 @@
         </div>
     </div>
 
-    <!-- === LOG === -->
-    <div class="card hideable" id="log-card"><label>📋 Progress Log</label><div id="logBox">🟢 Ready</div></div>
+    <!-- === LOG (MẶC ĐỊNH ẨN) === -->
+    <div class="card hideable hidden" id="log-card">
+        <label>📋 Progress Log</label>
+        <div id="logBox">🟢 Ready</div>
+    </div>
 </div>
 
 <script>
@@ -719,7 +722,7 @@ let isUploading = false;
 let currentVideoId = null;
 let pendingVideoId = null;
 let isHideMode = false;
-let isSettingsVisible = true;
+let isSettingsVisible = false;  // 👈 MẶC ĐỊNH ẨN
 let existingVideoData = null;
 let uploadMethod = 'direct';
 
