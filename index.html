@@ -39,19 +39,11 @@
         }
         .container { width: 100%; max-width: 540px; display: flex; flex-direction: column; gap: 14px; }
         
-        .hideable {
-            transition: all 0.3s ease;
-        }
-        .hideable.hidden {
-            display: none !important;
-        }
+        .hideable { transition: all 0.3s ease; }
+        .hideable.hidden { display: none !important; }
         
-        .settings-group {
-            transition: all 0.3s ease;
-        }
-        .settings-group.hidden {
-            display: none !important;
-        }
+        .settings-group { transition: all 0.3s ease; }
+        .settings-group.hidden { display: none !important; }
         
         .app-header { text-align: center; padding: 6px 0; }
         .app-header h3 { margin: 0; font-size: 17px; font-weight: 600; color: var(--text-main); }
@@ -591,7 +583,7 @@
                     </div>
                 </div>
                 
-                <!-- 👈 THÊM TRẠNG THÁI XỬ LÝ -->
+                <!-- 👈 HIỂN THỊ TRẠNG THÁI XỬ LÝ -->
                 <div class="processing-status" id="processing-status">
                     ⏳ <span class="highlight" id="processing-text">Đang xử lý...</span>
                 </div>
@@ -742,11 +734,31 @@ let pendingVideoId = null;
 let isHideMode = false;
 let isSettingsVisible = false;
 let existingVideoData = null;
-let uploadMethod = 'drive';  // 👈 MẶC ĐỊNH LÀ DRIVE
+let uploadMethod = 'drive';
 
-// 👈 BIẾN CHỐNG LẶP
+// 👈 BIẾN CHỐNG LẶP (CÓ LƯU LOCALSTORAGE)
 let processingQueue = {};
 let processedLinks = {};
+
+// ===== LOAD/SAVE STATE =====
+function saveProcessingState() {
+    try {
+        localStorage.setItem('pinyin_ai_queue', JSON.stringify(processingQueue));
+        localStorage.setItem('pinyin_ai_processed', JSON.stringify(processedLinks));
+    } catch (e) {}
+}
+
+function loadProcessingState() {
+    try {
+        const queue = localStorage.getItem('pinyin_ai_queue');
+        const processed = localStorage.getItem('pinyin_ai_processed');
+        if (queue) processingQueue = JSON.parse(queue);
+        if (processed) processedLinks = JSON.parse(processed);
+    } catch (e) {
+        processingQueue = {};
+        processedLinks = {};
+    }
+}
 
 // ===== KIỂM TRA TRÙNG LẶP =====
 function isVideoProcessing(videoId) {
@@ -759,13 +771,16 @@ function isVideoProcessed(videoId) {
 
 function markVideoProcessing(videoId) {
     processingQueue[videoId] = true;
+    saveProcessingState();
     document.getElementById('processing-status').style.display = 'block';
-    document.getElementById('processing-text').textContent = `Đang xử lý ${videoId}...`;
+    document.getElementById('processing-text').textContent = `⏳ Đang xử lý ${videoId}...`;
+    document.getElementById('processing-text').className = 'highlight';
 }
 
 function markVideoProcessed(videoId) {
     processingQueue[videoId] = false;
     processedLinks[videoId] = true;
+    saveProcessingState();
     document.getElementById('processing-status').style.display = 'block';
     document.getElementById('processing-text').textContent = `✅ ${videoId} đã xử lý xong!`;
     document.getElementById('processing-text').className = 'done-highlight';
@@ -773,8 +788,27 @@ function markVideoProcessed(videoId) {
 
 function clearVideoProcessing(videoId) {
     delete processingQueue[videoId];
+    saveProcessingState();
     document.getElementById('processing-status').style.display = 'none';
-    document.getElementById('processing-text').className = 'highlight';
+}
+
+// ===== CHECK PENDING KHI LOAD TRANG =====
+function checkPendingProcessing() {
+    const queue = processingQueue;
+    for (let vid in queue) {
+        if (queue[vid] === true) {
+            document.getElementById('processing-status').style.display = 'block';
+            document.getElementById('processing-text').textContent = `⏳ ${vid} đang xử lý (từ phiên trước)...`;
+            document.getElementById('processing-text').className = 'highlight';
+            
+            // Tiếp tục theo dõi
+            setTimeout(() => {
+                checkAndLoadGist(vid);
+                setTimeout(() => clearVideoProcessing(vid), 5000);
+            }, 30000);
+            break;
+        }
+    }
 }
 
 // ===== CẢNH BÁO KHI TẮT TRÌNH DUYỆT ĐANG UPLOAD =====
@@ -911,7 +945,7 @@ function extractDriveFileId(link) {
     return null;
 }
 
-// ===== PROCESS WITH DRIVE (CÓ CHỐNG LẶP) =====
+// ===== PROCESS WITH DRIVE (CÓ CHỐNG LẶP + LOCALSTORAGE) =====
 async function processWithDrive() {
     const driveLink = document.getElementById('drive-link').value.trim();
     const vid = pendingVideoId || currentVideoId;
@@ -961,11 +995,31 @@ async function processWithDrive() {
         return;
     }
     
-    // 👈 KIỂM TRA ĐÃ XỬ LÝ THÀNH CÔNG (NHƯNG CHƯA CÓ TRONG MAP)
+    // 👈 KIỂM TRA ĐÃ XỬ LÝ THÀNH CÔNG
     if (isVideoProcessed(vid)) {
         log(`✅ Video ${vid} đã được xử lý trước đó!`, 'ok');
-        loadGistLibrary(true);
+        // Tải lại thư viện
+        await loadGistLibrary(true);
         switchTab('library');
+        // Tự động chọn video
+        setTimeout(() => {
+            const select = document.getElementById('gist-select');
+            for (let i = 0; i < select.options.length; i++) {
+                const opt = select.options[i];
+                if (opt.value) {
+                    try {
+                        const item = JSON.parse(opt.value);
+                        if (item.videoId === vid) {
+                            select.selectedIndex = i;
+                            onGistSelected(opt.value);
+                            document.getElementById('matched-sub-note').innerHTML = `✅ <span class="highlight">Đã chọn: ${item.title}</span>`;
+                            loadVideoFromGist(item);
+                            break;
+                        }
+                    } catch(e) {}
+                }
+            }
+        }, 500);
         return;
     }
     
@@ -1015,13 +1069,17 @@ async function processWithDrive() {
             document.getElementById('drive-info').innerHTML = `<span class="status-badge done">✅ Đã gửi</span>`;
             document.getElementById('matched-sub-note').innerText = `⏳ Đang xử lý ${vid}...`;
             
-            // 👈 LƯU VÀO PROCESSED SAU KHI GỬI THÀNH CÔNG
+            // 👈 ĐÁNH DẤU ĐÃ XỬ LÝ THÀNH CÔNG
             markVideoProcessed(vid);
+            
+            // 👈 XÓA KHỎI QUEUE SAU 5 PHÚT
+            setTimeout(() => {
+                clearVideoProcessing(vid);
+            }, 300000);
             
             // Theo dõi kết quả
             setTimeout(() => {
                 checkAndLoadGist(vid);
-                setTimeout(() => clearVideoProcessing(vid), 5000);
             }, 30000);
             
             setTimeout(() => loadGistLibrary(true), 180000);
@@ -1080,6 +1138,8 @@ function goToExistingVideo() {
 // ===== INIT =====
 function onYouTubeIframeAPIReady() {
     loadSettings();
+    loadProcessingState();
+    checkPendingProcessing();
     loadGistLibrary(false);
 }
 
@@ -1258,7 +1318,6 @@ function extractAndGoToUpload() {
     document.getElementById('status-text').innerHTML = `🎯 ${vid}`;
     document.getElementById('yt-info').innerHTML = `<span class="status-badge done">✅ Got ID: ${vid}</span>`;
     
-    // 👈 CHUYỂN SANG UPLOAD VỚI TAB DRIVE MẶC ĐỊNH
     switchTab('upload');
     updateUploadTabWithVideoId();
     
@@ -1267,7 +1326,6 @@ function extractAndGoToUpload() {
     
     document.getElementById('pb-upload-text').innerHTML = `🎯 Ready for video: <strong style="color:var(--accent);">${vid}</strong>`;
     
-    // Focus vào ô nhập Drive link
     document.getElementById('drive-link').focus();
 }
 
@@ -1888,6 +1946,8 @@ document.addEventListener('change', function(e) {
 
 // ===== LOAD GIST ON START =====
 window.addEventListener('load', function() {
+    loadProcessingState();
+    checkPendingProcessing();
     setTimeout(() => loadGistLibrary(true), 1000);
 });
 </script>
