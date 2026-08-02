@@ -478,7 +478,6 @@
             display: none;
         }
         .saved-folder-info .folder-name { color: var(--green); font-weight: 600; }
-        .saved-folder-info .sync-status { font-size: 10px; color: var(--text-secondary); }
         
         .folder-select-area {
             margin-top: 8px;
@@ -494,6 +493,18 @@
             font-size: 13px;
             outline: none;
         }
+        
+        .api-key-warning {
+            background: rgba(255, 160, 0, 0.1);
+            border: 1px solid #ff9f0a;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: none;
+        }
+        .api-key-warning .highlight { color: #ff9f0a; }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
@@ -601,19 +612,25 @@
             <div id="upload-method-drive">
                 <div class="upload-guide" style="border-color:var(--blue);">
                     <div style="font-weight:600;color:var(--blue);margin-bottom:6px;">☁️ Google Drive Method</div>
-                    <div class="step"><span class="num" style="background:var(--blue);">1</span><span class="text">Upload audio to <strong style="color:var(--blue);">Google Drive</strong></span></div>
-                    <div class="step"><span class="num" style="background:var(--blue);">2</span><span class="text">Share folder/file with <strong style="color:var(--blue);">"Anyone with the link"</strong></span></div>
-                    <div class="step"><span class="num" style="background:var(--blue);">3</span><span class="text">Dán link <strong style="color:var(--blue);">FILE</strong> hoặc <strong style="color:var(--blue);">FOLDER</strong> bên dưới</span></div>
-                    <div class="step"><span class="num" style="background:var(--blue);">4</span><span class="text">Nếu dán link folder → bấm <strong style="color:var(--accent);">💾 Lưu folder</strong> để dùng lần sau</span></div>
-                    <div class="step"><span class="num" style="background:var(--blue);">5</span><span class="text">Bấm <strong style="color:var(--accent);">☁️ Process</strong> để xử lý</span></div>
+                    <div class="step"><span class="num" style="background:var(--blue);">1</span><span class="text">Upload audio to Google Drive</span></div>
+                    <div class="step"><span class="num" style="background:var(--blue);">2</span><span class="text">Share folder/file with <strong>"Anyone with the link"</strong></span></div>
+                    <div class="step"><span class="num" style="background:var(--blue);">3</span><span class="text">Paste <strong>FILE</strong> link directly, or</span></div>
+                    <div class="step"><span class="num" style="background:var(--blue);">4</span><span class="text">If you have <strong>Google API Key</strong> → paste <strong>FOLDER</strong> link to browse</span></div>
+                    <div class="step"><span class="num" style="background:var(--blue);">5</span><span class="text">Press <strong style="color:var(--accent);">☁️ Process</strong></span></div>
                     <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border-color);font-size:11px;color:var(--text-secondary);">
-                        💡 <strong>Link file:</strong> Xử lý ngay • <strong>Link folder:</strong> Lưu để dùng lần sau (đồng bộ đa trình duyệt)
+                        💡 <strong>Without API Key:</strong> Use file link only • <strong>With API Key:</strong> Browse folder
                     </div>
                 </div>
                 
-                <!-- 👈 PHẦN LINK FOLDER -->
-                <div style="margin-top:8px;">
-                    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">📁 Folder Link (lưu để dùng lần sau):</div>
+                <!-- 👈 CẢNH BÁO API KEY -->
+                <div class="api-key-warning" id="api-key-warning">
+                    ⚠️ <span class="highlight">Chưa có Google API Key</span> → Chỉ có thể nhập link file trực tiếp.<br>
+                    <span style="font-size:10px;">💡 Vào Settings (⚙) để thêm API Key nếu muốn duyệt folder.</span>
+                </div>
+                
+                <!-- 👈 PHẦN LINK FOLDER (CHỈ HIỆN KHI CÓ API KEY) -->
+                <div id="folder-section" style="display:none;margin-top:8px;">
+                    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">📁 Folder Link (API Key required):</div>
                     <div class="row">
                         <div class="input-wrap">
                             <input type="text" id="drive-folder-link" placeholder="Paste folder link..." oninput="onDriveFolderInput()">
@@ -628,13 +645,13 @@
                 <!-- 👈 FOLDER ĐÃ LƯU -->
                 <div class="saved-folder-info" id="saved-folder-info">
                     ✅ Folder: <span class="folder-name" id="saved-folder-id">---</span>
-                    <span class="sync-status" id="sync-status">(đồng bộ đa trình duyệt)</span>
+                    <span style="font-size:10px;color:var(--text-secondary);">(đã lưu)</span>
                     <button class="btn-sm" onclick="clearSavedFolder()" style="background:transparent;color:var(--accent);padding:2px 8px;font-size:10px;border:1px solid var(--accent);margin-left:8px;">
                         🗑️ Xóa
                     </button>
                 </div>
                 
-                <!-- 👈 FILE SELECT FROM FOLDER -->
+                <!-- 👈 FILE SELECT FROM FOLDER (CHỈ HIỆN KHI CÓ API KEY) -->
                 <div class="folder-select-area" id="file-from-folder">
                     <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">📂 Chọn file từ folder:</div>
                     <div class="row">
@@ -647,12 +664,12 @@
                     </div>
                 </div>
                 
-                <!-- 👈 PHẦN LINK FILE -->
+                <!-- 👈 PHẦN LINK FILE (LUÔN HIỆN) -->
                 <div style="margin-top:8px;">
-                    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">🔗 File Link (hoặc auto-fill từ folder):</div>
+                    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">🔗 File Link (direct):</div>
                     <div class="row">
                         <div class="input-wrap">
-                            <input type="text" id="drive-link" placeholder="Paste file link or auto-filled..." oninput="onDriveLinkInput()">
+                            <input type="text" id="drive-link" placeholder="Paste file link..." oninput="onDriveLinkInput()">
                             <button class="btn-clear-input" id="btn-clear-drive" onclick="clearDriveLink()" style="display:none;">×</button>
                         </div>
                         <button class="btn-accent" id="btn-drive-process" onclick="processWithDrive()" disabled style="width:100px;background:var(--blue);">
@@ -773,6 +790,15 @@
                 <input type="password" id="ghToken" placeholder="GitHub Token (repo + gist scope required)">
             </div>
             
+            <!-- 👈 Ô NHẬP GOOGLE API KEY -->
+            <div class="setting-item">
+                <label>Google API Key (for folder browsing)</label>
+                <input type="password" id="googleApiKey" placeholder="AIzaSy..." value="" oninput="onApiKeyChange()">
+                <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">
+                    💡 Thêm API Key để duyệt folder Drive. Để trống nếu chỉ dùng link file.
+                </div>
+            </div>
+            
             <button class="btn-sm" style="width:100%;background:var(--blue);color:white;padding:12px;margin-top:4px;" onclick="saveSettings()">💾 SAVE</button>
         </div>
 
@@ -803,6 +829,7 @@ let isHideMode = false;
 let isSettingsVisible = false;
 let existingVideoData = null;
 let uploadMethod = 'drive';
+let googleApiKey = '';
 
 // ===== BIẾN CHỐNG LẶP =====
 let processingQueue = {};
@@ -911,131 +938,50 @@ async function checkGitHubProcessingStatus(videoId) {
     }
 }
 
-// ===== DRIVE FOLDER MANAGEMENT (KẾT HỢP LOCAL + GITHUB) =====
-
-// Lưu folder vào cả localStorage và GitHub
-async function saveDriveFolderToGitHub(folderId, folderName) {
-    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    const user = localStorage.gh_user || document.getElementById('ghUser').value.trim() || 'PinyinCode';
-    const repo = localStorage.gh_repo || document.getElementById('ghRepo').value.trim() || 'subtitle-ai';
-    
-    if (!token) {
-        log('⚠️ Không có GH_TOKEN, chỉ lưu local', 'warning');
-        return;
-    }
-    
-    try {
-        // Lưu folder_id.txt
-        const contentId = btoa(folderId);
-        await fetch(`https://api.github.com/repos/${user}/${repo}/contents/.drive/folder_id.txt`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `token ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                message: `Save drive folder: ${folderName}`,
-                content: contentId,
-                branch: 'main'
-            })
-        });
-        
-        // Lưu folder_name.txt
-        const contentName = btoa(folderName);
-        await fetch(`https://api.github.com/repos/${user}/${repo}/contents/.drive/folder_name.txt`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `token ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                message: `Save drive folder name: ${folderName}`,
-                content: contentName,
-                branch: 'main'
-            })
-        });
-        
-        log(`✅ Đã đồng bộ folder lên GitHub: ${folderName}`, 'ok');
-        document.getElementById('sync-status').textContent = '(đã đồng bộ đa trình duyệt)';
-        document.getElementById('sync-status').style.color = 'var(--green)';
-    } catch (e) {
-        log(`⚠️ Không thể đồng bộ lên GitHub: ${e.message}`, 'warning');
-        document.getElementById('sync-status').textContent = '(chỉ lưu local)';
-        document.getElementById('sync-status').style.color = 'var(--warning)';
-    }
+// ===== API KEY HANDLING =====
+function onApiKeyChange() {
+    const key = document.getElementById('googleApiKey').value.trim();
+    // Chỉ cập nhật UI khi lưu, không tự động
 }
 
-// Đọc folder từ GitHub
-async function loadDriveFolderFromGitHub() {
-    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    const user = localStorage.gh_user || document.getElementById('ghUser').value.trim() || 'PinyinCode';
-    const repo = localStorage.gh_repo || document.getElementById('ghRepo').value.trim() || 'subtitle-ai';
+function updateDriveUI(hasApiKey) {
+    const folderSection = document.getElementById('folder-section');
+    const fileFromFolder = document.getElementById('file-from-folder');
+    const warning = document.getElementById('api-key-warning');
     
-    if (!token) return null;
-    
-    try {
-        // Đọc folder_id.txt
-        const response = await fetch(
-            `https://api.github.com/repos/${user}/${repo}/contents/.drive/folder_id.txt`,
-            { headers: { 'Authorization': `token ${token}` } }
-        );
-        
-        if (response.ok) {
-            const data = await response.json();
-            const folderId = atob(data.content).trim();
-            
-            // Đọc folder_name.txt
-            const nameRes = await fetch(
-                `https://api.github.com/repos/${user}/${repo}/contents/.drive/folder_name.txt`,
-                { headers: { 'Authorization': `token ${token}` } }
-            );
-            let folderName = folderId;
-            if (nameRes.ok) {
-                const nameData = await nameRes.json();
-                folderName = atob(nameData.content).trim();
-            }
-            
-            return { id: folderId, name: folderName };
+    if (hasApiKey) {
+        folderSection.style.display = 'block';
+        warning.style.display = 'none';
+        // Hiển thị folder đã lưu nếu có
+        const savedFolderId = localStorage.getItem('drive_folder_id');
+        if (savedFolderId) {
+            document.getElementById('saved-folder-info').style.display = 'block';
+            document.getElementById('saved-folder-id').textContent = localStorage.getItem('drive_folder_name') || savedFolderId;
+            document.getElementById('file-from-folder').style.display = 'block';
+            loadFilesFromFolder();
         }
-    } catch (e) {
-        console.error('Error loading folder from GitHub:', e);
+    } else {
+        folderSection.style.display = 'none';
+        fileFromFolder.style.display = 'none';
+        document.getElementById('saved-folder-info').style.display = 'none';
+        warning.style.display = 'block';
     }
-    return null;
 }
 
-// Hiển thị folder
-function showSavedFolder(folderId, folderName) {
-    if (folderId) {
+// ===== DRIVE FOLDER MANAGEMENT =====
+function showSavedFolder() {
+    const savedFolderId = localStorage.getItem('drive_folder_id') || '';
+    const savedFolderName = localStorage.getItem('drive_folder_name') || '';
+    const hasApiKey = !!localStorage.google_api_key;
+    
+    if (savedFolderId && hasApiKey) {
         document.getElementById('saved-folder-info').style.display = 'block';
-        document.getElementById('saved-folder-id').textContent = folderName || folderId;
+        document.getElementById('saved-folder-id').textContent = savedFolderName || savedFolderId;
         document.getElementById('file-from-folder').style.display = 'block';
-        document.getElementById('sync-status').textContent = '(đồng bộ đa trình duyệt)';
-        document.getElementById('sync-status').style.color = 'var(--green)';
         loadFilesFromFolder();
     } else {
         document.getElementById('saved-folder-info').style.display = 'none';
         document.getElementById('file-from-folder').style.display = 'none';
-    }
-}
-
-// Khởi tạo folder
-async function initDriveFolder() {
-    // 1. Thử đọc từ localStorage trước
-    let savedFolderId = localStorage.getItem('drive_folder_id');
-    let savedFolderName = localStorage.getItem('drive_folder_name');
-    
-    if (savedFolderId) {
-        showSavedFolder(savedFolderId, savedFolderName);
-        return;
-    }
-    
-    // 2. Nếu không có local, đọc từ GitHub
-    const githubFolder = await loadDriveFolderFromGitHub();
-    if (githubFolder) {
-        localStorage.setItem('drive_folder_id', githubFolder.id);
-        localStorage.setItem('drive_folder_name', githubFolder.name);
-        showSavedFolder(githubFolder.id, githubFolder.name);
-        log(`📂 Đã tải folder từ GitHub: ${githubFolder.name}`, 'ok');
     }
 }
 
@@ -1068,8 +1014,7 @@ function extractDriveFolderId(link) {
     return null;
 }
 
-// Lưu folder (local + GitHub)
-async function saveDriveFolder() {
+function saveDriveFolder() {
     const folderLink = document.getElementById('drive-folder-link').value.trim();
     if (!folderLink) {
         alert('Vui lòng dán link Google Drive folder!');
@@ -1083,13 +1028,8 @@ async function saveDriveFolder() {
     }
     
     let folderName = folderLink.match(/\/folders\/([^\/]+)/)?.[1] || folderId;
-    
-    // Lưu local
     localStorage.setItem('drive_folder_id', folderId);
     localStorage.setItem('drive_folder_name', folderName);
-    
-    // Lưu GitHub
-    await saveDriveFolderToGitHub(folderId, folderName);
     
     document.getElementById('saved-folder-info').style.display = 'block';
     document.getElementById('saved-folder-id').textContent = folderName;
@@ -1098,52 +1038,17 @@ async function saveDriveFolder() {
     document.getElementById('file-from-folder').style.display = 'block';
     
     log(`✅ Đã lưu Folder Drive: ${folderName}`, 'ok');
-    alert(`✅ Đã lưu Folder Drive thành công!\n📁 Folder: ${folderName}\n\n✅ Đã đồng bộ đa trình duyệt.`);
+    alert(`✅ Đã lưu Folder Drive thành công!\n📁 Folder: ${folderName}`);
     loadFilesFromFolder();
 }
 
-// Xóa folder (local + GitHub)
-async function clearSavedFolder() {
+function clearSavedFolder() {
     const savedFolderId = localStorage.getItem('drive_folder_id');
     if (!savedFolderId) return;
     if (!confirm('Xóa folder Drive đã lưu?')) return;
     
     localStorage.removeItem('drive_folder_id');
     localStorage.removeItem('drive_folder_name');
-    
-    // Xóa trên GitHub
-    try {
-        const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-        const user = localStorage.gh_user || document.getElementById('ghUser').value.trim() || 'PinyinCode';
-        const repo = localStorage.gh_repo || document.getElementById('ghRepo').value.trim() || 'subtitle-ai';
-        
-        if (token) {
-            // Xóa folder_id.txt
-            await fetch(`https://api.github.com/repos/${user}/${repo}/contents/.drive/folder_id.txt`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `token ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: 'Delete drive folder',
-                    branch: 'main'
-                })
-            });
-            // Xóa folder_name.txt
-            await fetch(`https://api.github.com/repos/${user}/${repo}/contents/.drive/folder_name.txt`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `token ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: 'Delete drive folder name',
-                    branch: 'main'
-                })
-            });
-        }
-    } catch (e) {}
     
     document.getElementById('saved-folder-info').style.display = 'none';
     document.getElementById('file-from-folder').style.display = 'none';
@@ -1153,16 +1058,22 @@ async function clearSavedFolder() {
     alert('🗑️ Đã xóa folder Drive đã lưu!');
 }
 
-// ===== LOAD FILES FROM FOLDER =====
+// ===== LOAD FILES FROM FOLDER (DÙNG API KEY) =====
 async function loadFilesFromFolder() {
     const folderId = localStorage.getItem('drive_folder_id');
     if (!folderId) return;
+    
+    const apiKey = localStorage.google_api_key || '';
+    if (!apiKey) {
+        log('⚠️ Không có API Key để duyệt folder', 'warning');
+        return;
+    }
     
     const select = document.getElementById('folder-file-select');
     select.innerHTML = '<option value="">⏳ Đang tải...</option>';
     
     try {
-        const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=AIzaSyB6vGzM_sW3dLrBDBB0qExgDZtBZkKl6ZE&fields=files(id,name,mimeType,size)`;
+        const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=${apiKey}&fields=files(id,name,mimeType,size)`;
         const response = await fetch(url);
         
         if (response.ok) {
@@ -1200,6 +1111,11 @@ function refreshFolderFiles() {
     const folderId = localStorage.getItem('drive_folder_id');
     if (!folderId) {
         alert('Chưa có folder nào được lưu!');
+        return;
+    }
+    const apiKey = localStorage.google_api_key || '';
+    if (!apiKey) {
+        alert('⚠️ Vui lòng thêm Google API Key trong Settings!');
         return;
     }
     loadFilesFromFolder();
@@ -1567,13 +1483,21 @@ function onYouTubeIframeAPIReady() {
     loadProcessingState();
     checkPendingProcessing();
     loadGistLibrary(false);
-    initDriveFolder();
+    
+    // Kiểm tra API Key
+    const apiKey = localStorage.google_api_key || '';
+    updateDriveUI(!!apiKey);
+    if (apiKey) {
+        showSavedFolder();
+    }
 }
 
 function loadSettings() {
     document.getElementById('ghUser').value = localStorage.gh_user || 'PinyinCode';
     document.getElementById('ghRepo').value = localStorage.gh_repo || 'subtitle-ai';
     document.getElementById('ghToken').value = localStorage.gh_token || '';
+    document.getElementById('googleApiKey').value = localStorage.google_api_key || '';
+    googleApiKey = localStorage.google_api_key || '';
     gh_cloud_map = JSON.parse(localStorage.getItem('gh_cloud_map') || '{}');
 }
 
@@ -1581,9 +1505,18 @@ function saveSettings() {
     localStorage.gh_user = document.getElementById('ghUser').value.trim();
     localStorage.gh_repo = document.getElementById('ghRepo').value.trim();
     localStorage.gh_token = document.getElementById('ghToken').value.trim();
+    localStorage.google_api_key = document.getElementById('googleApiKey').value.trim();
+    googleApiKey = localStorage.google_api_key || '';
     localStorage.removeItem('gh_last_scan');
     localStorage.removeItem('gh_cloud_map');
     gh_cloud_map = {};
+    
+    // Cập nhật UI dựa trên API Key
+    updateDriveUI(!!googleApiKey);
+    if (googleApiKey) {
+        showSavedFolder();
+    }
+    
     log('✅ Settings saved!', 'ok');
     loadGistLibrary(true);
 }
@@ -2329,7 +2262,7 @@ async function deleteCurrentVideo() {
 // ===== AUTO SAVE SETTINGS =====
 document.addEventListener('change', function(e) {
     if (e.target.id === 'ghUser' || e.target.id === 'ghRepo' || 
-        e.target.id === 'ghToken') {
+        e.target.id === 'ghToken' || e.target.id === 'googleApiKey') {
         setTimeout(saveSettings, 500);
     }
 });
