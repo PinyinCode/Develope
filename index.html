@@ -460,6 +460,19 @@
             display: none;
         }
         .drive-info-box .highlight { color: var(--blue); }
+        
+        .processing-status {
+            background: rgba(255, 160, 0, 0.1);
+            border: 1px solid #ff9f0a;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: none;
+        }
+        .processing-status .highlight { color: #ff9f0a; }
+        .processing-status .done-highlight { color: var(--green); }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
@@ -533,14 +546,14 @@
                 <span style="font-size:10px;color:var(--text-secondary);margin-left:8px;">(from YouTube link)</span>
             </div>
             
-            <!-- Method Toggle -->
+            <!-- Method Toggle - MẶC ĐỊNH CHỌN DRIVE -->
             <div class="method-toggle">
-                <button class="btn-sm active" onclick="switchUploadMethod('direct')" id="method-direct-btn">📤 Direct</button>
-                <button class="btn-sm" onclick="switchUploadMethod('drive')" id="method-drive-btn">☁️ Google Drive</button>
+                <button class="btn-sm" onclick="switchUploadMethod('direct')" id="method-direct-btn">📤 Direct</button>
+                <button class="btn-sm active" onclick="switchUploadMethod('drive')" id="method-drive-btn">☁️ Google Drive</button>
             </div>
             
             <!-- === METHOD 1: DIRECT UPLOAD === -->
-            <div id="upload-method-direct">
+            <div id="upload-method-direct" style="display:none;">
                 <div class="upload-guide">
                     <div style="font-weight:600;color:var(--text-main);margin-bottom:6px;">📋 Direct Upload:</div>
                     <div class="step"><span class="num">1</span><span class="text">Download audio from YouTube</span></div>
@@ -563,8 +576,8 @@
                 </button>
             </div>
             
-            <!-- === METHOD 2: GOOGLE DRIVE === -->
-            <div id="upload-method-drive" style="display:none;">
+            <!-- === METHOD 2: GOOGLE DRIVE (MẶC ĐỊNH HIỆN) === -->
+            <div id="upload-method-drive">
                 <div class="upload-guide" style="border-color:var(--blue);">
                     <div style="font-weight:600;color:var(--blue);margin-bottom:6px;">☁️ Google Drive Method</div>
                     <div class="step"><span class="num" style="background:var(--blue);">1</span><span class="text">Download audio from YouTube</span></div>
@@ -576,6 +589,11 @@
                         ✅ GitHub will download from Drive automatically (3-5 mins)<br>
                         ✅ You can close browser after pasting link
                     </div>
+                </div>
+                
+                <!-- 👈 THÊM TRẠNG THÁI XỬ LÝ -->
+                <div class="processing-status" id="processing-status">
+                    ⏳ <span class="highlight" id="processing-text">Đang xử lý...</span>
                 </div>
                 
                 <div class="row" style="margin-top:8px;">
@@ -722,9 +740,42 @@ let isUploading = false;
 let currentVideoId = null;
 let pendingVideoId = null;
 let isHideMode = false;
-let isSettingsVisible = false;  // 👈 MẶC ĐỊNH ẨN
+let isSettingsVisible = false;
 let existingVideoData = null;
-let uploadMethod = 'direct';
+let uploadMethod = 'drive';  // 👈 MẶC ĐỊNH LÀ DRIVE
+
+// 👈 BIẾN CHỐNG LẶP
+let processingQueue = {};
+let processedLinks = {};
+
+// ===== KIỂM TRA TRÙNG LẶP =====
+function isVideoProcessing(videoId) {
+    return processingQueue[videoId] === true;
+}
+
+function isVideoProcessed(videoId) {
+    return processedLinks[videoId] === true;
+}
+
+function markVideoProcessing(videoId) {
+    processingQueue[videoId] = true;
+    document.getElementById('processing-status').style.display = 'block';
+    document.getElementById('processing-text').textContent = `Đang xử lý ${videoId}...`;
+}
+
+function markVideoProcessed(videoId) {
+    processingQueue[videoId] = false;
+    processedLinks[videoId] = true;
+    document.getElementById('processing-status').style.display = 'block';
+    document.getElementById('processing-text').textContent = `✅ ${videoId} đã xử lý xong!`;
+    document.getElementById('processing-text').className = 'done-highlight';
+}
+
+function clearVideoProcessing(videoId) {
+    delete processingQueue[videoId];
+    document.getElementById('processing-status').style.display = 'none';
+    document.getElementById('processing-text').className = 'highlight';
+}
 
 // ===== CẢNH BÁO KHI TẮT TRÌNH DUYỆT ĐANG UPLOAD =====
 window.addEventListener('beforeunload', function (e) {
@@ -815,6 +866,10 @@ function onDriveLinkInput() {
     const fileId = extractDriveFileId(val);
     const infoBox = document.getElementById('drive-info-box');
     const info = document.getElementById('drive-info');
+    const status = document.getElementById('processing-status');
+    
+    // Ẩn status khi nhập link mới
+    status.style.display = 'none';
     
     if (fileId) {
         document.getElementById('btn-drive-process').disabled = false;
@@ -839,6 +894,7 @@ function clearDriveLink() {
     document.getElementById('btn-drive-process').disabled = true;
     document.getElementById('drive-info-box').style.display = 'none';
     document.getElementById('drive-info').innerHTML = '';
+    document.getElementById('processing-status').style.display = 'none';
 }
 
 function extractDriveFileId(link) {
@@ -855,7 +911,7 @@ function extractDriveFileId(link) {
     return null;
 }
 
-// ===== PROCESS WITH DRIVE =====
+// ===== PROCESS WITH DRIVE (CÓ CHỐNG LẶP) =====
 async function processWithDrive() {
     const driveLink = document.getElementById('drive-link').value.trim();
     const vid = pendingVideoId || currentVideoId;
@@ -871,6 +927,48 @@ async function processWithDrive() {
         return;
     }
     
+    // 👈 KIỂM TRA VIDEO ĐÃ TỒN TẠI TRONG KHO
+    const existing = checkVideoExists(vid);
+    if (existing) {
+        log(`✅ Video ${vid} đã có trong kho!`, 'ok');
+        alert(`✅ Video ${vid} đã có trong kho!\n\nTiêu đề: ${existing.title}\nChuyển đến Library để xem.`);
+        switchTab('library');
+        setTimeout(() => {
+            const select = document.getElementById('gist-select');
+            for (let i = 0; i < select.options.length; i++) {
+                const opt = select.options[i];
+                if (opt.value) {
+                    try {
+                        const item = JSON.parse(opt.value);
+                        if (item.videoId === vid) {
+                            select.selectedIndex = i;
+                            onGistSelected(opt.value);
+                            document.getElementById('matched-sub-note').innerHTML = `✅ <span class="highlight">Đã chọn: ${item.title}</span>`;
+                            loadVideoFromGist(item);
+                            break;
+                        }
+                    } catch(e) {}
+                }
+            }
+        }, 500);
+        return;
+    }
+    
+    // 👈 KIỂM TRA ĐANG XỬ LÝ
+    if (isVideoProcessing(vid)) {
+        log(`⏳ Video ${vid} đang được xử lý! Vui lòng đợi.`, 'warning');
+        alert(`⏳ Video ${vid} đang được xử lý!\nVui lòng đợi 3-5 phút rồi kiểm tra Library.`);
+        return;
+    }
+    
+    // 👈 KIỂM TRA ĐÃ XỬ LÝ THÀNH CÔNG (NHƯNG CHƯA CÓ TRONG MAP)
+    if (isVideoProcessed(vid)) {
+        log(`✅ Video ${vid} đã được xử lý trước đó!`, 'ok');
+        loadGistLibrary(true);
+        switchTab('library');
+        return;
+    }
+    
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
     const user = localStorage.gh_user || document.getElementById('ghUser').value.trim() || 'PinyinCode';
     const repo = localStorage.gh_repo || document.getElementById('ghRepo').value.trim() || 'subtitle-ai';
@@ -880,14 +978,18 @@ async function processWithDrive() {
         return;
     }
     
+    // 👈 ĐÁNH DẤU ĐANG XỬ LÝ
+    markVideoProcessing(vid);
+    
     const btn = document.getElementById('btn-drive-process');
+    const originalText = btn.textContent;
     btn.textContent = '⏳ Processing...';
     btn.disabled = true;
     
     log(`☁️ Processing with Google Drive: ${fileId}`, 'info');
     progUpload(10, 'Sending to GitHub...');
     document.getElementById('status-text').innerHTML = '☁️ Processing';
-    document.getElementById('drive-info').innerHTML = `<span class="status-badge processing">⏳ Sending to GitHub...</span>`;
+    document.getElementById('drive-info').innerHTML = `<span class="status-badge processing">⏳ Đang xử lý...</span>`;
     
     try {
         const response = await fetch(`https://api.github.com/repos/${user}/${repo}/dispatches`, {
@@ -910,24 +1012,37 @@ async function processWithDrive() {
             log(`✅ Drive link sent! GitHub will download and process`, 'ok');
             progUpload(100, '✅ Processing started!');
             document.getElementById('status-text').innerHTML = '✅ Done';
-            document.getElementById('drive-info').innerHTML = `<span class="status-badge done">✅ Sent to GitHub</span>`;
-            document.getElementById('matched-sub-note').innerText = `⏳ GitHub downloading from Drive...`;
+            document.getElementById('drive-info').innerHTML = `<span class="status-badge done">✅ Đã gửi</span>`;
+            document.getElementById('matched-sub-note').innerText = `⏳ Đang xử lý ${vid}...`;
             
-            setTimeout(() => checkAndLoadGist(vid), 30000);
+            // 👈 LƯU VÀO PROCESSED SAU KHI GỬI THÀNH CÔNG
+            markVideoProcessed(vid);
+            
+            // Theo dõi kết quả
+            setTimeout(() => {
+                checkAndLoadGist(vid);
+                setTimeout(() => clearVideoProcessing(vid), 5000);
+            }, 30000);
+            
             setTimeout(() => loadGistLibrary(true), 180000);
+            
+            alert(`✅ Đã gửi yêu cầu xử lý video!\n\n⏳ Quá trình mất 3-5 phút.\n📝 Phụ đề sẽ tự động xuất hiện trong Library.`);
+            
         } else {
             const err = await response.json();
             log(`❌ Failed: ${err.message || response.status}`, 'err');
             progUpload(0, 'Failed');
-            document.getElementById('drive-info').innerHTML = `<span class="status-badge error">❌ Failed</span>`;
+            document.getElementById('drive-info').innerHTML = `<span class="status-badge error">❌ Lỗi</span>`;
+            clearVideoProcessing(vid);
         }
     } catch (e) {
         log(`❌ Error: ${e.message}`, 'err');
         progUpload(0, 'Error');
-        document.getElementById('drive-info').innerHTML = `<span class="status-badge error">❌ Error</span>`;
+        document.getElementById('drive-info').innerHTML = `<span class="status-badge error">❌ Lỗi</span>`;
+        clearVideoProcessing(vid);
     }
     
-    btn.textContent = '☁️ Process';
+    btn.textContent = originalText;
     btn.disabled = false;
 }
 
@@ -1143,13 +1258,17 @@ function extractAndGoToUpload() {
     document.getElementById('status-text').innerHTML = `🎯 ${vid}`;
     document.getElementById('yt-info').innerHTML = `<span class="status-badge done">✅ Got ID: ${vid}</span>`;
     
+    // 👈 CHUYỂN SANG UPLOAD VỚI TAB DRIVE MẶC ĐỊNH
     switchTab('upload');
     updateUploadTabWithVideoId();
     
-    log(`📤 Select method to upload audio for AI processing`, 'info');
-    log(`💡 Use Google Drive for long videos (can close browser)`, 'warning');
+    log(`📤 Paste Google Drive link and press Process`, 'info');
+    log(`💡 You can close browser after clicking Process`, 'info');
     
     document.getElementById('pb-upload-text').innerHTML = `🎯 Ready for video: <strong style="color:var(--accent);">${vid}</strong>`;
+    
+    // Focus vào ô nhập Drive link
+    document.getElementById('drive-link').focus();
 }
 
 function getYouTubeLink(videoId) {
