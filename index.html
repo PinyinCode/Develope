@@ -465,6 +465,7 @@
         }
         .processing-status .highlight { color: #ff9f0a; }
         .processing-status .done-highlight { color: var(--green); }
+        .processing-status .warning-highlight { color: var(--accent); }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
@@ -538,7 +539,7 @@
                 <span style="font-size:10px;color:var(--text-secondary);margin-left:8px;">(from YouTube link)</span>
             </div>
             
-            <!-- Method Toggle - MẶC ĐỊNH CHỌN DRIVE -->
+            <!-- Method Toggle -->
             <div class="method-toggle">
                 <button class="btn-sm" onclick="switchUploadMethod('direct')" id="method-direct-btn">📤 Direct</button>
                 <button class="btn-sm active" onclick="switchUploadMethod('drive')" id="method-drive-btn">☁️ Google Drive</button>
@@ -568,7 +569,7 @@
                 </button>
             </div>
             
-            <!-- === METHOD 2: GOOGLE DRIVE (MẶC ĐỊNH HIỆN) === -->
+            <!-- === METHOD 2: GOOGLE DRIVE === -->
             <div id="upload-method-drive">
                 <div class="upload-guide" style="border-color:var(--blue);">
                     <div style="font-weight:600;color:var(--blue);margin-bottom:6px;">☁️ Google Drive Method</div>
@@ -583,7 +584,7 @@
                     </div>
                 </div>
                 
-                <!-- 👈 HIỂN THỊ TRẠNG THÁI XỬ LÝ -->
+                <!-- TRẠNG THÁI XỬ LÝ -->
                 <div class="processing-status" id="processing-status">
                     ⏳ <span class="highlight" id="processing-text">Đang xử lý...</span>
                 </div>
@@ -736,11 +737,11 @@ let isSettingsVisible = false;
 let existingVideoData = null;
 let uploadMethod = 'drive';
 
-// 👈 BIẾN CHỐNG LẶP (CÓ LƯU LOCALSTORAGE)
+// ===== BIẾN CHỐNG LẶP (LOCAL) =====
 let processingQueue = {};
 let processedLinks = {};
 
-// ===== LOAD/SAVE STATE =====
+// ===== LOAD/SAVE LOCAL STATE =====
 function saveProcessingState() {
     try {
         localStorage.setItem('pinyin_ai_queue', JSON.stringify(processingQueue));
@@ -760,7 +761,7 @@ function loadProcessingState() {
     }
 }
 
-// ===== KIỂM TRA TRÙNG LẶP =====
+// ===== KIỂM TRA LOCAL =====
 function isVideoProcessing(videoId) {
     return processingQueue[videoId] === true;
 }
@@ -792,7 +793,7 @@ function clearVideoProcessing(videoId) {
     document.getElementById('processing-status').style.display = 'none';
 }
 
-// ===== CHECK PENDING KHI LOAD TRANG =====
+// ===== CHECK PENDING LOCAL =====
 function checkPendingProcessing() {
     const queue = processingQueue;
     for (let vid in queue) {
@@ -800,8 +801,6 @@ function checkPendingProcessing() {
             document.getElementById('processing-status').style.display = 'block';
             document.getElementById('processing-text').textContent = `⏳ ${vid} đang xử lý (từ phiên trước)...`;
             document.getElementById('processing-text').className = 'highlight';
-            
-            // Tiếp tục theo dõi
             setTimeout(() => {
                 checkAndLoadGist(vid);
                 setTimeout(() => clearVideoProcessing(vid), 5000);
@@ -811,7 +810,41 @@ function checkPendingProcessing() {
     }
 }
 
-// ===== CẢNH BÁO KHI TẮT TRÌNH DUYỆT ĐANG UPLOAD =====
+// ===== KIỂM TRA TRẠNG THÁI TỪ GITHUB =====
+async function checkGitHubProcessingStatus(videoId) {
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    const user = localStorage.gh_user || document.getElementById('ghUser').value.trim() || 'PinyinCode';
+    const repo = localStorage.gh_repo || document.getElementById('ghRepo').value.trim() || 'subtitle-ai';
+    
+    if (!token) return null;
+    
+    try {
+        const response = await fetch(
+            `https://api.github.com/repos/${user}/${repo}/contents/.processing/${videoId}.lock`,
+            {
+                headers: { 
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            }
+        );
+        
+        if (response.ok) {
+            const data = await response.json();
+            const content = atob(data.content);
+            return { status: 'processing', message: content };
+        } else if (response.status === 404) {
+            return { status: 'idle', message: 'Sẵn sàng xử lý' };
+        } else {
+            return null;
+        }
+    } catch (e) {
+        console.error('Error checking status:', e);
+        return null;
+    }
+}
+
+// ===== CẢNH BÁO KHI TẮT TRÌNH DUYỆT =====
 window.addEventListener('beforeunload', function (e) {
     if (isUploading) {
         e.preventDefault();
@@ -902,7 +935,6 @@ function onDriveLinkInput() {
     const info = document.getElementById('drive-info');
     const status = document.getElementById('processing-status');
     
-    // Ẩn status khi nhập link mới
     status.style.display = 'none';
     
     if (fileId) {
@@ -945,7 +977,7 @@ function extractDriveFileId(link) {
     return null;
 }
 
-// ===== PROCESS WITH DRIVE (CÓ CHỐNG LẶP + LOCALSTORAGE) =====
+// ===== PROCESS WITH DRIVE (CÓ CHỐNG LẶP ĐA TRÌNH DUYỆT) =====
 async function processWithDrive() {
     const driveLink = document.getElementById('drive-link').value.trim();
     const vid = pendingVideoId || currentVideoId;
@@ -988,20 +1020,18 @@ async function processWithDrive() {
         return;
     }
     
-    // 👈 KIỂM TRA ĐANG XỬ LÝ
+    // 👈 KIỂM TRA ĐANG XỬ LÝ (LOCAL)
     if (isVideoProcessing(vid)) {
-        log(`⏳ Video ${vid} đang được xử lý! Vui lòng đợi.`, 'warning');
-        alert(`⏳ Video ${vid} đang được xử lý!\nVui lòng đợi 3-5 phút rồi kiểm tra Library.`);
+        log(`⏳ Video ${vid} đang được xử lý ở trình duyệt này!`, 'warning');
+        alert(`⏳ Video ${vid} đang được xử lý!\nVui lòng đợi.`);
         return;
     }
     
-    // 👈 KIỂM TRA ĐÃ XỬ LÝ THÀNH CÔNG
+    // 👈 KIỂM TRA ĐÃ XỬ LÝ (LOCAL)
     if (isVideoProcessed(vid)) {
         log(`✅ Video ${vid} đã được xử lý trước đó!`, 'ok');
-        // Tải lại thư viện
         await loadGistLibrary(true);
         switchTab('library');
-        // Tự động chọn video
         setTimeout(() => {
             const select = document.getElementById('gist-select');
             for (let i = 0; i < select.options.length; i++) {
@@ -1023,6 +1053,18 @@ async function processWithDrive() {
         return;
     }
     
+    // 👈 KIỂM TRA TRẠNG THÁI TỪ GITHUB (đa trình duyệt)
+    const githubStatus = await checkGitHubProcessingStatus(vid);
+    
+    if (githubStatus && githubStatus.status === 'processing') {
+        log(`⏳ Video ${vid} đang được xử lý trên GitHub!`, 'warning');
+        document.getElementById('processing-status').style.display = 'block';
+        document.getElementById('processing-text').textContent = `⏳ ${vid} đang xử lý từ trình duyệt khác`;
+        document.getElementById('processing-text').className = 'warning-highlight';
+        alert(`⏳ Video ${vid} đang được xử lý trên GitHub!\n\nThời gian bắt đầu: ${githubStatus.message}\nVui lòng đợi 3-5 phút.`);
+        return;
+    }
+    
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
     const user = localStorage.gh_user || document.getElementById('ghUser').value.trim() || 'PinyinCode';
     const repo = localStorage.gh_repo || document.getElementById('ghRepo').value.trim() || 'subtitle-ai';
@@ -1032,7 +1074,7 @@ async function processWithDrive() {
         return;
     }
     
-    // 👈 ĐÁNH DẤU ĐANG XỬ LÝ
+    // 👈 ĐÁNH DẤU LOCAL + GITHUB
     markVideoProcessing(vid);
     
     const btn = document.getElementById('btn-drive-process');
@@ -1069,15 +1111,12 @@ async function processWithDrive() {
             document.getElementById('drive-info').innerHTML = `<span class="status-badge done">✅ Đã gửi</span>`;
             document.getElementById('matched-sub-note').innerText = `⏳ Đang xử lý ${vid}...`;
             
-            // 👈 ĐÁNH DẤU ĐÃ XỬ LÝ THÀNH CÔNG
             markVideoProcessed(vid);
             
-            // 👈 XÓA KHỎI QUEUE SAU 5 PHÚT
             setTimeout(() => {
                 clearVideoProcessing(vid);
             }, 300000);
             
-            // Theo dõi kết quả
             setTimeout(() => {
                 checkAndLoadGist(vid);
             }, 30000);
