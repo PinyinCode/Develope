@@ -570,6 +570,8 @@
             padding: 6px 0;
             border-bottom: 1px solid var(--border-color);
             margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 6px;
         }
         .workflow-header .title {
             font-size: 11px;
@@ -578,6 +580,10 @@
         }
         .workflow-header .status {
             font-size: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
         }
         .workflow-status-badge {
             display: inline-block;
@@ -612,11 +618,26 @@
             border-radius: 2px;
         }
 
-        /* ===== AUTO-RESET COUNTER ===== */
         .reset-timer {
             font-size: 10px;
             color: var(--text-secondary);
-            margin-left: 8px;
+            margin-left: 4px;
+        }
+        .btn-reset-workflow {
+            background: var(--accent);
+            color: white;
+            padding: 2px 10px;
+            font-size: 10px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-reset-workflow:hover {
+            opacity: 0.8;
+        }
+        .btn-reset-workflow:active {
+            transform: scale(0.95);
         }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -735,13 +756,13 @@
                     </div>
                 </div>
                 
-                <!-- 👈 API KEY WARNING -->
+                <!-- API KEY WARNING -->
                 <div class="api-key-warning" id="api-key-warning">
                     ⚠️ <span class="highlight">Chưa có Google API Key</span> → Chỉ hỗ trợ link file trực tiếp.<br>
                     <span style="font-size:10px;">💡 Vào Settings (⚙) để thêm API Key nếu muốn duyệt folder.</span>
                 </div>
                 
-                <!-- 👈 Ô NHẬP THÔNG MINH DUY NHẤT -->
+                <!-- Ô NHẬP THÔNG MINH -->
                 <div style="margin-top:8px;">
                     <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">🔗 Drive Link (file or folder):</div>
                     <div class="row">
@@ -755,7 +776,7 @@
                     </div>
                 </div>
                 
-                <!-- 👈 KHU VỰC FOLDER (HIỆN KHI PHÁT HIỆN FOLDER) -->
+                <!-- KHU VỰC FOLDER -->
                 <div class="folder-area" id="folder-area">
                     <div class="saved-folder-info" id="saved-folder-info">
                         <span>📁 Folder: <span class="folder-name" id="saved-folder-id">---</span></span>
@@ -776,13 +797,16 @@
                     </div>
                 </div>
                 
-                <!-- 👈 WORKFLOW LOG - HIỂN THỊ TIẾN TRÌNH THỰC TẾ -->
+                <!-- WORKFLOW LOG -->
                 <div style="margin-top:12px;">
                     <div class="workflow-header">
                         <span class="title">📋 Workflow Progress</span>
                         <span class="status">
                             <span class="workflow-status-badge waiting" id="workflow-status-badge">⏳ Waiting</span>
                             <span class="reset-timer" id="reset-timer"></span>
+                            <button class="btn-reset-workflow" onclick="forceResetWorkflow()" title="Reset để nhập link mới">
+                                🔄 Reset
+                            </button>
                         </span>
                     </div>
                     <div class="workflow-log" id="workflow-log">
@@ -790,7 +814,7 @@
                     </div>
                 </div>
                 
-                <!-- 👈 TRẠNG THÁI -->
+                <!-- TRẠNG THÁI -->
                 <div class="processing-status" id="processing-status">
                     ⏳ <span class="highlight" id="processing-text">Đang xử lý...</span>
                 </div>
@@ -882,7 +906,7 @@
     <!-- === SUBTITLE === -->
     <div id="subtitle-box"><span style="color:var(--text-secondary);font-size:14px">Select subtitle + Play, or enter new link...</span></div>
 
-    <!-- === SETTINGS GROUP (MẶC ĐỊNH ẨN) === -->
+    <!-- === SETTINGS GROUP === -->
     <div class="settings-group hidden" id="settings-group">
         <div class="card" id="settings-card">
             <label>⚙️ GITHUB SETTINGS</label>
@@ -927,7 +951,7 @@
         </div>
     </div>
 
-    <!-- === LOG (MẶC ĐỊNH ẨN) === -->
+    <!-- === LOG === -->
     <div class="card hideable hidden" id="log-card">
         <label>📋 Progress Log</label>
         <div id="logBox">🟢 Ready</div>
@@ -957,7 +981,7 @@ let workflowCheckInterval = null;
 let resetTimerInterval = null;
 let resetCountdown = 0;
 
-// ===== WORKFLOW STEPS =====
+// ===== WORKFLOW STEPS (CẬP NHẬT - THÊM DELETE DRIVE) =====
 const workflowSteps = [
     { id: 'checkout', name: 'Checkout code', icon: '📥' },
     { id: 'debug_hf', name: 'Debug - Check HF_TOKEN', icon: '🔍' },
@@ -966,6 +990,7 @@ const workflowSteps = [
     { id: 'pull', name: 'Pull AI Docker image', icon: '🐳' },
     { id: 'process', name: 'Process audio with AI', icon: '🤖' },
     { id: 'upload', name: 'Upload subtitle to Gist', icon: '📤' },
+    { id: 'delete_drive', name: 'Delete from Google Drive', icon: '🗑️' },
     { id: 'cleanup', name: 'Cleanup', icon: '🧹' }
 ];
 
@@ -1080,6 +1105,66 @@ function resetWorkflowLog() {
     }
 }
 
+// ===== FORCE RESET - LUÔN CHO PHÉP NHẬP LINK MỚI =====
+function forceResetWorkflow() {
+    // Reset tất cả steps về pending
+    workflowStatus = workflowSteps.map(step => ({
+        ...step,
+        status: 'pending',
+        time: ''
+    }));
+    renderWorkflowLog();
+    
+    // Reset badge
+    const badge = document.getElementById('workflow-status-badge');
+    badge.className = 'workflow-status-badge waiting';
+    badge.textContent = '⏳ Waiting';
+    
+    // Reset timer
+    document.getElementById('reset-timer').textContent = '';
+    if (resetTimerInterval) {
+        clearInterval(resetTimerInterval);
+        resetTimerInterval = null;
+    }
+    
+    // Stop interval check
+    if (workflowCheckInterval) {
+        clearInterval(workflowCheckInterval);
+        workflowCheckInterval = null;
+    }
+    
+    // Ẩn processing status
+    document.getElementById('processing-status').style.display = 'none';
+    
+    // Reset progress bar
+    progUpload(0, 'Ready for new job');
+    document.getElementById('status-text').innerHTML = 'Ready';
+    
+    // Enable process button
+    const btn = document.getElementById('btn-drive-process');
+    btn.disabled = false;
+    btn.textContent = '☁️ Process';
+    
+    // Clear drive info
+    document.getElementById('drive-info').innerHTML = '';
+    document.getElementById('drive-info-box').style.display = 'none';
+    
+    // Show log empty
+    const empty = document.getElementById('log-empty');
+    if (empty) empty.style.display = 'block';
+    
+    // Xóa trạng thái processing của video
+    if (pendingVideoId) {
+        clearVideoProcessing(pendingVideoId);
+    }
+    
+    // Clear processing queue
+    processingQueue = {};
+    saveProcessingState();
+    
+    log('🔄 Đã reset, sẵn sàng cho video mới!', 'info');
+}
+
 // ===== KIỂM TRA WORKFLOW ĐÃ HOÀN THÀNH CHƯA =====
 function isWorkflowComplete() {
     const allDone = workflowStatus.every(s => s.status === 'success' || s.status === 'failed');
@@ -1099,8 +1184,7 @@ function startResetTimer(seconds) {
             clearInterval(resetTimerInterval);
             resetTimerInterval = null;
             timerEl.textContent = '';
-            // Tự động reset
-            resetWorkflowLog();
+            forceResetWorkflow();
             console.log('🔄 Workflow auto-reset after completion');
         } else {
             timerEl.textContent = `🔄 reset in ${resetCountdown}s`;
@@ -1108,7 +1192,7 @@ function startResetTimer(seconds) {
     }, 1000);
 }
 
-// ===== LẤY LOG WORKFLOW TỪ GITHUB API (SỬA LỖI RESET) =====
+// ===== LẤY LOG WORKFLOW TỪ GITHUB API =====
 async function fetchWorkflowLogs(videoId) {
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
     const user = targetUser;
@@ -1120,7 +1204,6 @@ async function fetchWorkflowLogs(videoId) {
     }
     
     try {
-        // Lấy danh sách workflow runs
         const runsRes = await fetch(
             `https://api.github.com/repos/${user}/${repo}/actions/runs?per_page=5&event=repository_dispatch`,
             {
@@ -1144,14 +1227,10 @@ async function fetchWorkflowLogs(videoId) {
             return;
         }
         
-        // Lấy run mới nhất
         const latestRun = runs[0];
-        
-        // Kiểm tra trạng thái run
         const isCompleted = latestRun.status === 'completed';
         const isSuccess = latestRun.conclusion === 'success';
         
-        // Lấy jobs của run
         const jobsRes = await fetch(
             `https://api.github.com/repos/${user}/${repo}/actions/runs/${latestRun.id}/jobs`,
             {
@@ -1166,7 +1245,6 @@ async function fetchWorkflowLogs(videoId) {
             const jobsData = await jobsRes.json();
             const jobs = jobsData.jobs || [];
             
-            // Cập nhật từng job
             jobs.forEach(job => {
                 const steps = job.steps || [];
                 steps.forEach(step => {
@@ -1182,6 +1260,7 @@ async function fetchWorkflowLogs(videoId) {
                     else if (stepName.includes('Pull AI Docker image')) stepId = 'pull';
                     else if (stepName.includes('Process audio with AI')) stepId = 'process';
                     else if (stepName.includes('Upload subtitle to Gist')) stepId = 'upload';
+                    else if (stepName.includes('Delete file from Google Drive')) stepId = 'delete_drive';
                     else if (stepName.includes('Cleanup')) stepId = 'cleanup';
                     
                     if (stepId) {
@@ -1198,33 +1277,28 @@ async function fetchWorkflowLogs(videoId) {
                 });
             });
             
-            // Cập nhật badge tổng thể
             const badge = document.getElementById('workflow-status-badge');
             if (isCompleted) {
                 badge.className = isSuccess ? 'workflow-status-badge success' : 'workflow-status-badge failed';
                 badge.textContent = isSuccess ? '✅ Success' : '❌ Failed';
                 
-                // 🆕 NẾU WORKFLOW ĐÃ HOÀN THÀNH → TỰ ĐỘNG RESET SAU 10 GIÂY
-                if (isSuccess || !isSuccess) {
-                    // Dừng interval check nếu đã hoàn thành
-                    if (workflowCheckInterval) {
-                        clearInterval(workflowCheckInterval);
-                        workflowCheckInterval = null;
-                    }
-                    
-                    // Bắt đầu đếm ngược reset
+                if (workflowCheckInterval) {
+                    clearInterval(workflowCheckInterval);
+                    workflowCheckInterval = null;
+                }
+                
+                // Failed → reset nhanh (3s), Success → reset sau 10s
+                if (!isSuccess) {
+                    startResetTimer(3);
+                } else {
                     startResetTimer(10);
-                    
-                    // Nếu thành công, kiểm tra Gist
-                    if (isSuccess && videoId) {
+                    if (videoId) {
                         setTimeout(() => checkAndLoadGist(videoId), 3000);
                     }
                 }
-                
             } else {
                 badge.className = 'workflow-status-badge running';
                 badge.textContent = '⏳ Running...';
-                // Hủy timer reset nếu có
                 if (resetTimerInterval) {
                     clearInterval(resetTimerInterval);
                     resetTimerInterval = null;
@@ -1274,7 +1348,7 @@ async function checkAndLoadGist(vid) {
     }
 }
 
-// ===== CÁC HÀM KHÁC (GIỮ NGUYÊN) =====
+// ===== CÁC HÀM KHÁC =====
 function isVideoProcessing(videoId) {
     return processingQueue[videoId] === true;
 }
@@ -1555,7 +1629,11 @@ function clearSavedFolder() {
     alert('🗑️ Đã xóa folder Drive đã lưu!');
 }
 
+// ===== PROCESS SMART DRIVE (CÓ RESET TRƯỚC KHI XỬ LÝ) =====
 async function processSmartDrive() {
+    // Reset trước khi xử lý mới
+    forceResetWorkflow();
+    
     const val = document.getElementById('smart-drive-link').value.trim();
     const vid = pendingVideoId || currentVideoId;
     
@@ -1724,9 +1802,8 @@ async function processSmartDrive() {
                 if (badge.textContent.includes('Success') || badge.textContent.includes('Failed') || checkCount >= maxChecks) {
                     clearInterval(workflowCheckInterval);
                     workflowCheckInterval = null;
-                    // Nếu đã hoàn thành mà chưa reset thì reset
                     if (badge.textContent.includes('Success') || badge.textContent.includes('Failed')) {
-                        startResetTimer(10);
+                        startResetTimer(badge.textContent.includes('Failed') ? 3 : 10);
                     }
                 }
             }, 10000);
@@ -1747,8 +1824,7 @@ async function processSmartDrive() {
             document.getElementById('workflow-status-badge').className = 'workflow-status-badge failed';
             document.getElementById('workflow-status-badge').textContent = '❌ Failed';
             clearVideoProcessing(vid);
-            // Reset sau 10 giây nếu failed
-            startResetTimer(10);
+            startResetTimer(3);
         }
     } catch (e) {
         log(`❌ Error: ${e.message}`, 'err');
@@ -1758,7 +1834,7 @@ async function processSmartDrive() {
         document.getElementById('workflow-status-badge').className = 'workflow-status-badge failed';
         document.getElementById('workflow-status-badge').textContent = '❌ Failed';
         clearVideoProcessing(vid);
-        startResetTimer(10);
+        startResetTimer(3);
     }
     
     btn.textContent = originalText;
