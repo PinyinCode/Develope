@@ -467,23 +467,28 @@
         .processing-status .done-highlight { color: var(--green); }
         .processing-status .warning-highlight { color: var(--accent); }
         
-        .saved-folder-info {
+        .folder-area {
+            margin-top: 8px;
+            display: none;
+        }
+        .folder-area .saved-folder-info {
             background: rgba(48, 209, 88, 0.1);
             border: 1px solid var(--green);
             border-radius: 8px;
             padding: 8px 12px;
-            margin-top: 8px;
             font-size: 11px;
             color: var(--text-secondary);
-            display: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 6px;
         }
-        .saved-folder-info .folder-name { color: var(--green); font-weight: 600; }
-        
-        .folder-select-area {
-            margin-top: 8px;
-            display: none;
+        .folder-area .saved-folder-info .folder-name { color: var(--green); font-weight: 600; }
+        .folder-area .folder-select-area {
+            margin-top: 6px;
         }
-        .folder-select-area select {
+        .folder-area .folder-select-area select {
             flex: 1;
             padding: 10px 12px;
             background: rgba(255,255,255,0.05);
@@ -608,73 +613,58 @@
                 </button>
             </div>
             
-            <!-- === METHOD 2: GOOGLE DRIVE === -->
+            <!-- === METHOD 2: GOOGLE DRIVE (SMART) === -->
             <div id="upload-method-drive">
                 <div class="upload-guide" style="border-color:var(--blue);">
                     <div style="font-weight:600;color:var(--blue);margin-bottom:6px;">☁️ Google Drive Method</div>
                     <div class="step"><span class="num" style="background:var(--blue);">1</span><span class="text">Upload audio to Google Drive</span></div>
                     <div class="step"><span class="num" style="background:var(--blue);">2</span><span class="text">Share folder/file with <strong>"Anyone with the link"</strong></span></div>
-                    <div class="step"><span class="num" style="background:var(--blue);">3</span><span class="text">Paste <strong>FILE</strong> link directly, or</span></div>
-                    <div class="step"><span class="num" style="background:var(--blue);">4</span><span class="text">If you have <strong>Google API Key</strong> → paste <strong>FOLDER</strong> link to browse</span></div>
+                    <div class="step"><span class="num" style="background:var(--blue);">3</span><span class="text">Paste <strong>FILE</strong> or <strong>FOLDER</strong> link below</span></div>
+                    <div class="step"><span class="num" style="background:var(--blue);">4</span><span class="text">Auto-detect: file → process | folder → show file list</span></div>
                     <div class="step"><span class="num" style="background:var(--blue);">5</span><span class="text">Press <strong style="color:var(--accent);">☁️ Process</strong></span></div>
                     <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border-color);font-size:11px;color:var(--text-secondary);">
-                        💡 <strong>Without API Key:</strong> Use file link only • <strong>With API Key:</strong> Browse folder
+                        💡 <strong>Link file:</strong> Process immediately • <strong>Link folder:</strong> Browse and select file
                     </div>
                 </div>
                 
-                <!-- 👈 CẢNH BÁO API KEY -->
+                <!-- 👈 API KEY WARNING -->
                 <div class="api-key-warning" id="api-key-warning">
-                    ⚠️ <span class="highlight">Chưa có Google API Key</span> → Chỉ có thể nhập link file trực tiếp.<br>
+                    ⚠️ <span class="highlight">Chưa có Google API Key</span> → Chỉ hỗ trợ link file trực tiếp.<br>
                     <span style="font-size:10px;">💡 Vào Settings (⚙) để thêm API Key nếu muốn duyệt folder.</span>
                 </div>
                 
-                <!-- 👈 PHẦN LINK FOLDER (CHỈ HIỆN KHI CÓ API KEY) -->
-                <div id="folder-section" style="display:none;margin-top:8px;">
-                    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">📁 Folder Link (API Key required):</div>
-                    <div class="row">
-                        <div class="input-wrap">
-                            <input type="text" id="drive-folder-link" placeholder="Paste folder link..." oninput="onDriveFolderInput()">
-                            <button class="btn-clear-input" id="btn-clear-folder" onclick="clearDriveFolder()" style="display:none;">×</button>
-                        </div>
-                        <button class="btn-accent" id="btn-save-folder" onclick="saveDriveFolder()" disabled style="width:80px;background:var(--blue);">
-                            💾 Lưu
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- 👈 FOLDER ĐÃ LƯU -->
-                <div class="saved-folder-info" id="saved-folder-info">
-                    ✅ Folder: <span class="folder-name" id="saved-folder-id">---</span>
-                    <span style="font-size:10px;color:var(--text-secondary);">(đã lưu)</span>
-                    <button class="btn-sm" onclick="clearSavedFolder()" style="background:transparent;color:var(--accent);padding:2px 8px;font-size:10px;border:1px solid var(--accent);margin-left:8px;">
-                        🗑️ Xóa
-                    </button>
-                </div>
-                
-                <!-- 👈 FILE SELECT FROM FOLDER (CHỈ HIỆN KHI CÓ API KEY) -->
-                <div class="folder-select-area" id="file-from-folder">
-                    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">📂 Chọn file từ folder:</div>
-                    <div class="row">
-                        <select id="folder-file-select" onchange="onFolderFileSelect()">
-                            <option value="">-- Chọn file audio --</option>
-                        </select>
-                        <button class="btn-sm" onclick="refreshFolderFiles()" style="background:var(--blue);color:white;padding:8px 12px;">
-                            🔄
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- 👈 PHẦN LINK FILE (LUÔN HIỆN) -->
+                <!-- 👈 Ô NHẬP THÔNG MINH DUY NHẤT -->
                 <div style="margin-top:8px;">
-                    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">🔗 File Link (direct):</div>
+                    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">🔗 Drive Link (file or folder):</div>
                     <div class="row">
                         <div class="input-wrap">
-                            <input type="text" id="drive-link" placeholder="Paste file link..." oninput="onDriveLinkInput()">
-                            <button class="btn-clear-input" id="btn-clear-drive" onclick="clearDriveLink()" style="display:none;">×</button>
+                            <input type="text" id="smart-drive-link" placeholder="Paste Google Drive file or folder link..." oninput="onSmartDriveInput()">
+                            <button class="btn-clear-input" id="btn-clear-smart" onclick="clearSmartInput()" style="display:none;">×</button>
                         </div>
-                        <button class="btn-accent" id="btn-drive-process" onclick="processWithDrive()" disabled style="width:100px;background:var(--blue);">
+                        <button class="btn-accent" id="btn-drive-process" onclick="processSmartDrive()" disabled style="width:100px;background:var(--blue);">
                             ☁️ Process
                         </button>
+                    </div>
+                </div>
+                
+                <!-- 👈 KHU VỰC FOLDER (HIỆN KHI PHÁT HIỆN FOLDER) -->
+                <div class="folder-area" id="folder-area">
+                    <div class="saved-folder-info" id="saved-folder-info">
+                        <span>📁 Folder: <span class="folder-name" id="saved-folder-id">---</span></span>
+                        <button class="btn-sm" onclick="clearSavedFolder()" style="background:transparent;color:var(--accent);padding:2px 8px;font-size:10px;border:1px solid var(--accent);">
+                            🗑️ Xóa
+                        </button>
+                    </div>
+                    <div class="folder-select-area">
+                        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">📂 Chọn file từ folder:</div>
+                        <div class="row">
+                            <select id="folder-file-select" onchange="onFolderFileSelect()">
+                                <option value="">-- Chọn file audio --</option>
+                            </select>
+                            <button class="btn-sm" onclick="refreshFolderFiles()" style="background:var(--blue);color:white;padding:8px 12px;">
+                                🔄
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
@@ -790,10 +780,9 @@
                 <input type="password" id="ghToken" placeholder="GitHub Token (repo + gist scope required)">
             </div>
             
-            <!-- 👈 Ô NHẬP GOOGLE API KEY -->
             <div class="setting-item">
                 <label>Google API Key (for folder browsing)</label>
-                <input type="password" id="googleApiKey" placeholder="AIzaSy..." value="" oninput="onApiKeyChange()">
+                <input type="password" id="googleApiKey" placeholder="AIzaSy..." value="">
                 <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">
                     💡 Thêm API Key để duyệt folder Drive. Để trống nếu chỉ dùng link file.
                 </div>
@@ -829,7 +818,8 @@ let isHideMode = false;
 let isSettingsVisible = false;
 let existingVideoData = null;
 let uploadMethod = 'drive';
-let googleApiKey = '';
+let currentSmartFileId = null;
+let isFolderMode = false;
 
 // ===== BIẾN CHỐNG LẶP =====
 let processingQueue = {};
@@ -938,65 +928,19 @@ async function checkGitHubProcessingStatus(videoId) {
     }
 }
 
-// ===== API KEY HANDLING =====
-function onApiKeyChange() {
-    const key = document.getElementById('googleApiKey').value.trim();
-    // Chỉ cập nhật UI khi lưu, không tự động
-}
-
-function updateDriveUI(hasApiKey) {
-    const folderSection = document.getElementById('folder-section');
-    const fileFromFolder = document.getElementById('file-from-folder');
-    const warning = document.getElementById('api-key-warning');
-    
-    if (hasApiKey) {
-        folderSection.style.display = 'block';
-        warning.style.display = 'none';
-        // Hiển thị folder đã lưu nếu có
-        const savedFolderId = localStorage.getItem('drive_folder_id');
-        if (savedFolderId) {
-            document.getElementById('saved-folder-info').style.display = 'block';
-            document.getElementById('saved-folder-id').textContent = localStorage.getItem('drive_folder_name') || savedFolderId;
-            document.getElementById('file-from-folder').style.display = 'block';
-            loadFilesFromFolder();
-        }
-    } else {
-        folderSection.style.display = 'none';
-        fileFromFolder.style.display = 'none';
-        document.getElementById('saved-folder-info').style.display = 'none';
-        warning.style.display = 'block';
+// ===== EXTRACT FUNCTIONS =====
+function extractDriveFileId(link) {
+    if (!link) return null;
+    const patterns = [
+        /\/file\/d\/([a-zA-Z0-9_-]+)/,
+        /id=([a-zA-Z0-9_-]+)/,
+        /\/uc\?id=([a-zA-Z0-9_-]+)/
+    ];
+    for (const pattern of patterns) {
+        const match = link.match(pattern);
+        if (match) return match[1];
     }
-}
-
-// ===== DRIVE FOLDER MANAGEMENT =====
-function showSavedFolder() {
-    const savedFolderId = localStorage.getItem('drive_folder_id') || '';
-    const savedFolderName = localStorage.getItem('drive_folder_name') || '';
-    const hasApiKey = !!localStorage.google_api_key;
-    
-    if (savedFolderId && hasApiKey) {
-        document.getElementById('saved-folder-info').style.display = 'block';
-        document.getElementById('saved-folder-id').textContent = savedFolderName || savedFolderId;
-        document.getElementById('file-from-folder').style.display = 'block';
-        loadFilesFromFolder();
-    } else {
-        document.getElementById('saved-folder-info').style.display = 'none';
-        document.getElementById('file-from-folder').style.display = 'none';
-    }
-}
-
-function onDriveFolderInput() {
-    const val = document.getElementById('drive-folder-link').value;
-    document.getElementById('btn-clear-folder').style.display = val ? 'block' : 'none';
-    
-    const folderId = extractDriveFolderId(val);
-    document.getElementById('btn-save-folder').disabled = !folderId;
-}
-
-function clearDriveFolder() {
-    document.getElementById('drive-folder-link').value = '';
-    document.getElementById('btn-clear-folder').style.display = 'none';
-    document.getElementById('btn-save-folder').disabled = true;
+    return null;
 }
 
 function extractDriveFolderId(link) {
@@ -1014,58 +958,88 @@ function extractDriveFolderId(link) {
     return null;
 }
 
-function saveDriveFolder() {
-    const folderLink = document.getElementById('drive-folder-link').value.trim();
-    if (!folderLink) {
-        alert('Vui lòng dán link Google Drive folder!');
-        return;
+// ===== SMART DRIVE INPUT =====
+function onSmartDriveInput() {
+    const val = document.getElementById('smart-drive-link').value;
+    document.getElementById('btn-clear-smart').style.display = val ? 'block' : 'none';
+    
+    // Reset UI
+    document.getElementById('folder-area').style.display = 'none';
+    document.getElementById('drive-info-box').style.display = 'none';
+    document.getElementById('drive-info').innerHTML = '';
+    document.getElementById('processing-status').style.display = 'none';
+    currentSmartFileId = null;
+    isFolderMode = false;
+    document.getElementById('btn-drive-process').disabled = true;
+    
+    if (!val) return;
+    
+    // Phát hiện loại link
+    const fileId = extractDriveFileId(val);
+    const folderId = extractDriveFolderId(val);
+    const hasApiKey = !!localStorage.google_api_key;
+    
+    if (fileId) {
+        // ===== LINK FILE =====
+        currentSmartFileId = fileId;
+        isFolderMode = false;
+        document.getElementById('btn-drive-process').disabled = false;
+        document.getElementById('drive-info-box').style.display = 'block';
+        document.getElementById('drive-file-id').textContent = fileId;
+        document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">✅ File link detected</span>`;
+        log(`📁 File ID: ${fileId}`, 'info');
+        
+    } else if (folderId && hasApiKey) {
+        // ===== LINK FOLDER (CÓ API KEY) =====
+        isFolderMode = true;
+        document.getElementById('btn-drive-process').disabled = true;
+        
+        // Lưu folder
+        localStorage.setItem('drive_folder_id', folderId);
+        const folderName = val.match(/\/folders\/([^\/]+)/)?.[1] || folderId;
+        localStorage.setItem('drive_folder_name', folderName);
+        
+        // Hiển thị folder area
+        document.getElementById('folder-area').style.display = 'block';
+        document.getElementById('saved-folder-id').textContent = folderName;
+        document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">📁 Folder detected: ${folderName}</span>`;
+        
+        log(`📁 Folder ID: ${folderId}`, 'info');
+        loadFilesFromFolder();
+        
+    } else if (folderId && !hasApiKey) {
+        // ===== LINK FOLDER (KHÔNG CÓ API KEY) =====
+        document.getElementById('btn-drive-process').disabled = true;
+        document.getElementById('drive-info').innerHTML = `<span class="status-badge warning">⚠️ Need API Key for folder browsing</span>`;
+        log('⚠️ Vui lòng thêm Google API Key trong Settings để duyệt folder', 'warning');
+        
+    } else {
+        // ===== KHÔNG PHẢI LINK HỢP LỆ =====
+        document.getElementById('btn-drive-process').disabled = true;
+        document.getElementById('drive-info').innerHTML = `<span class="status-badge error">❌ Invalid Drive link</span>`;
     }
-    
-    const folderId = extractDriveFolderId(folderLink);
-    if (!folderId) {
-        alert('Link Google Drive không hợp lệ!\nVí dụ: https://drive.google.com/drive/folders/ABC123xyz');
-        return;
-    }
-    
-    let folderName = folderLink.match(/\/folders\/([^\/]+)/)?.[1] || folderId;
-    localStorage.setItem('drive_folder_id', folderId);
-    localStorage.setItem('drive_folder_name', folderName);
-    
-    document.getElementById('saved-folder-info').style.display = 'block';
-    document.getElementById('saved-folder-id').textContent = folderName;
-    document.getElementById('drive-folder-link').value = '';
-    document.getElementById('btn-clear-folder').style.display = 'none';
-    document.getElementById('file-from-folder').style.display = 'block';
-    
-    log(`✅ Đã lưu Folder Drive: ${folderName}`, 'ok');
-    alert(`✅ Đã lưu Folder Drive thành công!\n📁 Folder: ${folderName}`);
-    loadFilesFromFolder();
 }
 
-function clearSavedFolder() {
-    const savedFolderId = localStorage.getItem('drive_folder_id');
-    if (!savedFolderId) return;
-    if (!confirm('Xóa folder Drive đã lưu?')) return;
-    
-    localStorage.removeItem('drive_folder_id');
-    localStorage.removeItem('drive_folder_name');
-    
-    document.getElementById('saved-folder-info').style.display = 'none';
-    document.getElementById('file-from-folder').style.display = 'none';
-    document.getElementById('folder-file-select').innerHTML = '<option value="">-- Chọn file audio --</option>';
-    
-    log('🗑️ Đã xóa folder Drive đã lưu', 'info');
-    alert('🗑️ Đã xóa folder Drive đã lưu!');
+function clearSmartInput() {
+    document.getElementById('smart-drive-link').value = '';
+    document.getElementById('btn-clear-smart').style.display = 'none';
+    document.getElementById('btn-drive-process').disabled = true;
+    document.getElementById('drive-info-box').style.display = 'none';
+    document.getElementById('drive-info').innerHTML = '';
+    document.getElementById('folder-area').style.display = 'none';
+    document.getElementById('processing-status').style.display = 'none';
+    currentSmartFileId = null;
+    isFolderMode = false;
 }
 
-// ===== LOAD FILES FROM FOLDER (DÙNG API KEY) =====
+// ===== LOAD FILES FROM FOLDER =====
 async function loadFilesFromFolder() {
     const folderId = localStorage.getItem('drive_folder_id');
     if (!folderId) return;
     
     const apiKey = localStorage.google_api_key || '';
     if (!apiKey) {
-        log('⚠️ Không có API Key để duyệt folder', 'warning');
+        document.getElementById('folder-file-select').innerHTML = '<option value="">-- Need API Key --</option>';
         return;
     }
     
@@ -1096,6 +1070,8 @@ async function loadFilesFromFolder() {
                 opt.textContent = `${file.name} (${sizeMB} MB)`;
                 select.appendChild(opt);
             });
+            
+            document.getElementById('btn-drive-process').disabled = false;
             log(`📂 Đã tải ${audioFiles.length} file audio từ folder`, 'ok');
         } else {
             select.innerHTML = '<option value="">-- Lỗi tải danh sách --</option>';
@@ -1125,34 +1101,101 @@ function onFolderFileSelect() {
     const select = document.getElementById('folder-file-select');
     const selected = select.value;
     
-    if (!selected) {
-        document.getElementById('drive-link').value = '';
-        document.getElementById('btn-drive-process').disabled = true;
-        document.getElementById('drive-info-box').style.display = 'none';
-        document.getElementById('drive-info').innerHTML = '';
-        return;
-    }
-    
-    try {
-        const fileData = JSON.parse(selected);
-        const fileId = fileData.id;
-        const fileName = fileData.name;
-        const fileUrl = `https://drive.google.com/file/d/${fileId}/view`;
-        
-        document.getElementById('drive-link').value = fileUrl;
-        document.getElementById('drive-file-id').textContent = fileId;
-        document.getElementById('drive-info-box').style.display = 'block';
-        document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">✅ Chọn: ${fileName}</span>`;
+    if (selected) {
         document.getElementById('btn-drive-process').disabled = false;
-        currentFileId = fileId;
-        
-        log(`📂 Đã chọn file: ${fileName}`, 'info');
-    } catch (e) {
-        console.error('Error selecting file:', e);
+        try {
+            const fileData = JSON.parse(selected);
+            document.getElementById('drive-file-id').textContent = fileData.id;
+            document.getElementById('drive-info-box').style.display = 'block';
+            document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">✅ Chọn: ${fileData.name}</span>`;
+        } catch (e) {}
+    } else {
+        document.getElementById('btn-drive-process').disabled = true;
     }
 }
 
-// ===== DRIVE LINK HANDLING =====
+// ===== CLEAR SAVED FOLDER =====
+function clearSavedFolder() {
+    const savedFolderId = localStorage.getItem('drive_folder_id');
+    if (!savedFolderId) {
+        alert('Không có folder nào để xóa!');
+        return;
+    }
+    
+    const folderName = localStorage.getItem('drive_folder_name') || savedFolderId;
+    if (!confirm(`Xóa folder "${folderName}" đã lưu?`)) return;
+    
+    localStorage.removeItem('drive_folder_id');
+    localStorage.removeItem('drive_folder_name');
+    
+    document.getElementById('folder-area').style.display = 'none';
+    document.getElementById('saved-folder-id').textContent = '';
+    document.getElementById('folder-file-select').innerHTML = '<option value="">-- Chọn file audio --</option>';
+    document.getElementById('smart-drive-link').value = '';
+    document.getElementById('btn-clear-smart').style.display = 'none';
+    document.getElementById('btn-drive-process').disabled = true;
+    document.getElementById('drive-info').innerHTML = '';
+    document.getElementById('drive-info-box').style.display = 'none';
+    
+    log('🗑️ Đã xóa folder Drive đã lưu', 'info');
+    alert('🗑️ Đã xóa folder Drive đã lưu!');
+}
+
+// ===== PROCESS SMART DRIVE =====
+async function processSmartDrive() {
+    const val = document.getElementById('smart-drive-link').value.trim();
+    const vid = pendingVideoId || currentVideoId;
+    
+    if (!vid) {
+        alert('No Video ID! Please enter YouTube link first.');
+        return;
+    }
+    
+    // Nếu là link file, xử lý trực tiếp
+    if (currentSmartFileId && !isFolderMode) {
+        const fileId = currentSmartFileId;
+        const fileLink = `https://drive.google.com/file/d/${fileId}/view`;
+        document.getElementById('drive-link').value = fileLink;
+        await processWithDrive();
+        return;
+    }
+    
+    // Nếu là folder, lấy file từ dropdown
+    const selected = document.getElementById('folder-file-select').value;
+    if (selected) {
+        try {
+            const fileData = JSON.parse(selected);
+            const fileId = fileData.id;
+            const fileLink = `https://drive.google.com/file/d/${fileId}/view`;
+            document.getElementById('drive-link').value = fileLink;
+            await processWithDrive();
+        } catch (e) {
+            alert('Invalid file selection!');
+        }
+    } else {
+        alert('Please select a file from the folder dropdown!');
+    }
+}
+
+// ===== UPDATE UI DỰA TRÊN API KEY =====
+function updateDriveUI(hasApiKey) {
+    const warning = document.getElementById('api-key-warning');
+    if (hasApiKey) {
+        warning.style.display = 'none';
+        // Kiểm tra folder đã lưu
+        const savedFolderId = localStorage.getItem('drive_folder_id');
+        if (savedFolderId) {
+            document.getElementById('folder-area').style.display = 'block';
+            document.getElementById('saved-folder-id').textContent = localStorage.getItem('drive_folder_name') || savedFolderId;
+            loadFilesFromFolder();
+        }
+    } else {
+        warning.style.display = 'block';
+        document.getElementById('folder-area').style.display = 'none';
+    }
+}
+
+// ===== ORIGINAL PROCESS WITH DRIVE =====
 let currentFileId = null;
 
 function onDriveLinkInput() {
@@ -1194,101 +1237,6 @@ function clearDriveLink() {
     document.getElementById('drive-info').innerHTML = '';
     document.getElementById('processing-status').style.display = 'none';
     currentFileId = null;
-}
-
-function extractDriveFileId(link) {
-    if (!link) return null;
-    const patterns = [
-        /\/file\/d\/([a-zA-Z0-9_-]+)/,
-        /id=([a-zA-Z0-9_-]+)/,
-        /\/uc\?id=([a-zA-Z0-9_-]+)/
-    ];
-    for (const pattern of patterns) {
-        const match = link.match(pattern);
-        if (match) return match[1];
-    }
-    return null;
-}
-
-// ===== CẢNH BÁO KHI TẮT TRÌNH DUYỆT =====
-window.addEventListener('beforeunload', function (e) {
-    if (isUploading) {
-        e.preventDefault();
-        e.returnValue = '⚠️ Audio is still uploading! Are you sure you want to leave?';
-        return e.returnValue;
-    }
-});
-
-// ===== CHECK EXISTING VIDEO =====
-function checkVideoExists(videoId) {
-    if (!videoId) return null;
-    if (gh_cloud_map && gh_cloud_map[videoId]) {
-        return {
-            videoId: videoId,
-            title: gh_cloud_map[videoId].title || `Video ${videoId}`,
-            url: gh_cloud_map[videoId].url
-        };
-    }
-    return null;
-}
-
-// ===== TOGGLE HIDE MODE =====
-function toggleHideMode() {
-    isHideMode = !isHideMode;
-    const btn = document.getElementById('btn-toggle-hide');
-    const hideables = document.querySelectorAll('.hideable');
-    
-    if (isHideMode) {
-        hideables.forEach(el => el.classList.add('hidden'));
-        btn.innerHTML = '👁';
-        btn.style.background = 'rgba(255,45,85,0.2)';
-        btn.style.borderColor = 'var(--accent)';
-        btn.style.color = 'var(--accent)';
-        log('👁 Hidden extra elements', 'info');
-    } else {
-        hideables.forEach(el => el.classList.remove('hidden'));
-        btn.innerHTML = '👁';
-        btn.style.background = 'var(--accent-light)';
-        btn.style.borderColor = 'var(--accent)';
-        btn.style.color = 'var(--accent)';
-        log('👁 Show all elements', 'info');
-    }
-}
-
-// ===== TOGGLE FULL SETTINGS =====
-function toggleFullSettings() {
-    isSettingsVisible = !isSettingsVisible;
-    const btn = document.getElementById('btn-toggle-settings');
-    const settingsGroup = document.getElementById('settings-group');
-    const logCard = document.getElementById('log-card');
-    
-    if (isSettingsVisible) {
-        settingsGroup.classList.remove('hidden');
-        logCard.classList.remove('hidden');
-        btn.innerHTML = '⚙';
-        btn.style.background = 'rgba(10,132,255,0.15)';
-        btn.style.borderColor = 'var(--blue)';
-        btn.style.color = 'var(--blue)';
-        log('⚙ Settings & Log shown', 'info');
-    } else {
-        settingsGroup.classList.add('hidden');
-        logCard.classList.add('hidden');
-        btn.innerHTML = '⚙';
-        btn.style.background = 'rgba(255,45,85,0.15)';
-        btn.style.borderColor = 'var(--accent)';
-        btn.style.color = 'var(--accent)';
-        log('⚙ Settings & Log hidden', 'info');
-    }
-}
-
-// ===== SWITCH UPLOAD METHOD =====
-function switchUploadMethod(method) {
-    uploadMethod = method;
-    document.getElementById('upload-method-direct').style.display = method === 'direct' ? 'block' : 'none';
-    document.getElementById('upload-method-drive').style.display = method === 'drive' ? 'block' : 'none';
-    
-    document.getElementById('method-direct-btn').classList.toggle('active', method === 'direct');
-    document.getElementById('method-drive-btn').classList.toggle('active', method === 'drive');
 }
 
 // ===== PROCESS WITH DRIVE =====
@@ -1477,6 +1425,87 @@ function goToExistingVideo() {
     }, 300);
 }
 
+// ===== CHECK EXISTING VIDEO =====
+function checkVideoExists(videoId) {
+    if (!videoId) return null;
+    if (gh_cloud_map && gh_cloud_map[videoId]) {
+        return {
+            videoId: videoId,
+            title: gh_cloud_map[videoId].title || `Video ${videoId}`,
+            url: gh_cloud_map[videoId].url
+        };
+    }
+    return null;
+}
+
+// ===== TOGGLE HIDE MODE =====
+function toggleHideMode() {
+    isHideMode = !isHideMode;
+    const btn = document.getElementById('btn-toggle-hide');
+    const hideables = document.querySelectorAll('.hideable');
+    
+    if (isHideMode) {
+        hideables.forEach(el => el.classList.add('hidden'));
+        btn.innerHTML = '👁';
+        btn.style.background = 'rgba(255,45,85,0.2)';
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        log('👁 Hidden extra elements', 'info');
+    } else {
+        hideables.forEach(el => el.classList.remove('hidden'));
+        btn.innerHTML = '👁';
+        btn.style.background = 'var(--accent-light)';
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        log('👁 Show all elements', 'info');
+    }
+}
+
+// ===== TOGGLE FULL SETTINGS =====
+function toggleFullSettings() {
+    isSettingsVisible = !isSettingsVisible;
+    const btn = document.getElementById('btn-toggle-settings');
+    const settingsGroup = document.getElementById('settings-group');
+    const logCard = document.getElementById('log-card');
+    
+    if (isSettingsVisible) {
+        settingsGroup.classList.remove('hidden');
+        logCard.classList.remove('hidden');
+        btn.innerHTML = '⚙';
+        btn.style.background = 'rgba(10,132,255,0.15)';
+        btn.style.borderColor = 'var(--blue)';
+        btn.style.color = 'var(--blue)';
+        log('⚙ Settings & Log shown', 'info');
+    } else {
+        settingsGroup.classList.add('hidden');
+        logCard.classList.add('hidden');
+        btn.innerHTML = '⚙';
+        btn.style.background = 'rgba(255,45,85,0.15)';
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        log('⚙ Settings & Log hidden', 'info');
+    }
+}
+
+// ===== SWITCH UPLOAD METHOD =====
+function switchUploadMethod(method) {
+    uploadMethod = method;
+    document.getElementById('upload-method-direct').style.display = method === 'direct' ? 'block' : 'none';
+    document.getElementById('upload-method-drive').style.display = method === 'drive' ? 'block' : 'none';
+    
+    document.getElementById('method-direct-btn').classList.toggle('active', method === 'direct');
+    document.getElementById('method-drive-btn').classList.toggle('active', method === 'drive');
+}
+
+// ===== CẢNH BÁO KHI TẮT TRÌNH DUYỆT =====
+window.addEventListener('beforeunload', function (e) {
+    if (isUploading) {
+        e.preventDefault();
+        e.returnValue = '⚠️ Audio is still uploading! Are you sure you want to leave?';
+        return e.returnValue;
+    }
+});
+
 // ===== INIT =====
 function onYouTubeIframeAPIReady() {
     loadSettings();
@@ -1484,12 +1513,8 @@ function onYouTubeIframeAPIReady() {
     checkPendingProcessing();
     loadGistLibrary(false);
     
-    // Kiểm tra API Key
     const apiKey = localStorage.google_api_key || '';
     updateDriveUI(!!apiKey);
-    if (apiKey) {
-        showSavedFolder();
-    }
 }
 
 function loadSettings() {
@@ -1497,7 +1522,6 @@ function loadSettings() {
     document.getElementById('ghRepo').value = localStorage.gh_repo || 'subtitle-ai';
     document.getElementById('ghToken').value = localStorage.gh_token || '';
     document.getElementById('googleApiKey').value = localStorage.google_api_key || '';
-    googleApiKey = localStorage.google_api_key || '';
     gh_cloud_map = JSON.parse(localStorage.getItem('gh_cloud_map') || '{}');
 }
 
@@ -1506,16 +1530,11 @@ function saveSettings() {
     localStorage.gh_repo = document.getElementById('ghRepo').value.trim();
     localStorage.gh_token = document.getElementById('ghToken').value.trim();
     localStorage.google_api_key = document.getElementById('googleApiKey').value.trim();
-    googleApiKey = localStorage.google_api_key || '';
     localStorage.removeItem('gh_last_scan');
     localStorage.removeItem('gh_cloud_map');
     gh_cloud_map = {};
     
-    // Cập nhật UI dựa trên API Key
-    updateDriveUI(!!googleApiKey);
-    if (googleApiKey) {
-        showSavedFolder();
-    }
+    updateDriveUI(!!localStorage.google_api_key);
     
     log('✅ Settings saved!', 'ok');
     loadGistLibrary(true);
@@ -1682,7 +1701,7 @@ function extractAndGoToUpload() {
     log(`💡 You can close browser after clicking Process`, 'info');
     
     document.getElementById('pb-upload-text').innerHTML = `🎯 Ready for video: <strong style="color:var(--accent);">${vid}</strong>`;
-    document.getElementById('drive-link').focus();
+    document.getElementById('smart-drive-link').focus();
 }
 
 // ===== PLAYER =====
