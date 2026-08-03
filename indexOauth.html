@@ -1,0 +1,2835 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pinyin AI - Subtitle Downloader</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --card-bg: rgba(28, 28, 30, 0.75);
+            --card-solid: #1c1c1e;
+            --text-main: #f5f5f7;
+            --text-secondary: #98989f;
+            --accent: #ff2d55;
+            --accent-light: rgba(255, 45, 85, 0.15);
+            --blue: #0a84ff;
+            --green: #30d158;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            --radius: 20px;
+            --element-radius: 12px;
+            --fs-cn: 35px;
+            --fs-py: 16px;
+            --fs-vi: 10px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .container { width: 100%; max-width: 540px; display: flex; flex-direction: column; gap: 14px; }
+        
+        .hideable { transition: all 0.3s ease; }
+        .hideable.hidden { display: none !important; }
+        
+        .settings-group { transition: all 0.3s ease; }
+        .settings-group.hidden { display: none !important; }
+        
+        .app-header { text-align: center; padding: 6px 0; }
+        .app-header h3 { margin: 0; font-size: 17px; font-weight: 600; color: var(--text-main); }
+        
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+        .card.hidden { display: none; }
+        label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .row { display: flex; gap: 8px; align-items: center; }
+        .input-wrap { position: relative; flex: 1; }
+        .input-wrap input { width: 100%; padding-right: 36px; }
+        .btn-clear-input {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none;
+            z-index: 2;
+        }
+        .btn-clear-input:hover { color: var(--text-main); }
+        input[type="text"], input[type="password"], select {
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: var(--element-radius);
+            color: var(--text-main);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        select {
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%2398989f" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 32px;
+        }
+        select option { background-color: var(--card-solid); color: var(--text-main); }
+        input:focus, select:focus {
+            background-color: var(--card-solid);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-light);
+        }
+        button {
+            padding: 12px 16px;
+            border: none;
+            border-radius: var(--element-radius);
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        button:active { transform: scale(0.96); opacity: 0.9; }
+        button:disabled { opacity: 0.4; pointer-events: none; }
+        .btn-accent { background-color: var(--accent); color: white; }
+        .btn-accent.cancel { background-color: var(--text-secondary); }
+        .btn-sm {
+            padding: 8px 12px;
+            font-size: 11px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            min-width: 32px;
+            text-align: center;
+            border-radius: var(--element-radius);
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .btn-sm:hover { background: rgba(255,255,255,0.15); }
+        .btn-sm.active {
+            background-color: var(--accent-light);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .btn-sm:active { transform: scale(0.96); opacity: 0.9; }
+        .btn-sm:disabled { opacity: 0.4; pointer-events: none; }
+        
+        .btn-icon {
+            padding: 6px 8px;
+            font-size: 14px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            min-width: 30px;
+            height: 30px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: var(--element-radius);
+            transition: 0.2s;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-icon:hover { background: rgba(255,255,255,0.15); }
+        .btn-icon.active {
+            background-color: var(--accent-light);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .btn-icon:active { transform: scale(0.96); opacity: 0.9; }
+        .btn-icon:disabled { opacity: 0.4; pointer-events: none; }
+        
+        .btn-speed { font-size: 11px; padding: 6px 8px; min-width: 42px; }
+        
+        .file-upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--element-radius);
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 8px;
+        }
+        .file-upload-area:hover {
+            border-color: var(--accent);
+            background: var(--accent-light);
+        }
+        .file-upload-area.dragover {
+            border-color: var(--blue);
+            background: rgba(10, 132, 255, 0.1);
+        }
+        .file-upload-area input[type="file"] { display: none; }
+        .file-upload-area .icon { font-size: 40px; display: block; margin-bottom: 10px; }
+        .file-upload-area .text { color: var(--text-secondary); font-size: 14px; }
+        .file-upload-area .filename { color: var(--text-main); font-weight: 600; margin-top: 8px; }
+        
+        .progress-wrap {
+            width: 100%;
+            height: 4px;
+            background: #3a3a3c;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-bar {
+            height: 100%;
+            background: var(--blue);
+            width: 0;
+            transition: width 0.3s;
+        }
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        .progress-info .speed { color: var(--blue); }
+        .progress-info .eta { color: #ffd60a; font-size: 10px; }
+        
+        .player-wrap {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            background: #000;
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        .player-wrap.hidden { display: none; }
+        #player {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #subtitle-box {
+            background: var(--card-bg);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--border-color);
+            padding: 24px 16px;
+            border-radius: var(--radius);
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            text-align: center;
+        }
+        .cn { font-size: var(--fs-cn); font-weight: 700; }
+        .py { font-size: var(--fs-py); color: var(--text-secondary); }
+        .vi {
+            font-size: var(--fs-vi);
+            color: var(--accent);
+            border-top: 1px solid var(--border-color);
+            padding-top: 8px;
+            width: 80%;
+        }
+        
+        #logBox {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 12px;
+            height: 100px;
+            overflow-y: auto;
+            font-size: 11px;
+            font-family: monospace;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+        .log-ok { color: var(--green); }
+        .log-err { color: var(--accent); }
+        .log-info { color: var(--blue); }
+        .log-progress { color: #ffd60a; }
+        .log-warning { color: #ff9f0a; }
+        
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 6px;
+        }
+        .setting-row label { font-size: 11px; color: var(--text-secondary); text-transform: none; margin: 0; }
+        .setting-row span { font-size: 11px; color: var(--text-main); text-align: right; min-width: 35px; }
+        input[type="range"] { flex: 1; accent-color: var(--accent); height: 4px; }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .status-badge.downloading { background: var(--blue); color: white; }
+        .status-badge.uploading { background: #ffd60a; color: black; }
+        .status-badge.done { background: var(--green); color: black; }
+        .status-badge.error { background: var(--accent); color: white; }
+        .status-badge.pending { background: var(--text-secondary); color: white; }
+        .status-badge.processing { background: #ff9f0a; color: black; }
+        .status-badge.converting { background: #5856d6; color: white; }
+        .status-badge.hint { background: #0a84ff; color: white; }
+        .status-badge.warning { background: #ff9f0a; color: black; }
+        .status-badge.exists { background: #30d158; color: black; }
+        .status-badge.drive { background: #4285f4; color: white; }
+        .badge-group { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+        
+        .tab-group {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .tab-group .btn-sm {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+        }
+        .tab-group .btn-sm.active {
+            background: var(--accent);
+            color: white;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .highlight { color: var(--accent); font-weight: 600; }
+        .video-id-display {
+            background: rgba(255,45,85,0.1);
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 13px;
+            color: var(--accent);
+            border: 1px solid rgba(255,45,85,0.2);
+        }
+        .upload-id-hint {
+            background: rgba(10,132,255,0.1);
+            border: 1px solid rgba(10,132,255,0.2);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: none;
+        }
+        .upload-id-hint .id-value { color: var(--accent); font-weight: 600; font-family: monospace; font-size: 14px; }
+        
+        .upload-guide {
+            background: rgba(255,45,85,0.08);
+            border: 1px solid rgba(255,45,85,0.15);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .upload-guide .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin: 4px 0;
+        }
+        .upload-guide .step .num {
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .upload-guide .step .text { line-height: 1.4; }
+        
+        .controls-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            align-items: center;
+        }
+        .controls-row .btn-icon { flex: 0 1 auto; }
+        .controls-row .btn-sm { flex: 0 1 auto; }
+        .controls-row .spacer { flex: 1; }
+        .controls-row .status-text { font-size: 10px; color: var(--text-secondary); margin-left: 4px; }
+        
+        .notification {
+            background: rgba(48, 209, 88, 0.15);
+            border: 1px solid var(--green);
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-main);
+            display: none;
+        }
+        .notification .highlight { color: var(--green); }
+        .notification .btn-sm { margin-top: 6px; }
+        
+        .settings-footer {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+        }
+        .settings-footer .version { font-size: 10px; color: var(--text-secondary); }
+        
+        .setting-item { margin-bottom: 8px; }
+        .setting-item:last-child { margin-bottom: 0; }
+        .setting-item label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+            display: block;
+        }
+        .setting-item input { width: 100%; }
+        
+        .method-toggle {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .method-toggle .btn-sm {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+        }
+        .method-toggle .btn-sm.active {
+            background: var(--blue);
+            color: white;
+            border-color: var(--blue);
+        }
+        
+        .drive-info-box {
+            background: rgba(66, 133, 244, 0.08);
+            border: 1px solid rgba(66, 133, 244, 0.2);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: none;
+        }
+        .drive-info-box .highlight { color: var(--blue); }
+        
+        .processing-status {
+            background: rgba(255, 160, 0, 0.1);
+            border: 1px solid #ff9f0a;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: none;
+        }
+        .processing-status .highlight { color: #ff9f0a; }
+        .processing-status .done-highlight { color: var(--green); }
+        .processing-status .warning-highlight { color: var(--accent); }
+        
+        .folder-area {
+            margin-top: 8px;
+            display: none;
+        }
+        .folder-area .saved-folder-info {
+            background: rgba(48, 209, 88, 0.1);
+            border: 1px solid var(--green);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .folder-area .saved-folder-info .folder-name { color: var(--green); font-weight: 600; }
+        .folder-area .folder-select-area {
+            margin-top: 6px;
+        }
+        .folder-area .folder-select-area select {
+            flex: 1;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-color);
+            border-radius: var(--element-radius);
+            color: var(--text-main);
+            font-size: 13px;
+            outline: none;
+        }
+        
+        .api-key-warning {
+            background: rgba(255, 160, 0, 0.1);
+            border: 1px solid #ff9f0a;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: none;
+        }
+        .api-key-warning .highlight { color: #ff9f0a; }
+        
+        /* ===== WORKFLOW LOG STYLES ===== */
+        .workflow-log {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: var(--element-radius);
+            padding: 12px;
+            margin-top: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 11px;
+            border: 1px solid var(--border-color);
+        }
+        .workflow-log .step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin: 2px 0;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+        .workflow-log .step .icon { font-size: 14px; }
+        .workflow-log .step .name { flex: 1; font-size: 11px; }
+        .workflow-log .step .time { 
+            font-size: 10px; 
+            color: var(--text-secondary);
+            min-width: 50px;
+            text-align: right;
+        }
+        .workflow-log .step.pending { 
+            opacity: 0.4;
+            border-left: 2px solid transparent;
+        }
+        .workflow-log .step.running { 
+            border-left: 2px solid var(--blue);
+            color: var(--text-main);
+            background: rgba(10, 132, 255, 0.08);
+        }
+        .workflow-log .step.success { 
+            border-left: 2px solid var(--green);
+            color: var(--text-main);
+        }
+        .workflow-log .step.failed { 
+            border-left: 2px solid var(--accent);
+            color: var(--accent);
+            background: rgba(255, 45, 85, 0.08);
+        }
+        .workflow-log .step .status-icon {
+            font-size: 12px;
+            min-width: 16px;
+        }
+        .workflow-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .workflow-header .title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        .workflow-header .status {
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .workflow-status-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .workflow-status-badge.waiting { background: var(--text-secondary); color: white; }
+        .workflow-status-badge.running { background: var(--blue); color: white; animation: pulse 1.5s infinite; }
+        .workflow-status-badge.success { background: var(--green); color: black; }
+        .workflow-status-badge.failed { background: var(--accent); color: white; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .log-empty {
+            color: var(--text-secondary);
+            font-size: 11px;
+            text-align: center;
+            padding: 20px 0;
+        }
+        .workflow-log::-webkit-scrollbar {
+            width: 4px;
+        }
+        .workflow-log::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .workflow-log::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 2px;
+        }
+
+        .reset-timer {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-left: 4px;
+        }
+        .btn-reset-workflow {
+            background: var(--accent);
+            color: white;
+            padding: 2px 10px;
+            font-size: 10px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-reset-workflow:hover {
+            opacity: 0.8;
+        }
+        .btn-reset-workflow:active {
+            transform: scale(0.95);
+        }
+    </style>
+    <script src="https://www.youtube.com/iframe_api"></script>
+</head>
+<body>
+<div class="container">
+    <div class="app-header hideable" id="header"><h3>🎬 Pinyin AI</h3></div>
+
+    <!-- === TABS === -->
+    <div class="tab-group hideable" id="tab-group">
+        <button class="btn-sm active" onclick="switchTab('youtube')" id="tab-youtube">🎬 YouTube</button>
+        <button class="btn-sm" onclick="switchTab('upload')" id="tab-upload">📤 Upload</button>
+        <button class="btn-sm" onclick="switchTab('library')" id="tab-library">📚 Library</button>
+    </div>
+
+    <!-- === TAB 1: YOUTUBE === -->
+    <div class="tab-content active hideable" id="content-youtube">
+        <div class="card">
+            <label>🔗 YouTube Link</label>
+            <div class="row">
+                <div class="input-wrap">
+                    <input type="text" id="yt-link" placeholder="Paste YouTube link..." oninput="onYtLinkInput()">
+                    <button class="btn-clear-input" id="btn-clear-yt" onclick="clearYtLink()">×</button>
+                </div>
+                <button class="btn-accent" id="btn-get-subs" onclick="extractAndGoToUpload()" style="width:80px">
+                    📝 Get
+                </button>
+            </div>
+            
+            <div class="notification" id="exists-notification">
+                ✅ This video already exists! <span class="highlight" id="exists-vid">---</span>
+                <br>
+                <button class="btn-sm" onclick="goToExistingVideo()" style="background:var(--green);color:black;margin-top:4px;">
+                    ▶️ Go to video
+                </button>
+            </div>
+            
+            <div id="yt-id-display" style="margin-top:8px;display:none;">
+                <span style="font-size:11px;color:var(--text-secondary);">Video ID:</span>
+                <span class="video-id-display" id="extracted-vid">---</span>
+                <button class="btn-sm" onclick="switchToVideoTab()" style="background:var(--blue);color:white;margin-left:8px;">
+                    ▶️ Select this video
+                </button>
+            </div>
+            
+            <div style="display:flex;gap:6px;margin-top:8px;">
+                <button class="btn-sm" onclick="playYouTubeVideo()" style="background:var(--blue);color:white;flex:1;">
+                    ▶️ Play
+                </button>
+                <button class="btn-sm" onclick="openYouTubeLink()" style="background:var(--green);color:black;flex:1;">
+                    🔗 Open YouTube
+                </button>
+            </div>
+            
+            <div class="progress-wrap"><div class="progress-bar" id="pb-yt"></div></div>
+            <div class="progress-info">
+                <span id="pb-yt-text">Enter YouTube link to get ID</span>
+                <span class="speed" id="pb-yt-speed">--</span>
+            </div>
+            
+            <div class="badge-group" id="yt-info"></div>
+        </div>
+    </div>
+
+    <!-- === TAB 2: UPLOAD === -->
+    <div class="tab-content hideable" id="content-upload">
+        <div class="card">
+            <label>📤 Upload Audio</label>
+            
+            <div class="upload-id-hint" id="upload-id-hint">
+                🎯 Video ID: <span class="id-value" id="upload-vid-display">---</span>
+                <span style="font-size:10px;color:var(--text-secondary);margin-left:8px;">(from YouTube link)</span>
+            </div>
+            
+            <!-- Method Toggle -->
+            <div class="method-toggle">
+                <button class="btn-sm" onclick="switchUploadMethod('direct')" id="method-direct-btn">📤 Direct</button>
+                <button class="btn-sm active" onclick="switchUploadMethod('drive')" id="method-drive-btn">☁️ Google Drive</button>
+            </div>
+            
+            <!-- === METHOD 1: DIRECT UPLOAD === -->
+            <div id="upload-method-direct" style="display:none;">
+                <div class="upload-guide">
+                    <div style="font-weight:600;color:var(--text-main);margin-bottom:6px;">📋 Direct Upload:</div>
+                    <div class="step"><span class="num">1</span><span class="text">Download audio from YouTube</span></div>
+                    <div class="step"><span class="num">2</span><span class="text">Select file below</span></div>
+                    <div class="step"><span class="num">3</span><span class="text">Press UPLOAD (may take 3-5 mins)</span></div>
+                    <div style="margin-top:6px;font-size:11px;color:#ff9f0a;">⚠️ Keep browser open during upload</div>
+                </div>
+                
+                <div class="file-upload-area" id="drop-area" onclick="document.getElementById('file-input').click()">
+                    <span class="icon">📁</span>
+                    <div class="text">Drag & drop audio file or click to select</div>
+                    <div class="filename" id="file-name">No file selected</div>
+                    <input type="file" id="file-input" accept=".m4a,.mp3,.webm" onchange="handleFileSelect(this.files[0])">
+                </div>
+                
+                <div class="badge-group" id="file-info"></div>
+                
+                <button class="btn-accent" id="btn-upload" onclick="uploadToGitHub()" disabled style="width:100%;margin-top:8px;">
+                    📤 UPLOAD TO GITHUB
+                </button>
+            </div>
+            
+            <!-- === METHOD 2: GOOGLE DRIVE === -->
+            <div id="upload-method-drive">
+                <div class="upload-guide" style="border-color:var(--blue);">
+                    <div style="font-weight:600;color:var(--blue);margin-bottom:6px;">☁️ Google Drive Method</div>
+                    <div class="step"><span class="num" style="background:var(--blue);">1</span><span class="text">Upload audio to Google Drive</span></div>
+                    <div class="step"><span class="num" style="background:var(--blue);">2</span><span class="text">Share folder/file with <strong>"Anyone with the link"</strong></span></div>
+                    <div class="step"><span class="num" style="background:var(--blue);">3</span><span class="text">Paste <strong>FILE</strong> or <strong>FOLDER</strong> link below</span></div>
+                    <div class="step"><span class="num" style="background:var(--blue);">4</span><span class="text">Auto-detect: file → process | folder → show file list</span></div>
+                    <div class="step"><span class="num" style="background:var(--blue);">5</span><span class="text">Press <strong style="color:var(--accent);">☁️ Process</strong></span></div>
+                    <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border-color);font-size:11px;color:var(--text-secondary);">
+                        💡 <strong>Link file:</strong> Process immediately • <strong>Link folder:</strong> Browse and select file
+                    </div>
+                </div>
+                
+                <!-- API KEY WARNING (Đã cập nhật) -->
+                <div class="api-key-warning" id="api-key-warning" style="display:none;">
+                    ✅ <span class="highlight">Đã dùng OAuth</span> → Không cần API Key để duyệt folder.<br>
+                    <span style="font-size:10px;">💡 OAuth đã thay thế API Key cho mọi chức năng.</span>
+                </div>
+                
+                <!-- Ô NHẬP THÔNG MINH -->
+                <div style="margin-top:8px;">
+                    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">🔗 Drive Link (file or folder):</div>
+                    <div class="row">
+                        <div class="input-wrap">
+                            <input type="text" id="smart-drive-link" placeholder="Paste Google Drive file or folder link..." oninput="onSmartDriveInput()">
+                            <button class="btn-clear-input" id="btn-clear-smart" onclick="clearSmartInput()" style="display:none;">×</button>
+                        </div>
+                        <button class="btn-accent" id="btn-drive-process" onclick="processSmartDrive()" disabled style="width:100px;background:var(--blue);">
+                            ☁️ Process
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- KHU VỰC FOLDER -->
+                <div class="folder-area" id="folder-area">
+                    <div class="saved-folder-info" id="saved-folder-info">
+                        <span>📁 Folder: <span class="folder-name" id="saved-folder-id">---</span></span>
+                        <button class="btn-sm" onclick="clearSavedFolder()" style="background:transparent;color:var(--accent);padding:2px 8px;font-size:10px;border:1px solid var(--accent);">
+                            🗑️ Xóa
+                        </button>
+                    </div>
+                    <div class="folder-select-area">
+                        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">📂 Chọn file từ folder:</div>
+                        <div class="row">
+                            <select id="folder-file-select" onchange="onFolderFileSelect()">
+                                <option value="">-- Chọn file audio --</option>
+                            </select>
+                            <button class="btn-sm" onclick="refreshFolderFiles()" style="background:var(--blue);color:white;padding:8px 12px;">
+                                🔄
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- WORKFLOW LOG -->
+                <div style="margin-top:12px;">
+                    <div class="workflow-header">
+                        <span class="title">📋 Workflow Progress</span>
+                        <span class="status">
+                            <span class="workflow-status-badge waiting" id="workflow-status-badge">⏳ Waiting</span>
+                            <span class="reset-timer" id="reset-timer"></span>
+                            <button class="btn-reset-workflow" onclick="forceResetWorkflow()" title="Reset để nhập link mới">
+                                🔄 Reset
+                            </button>
+                        </span>
+                    </div>
+                    <div class="workflow-log" id="workflow-log">
+                        <div class="log-empty" id="log-empty">🔄 Submit a job to see real-time progress</div>
+                    </div>
+                </div>
+                
+                <!-- TRẠNG THÁI -->
+                <div class="processing-status" id="processing-status">
+                    ⏳ <span class="highlight" id="processing-text">Đang xử lý...</span>
+                </div>
+                
+                <div class="drive-info-box" id="drive-info-box">
+                    📌 File ID: <span class="highlight" id="drive-file-id">---</span>
+                </div>
+                
+                <div class="badge-group" id="drive-info"></div>
+            </div>
+            
+            <div class="progress-wrap"><div class="progress-bar" id="pb-upload"></div></div>
+            <div class="progress-info">
+                <span id="pb-upload-text">Select method to start</span>
+                <span class="speed" id="pb-upload-speed">--</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- === TAB 3: LIBRARY === -->
+    <div class="tab-content hideable" id="content-library">
+        <div class="card" id="gist-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <label>📚 Subtitle Library</label>
+                <div style="display:flex;gap:6px;">
+                    <button class="btn-sm" onclick="renameCurrentVideo()">✏️</button>
+                    <button class="btn-sm" style="color:var(--accent);" onclick="deleteCurrentVideo()">🗑️</button>
+                </div>
+            </div>
+            <div class="row">
+                <select id="gist-select" onchange="onGistSelected(this.value)">
+                    <option value="">-- Select subtitle... --</option>
+                </select>
+                <button class="btn-sm" onclick="loadGistLibrary(true)">🔄</button>
+            </div>
+            <p style="font-size:10px;color:var(--text-secondary);margin-top:4px" id="matched-sub-note">Ready</p>
+            
+            <div style="display:flex;gap:6px;margin-top:8px;">
+                <button class="btn-sm" onclick="copyYouTubeLink()" style="background:var(--blue);color:white;flex:1;">
+                    🔗 Copy Link
+                </button>
+                <button class="btn-sm" onclick="playFromGist()" style="background:var(--green);color:black;flex:1;">
+                    ▶️ Play
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- === PLAYER === -->
+    <div class="player-wrap hidden" id="video-wrapper"><div id="player"></div></div>
+
+    <div class="card" style="padding:10px 16px" id="timeline-card">
+        <div class="row" style="align-items:center;gap:10px">
+            <input type="range" id="time-slider" value="0" min="0" max="100" step="0.1" 
+                   oninput="onSliderSeek(this.value)" onchange="onSliderChange(this.value)"
+                   style="flex:1;accent-color:var(--accent);height:4px;cursor:pointer">
+            <span style="font-size:11px;color:var(--text-secondary);min-width:70px;text-align:right" id="time-display">00:00 / 00:00</span>
+        </div>
+    </div>
+
+    <!-- === CONTROLS === -->
+    <div class="card" style="padding:10px 12px">
+        <div class="controls-row">
+            <button class="btn-icon" id="btn-play-pause" onclick="togglePlayPause()">▶</button>
+            <button class="btn-icon" onclick="toggleVideoVisibility()">🎥</button>
+            <button class="btn-icon btn-speed" onclick="cyclePlaybackRate()" id="btn-speed">1.0x</button>
+            <button class="btn-icon" id="btn-loop" onclick="toggleLoop()">🔁</button>
+            <button class="btn-icon" onclick="toggleSubSettings()" title="Font Size">🔤</button>
+            
+            <span class="spacer"></span>
+            
+            <button class="btn-icon" id="btn-toggle-settings" onclick="toggleFullSettings()" style="background:rgba(10,132,255,0.15);border-color:var(--blue);color:var(--blue);" title="Settings">
+                ⚙
+            </button>
+            
+            <button class="btn-icon" id="btn-toggle-hide" onclick="toggleHideMode()" style="background:var(--accent-light);border-color:var(--accent);color:var(--accent);" title="Hide/Show">
+                👁
+            </button>
+            
+            <span class="status-text" id="status-text">Ready</span>
+        </div>
+        <div id="sub-settings-panel" style="display:none;margin-top:8px">
+            <div class="setting-row"><label>Chinese</label><input type="range" min="14" max="36" value="20" oninput="updateFont('cn',this.value)"><span id="val-cn">20px</span></div>
+            <div class="setting-row"><label>Pinyin</label><input type="range" min="12" max="28" value="16" oninput="updateFont('py',this.value)"><span id="val-py">16px</span></div>
+            <div class="setting-row"><label>Vietnamese</label><input type="range" min="10" max="24" value="14" oninput="updateFont('vi',this.value)"><span id="val-vi">14px</span></div>
+        </div>
+    </div>
+
+    <!-- === SUBTITLE === -->
+    <div id="subtitle-box"><span style="color:var(--text-secondary);font-size:14px">Select subtitle + Play, or enter new link...</span></div>
+
+    <!-- === SETTINGS GROUP === -->
+    <div class="settings-group hidden" id="settings-group">
+        <div class="card" id="settings-card">
+            <label>⚙️ GITHUB SETTINGS</label>
+            
+            <div class="setting-item">
+                <label>Username (repo chứa workflow)</label>
+                <input type="text" id="ghUser" placeholder="GitHub Username" value="PinyinCode">
+                <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">
+                    👤 Tài khoản GitHub chứa repo subtitle-ai
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <label>Repository (chứa workflow)</label>
+                <input type="text" id="ghRepo" placeholder="Repository name" value="subtitle-ai">
+                <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">
+                    📁 Repo chứa workflow và scripts xử lý AI
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <label>Token (GitHub Personal Access Token)</label>
+                <input type="password" id="ghToken" placeholder="GitHub Token (repo + workflow scope)">
+                <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">
+                    🔑 Token cần có quyền trên repo subtitle-ai
+                </div>
+            </div>
+            
+            <!-- 🆕 OAuth Settings (thay thế API Key) -->
+            <div class="setting-item">
+                <label>OAuth Client ID (Google)</label>
+                <input type="password" id="oauthClientId" placeholder="OAuth Client ID">
+                <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">
+                    🔑 Lấy từ Google Cloud Console → Credentials
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <label>OAuth Client Secret</label>
+                <input type="password" id="oauthClientSecret" placeholder="OAuth Client Secret">
+                <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">
+                    🔒 Giữ bí mật, không chia sẻ
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <label>OAuth Refresh Token</label>
+                <input type="password" id="oauthRefreshToken" placeholder="Refresh Token">
+                <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">
+                    ♻️ Dùng để refresh access token tự động
+                </div>
+            </div>
+            
+            <button class="btn-sm" style="width:100%;background:var(--blue);color:white;padding:12px;margin-top:4px;" onclick="saveSettings()">💾 SAVE</button>
+        </div>
+
+        <div class="settings-footer" id="settings-footer">
+            <span class="version">v2.0 - OAuth</span>
+        </div>
+    </div>
+
+    <!-- === LOG === -->
+    <div class="card hideable hidden" id="log-card">
+        <label>📋 Progress Log</label>
+        <div id="logBox">🟢 Ready</div>
+    </div>
+</div>
+
+<script>
+// ===== STATE =====
+let player, subtitles=[], syncInterval=null, activeSubIndex=-1;
+let currentGistItem=null;
+let isLoopEnabled=false, currentSpeedIndex=2;
+const speeds=[0.5,0.75,1.0,1.25,1.5,2.0];
+let gh_cloud_map={};
+let selectedFile = null;
+let isUploading = false;
+let currentVideoId = null;
+let pendingVideoId = null;
+let isHideMode = false;
+let isSettingsVisible = false;
+let existingVideoData = null;
+let uploadMethod = 'drive';
+let currentSmartFileId = null;
+let isFolderMode = false;
+let targetUser = 'PinyinCode';
+let targetRepo = 'subtitle-ai';
+let workflowCheckInterval = null;
+let resetTimerInterval = null;
+let resetCountdown = 0;
+
+// ===== OAUTH STATE =====
+let oauthClientId = '';
+let oauthClientSecret = '';
+let oauthRefreshToken = '';
+
+// ===== WORKFLOW STEPS =====
+const workflowSteps = [
+    { id: 'checkout', name: 'Checkout code', icon: '📥' },
+    { id: 'debug_hf', name: 'Debug - Check HF_TOKEN', icon: '🔍' },
+    { id: 'download', name: 'Download from Google Drive', icon: '🌐' },
+    { id: 'login', name: 'Login to GitHub Container Registry', icon: '🔑' },
+    { id: 'pull', name: 'Pull AI Docker image', icon: '🐳' },
+    { id: 'process', name: 'Process audio with AI', icon: '🤖' },
+    { id: 'upload', name: 'Upload subtitle to Gist', icon: '📤' },
+    { id: 'delete_drive', name: 'Delete from Google Drive', icon: '🗑️' },
+    { id: 'cleanup', name: 'Cleanup', icon: '🧹' }
+];
+
+let workflowStatus = [];
+let processingQueue = {};
+let processedLinks = {};
+
+// ===== LOAD/SAVE LOCAL STATE =====
+function saveProcessingState() {
+    try {
+        localStorage.setItem('pinyin_ai_queue', JSON.stringify(processingQueue));
+        localStorage.setItem('pinyin_ai_processed', JSON.stringify(processedLinks));
+    } catch (e) {}
+}
+
+function loadProcessingState() {
+    try {
+        const queue = localStorage.getItem('pinyin_ai_queue');
+        const processed = localStorage.getItem('pinyin_ai_processed');
+        if (queue) processingQueue = JSON.parse(queue);
+        if (processed) processedLinks = JSON.parse(processed);
+    } catch (e) {
+        processingQueue = {};
+        processedLinks = {};
+    }
+}
+
+// ===== WORKFLOW LOG FUNCTIONS =====
+function initWorkflowLog() {
+    workflowStatus = workflowSteps.map(step => ({
+        ...step,
+        status: 'pending',
+        time: ''
+    }));
+    renderWorkflowLog();
+}
+
+function renderWorkflowLog() {
+    const log = document.getElementById('workflow-log');
+    const empty = document.getElementById('log-empty');
+    
+    if (empty) empty.style.display = 'none';
+    
+    let html = '';
+    workflowStatus.forEach(step => {
+        const statusIcon = step.status === 'running' ? '🔄' :
+                          step.status === 'success' ? '✅' :
+                          step.status === 'failed' ? '❌' : '⏳';
+        const timeDisplay = step.time ? `<span class="time">${step.time}</span>` : '';
+        html += `
+            <div class="step ${step.status}">
+                <span class="icon">${step.icon}</span>
+                <span class="name">${step.name}</span>
+                ${timeDisplay}
+                <span class="status-icon">${statusIcon}</span>
+            </div>
+        `;
+    });
+    log.innerHTML = html;
+    log.scrollTop = log.scrollHeight;
+}
+
+function updateWorkflowStep(stepId, status, time = '') {
+    const step = workflowStatus.find(s => s.id === stepId);
+    if (step) {
+        step.status = status;
+        if (time) step.time = time;
+        renderWorkflowLog();
+        updateWorkflowBadge();
+    }
+}
+
+function updateWorkflowBadge() {
+    const badge = document.getElementById('workflow-status-badge');
+    const running = workflowStatus.some(s => s.status === 'running');
+    const failed = workflowStatus.some(s => s.status === 'failed');
+    const allDone = workflowStatus.every(s => s.status === 'success' || s.status === 'pending');
+    const hasSuccess = workflowStatus.some(s => s.status === 'success');
+    
+    if (failed) {
+        badge.className = 'workflow-status-badge failed';
+        badge.textContent = '❌ Failed';
+    } else if (running) {
+        badge.className = 'workflow-status-badge running';
+        badge.textContent = '⏳ Running...';
+    } else if (hasSuccess && allDone) {
+        badge.className = 'workflow-status-badge success';
+        badge.textContent = '✅ Success';
+    } else {
+        badge.className = 'workflow-status-badge waiting';
+        badge.textContent = '⏳ Waiting';
+    }
+}
+
+function resetWorkflowLog() {
+    workflowStatus = workflowSteps.map(step => ({
+        ...step,
+        status: 'pending',
+        time: ''
+    }));
+    renderWorkflowLog();
+    document.getElementById('workflow-status-badge').className = 'workflow-status-badge waiting';
+    document.getElementById('workflow-status-badge').textContent = '⏳ Waiting';
+    document.getElementById('reset-timer').textContent = '';
+    const empty = document.getElementById('log-empty');
+    if (empty) empty.style.display = 'block';
+    if (resetTimerInterval) {
+        clearInterval(resetTimerInterval);
+        resetTimerInterval = null;
+    }
+}
+
+function forceResetWorkflow() {
+    workflowStatus = workflowSteps.map(step => ({
+        ...step,
+        status: 'pending',
+        time: ''
+    }));
+    renderWorkflowLog();
+    
+    const badge = document.getElementById('workflow-status-badge');
+    badge.className = 'workflow-status-badge waiting';
+    badge.textContent = '⏳ Waiting';
+    
+    document.getElementById('reset-timer').textContent = '';
+    if (resetTimerInterval) {
+        clearInterval(resetTimerInterval);
+        resetTimerInterval = null;
+    }
+    
+    if (workflowCheckInterval) {
+        clearInterval(workflowCheckInterval);
+        workflowCheckInterval = null;
+    }
+    
+    document.getElementById('processing-status').style.display = 'none';
+    progUpload(0, 'Ready for new job');
+    document.getElementById('status-text').innerHTML = 'Ready';
+    
+    const btn = document.getElementById('btn-drive-process');
+    btn.disabled = false;
+    btn.textContent = '☁️ Process';
+    
+    document.getElementById('drive-info').innerHTML = '';
+    document.getElementById('drive-info-box').style.display = 'none';
+    
+    const empty = document.getElementById('log-empty');
+    if (empty) empty.style.display = 'block';
+    
+    if (pendingVideoId) {
+        clearVideoProcessing(pendingVideoId);
+    }
+    
+    processingQueue = {};
+    saveProcessingState();
+    
+    log('🔄 Đã reset, sẵn sàng cho video mới!', 'info');
+}
+
+function isWorkflowComplete() {
+    const allDone = workflowStatus.every(s => s.status === 'success' || s.status === 'failed');
+    const hasRunning = workflowStatus.some(s => s.status === 'running');
+    return allDone && !hasRunning;
+}
+
+function startResetTimer(seconds) {
+    resetCountdown = seconds;
+    const timerEl = document.getElementById('reset-timer');
+    timerEl.textContent = `🔄 reset in ${seconds}s`;
+    
+    if (resetTimerInterval) clearInterval(resetTimerInterval);
+    resetTimerInterval = setInterval(() => {
+        resetCountdown--;
+        if (resetCountdown <= 0) {
+            clearInterval(resetTimerInterval);
+            resetTimerInterval = null;
+            timerEl.textContent = '';
+            forceResetWorkflow();
+            console.log('🔄 Workflow auto-reset after completion');
+        } else {
+            timerEl.textContent = `🔄 reset in ${resetCountdown}s`;
+        }
+    }, 1000);
+}
+
+// ===== LẤY LOG WORKFLOW TỪ GITHUB API =====
+async function fetchWorkflowLogs(videoId) {
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    const user = targetUser;
+    const repo = targetRepo;
+    
+    if (!token) {
+        log('⚠️ Không có token để lấy log', 'warning');
+        return;
+    }
+    
+    try {
+        const runsRes = await fetch(
+            `https://api.github.com/repos/${user}/${repo}/actions/runs?per_page=5&event=repository_dispatch`,
+            {
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            }
+        );
+        
+        if (!runsRes.ok) {
+            log('❌ Không thể lấy workflow runs', 'err');
+            return;
+        }
+        
+        const runsData = await runsRes.json();
+        const runs = runsData.workflow_runs || [];
+        
+        if (runs.length === 0) {
+            log('⏳ Chưa có workflow nào được kích hoạt', 'info');
+            return;
+        }
+        
+        const latestRun = runs[0];
+        const isCompleted = latestRun.status === 'completed';
+        const isSuccess = latestRun.conclusion === 'success';
+        
+        const jobsRes = await fetch(
+            `https://api.github.com/repos/${user}/${repo}/actions/runs/${latestRun.id}/jobs`,
+            {
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            }
+        );
+        
+        if (jobsRes.ok) {
+            const jobsData = await jobsRes.json();
+            const jobs = jobsData.jobs || [];
+            
+            jobs.forEach(job => {
+                const steps = job.steps || [];
+                steps.forEach(step => {
+                    const stepName = step.name || '';
+                    const stepStatus = step.status || 'pending';
+                    const stepConclusion = step.conclusion || '';
+                    
+                    let stepId = null;
+                    if (stepName.includes('Checkout code')) stepId = 'checkout';
+                    else if (stepName.includes('Check HF_TOKEN')) stepId = 'debug_hf';
+                    else if (stepName.includes('Download from Google Drive')) stepId = 'download';
+                    else if (stepName.includes('Login to GitHub Container Registry')) stepId = 'login';
+                    else if (stepName.includes('Pull AI Docker image')) stepId = 'pull';
+                    else if (stepName.includes('Process audio with AI')) stepId = 'process';
+                    else if (stepName.includes('Upload subtitle to Gist')) stepId = 'upload';
+                    else if (stepName.includes('Delete file from Google Drive')) stepId = 'delete_drive';
+                    else if (stepName.includes('Cleanup')) stepId = 'cleanup';
+                    
+                    if (stepId) {
+                        let status = 'pending';
+                        if (stepStatus === 'completed') {
+                            status = stepConclusion === 'success' ? 'success' : 'failed';
+                        } else if (stepStatus === 'in_progress') {
+                            status = 'running';
+                        }
+                        const time = step.completed_at ? 
+                            `${Math.round((new Date(step.completed_at) - new Date(step.started_at)) / 1000)}s` : '';
+                        updateWorkflowStep(stepId, status, time);
+                    }
+                });
+            });
+            
+            const badge = document.getElementById('workflow-status-badge');
+            if (isCompleted) {
+                badge.className = isSuccess ? 'workflow-status-badge success' : 'workflow-status-badge failed';
+                badge.textContent = isSuccess ? '✅ Success' : '❌ Failed';
+                
+                if (workflowCheckInterval) {
+                    clearInterval(workflowCheckInterval);
+                    workflowCheckInterval = null;
+                }
+                
+                if (!isSuccess) {
+                    startResetTimer(3);
+                } else {
+                    startResetTimer(10);
+                    if (videoId) {
+                        setTimeout(() => checkAndLoadGist(videoId), 3000);
+                    }
+                }
+            } else {
+                badge.className = 'workflow-status-badge running';
+                badge.textContent = '⏳ Running...';
+                if (resetTimerInterval) {
+                    clearInterval(resetTimerInterval);
+                    resetTimerInterval = null;
+                    document.getElementById('reset-timer').textContent = '';
+                }
+            }
+        }
+        
+    } catch (e) {
+        log('❌ Lỗi lấy log: ' + e.message, 'err');
+    }
+}
+
+// ===== CHECK GIST =====
+async function checkAndLoadGist(vid) {
+    log(`🔍 Checking subtitles for ${vid}...`, 'info');
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    if (!token) return;
+    
+    try {
+        const res = await fetch('https://api.github.com/gists?per_page=100', {
+            headers: { "Authorization": `token ${token}` }
+        });
+        if (res.ok) {
+            const gists = await res.json();
+            for (let g of gists) {
+                if (g.files && g.files[`${vid}.vtt`]) {
+                    gh_cloud_map[vid] = {
+                        url: g.files[`${vid}.vtt`].raw_url,
+                        title: (g.description || '').replace(/^.*Subtitle\s*-\s*/i, '').trim() || `Video ${vid}`
+                    };
+                    localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
+                    await loadGistLibrary(true);
+                    document.getElementById('matched-sub-note').innerText = '✅ New subtitle!';
+                    log('🎉 Subtitles ready!', 'ok');
+                    document.getElementById('status-text').innerHTML = '✅ Done';
+                    return true;
+                }
+            }
+        }
+        log('⏳ No subtitles yet, retrying...', 'info');
+        setTimeout(() => checkAndLoadGist(vid), 30000);
+        return false;
+    } catch (e) {
+        log('Error checking: ' + e.message, 'err');
+        return false;
+    }
+}
+
+// ===== CÁC HÀM KHÁC =====
+function isVideoProcessing(videoId) {
+    return processingQueue[videoId] === true;
+}
+
+function isVideoProcessed(videoId) {
+    return processedLinks[videoId] === true;
+}
+
+function markVideoProcessing(videoId) {
+    processingQueue[videoId] = true;
+    saveProcessingState();
+    document.getElementById('processing-status').style.display = 'block';
+    document.getElementById('processing-text').textContent = `⏳ Đang xử lý ${videoId}...`;
+    document.getElementById('processing-text').className = 'highlight';
+}
+
+function markVideoProcessed(videoId) {
+    processingQueue[videoId] = false;
+    processedLinks[videoId] = true;
+    saveProcessingState();
+    document.getElementById('processing-status').style.display = 'block';
+    document.getElementById('processing-text').textContent = `✅ ${videoId} đã xử lý xong!`;
+    document.getElementById('processing-text').className = 'done-highlight';
+}
+
+function clearVideoProcessing(videoId) {
+    delete processingQueue[videoId];
+    saveProcessingState();
+    document.getElementById('processing-status').style.display = 'none';
+}
+
+function checkPendingProcessing() {
+    const queue = processingQueue;
+    for (let vid in queue) {
+        if (queue[vid] === true) {
+            document.getElementById('processing-status').style.display = 'block';
+            document.getElementById('processing-text').textContent = `⏳ ${vid} đang xử lý (từ phiên trước)...`;
+            document.getElementById('processing-text').className = 'highlight';
+            setTimeout(() => {
+                checkAndLoadGist(vid);
+                setTimeout(() => clearVideoProcessing(vid), 5000);
+            }, 30000);
+            break;
+        }
+    }
+}
+
+async function checkGitHubProcessingStatus(videoId) {
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    const user = targetUser;
+    const repo = targetRepo;
+    
+    if (!token) return null;
+    
+    try {
+        const response = await fetch(
+            `https://api.github.com/repos/${user}/${repo}/contents/.processing/${videoId}.lock`,
+            {
+                headers: { 
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            }
+        );
+        
+        if (response.ok) {
+            const data = await response.json();
+            const content = atob(data.content);
+            return { status: 'processing', message: content };
+        } else if (response.status === 404) {
+            return { status: 'idle', message: 'Sẵn sàng xử lý' };
+        } else {
+            return null;
+        }
+    } catch (e) {
+        console.error('Error checking status:', e);
+        return null;
+    }
+}
+
+// ===== GET ACCESS TOKEN FROM OAUTH =====
+async function getOAuthAccessToken() {
+    const clientId = localStorage.oauth_client_id || document.getElementById('oauthClientId').value.trim();
+    const clientSecret = localStorage.oauth_client_secret || document.getElementById('oauthClientSecret').value.trim();
+    const refreshToken = localStorage.oauth_refresh_token || document.getElementById('oauthRefreshToken').value.trim();
+    
+    if (!clientId || !clientSecret || !refreshToken) {
+        log('⚠️ Thiếu OAuth credentials', 'warning');
+        return null;
+    }
+    
+    try {
+        const response = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                client_id: clientId,
+                client_secret: clientSecret,
+                refresh_token: refreshToken,
+                grant_type: 'refresh_token'
+            })
+        });
+        
+        if (!response.ok) {
+            log(`❌ Lỗi refresh token: ${response.status}`, 'err');
+            return null;
+        }
+        
+        const data = await response.json();
+        return data.access_token;
+    } catch (e) {
+        log('❌ Lỗi lấy access token: ' + e.message, 'err');
+        return null;
+    }
+}
+
+function extractDriveFileId(link) {
+    if (!link) return null;
+    const patterns = [
+        /\/file\/d\/([a-zA-Z0-9_-]+)/,
+        /id=([a-zA-Z0-9_-]+)/,
+        /\/uc\?id=([a-zA-Z0-9_-]+)/
+    ];
+    for (const pattern of patterns) {
+        const match = link.match(pattern);
+        if (match) return match[1];
+    }
+    return null;
+}
+
+function extractDriveFolderId(link) {
+    if (!link) return null;
+    const patterns = [
+        /\/folders\/([a-zA-Z0-9_-]+)/,
+        /id=([a-zA-Z0-9_-]+)/,
+        /\/drive\/folders\/([a-zA-Z0-9_-]+)/
+    ];
+    for (const pattern of patterns) {
+        const match = link.match(pattern);
+        if (match) return match[1];
+    }
+    if (link.match(/^[a-zA-Z0-9_-]{19,}$/)) return link;
+    return null;
+}
+
+function onSmartDriveInput() {
+    const val = document.getElementById('smart-drive-link').value;
+    document.getElementById('btn-clear-smart').style.display = val ? 'block' : 'none';
+    
+    document.getElementById('folder-area').style.display = 'none';
+    document.getElementById('drive-info-box').style.display = 'none';
+    document.getElementById('drive-info').innerHTML = '';
+    document.getElementById('processing-status').style.display = 'none';
+    currentSmartFileId = null;
+    isFolderMode = false;
+    document.getElementById('btn-drive-process').disabled = true;
+    
+    if (!val) return;
+    
+    const fileId = extractDriveFileId(val);
+    const folderId = extractDriveFolderId(val);
+    const hasOAuth = !!(localStorage.oauth_refresh_token || document.getElementById('oauthRefreshToken').value.trim());
+    
+    if (fileId) {
+        currentSmartFileId = fileId;
+        isFolderMode = false;
+        document.getElementById('btn-drive-process').disabled = false;
+        document.getElementById('drive-info-box').style.display = 'block';
+        document.getElementById('drive-file-id').textContent = fileId;
+        document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">✅ File link detected</span>`;
+        log(`📁 File ID: ${fileId}`, 'info');
+        
+    } else if (folderId && hasOAuth) {
+        isFolderMode = true;
+        document.getElementById('btn-drive-process').disabled = true;
+        
+        localStorage.setItem('drive_folder_id', folderId);
+        const folderName = val.match(/\/folders\/([^\/]+)/)?.[1] || folderId;
+        localStorage.setItem('drive_folder_name', folderName);
+        
+        document.getElementById('folder-area').style.display = 'block';
+        document.getElementById('saved-folder-id').textContent = folderName;
+        document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">📁 Folder detected: ${folderName}</span>`;
+        
+        log(`📁 Folder ID: ${folderId}`, 'info');
+        loadFilesFromFolderOAuth();
+        
+    } else if (folderId && !hasOAuth) {
+        document.getElementById('btn-drive-process').disabled = true;
+        document.getElementById('drive-info').innerHTML = `<span class="status-badge warning">⚠️ Need OAuth for folder browsing</span>`;
+        log('⚠️ Vui lòng thêm OAuth credentials trong Settings để duyệt folder', 'warning');
+        
+    } else {
+        document.getElementById('btn-drive-process').disabled = true;
+        document.getElementById('drive-info').innerHTML = `<span class="status-badge error">❌ Invalid Drive link</span>`;
+    }
+}
+
+function clearSmartInput() {
+    document.getElementById('smart-drive-link').value = '';
+    document.getElementById('btn-clear-smart').style.display = 'none';
+    document.getElementById('btn-drive-process').disabled = true;
+    document.getElementById('drive-info-box').style.display = 'none';
+    document.getElementById('drive-info').innerHTML = '';
+    document.getElementById('folder-area').style.display = 'none';
+    document.getElementById('processing-status').style.display = 'none';
+    currentSmartFileId = null;
+    isFolderMode = false;
+}
+
+// ===== LOAD FILES FROM FOLDER USING OAUTH =====
+async function loadFilesFromFolderOAuth() {
+    const folderId = localStorage.getItem('drive_folder_id');
+    if (!folderId) return;
+    
+    const select = document.getElementById('folder-file-select');
+    select.innerHTML = '<option value="">⏳ Đang tải...</option>';
+    
+    try {
+        const accessToken = await getOAuthAccessToken();
+        if (!accessToken) {
+            select.innerHTML = '<option value="">-- Need OAuth --</option>';
+            log('❌ Không lấy được access token', 'err');
+            return;
+        }
+        
+        const response = await fetch(
+            `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&fields=files(id,name,mimeType,size)`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            }
+        );
+        
+        if (response.ok) {
+            const data = await response.json();
+            const files = data.files || [];
+            const audioFiles = files.filter(f => f.mimeType && f.mimeType.startsWith('audio/'));
+            
+            if (audioFiles.length === 0) {
+                select.innerHTML = '<option value="">-- Không có file audio --</option>';
+                return;
+            }
+            
+            select.innerHTML = '<option value="">-- Chọn file audio --</option>';
+            audioFiles.forEach(file => {
+                const opt = document.createElement('option');
+                const fileData = { id: file.id, name: file.name, size: file.size || 0 };
+                opt.value = JSON.stringify(fileData);
+                const sizeMB = file.size ? (file.size / 1024 / 1024).toFixed(1) : '?';
+                opt.textContent = `${file.name} (${sizeMB} MB)`;
+                select.appendChild(opt);
+            });
+            
+            document.getElementById('btn-drive-process').disabled = false;
+            log(`📂 Đã tải ${audioFiles.length} file audio từ folder`, 'ok');
+        } else {
+            select.innerHTML = '<option value="">-- Lỗi tải danh sách --</option>';
+            log('❌ Không thể tải danh sách file từ folder', 'err');
+        }
+    } catch (e) {
+        select.innerHTML = '<option value="">-- Lỗi kết nối --</option>';
+        log('❌ Lỗi tải danh sách file: ' + e.message, 'err');
+    }
+}
+
+function refreshFolderFiles() {
+    const folderId = localStorage.getItem('drive_folder_id');
+    if (!folderId) {
+        alert('Chưa có folder nào được lưu!');
+        return;
+    }
+    loadFilesFromFolderOAuth();
+}
+
+function onFolderFileSelect() {
+    const select = document.getElementById('folder-file-select');
+    const selected = select.value;
+    
+    if (selected) {
+        document.getElementById('btn-drive-process').disabled = false;
+        try {
+            const fileData = JSON.parse(selected);
+            document.getElementById('drive-file-id').textContent = fileData.id;
+            document.getElementById('drive-info-box').style.display = 'block';
+            document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">✅ Chọn: ${fileData.name}</span>`;
+        } catch (e) {}
+    } else {
+        document.getElementById('btn-drive-process').disabled = true;
+    }
+}
+
+function clearSavedFolder() {
+    const savedFolderId = localStorage.getItem('drive_folder_id');
+    if (!savedFolderId) {
+        alert('Không có folder nào để xóa!');
+        return;
+    }
+    
+    const folderName = localStorage.getItem('drive_folder_name') || savedFolderId;
+    if (!confirm(`Xóa folder "${folderName}" đã lưu?`)) return;
+    
+    localStorage.removeItem('drive_folder_id');
+    localStorage.removeItem('drive_folder_name');
+    
+    document.getElementById('folder-area').style.display = 'none';
+    document.getElementById('saved-folder-id').textContent = '';
+    document.getElementById('folder-file-select').innerHTML = '<option value="">-- Chọn file audio --</option>';
+    document.getElementById('smart-drive-link').value = '';
+    document.getElementById('btn-clear-smart').style.display = 'none';
+    document.getElementById('btn-drive-process').disabled = true;
+    document.getElementById('drive-info').innerHTML = '';
+    document.getElementById('drive-info-box').style.display = 'none';
+    
+    log('🗑️ Đã xóa folder Drive đã lưu', 'info');
+    alert('🗑️ Đã xóa folder Drive đã lưu!');
+}
+
+// ===== PROCESS SMART DRIVE =====
+async function processSmartDrive() {
+    forceResetWorkflow();
+    
+    const val = document.getElementById('smart-drive-link').value.trim();
+    const vid = pendingVideoId || currentVideoId;
+    
+    if (!vid) {
+        alert('No Video ID! Please enter YouTube link first.');
+        return;
+    }
+    
+    const existing = checkVideoExists(vid);
+    if (existing) {
+        log(`✅ Video ${vid} đã có trong kho!`, 'ok');
+        alert(`✅ Video ${vid} đã có trong kho!\n\nTiêu đề: ${existing.title}\nChuyển đến Library để xem.`);
+        switchTab('library');
+        setTimeout(() => {
+            const select = document.getElementById('gist-select');
+            for (let i = 0; i < select.options.length; i++) {
+                const opt = select.options[i];
+                if (opt.value) {
+                    try {
+                        const item = JSON.parse(opt.value);
+                        if (item.videoId === vid) {
+                            select.selectedIndex = i;
+                            onGistSelected(opt.value);
+                            document.getElementById('matched-sub-note').innerHTML = `✅ <span class="highlight">Đã chọn: ${item.title}</span>`;
+                            loadVideoFromGist(item);
+                            break;
+                        }
+                    } catch(e) {}
+                }
+            }
+        }, 500);
+        return;
+    }
+    
+    if (isVideoProcessing(vid)) {
+        log(`⏳ Video ${vid} đang được xử lý ở trình duyệt này!`, 'warning');
+        alert(`⏳ Video ${vid} đang được xử lý!\nVui lòng đợi.`);
+        return;
+    }
+    
+    if (isVideoProcessed(vid)) {
+        log(`✅ Video ${vid} đã được xử lý trước đó!`, 'ok');
+        await loadGistLibrary(true);
+        switchTab('library');
+        setTimeout(() => {
+            const select = document.getElementById('gist-select');
+            for (let i = 0; i < select.options.length; i++) {
+                const opt = select.options[i];
+                if (opt.value) {
+                    try {
+                        const item = JSON.parse(opt.value);
+                        if (item.videoId === vid) {
+                            select.selectedIndex = i;
+                            onGistSelected(opt.value);
+                            document.getElementById('matched-sub-note').innerHTML = `✅ <span class="highlight">Đã chọn: ${item.title}</span>`;
+                            loadVideoFromGist(item);
+                            break;
+                        }
+                    } catch(e) {}
+                }
+            }
+        }, 500);
+        return;
+    }
+    
+    const githubStatus = await checkGitHubProcessingStatus(vid);
+    if (githubStatus && githubStatus.status === 'processing') {
+        log(`⏳ Video ${vid} đang được xử lý trên GitHub!`, 'warning');
+        document.getElementById('processing-status').style.display = 'block';
+        document.getElementById('processing-text').textContent = `⏳ ${vid} đang xử lý từ trình duyệt khác`;
+        document.getElementById('processing-text').className = 'warning-highlight';
+        alert(`⏳ Video ${vid} đang được xử lý trên GitHub!\n\nThời gian bắt đầu: ${githubStatus.message}\nVui lòng đợi 3-5 phút.`);
+        return;
+    }
+    
+    let fileId = null;
+    let driveLink = '';
+    
+    if (currentSmartFileId && !isFolderMode) {
+        fileId = currentSmartFileId;
+        driveLink = `https://drive.google.com/file/d/${fileId}/view`;
+    } else {
+        const selected = document.getElementById('folder-file-select').value;
+        if (!selected) {
+            alert('Please select a file from the folder dropdown!');
+            return;
+        }
+        try {
+            const fileData = JSON.parse(selected);
+            fileId = fileData.id;
+            driveLink = `https://drive.google.com/file/d/${fileId}/view`;
+        } catch (e) {
+            alert('Invalid file selection!');
+            return;
+        }
+    }
+    
+    if (!fileId) {
+        alert('Invalid file!');
+        return;
+    }
+    
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    const user = targetUser;
+    const repo = targetRepo;
+    
+    if (!token) {
+        alert('Please enter GitHub Token in Settings!');
+        return;
+    }
+    
+    markVideoProcessing(vid);
+    
+    resetWorkflowLog();
+    const empty = document.getElementById('log-empty');
+    if (empty) empty.style.display = 'none';
+    document.getElementById('workflow-status-badge').className = 'workflow-status-badge running';
+    document.getElementById('workflow-status-badge').textContent = '⏳ Running...';
+    
+    const btn = document.getElementById('btn-drive-process');
+    const originalText = btn.textContent;
+    btn.textContent = '⏳ Sending...';
+    btn.disabled = true;
+    
+    log(`☁️ Processing with Google Drive: ${fileId}`, 'info');
+    progUpload(10, 'Sending to GitHub...');
+    document.getElementById('status-text').innerHTML = '☁️ Processing';
+    document.getElementById('drive-info').innerHTML = `<span class="status-badge processing">⏳ Đang xử lý...</span>`;
+    
+    try {
+        const response = await fetch(`https://api.github.com/repos/${user}/${repo}/dispatches`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `token ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                event_type: 'process_drive_audio',
+                client_payload: {
+                    video_id: vid,
+                    drive_file_id: fileId,
+                    drive_link: driveLink
+                }
+            })
+        });
+        
+        if (response.ok) {
+            log(`✅ Drive link sent! GitHub will download and process`, 'ok');
+            progUpload(100, '✅ Processing started!');
+            document.getElementById('status-text').innerHTML = '✅ Done';
+            document.getElementById('drive-info').innerHTML = `<span class="status-badge done">✅ Đã gửi</span>`;
+            document.getElementById('matched-sub-note').innerText = `⏳ Đang xử lý ${vid}...`;
+            
+            let checkCount = 0;
+            const maxChecks = 30;
+            
+            setTimeout(async () => {
+                await fetchWorkflowLogs(vid);
+            }, 5000);
+            
+            if (workflowCheckInterval) clearInterval(workflowCheckInterval);
+            workflowCheckInterval = setInterval(async () => {
+                checkCount++;
+                await fetchWorkflowLogs(vid);
+                const badge = document.getElementById('workflow-status-badge');
+                if (badge.textContent.includes('Success') || badge.textContent.includes('Failed') || checkCount >= maxChecks) {
+                    clearInterval(workflowCheckInterval);
+                    workflowCheckInterval = null;
+                    if (badge.textContent.includes('Success') || badge.textContent.includes('Failed')) {
+                        startResetTimer(badge.textContent.includes('Failed') ? 3 : 10);
+                    }
+                }
+            }, 10000);
+            
+            markVideoProcessed(vid);
+            setTimeout(() => clearVideoProcessing(vid), 300000);
+            setTimeout(() => checkAndLoadGist(vid), 30000);
+            setTimeout(() => loadGistLibrary(true), 180000);
+            
+            alert(`✅ Đã gửi yêu cầu xử lý video!\n\n⏳ Quá trình mất 3-5 phút.\n📝 Phụ đề sẽ tự động xuất hiện trong Library.`);
+            
+        } else {
+            const err = await response.json();
+            log(`❌ Failed: ${err.message || response.status}`, 'err');
+            progUpload(0, 'Failed');
+            document.getElementById('drive-info').innerHTML = `<span class="status-badge error">❌ Lỗi</span>`;
+            updateWorkflowStep('process', 'failed');
+            document.getElementById('workflow-status-badge').className = 'workflow-status-badge failed';
+            document.getElementById('workflow-status-badge').textContent = '❌ Failed';
+            clearVideoProcessing(vid);
+            startResetTimer(3);
+        }
+    } catch (e) {
+        log(`❌ Error: ${e.message}`, 'err');
+        progUpload(0, 'Error');
+        document.getElementById('drive-info').innerHTML = `<span class="status-badge error">❌ Lỗi</span>`;
+        updateWorkflowStep('process', 'failed');
+        document.getElementById('workflow-status-badge').className = 'workflow-status-badge failed';
+        document.getElementById('workflow-status-badge').textContent = '❌ Failed';
+        clearVideoProcessing(vid);
+        startResetTimer(3);
+    }
+    
+    btn.textContent = originalText;
+    btn.disabled = false;
+}
+
+function checkVideoExists(videoId) {
+    if (!videoId) return null;
+    if (gh_cloud_map && gh_cloud_map[videoId]) {
+        return {
+            videoId: videoId,
+            title: gh_cloud_map[videoId].title || `Video ${videoId}`,
+            url: gh_cloud_map[videoId].url
+        };
+    }
+    return null;
+}
+
+function toggleHideMode() {
+    isHideMode = !isHideMode;
+    const btn = document.getElementById('btn-toggle-hide');
+    const hideables = document.querySelectorAll('.hideable');
+    
+    if (isHideMode) {
+        hideables.forEach(el => el.classList.add('hidden'));
+        btn.innerHTML = '👁';
+        btn.style.background = 'rgba(255,45,85,0.2)';
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        log('👁 Hidden extra elements', 'info');
+    } else {
+        hideables.forEach(el => el.classList.remove('hidden'));
+        btn.innerHTML = '👁';
+        btn.style.background = 'var(--accent-light)';
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        log('👁 Show all elements', 'info');
+    }
+}
+
+function toggleFullSettings() {
+    isSettingsVisible = !isSettingsVisible;
+    const btn = document.getElementById('btn-toggle-settings');
+    const settingsGroup = document.getElementById('settings-group');
+    const logCard = document.getElementById('log-card');
+    
+    if (isSettingsVisible) {
+        settingsGroup.classList.remove('hidden');
+        logCard.classList.remove('hidden');
+        btn.innerHTML = '⚙';
+        btn.style.background = 'rgba(10,132,255,0.15)';
+        btn.style.borderColor = 'var(--blue)';
+        btn.style.color = 'var(--blue)';
+        log('⚙ Settings & Log shown', 'info');
+    } else {
+        settingsGroup.classList.add('hidden');
+        logCard.classList.add('hidden');
+        btn.innerHTML = '⚙';
+        btn.style.background = 'rgba(255,45,85,0.15)';
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        log('⚙ Settings & Log hidden', 'info');
+    }
+}
+
+function switchUploadMethod(method) {
+    uploadMethod = method;
+    document.getElementById('upload-method-direct').style.display = method === 'direct' ? 'block' : 'none';
+    document.getElementById('upload-method-drive').style.display = method === 'drive' ? 'block' : 'none';
+    
+    document.getElementById('method-direct-btn').classList.toggle('active', method === 'direct');
+    document.getElementById('method-drive-btn').classList.toggle('active', method === 'drive');
+}
+
+function updateDriveUI(hasOAuth) {
+    const warning = document.getElementById('api-key-warning');
+    if (hasOAuth) {
+        warning.style.display = 'block';
+        warning.innerHTML = '✅ <span class="highlight">Đã dùng OAuth</span> → Không cần API Key để duyệt folder.<br><span style="font-size:10px;">💡 OAuth đã thay thế API Key cho mọi chức năng.</span>';
+        const savedFolderId = localStorage.getItem('drive_folder_id');
+        if (savedFolderId) {
+            document.getElementById('folder-area').style.display = 'block';
+            document.getElementById('saved-folder-id').textContent = localStorage.getItem('drive_folder_name') || savedFolderId;
+            loadFilesFromFolderOAuth();
+        }
+    } else {
+        warning.style.display = 'none';
+        document.getElementById('folder-area').style.display = 'none';
+    }
+}
+
+function goToExistingVideo() {
+    if (!existingVideoData) return;
+    
+    const vid = existingVideoData.videoId;
+    const title = existingVideoData.title;
+    
+    log(`📌 Going to existing video: ${title} (${vid})`, 'ok');
+    
+    switchTab('library');
+    
+    setTimeout(() => {
+        const select = document.getElementById('gist-select');
+        for (let i = 0; i < select.options.length; i++) {
+            const opt = select.options[i];
+            if (opt.value) {
+                try {
+                    const item = JSON.parse(opt.value);
+                    if (item.videoId === vid) {
+                        select.selectedIndex = i;
+                        onGistSelected(opt.value);
+                        document.getElementById('matched-sub-note').innerHTML = `✅ <span class="highlight">Selected: ${item.title}</span>`;
+                        loadVideoFromGist(item);
+                        break;
+                    }
+                } catch(e) {}
+            }
+        }
+    }, 300);
+}
+
+function onYouTubeIframeAPIReady() {
+    loadSettings();
+    loadProcessingState();
+    checkPendingProcessing();
+    loadGistLibrary(false);
+    initWorkflowLog();
+    
+    const hasOAuth = !!(localStorage.oauth_refresh_token || document.getElementById('oauthRefreshToken').value.trim());
+    updateDriveUI(hasOAuth);
+}
+
+function loadSettings() {
+    document.getElementById('ghUser').value = localStorage.gh_user || 'PinyinCode';
+    document.getElementById('ghRepo').value = localStorage.gh_repo || 'subtitle-ai';
+    document.getElementById('ghToken').value = localStorage.gh_token || '';
+    document.getElementById('oauthClientId').value = localStorage.oauth_client_id || '';
+    document.getElementById('oauthClientSecret').value = localStorage.oauth_client_secret || '';
+    document.getElementById('oauthRefreshToken').value = localStorage.oauth_refresh_token || '';
+    targetUser = localStorage.gh_user || 'PinyinCode';
+    targetRepo = localStorage.gh_repo || 'subtitle-ai';
+    gh_cloud_map = JSON.parse(localStorage.getItem('gh_cloud_map') || '{}');
+}
+
+function saveSettings() {
+    localStorage.gh_user = document.getElementById('ghUser').value.trim();
+    localStorage.gh_repo = document.getElementById('ghRepo').value.trim();
+    localStorage.gh_token = document.getElementById('ghToken').value.trim();
+    localStorage.oauth_client_id = document.getElementById('oauthClientId').value.trim();
+    localStorage.oauth_client_secret = document.getElementById('oauthClientSecret').value.trim();
+    localStorage.oauth_refresh_token = document.getElementById('oauthRefreshToken').value.trim();
+    targetUser = localStorage.gh_user || 'PinyinCode';
+    targetRepo = localStorage.gh_repo || 'subtitle-ai';
+    localStorage.removeItem('gh_last_scan');
+    localStorage.removeItem('gh_cloud_map');
+    gh_cloud_map = {};
+    
+    const hasOAuth = !!(localStorage.oauth_refresh_token);
+    updateDriveUI(hasOAuth);
+    
+    log('✅ Settings saved!', 'ok');
+    loadGistLibrary(true);
+}
+
+function toggleSubSettings() {
+    const p = document.getElementById('sub-settings-panel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function updateFont(t, v) {
+    document.documentElement.style.setProperty(`--fs-${t}`, v + 'px');
+    document.getElementById(`val-${t}`).innerText = v + 'px';
+}
+
+function cyclePlaybackRate() {
+    currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
+    let r = speeds[currentSpeedIndex];
+    document.getElementById('btn-speed').innerHTML = `${r}x`;
+    if (player?.setPlaybackRate) player.setPlaybackRate(r);
+}
+
+function toggleLoop() {
+    isLoopEnabled = !isLoopEnabled;
+    document.getElementById('btn-loop').classList.toggle('active', isLoopEnabled);
+}
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-group .btn-sm').forEach(el => el.classList.remove('active'));
+    document.getElementById(`content-${tab}`).classList.add('active');
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    
+    if (tab === 'upload') {
+        updateUploadTabWithVideoId();
+    }
+}
+
+function updateUploadTabWithVideoId() {
+    const vid = pendingVideoId || currentVideoId;
+    const hint = document.getElementById('upload-id-hint');
+    const display = document.getElementById('upload-vid-display');
+    
+    if (vid) {
+        hint.style.display = 'block';
+        display.textContent = vid;
+    } else {
+        hint.style.display = 'none';
+    }
+}
+
+function log(m, c = '') {
+    const t = new Date().toLocaleTimeString('vi-VN');
+    const logBox = document.getElementById('logBox');
+    logBox.innerHTML += `<br><span class="log-${c}">[${t}] ${m}</span>`;
+    logBox.scrollTop = logBox.scrollHeight;
+}
+
+function progYt(p, text = '', speed = '') {
+    document.getElementById('pb-yt').style.width = Math.min(p, 100) + '%';
+    if (text) document.getElementById('pb-yt-text').innerText = text;
+    if (speed) document.getElementById('pb-yt-speed').innerText = speed;
+}
+
+function progUpload(p, text = '', speed = '') {
+    document.getElementById('pb-upload').style.width = Math.min(p, 100) + '%';
+    if (text) document.getElementById('pb-upload-text').innerText = text;
+    if (speed) document.getElementById('pb-upload-speed').innerText = speed;
+}
+
+function extractVideoID(url) {
+    if (!url) return null;
+    const match = url.match(/(?:v=|\/)([\w-]{11})/);
+    return match ? match[1] : (url.length === 11 ? url : null);
+}
+
+function onYtLinkInput() {
+    const val = document.getElementById('yt-link').value;
+    document.getElementById('btn-clear-yt').style.display = val ? 'block' : 'none';
+    const vid = extractVideoID(val);
+    
+    document.getElementById('exists-notification').style.display = 'none';
+    existingVideoData = null;
+    
+    if (vid) {
+        document.getElementById('yt-id-display').style.display = 'block';
+        document.getElementById('extracted-vid').textContent = vid;
+        document.getElementById('btn-get-subs').disabled = false;
+        document.getElementById('yt-info').innerHTML = `<span class="status-badge done">🎯 ${vid}</span>`;
+        pendingVideoId = vid;
+        currentVideoId = vid;
+        
+        const existing = checkVideoExists(vid);
+        if (existing) {
+            existingVideoData = existing;
+            const notification = document.getElementById('exists-notification');
+            notification.style.display = 'block';
+            document.getElementById('exists-vid').textContent = `${vid} - ${existing.title}`;
+            document.getElementById('yt-info').innerHTML = `<span class="status-badge exists">✅ Exists: ${existing.title}</span>`;
+            log(`✅ Video ${vid} exists in library: ${existing.title}`, 'ok');
+        }
+        
+        if (document.getElementById('content-upload').classList.contains('active')) {
+            updateUploadTabWithVideoId();
+        }
+    } else {
+        document.getElementById('yt-id-display').style.display = 'none';
+        document.getElementById('yt-info').innerHTML = '';
+        document.getElementById('btn-get-subs').disabled = true;
+        pendingVideoId = null;
+    }
+}
+
+function clearYtLink() {
+    document.getElementById('yt-link').value = '';
+    document.getElementById('btn-clear-yt').style.display = 'none';
+    document.getElementById('yt-id-display').style.display = 'none';
+    document.getElementById('yt-info').innerHTML = '';
+    document.getElementById('btn-get-subs').disabled = true;
+    document.getElementById('exists-notification').style.display = 'none';
+    existingVideoData = null;
+    pendingVideoId = null;
+    if (document.getElementById('content-upload').classList.contains('active')) {
+        updateUploadTabWithVideoId();
+    }
+}
+
+function extractAndGoToUpload() {
+    const url = document.getElementById('yt-link').value.trim();
+    const vid = extractVideoID(url);
+    if (!vid) {
+        alert('Invalid YouTube link!');
+        return;
+    }
+    
+    const existing = checkVideoExists(vid);
+    if (existing) {
+        existingVideoData = existing;
+        const notification = document.getElementById('exists-notification');
+        notification.style.display = 'block';
+        document.getElementById('exists-vid').textContent = `${vid} - ${existing.title}`;
+        log(`✅ Video ${vid} exists in library. Redirecting...`, 'ok');
+        setTimeout(() => goToExistingVideo(), 1000);
+        return;
+    }
+    
+    pendingVideoId = vid;
+    currentVideoId = vid;
+    
+    log(`📌 Got ID: ${vid}`, 'ok');
+    progYt(100, `✅ ID: ${vid}`);
+    document.getElementById('status-text').innerHTML = `🎯 ${vid}`;
+    document.getElementById('yt-info').innerHTML = `<span class="status-badge done">✅ Got ID: ${vid}</span>`;
+    
+    switchTab('upload');
+    updateUploadTabWithVideoId();
+    
+    log(`📤 Paste Google Drive link and press Process`, 'info');
+    log(`💡 You can close browser after clicking Process`, 'info');
+    
+    document.getElementById('pb-upload-text').innerHTML = `🎯 Ready for video: <strong style="color:var(--accent);">${vid}</strong>`;
+    document.getElementById('smart-drive-link').focus();
+}
+
+function getYouTubeLink(videoId) {
+    return `https://youtu.be/${videoId}`;
+}
+
+function openYouTubeLink() {
+    if (!currentVideoId && !currentGistItem) {
+        alert('Select a video first!');
+        return;
+    }
+    const vid = currentVideoId || currentGistItem?.videoId;
+    if (vid) window.open(getYouTubeLink(vid), '_blank');
+}
+
+function playYouTubeVideo() {
+    if (!currentVideoId) {
+        alert('Enter YouTube link first!');
+        return;
+    }
+    loadPlayer(currentVideoId);
+}
+
+function switchToVideoTab() {
+    if (!pendingVideoId && !currentVideoId) {
+        alert('No video ID!');
+        return;
+    }
+    const vid = pendingVideoId || currentVideoId;
+    currentVideoId = vid;
+    loadPlayer(vid);
+    switchTab('library');
+    updateUploadTabWithVideoId();
+}
+
+function loadPlayer(videoId) {
+    document.getElementById('video-wrapper').classList.remove('hidden');
+    if (player) {
+        player.destroy();
+        player = null;
+    }
+    player = new YT.Player('player', {
+        height: '100%',
+        width: '100%',
+        videoId: videoId,
+        playerVars: { playsinline: 1, autoplay: 0, controls: 0, rel: 0, showinfo: 0 },
+        events: {
+            onReady: (e) => {
+                startSync();
+                e.target.pauseVideo();
+                e.target.seekTo(0, true);
+                updatePlayPauseBtn(false);
+            },
+            onStateChange: onPlayerStateChange
+        }
+    });
+    log(`🎬 Loading video: ${videoId}`, 'info');
+}
+
+function startSync() {
+    if (syncInterval) clearInterval(syncInterval);
+    syncInterval = setInterval(syncSub, 200);
+}
+
+function syncSub() {
+    updateTimeline();
+    if (!player?.getCurrentTime || !subtitles.length) return;
+    const t = player.getCurrentTime();
+    const idx = subtitles.findIndex(s => t >= s.start && t <= s.end);
+    if (idx !== -1 && idx !== activeSubIndex) {
+        activeSubIndex = idx;
+        const s = subtitles[idx];
+        document.getElementById('subtitle-box').innerHTML = `
+            <div class="cn">${s.rawLines[0] || ''}</div>
+            <div class="py">${s.rawLines[1] || ''}</div>
+            <div class="vi">${s.rawLines[2] || ''}</div>`;
+    }
+}
+
+function onPlayerStateChange(e) {
+    if (e.data == YT.PlayerState.PLAYING) {
+        updatePlayPauseBtn(true);
+    } else if (e.data == YT.PlayerState.PAUSED || e.data == YT.PlayerState.ENDED) {
+        updatePlayPauseBtn(false);
+        if (e.data == YT.PlayerState.ENDED && isLoopEnabled && player) {
+            player.seekTo(0, true);
+            player.playVideo();
+        }
+    }
+}
+
+function togglePlayPause() {
+    if (!player?.getPlayerState) {
+        if (currentVideoId) loadPlayer(currentVideoId);
+        else if (currentGistItem) playFromGist();
+        return;
+    }
+    if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo();
+    else player.playVideo();
+}
+
+function updatePlayPauseBtn(p) {
+    const b = document.getElementById('btn-play-pause');
+    if (b) b.innerHTML = p ? '⏸' : '▶';
+}
+
+function toggleVideoVisibility() {
+    document.getElementById('video-wrapper').classList.toggle('hidden');
+}
+
+let videoDuration = 0, isSeeking = false;
+
+function formatTime(seconds) {
+    if (isNaN(seconds)) return '00:00';
+    let m = Math.floor(seconds / 60), s = Math.floor(seconds % 60);
+    return `${m<10?'0':''}${m}:${s<10?'0':''}${s}`;
+}
+
+function onSliderSeek(val) {
+    isSeeking = true;
+    if (player?.getDuration) {
+        videoDuration = player.getDuration();
+        document.getElementById('time-display').innerText = `${formatTime((val/100)*videoDuration)} / ${formatTime(videoDuration)}`;
+    }
+}
+
+function onSliderChange(val) {
+    if (player?.seekTo) player.seekTo((val / 100) * player.getDuration(), true);
+    setTimeout(() => { isSeeking = false; }, 200);
+}
+
+function updateTimeline() {
+    if (!player?.getCurrentTime || isSeeking) return;
+    let t = player.getCurrentTime(), d = player.getDuration();
+    if (d > 0) {
+        videoDuration = d;
+        document.getElementById('time-slider').value = (t / d) * 100;
+        document.getElementById('time-display').innerText = `${formatTime(t)} / ${formatTime(d)}`;
+    }
+}
+
+function parseVTT(d) {
+    const n = d.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const b = n.split('\n\n');
+    let s = [];
+    b.forEach(block => {
+        const lines = block.split('\n');
+        let timeIndex = -1;
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes('-->')) { timeIndex = i; break; }
+        }
+        if (timeIndex !== -1) {
+            const ts = lines[timeIndex].split('-->');
+            if (ts.length === 2) {
+                const st = parseTime(ts[0].trim());
+                const en = parseTime(ts[1].trim());
+                const raw = lines.slice(timeIndex + 1)
+                    .map(x => x.replace(/<[^>]*>/g, '').trim())
+                    .filter(x => x !== "");
+                if (raw.length > 0) {
+                    s.push({ start: st, end: en, rawLines: raw });
+                }
+            }
+        }
+    });
+    return s;
+}
+
+function parseTime(t) {
+    t = t.replace(',', '.');
+    const p = t.split(':');
+    if (p.length < 3) return 0;
+    return parseFloat(p[0]) * 3600 + parseFloat(p[1]) * 60 + parseFloat(p[2]);
+}
+
+function updateFileInfo() {
+    if (!selectedFile) return;
+    const vid = pendingVideoId || currentVideoId;
+    const info = document.getElementById('file-info');
+    
+    if (vid) {
+        info.innerHTML = `
+            <span class="status-badge processing">📄 ${selectedFile.name}</span>
+            <span class="status-badge done">${(selectedFile.size/1024/1024).toFixed(2)} MB</span>
+            <span class="status-badge done">🎯 Will use ID: ${vid}</span>
+        `;
+        document.getElementById('btn-upload').disabled = false;
+        progUpload(0, `Ready to upload with ID: ${vid}`);
+    } else {
+        info.innerHTML = `
+            <span class="status-badge processing">📄 ${selectedFile.name}</span>
+            <span class="status-badge done">${(selectedFile.size/1024/1024).toFixed(2)} MB</span>
+            <span class="status-badge error">❌ No Video ID</span>
+        `;
+        document.getElementById('btn-upload').disabled = true;
+        progUpload(0, '❌ No Video ID. Enter YouTube link first.');
+    }
+}
+
+function handleFileSelect(file) {
+    if (!file) return;
+    selectedFile = file;
+    
+    document.getElementById('file-name').textContent = `📄 ${file.name}`;
+    document.getElementById('file-name').style.color = 'var(--green)';
+    
+    const vid = pendingVideoId || currentVideoId;
+    const info = document.getElementById('file-info');
+    
+    if (vid) {
+        info.innerHTML = `
+            <span class="status-badge processing">📄 ${file.name}</span>
+            <span class="status-badge done">${(file.size/1024/1024).toFixed(2)} MB</span>
+            <span class="status-badge done">🎯 Will use ID: ${vid}</span>
+        `;
+        document.getElementById('btn-upload').disabled = false;
+        progUpload(0, `Ready to upload with ID: ${vid}`);
+        log(`📄 Selected file: ${file.name} (will use ID: ${vid})`, 'info');
+    } else {
+        info.innerHTML = `
+            <span class="status-badge processing">📄 ${file.name}</span>
+            <span class="status-badge done">${(file.size/1024/1024).toFixed(2)} MB</span>
+            <span class="status-badge error">❌ No Video ID</span>
+        `;
+        document.getElementById('btn-upload').disabled = true;
+        progUpload(0, '❌ No Video ID. Enter YouTube link first.');
+        log(`❌ No Video ID. Please enter YouTube link first.`, 'err');
+    }
+}
+
+const dropArea = document.getElementById('drop-area');
+dropArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropArea.classList.add('dragover');
+});
+dropArea.addEventListener('dragleave', () => {
+    dropArea.classList.remove('dragover');
+});
+dropArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropArea.classList.remove('dragover');
+    if (e.dataTransfer.files.length > 0) {
+        handleFileSelect(e.dataTransfer.files[0]);
+    }
+});
+
+async function uploadToGitHub() {
+    if (!selectedFile) return;
+    if (isUploading) return;
+    
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    const user = targetUser;
+    const repo = targetRepo;
+    
+    const vid = pendingVideoId || currentVideoId;
+    if (!vid) {
+        alert('No Video ID! Please enter YouTube link first.');
+        return;
+    }
+    
+    if (!token) {
+        alert('Please enter GitHub Token in Settings!');
+        return;
+    }
+    
+    isUploading = true;
+    const btn = document.getElementById('btn-upload');
+    btn.textContent = '⏳ UPLOADING...';
+    btn.disabled = true;
+    
+    log(`📤 Uploading ${selectedFile.name} to GitHub (ID: ${vid})...`, 'info');
+    progUpload(10, 'Reading file...');
+    document.getElementById('status-text').innerHTML = '⏳ Uploading';
+    
+    try {
+        const reader = new FileReader();
+        const content = await new Promise((resolve) => {
+            reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+            reader.readAsDataURL(selectedFile);
+        });
+        
+        progUpload(30, 'Uploading...');
+        
+        const path = `data/audio/${vid}.m4a`;
+        const apiUrl = `https://api.github.com/repos/${user}/${repo}/contents/${path}`;
+        
+        let sha = null;
+        try {
+            const checkRes = await fetch(apiUrl, {
+                headers: { 'Authorization': `token ${token}` }
+            });
+            if (checkRes.ok) {
+                const data = await checkRes.json();
+                sha = data.sha;
+            }
+        } catch (e) {}
+        
+        const body = {
+            message: `Upload audio ${vid}`,
+            content: content,
+            branch: 'main'
+        };
+        if (sha) body.sha = sha;
+        
+        const uploadRes = await fetch(apiUrl, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+        
+        if (uploadRes.ok) {
+            log(`✅ Upload successful: ${vid}.m4a`, 'ok');
+            progUpload(80, 'Triggering GitHub Actions...');
+            
+            try {
+                await fetch(`https://api.github.com/repos/${user}/${repo}/dispatches`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        event_type: 'process_audio',
+                        client_payload: { video_id: vid }
+                    })
+                });
+                log('✅ GitHub Actions triggered!', 'ok');
+            } catch (e) {}
+            
+            progUpload(100, '✅ Complete!');
+            document.getElementById('status-text').innerHTML = '✅ Done';
+            log(`🎉 Audio uploaded, AI is processing... (3-5 mins)`, 'ok');
+            document.getElementById('matched-sub-note').innerText = `⏳ AI processing ${vid}...`;
+            
+            setTimeout(() => checkAndLoadGist(vid), 10000);
+            setTimeout(() => loadGistLibrary(true), 180000);
+            
+            selectedFile = null;
+            document.getElementById('file-name').textContent = 'No file selected';
+            document.getElementById('file-info').innerHTML = '';
+            document.getElementById('file-input').value = '';
+            btn.disabled = true;
+            
+        } else {
+            const err = await uploadRes.json();
+            log(`❌ Upload failed: ${err.message || uploadRes.status}`, 'err');
+            progUpload(0, 'Failed');
+            document.getElementById('status-text').innerHTML = '❌ Error';
+        }
+        
+    } catch (e) {
+        log(`❌ Error: ${e.message}`, 'err');
+        progUpload(0, 'Error');
+        document.getElementById('status-text').innerHTML = '❌ Error';
+    }
+    
+    btn.textContent = '📤 UPLOAD TO GITHUB';
+    btn.disabled = false;
+    isUploading = false;
+}
+
+// ===== LOAD GIST LIBRARY - LẤY TOÀN BỘ GIST =====
+async function loadGistLibrary(force = false) {
+    const select = document.getElementById('gist-select');
+    select.innerHTML = '<option value="">-- Scanning... --</option>';
+    let items = [];
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    
+    if (!token) {
+        select.innerHTML = '<option value="">-- Need token --</option>';
+        document.getElementById('matched-sub-note').innerText = '⚠️ Missing token! Go to Settings.';
+        return;
+    }
+    
+    let lastScan = parseInt(localStorage.getItem('gh_last_scan') || '0');
+    let now = Date.now();
+    
+    if (!force && (now - lastScan) < 300000 && Object.keys(gh_cloud_map).length > 0) {
+        for (let vId in gh_cloud_map) {
+            let e = gh_cloud_map[vId];
+            items.push({ videoId: vId, rawUrl: e.url, title: e.title });
+        }
+        log(`📚 Đã tải ${items.length} phụ đề từ cache`, 'ok');
+        renderGistSelect(items);
+        return;
+    }
+    
+    try {
+        let page = 1;
+        let allGists = [];
+        let hasMore = true;
+        let totalFetched = 0;
+        
+        while (hasMore && page <= 20) {
+            log(`📥 Đang tải trang ${page}...`, 'info');
+            
+            const res = await fetch(`https://api.github.com/gists?per_page=100&page=${page}`, {
+                headers: { "Authorization": `token ${token}` }
+            });
+            
+            if (!res.ok) {
+                log(`❌ Lỗi tải Gist: ${res.status}`, 'err');
+                break;
+            }
+            
+            const gists = await res.json();
+            
+            if (!gists || gists.length === 0) {
+                hasMore = false;
+                break;
+            }
+            
+            allGists = allGists.concat(gists);
+            totalFetched += gists.length;
+            
+            const linkHeader = res.headers.get('Link');
+            if (!linkHeader || !linkHeader.includes('rel="next"')) {
+                hasMore = false;
+            }
+            
+            page++;
+        }
+        
+        log(`📊 Đã tải ${totalFetched} gist từ GitHub`, 'ok');
+        
+        const newMap = {};
+        let subtitleCount = 0;
+        
+        for (let g of allGists) {
+            if (g.files) {
+                for (let fn in g.files) {
+                    if (fn.endsWith('.vtt')) {
+                        let v = fn.replace('.vtt', '');
+                        if (!newMap[v]) {
+                            newMap[v] = {
+                                url: g.files[fn].raw_url,
+                                title: (g.description || '').replace(/^.*Subtitle\s*-\s*/i, '').trim() || `Video ${v}`
+                            };
+                            subtitleCount++;
+                        }
+                    }
+                }
+            }
+        }
+        
+        gh_cloud_map = newMap;
+        localStorage.setItem('gh_cloud_map', JSON.stringify(newMap));
+        localStorage.setItem('gh_last_scan', now.toString());
+        
+        log(`✅ Đã tìm thấy ${subtitleCount} phụ đề`, 'ok');
+        
+        for (let vId in newMap) {
+            let e = newMap[vId];
+            items.push({ videoId: vId, rawUrl: e.url, title: e.title });
+        }
+        
+    } catch (e) {
+        log('❌ Lỗi tải Gist: ' + e.message, 'err');
+        for (let vId in gh_cloud_map) {
+            let e = gh_cloud_map[vId];
+            items.push({ videoId: vId, rawUrl: e.url, title: e.title });
+        }
+    }
+    
+    renderGistSelect(items);
+}
+
+function renderGistSelect(items) {
+    const select = document.getElementById('gist-select');
+    
+    items.sort((a, b) => b.videoId.localeCompare(a.videoId));
+    
+    select.innerHTML = items.length ? 
+        `<option value="">-- Select (${items.length}) --</option>` :
+        '<option value="">-- None --</option>';
+    
+    items.forEach(i => {
+        let o = document.createElement('option');
+        o.value = JSON.stringify(i);
+        o.textContent = i.title;
+        select.appendChild(o);
+    });
+    
+    document.getElementById('matched-sub-note').innerText = items.length ? `${items.length} videos` : 'No videos';
+}
+
+function onGistSelected(val) {
+    if (!val) { currentGistItem = null; return; }
+    try {
+        currentGistItem = JSON.parse(val);
+        document.getElementById('matched-sub-note').innerText = `📦 ${currentGistItem.title}`;
+    } catch (e) { currentGistItem = null; }
+}
+
+function playFromGist() {
+    if (!currentGistItem) {
+        alert('Select subtitle first!');
+        return;
+    }
+    loadVideoFromGist(currentGistItem);
+}
+
+async function loadVideoFromGist(item) {
+    log(`🎬 Loading: ${item.title}`, 'info');
+    try {
+        const response = await fetch(item.rawUrl);
+        const text = await response.text();
+        const parsed = parseVTT(text);
+        subtitles = parsed;
+        
+        document.getElementById('matched-sub-note').innerText = `📦 ${item.title}`;
+        document.getElementById('video-wrapper').classList.remove('hidden');
+        currentVideoId = item.videoId;
+        loadPlayer(item.videoId);
+        
+        log(`✅ Loaded ${subtitles.length} subtitles`, 'ok');
+    } catch (e) {
+        log(`❌ Error loading subtitles: ${e.message}`, 'err');
+    }
+}
+
+function copyYouTubeLink() {
+    if (!currentGistItem && !currentVideoId) {
+        alert('Select a video first!');
+        return;
+    }
+    const vid = currentGistItem?.videoId || currentVideoId;
+    if (!vid) return;
+    const link = `https://youtu.be/${vid}`;
+    navigator.clipboard.writeText(link).then(() => {
+        log(`📋 Copied link: ${link}`, 'ok');
+        alert('✅ YouTube link copied!');
+    }).catch(() => {
+        const textarea = document.createElement('textarea');
+        textarea.value = link;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('✅ YouTube link copied!');
+    });
+}
+
+async function renameCurrentVideo() {
+    if (!currentGistItem) { alert('Select subtitle first!'); return; }
+    let nt = prompt('Enter new name:', currentGistItem.title);
+    if (!nt || !nt.trim()) return;
+    nt = nt.trim();
+    
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    if (!token) { alert('Need Token!'); return; }
+    let vid = currentGistItem.videoId;
+    
+    try {
+        let res = await fetch('https://api.github.com/gists?per_page=100', {
+            headers: { "Authorization": `token ${token}` }
+        });
+        if (res.ok) {
+            let gists = await res.json();
+            for (let g of gists) {
+                if (g.files && g.files[`${vid}.vtt`]) {
+                    await fetch(`https://api.github.com/gists/${g.id}`, {
+                        method: 'PATCH',
+                        headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
+                        body: JSON.stringify({ description: `Pinyin AI Subtitle - ${nt}` })
+                    });
+                    break;
+                }
+            }
+        }
+    } catch (e) {}
+    
+    gh_cloud_map[vid].title = nt;
+    localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
+    currentGistItem.title = nt;
+    loadGistLibrary(false);
+    document.getElementById('matched-sub-note').innerText = `✏️ ${nt}`;
+}
+
+async function deleteCurrentVideo() {
+    if (!currentGistItem) { alert('Select subtitle first!'); return; }
+    let vid = currentGistItem.videoId, title = currentGistItem.title;
+    if (!confirm(`Delete "${title}"?`)) return;
+    
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    if (!token) { alert('Need Token!'); return; }
+    
+    try {
+        for (let page = 1; page <= 10; page++) {
+            let res = await fetch(`https://api.github.com/gists?page=${page}&per_page=100`, {
+                headers: { "Authorization": `token ${token}` }
+            });
+            if (!res.ok) break;
+            let gists = await res.json();
+            if (!gists || !gists.length) break;
+            for (let g of gists) {
+                if (g.files && g.files[`${vid}.vtt`]) {
+                    await fetch(`https://api.github.com/gists/${g.id}`, {
+                        method: 'DELETE',
+                        headers: { "Authorization": `token ${token}` }
+                    });
+                    break;
+                }
+            }
+        }
+    } catch (e) {}
+    
+    delete gh_cloud_map[vid];
+    localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
+    currentGistItem = null;
+    loadGistLibrary(false);
+    document.getElementById('subtitle-box').innerHTML = '<span style="color:var(--text-secondary)">Deleted</span>';
+    document.getElementById('matched-sub-note').innerText = `Deleted: ${title}`;
+}
+
+document.addEventListener('change', function(e) {
+    if (e.target.id === 'ghUser' || e.target.id === 'ghRepo' || 
+        e.target.id === 'ghToken' || e.target.id === 'oauthClientId' ||
+        e.target.id === 'oauthClientSecret' || e.target.id === 'oauthRefreshToken') {
+        setTimeout(saveSettings, 500);
+    }
+});
+
+window.addEventListener('load', function() {
+    loadProcessingState();
+    checkPendingProcessing();
+    setTimeout(() => loadGistLibrary(true), 1000);
+});
+</script>
+</body>
+</html>
