@@ -2529,63 +2529,118 @@ async function loadGistLibrary(force = false) {
     let lastScan = parseInt(localStorage.getItem('gh_last_scan') || '0');
     let now = Date.now();
     
+    // Nếu không force và cache còn hiệu lực (< 5 phút)
     if (!force && (now - lastScan) < 300000 && Object.keys(gh_cloud_map).length > 0) {
         for (let vId in gh_cloud_map) {
             let e = gh_cloud_map[vId];
             items.push({ videoId: vId, rawUrl: e.url, title: e.title });
         }
-    } else {
-        try {
-            const res = await fetch('https://api.github.com/gists?per_page=100', {
+        log(`📚 Đã tải ${items.length} phụ đề từ cache`, 'ok');
+        renderGistSelect(items);
+        return;
+    }
+    
+    try {
+        let page = 1;
+        let allGists = [];
+        let hasMore = true;
+        let totalFetched = 0;
+        
+        // 🆕 LẤY TẤT CẢ GIST (PHÂN TRANG)
+        while (hasMore && page <= 20) { // Tối đa 20 trang (2000 gist)
+            log(`📥 Đang tải trang ${page}...`, 'info');
+            
+            const res = await fetch(`https://api.github.com/gists?per_page=100&page=${page}`, {
                 headers: { "Authorization": `token ${token}` }
             });
-            if (res.ok) {
-                const gists = await res.json();
-                const newMap = {};
-                for (let g of gists) {
-                    if (g.files) {
-                        for (let fn in g.files) {
-                            if (fn.endsWith('.vtt')) {
-                                let v = fn.replace('.vtt', '');
-                                if (!newMap[v]) {
-                                    newMap[v] = {
-                                        url: g.files[fn].raw_url,
-                                        title: (g.description || '').replace(/^.*Subtitle\s*-\s*/i, '').trim() || `Video ${v}`
-                                    };
-                                }
-                            }
+            
+            if (!res.ok) {
+                log(`❌ Lỗi tải Gist: ${res.status}`, 'err');
+                break;
+            }
+            
+            const gists = await res.json();
+            
+            if (!gists || gists.length === 0) {
+                hasMore = false;
+                break;
+            }
+            
+            allGists = allGists.concat(gists);
+            totalFetched += gists.length;
+            
+            // Kiểm tra xem còn trang tiếp theo không
+            const linkHeader = res.headers.get('Link');
+            if (!linkHeader || !linkHeader.includes('rel="next"')) {
+                hasMore = false;
+            }
+            
+            page++;
+        }
+        
+        log(`📊 Đã tải ${totalFetched} gist từ GitHub`, 'ok');
+        
+        // Xây dựng map từ tất cả gist
+        const newMap = {};
+        let subtitleCount = 0;
+        
+        for (let g of allGists) {
+            if (g.files) {
+                for (let fn in g.files) {
+                    if (fn.endsWith('.vtt')) {
+                        let v = fn.replace('.vtt', '');
+                        if (!newMap[v]) {
+                            newMap[v] = {
+                                url: g.files[fn].raw_url,
+                                title: (g.description || '').replace(/^.*Subtitle\s*-\s*/i, '').trim() || `Video ${v}`
+                            };
+                            subtitleCount++;
                         }
                     }
                 }
-                gh_cloud_map = newMap;
-                localStorage.setItem('gh_cloud_map', JSON.stringify(newMap));
-                localStorage.setItem('gh_last_scan', now);
-                for (let vId in newMap) {
-                    let e = newMap[vId];
-                    items.push({ videoId: vId, rawUrl: e.url, title: e.title });
-                }
             }
-        } catch (e) {
-            log('❌ Error loading Gist: ' + e.message, 'err');
         }
-    }
-    
-    if (!items.length) {
+        
+        gh_cloud_map = newMap;
+        localStorage.setItem('gh_cloud_map', JSON.stringify(newMap));
+        localStorage.setItem('gh_last_scan', now.toString());
+        
+        log(`✅ Đã tìm thấy ${subtitleCount} phụ đề`, 'ok');
+        
+        for (let vId in newMap) {
+            let e = newMap[vId];
+            items.push({ videoId: vId, rawUrl: e.url, title: e.title });
+        }
+        
+    } catch (e) {
+        log('❌ Lỗi tải Gist: ' + e.message, 'err');
+        // Nếu lỗi, thử dùng cache cũ
         for (let vId in gh_cloud_map) {
             let e = gh_cloud_map[vId];
             items.push({ videoId: vId, rawUrl: e.url, title: e.title });
         }
     }
     
+    renderGistSelect(items);
+}
+
+// 🆕 HÀM HIỂN THỊ SELECT
+function renderGistSelect(items) {
+    const select = document.getElementById('gist-select');
+    
     items.sort((a, b) => b.videoId.localeCompare(a.videoId));
-    select.innerHTML = items.length ? `<option value="">-- Select (${items.length}) --</option>` :
+    
+    select.innerHTML = items.length ? 
+        `<option value="">-- Select (${items.length}) --</option>` :
         '<option value="">-- None --</option>';
+    
     items.forEach(i => {
         let o = document.createElement('option');
         o.value = JSON.stringify(i);
         o.textContent = i.title;
         select.appendChild(o);
     });
+    
     document.getElementById('matched-sub-note').innerText = items.length ? `${items.length} videos` : 'No videos';
 }
 
