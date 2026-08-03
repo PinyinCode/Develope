@@ -756,10 +756,10 @@
                     </div>
                 </div>
                 
-                <!-- API KEY WARNING (Đã cập nhật) -->
-                <div class="api-key-warning" id="api-key-warning" style="display:none;">
-                    ✅ <span class="highlight">Đã dùng OAuth</span> → Không cần API Key để duyệt folder.<br>
-                    <span style="font-size:10px;">💡 OAuth đã thay thế API Key cho mọi chức năng.</span>
+                <!-- API KEY WARNING -->
+                <div class="api-key-warning" id="api-key-warning">
+                    ⚠️ <span class="highlight">Chưa có Google API Key</span> → Chỉ hỗ trợ link file trực tiếp.<br>
+                    <span style="font-size:10px;">💡 Vào Settings (⚙) để thêm API Key nếu muốn duyệt folder.</span>
                 </div>
                 
                 <!-- Ô NHẬP THÔNG MINH -->
@@ -935,28 +935,11 @@
                 </div>
             </div>
             
-            <!-- 🆕 OAuth Settings (thay thế API Key) -->
             <div class="setting-item">
-                <label>OAuth Client ID (Google)</label>
-                <input type="password" id="oauthClientId" placeholder="OAuth Client ID">
+                <label>Google API Key (for folder browsing)</label>
+                <input type="password" id="googleApiKey" placeholder="AIzaSy...">
                 <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">
-                    🔑 Lấy từ Google Cloud Console → Credentials
-                </div>
-            </div>
-            
-            <div class="setting-item">
-                <label>OAuth Client Secret</label>
-                <input type="password" id="oauthClientSecret" placeholder="OAuth Client Secret">
-                <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">
-                    🔒 Giữ bí mật, không chia sẻ
-                </div>
-            </div>
-            
-            <div class="setting-item">
-                <label>OAuth Refresh Token</label>
-                <input type="password" id="oauthRefreshToken" placeholder="Refresh Token">
-                <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">
-                    ♻️ Dùng để refresh access token tự động
+                    💡 Thêm API Key để duyệt folder Drive
                 </div>
             </div>
             
@@ -964,7 +947,7 @@
         </div>
 
         <div class="settings-footer" id="settings-footer">
-            <span class="version">v2.0 - OAuth</span>
+            <span class="version">v1.0</span>
         </div>
     </div>
 
@@ -998,12 +981,7 @@ let workflowCheckInterval = null;
 let resetTimerInterval = null;
 let resetCountdown = 0;
 
-// ===== OAUTH STATE =====
-let oauthClientId = '';
-let oauthClientSecret = '';
-let oauthRefreshToken = '';
-
-// ===== WORKFLOW STEPS =====
+// ===== WORKFLOW STEPS (CẬP NHẬT - THÊM DELETE DRIVE) =====
 const workflowSteps = [
     { id: 'checkout', name: 'Checkout code', icon: '📥' },
     { id: 'debug_hf', name: 'Debug - Check HF_TOKEN', icon: '🔍' },
@@ -1017,6 +995,8 @@ const workflowSteps = [
 ];
 
 let workflowStatus = [];
+
+// ===== BIẾN CHỐNG LẶP =====
 let processingQueue = {};
 let processedLinks = {};
 
@@ -1125,7 +1105,9 @@ function resetWorkflowLog() {
     }
 }
 
+// ===== FORCE RESET - LUÔN CHO PHÉP NHẬP LINK MỚI =====
 function forceResetWorkflow() {
+    // Reset tất cả steps về pending
     workflowStatus = workflowSteps.map(step => ({
         ...step,
         status: 'pending',
@@ -1133,45 +1115,57 @@ function forceResetWorkflow() {
     }));
     renderWorkflowLog();
     
+    // Reset badge
     const badge = document.getElementById('workflow-status-badge');
     badge.className = 'workflow-status-badge waiting';
     badge.textContent = '⏳ Waiting';
     
+    // Reset timer
     document.getElementById('reset-timer').textContent = '';
     if (resetTimerInterval) {
         clearInterval(resetTimerInterval);
         resetTimerInterval = null;
     }
     
+    // Stop interval check
     if (workflowCheckInterval) {
         clearInterval(workflowCheckInterval);
         workflowCheckInterval = null;
     }
     
+    // Ẩn processing status
     document.getElementById('processing-status').style.display = 'none';
+    
+    // Reset progress bar
     progUpload(0, 'Ready for new job');
     document.getElementById('status-text').innerHTML = 'Ready';
     
+    // Enable process button
     const btn = document.getElementById('btn-drive-process');
     btn.disabled = false;
     btn.textContent = '☁️ Process';
     
+    // Clear drive info
     document.getElementById('drive-info').innerHTML = '';
     document.getElementById('drive-info-box').style.display = 'none';
     
+    // Show log empty
     const empty = document.getElementById('log-empty');
     if (empty) empty.style.display = 'block';
     
+    // Xóa trạng thái processing của video
     if (pendingVideoId) {
         clearVideoProcessing(pendingVideoId);
     }
     
+    // Clear processing queue
     processingQueue = {};
     saveProcessingState();
     
     log('🔄 Đã reset, sẵn sàng cho video mới!', 'info');
 }
 
+// ===== KIỂM TRA WORKFLOW ĐÃ HOÀN THÀNH CHƯA =====
 function isWorkflowComplete() {
     const allDone = workflowStatus.every(s => s.status === 'success' || s.status === 'failed');
     const hasRunning = workflowStatus.some(s => s.status === 'running');
@@ -1293,6 +1287,7 @@ async function fetchWorkflowLogs(videoId) {
                     workflowCheckInterval = null;
                 }
                 
+                // Failed → reset nhanh (3s), Success → reset sau 10s
                 if (!isSuccess) {
                     startResetTimer(3);
                 } else {
@@ -1434,42 +1429,6 @@ async function checkGitHubProcessingStatus(videoId) {
     }
 }
 
-// ===== GET ACCESS TOKEN FROM OAUTH =====
-async function getOAuthAccessToken() {
-    const clientId = localStorage.oauth_client_id || document.getElementById('oauthClientId').value.trim();
-    const clientSecret = localStorage.oauth_client_secret || document.getElementById('oauthClientSecret').value.trim();
-    const refreshToken = localStorage.oauth_refresh_token || document.getElementById('oauthRefreshToken').value.trim();
-    
-    if (!clientId || !clientSecret || !refreshToken) {
-        log('⚠️ Thiếu OAuth credentials', 'warning');
-        return null;
-    }
-    
-    try {
-        const response = await fetch('https://oauth2.googleapis.com/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                client_id: clientId,
-                client_secret: clientSecret,
-                refresh_token: refreshToken,
-                grant_type: 'refresh_token'
-            })
-        });
-        
-        if (!response.ok) {
-            log(`❌ Lỗi refresh token: ${response.status}`, 'err');
-            return null;
-        }
-        
-        const data = await response.json();
-        return data.access_token;
-    } catch (e) {
-        log('❌ Lỗi lấy access token: ' + e.message, 'err');
-        return null;
-    }
-}
-
 function extractDriveFileId(link) {
     if (!link) return null;
     const patterns = [
@@ -1515,7 +1474,7 @@ function onSmartDriveInput() {
     
     const fileId = extractDriveFileId(val);
     const folderId = extractDriveFolderId(val);
-    const hasOAuth = !!(localStorage.oauth_refresh_token || document.getElementById('oauthRefreshToken').value.trim());
+    const hasApiKey = !!localStorage.google_api_key;
     
     if (fileId) {
         currentSmartFileId = fileId;
@@ -1526,7 +1485,7 @@ function onSmartDriveInput() {
         document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">✅ File link detected</span>`;
         log(`📁 File ID: ${fileId}`, 'info');
         
-    } else if (folderId && hasOAuth) {
+    } else if (folderId && hasApiKey) {
         isFolderMode = true;
         document.getElementById('btn-drive-process').disabled = true;
         
@@ -1539,12 +1498,12 @@ function onSmartDriveInput() {
         document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">📁 Folder detected: ${folderName}</span>`;
         
         log(`📁 Folder ID: ${folderId}`, 'info');
-        loadFilesFromFolderOAuth();
+        loadFilesFromFolder();
         
-    } else if (folderId && !hasOAuth) {
+    } else if (folderId && !hasApiKey) {
         document.getElementById('btn-drive-process').disabled = true;
-        document.getElementById('drive-info').innerHTML = `<span class="status-badge warning">⚠️ Need OAuth for folder browsing</span>`;
-        log('⚠️ Vui lòng thêm OAuth credentials trong Settings để duyệt folder', 'warning');
+        document.getElementById('drive-info').innerHTML = `<span class="status-badge warning">⚠️ Need API Key for folder browsing</span>`;
+        log('⚠️ Vui lòng thêm Google API Key trong Settings để duyệt folder', 'warning');
         
     } else {
         document.getElementById('btn-drive-process').disabled = true;
@@ -1564,30 +1523,22 @@ function clearSmartInput() {
     isFolderMode = false;
 }
 
-// ===== LOAD FILES FROM FOLDER USING OAUTH =====
-async function loadFilesFromFolderOAuth() {
+async function loadFilesFromFolder() {
     const folderId = localStorage.getItem('drive_folder_id');
     if (!folderId) return;
+    
+    const apiKey = localStorage.google_api_key || '';
+    if (!apiKey) {
+        document.getElementById('folder-file-select').innerHTML = '<option value="">-- Need API Key --</option>';
+        return;
+    }
     
     const select = document.getElementById('folder-file-select');
     select.innerHTML = '<option value="">⏳ Đang tải...</option>';
     
     try {
-        const accessToken = await getOAuthAccessToken();
-        if (!accessToken) {
-            select.innerHTML = '<option value="">-- Need OAuth --</option>';
-            log('❌ Không lấy được access token', 'err');
-            return;
-        }
-        
-        const response = await fetch(
-            `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&fields=files(id,name,mimeType,size)`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                }
-            }
-        );
+        const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=${apiKey}&fields=files(id,name,mimeType,size)`;
+        const response = await fetch(url);
         
         if (response.ok) {
             const data = await response.json();
@@ -1627,7 +1578,12 @@ function refreshFolderFiles() {
         alert('Chưa có folder nào được lưu!');
         return;
     }
-    loadFilesFromFolderOAuth();
+    const apiKey = localStorage.google_api_key || '';
+    if (!apiKey) {
+        alert('⚠️ Vui lòng thêm Google API Key trong Settings!');
+        return;
+    }
+    loadFilesFromFolder();
 }
 
 function onFolderFileSelect() {
@@ -1673,8 +1629,9 @@ function clearSavedFolder() {
     alert('🗑️ Đã xóa folder Drive đã lưu!');
 }
 
-// ===== PROCESS SMART DRIVE =====
+// ===== PROCESS SMART DRIVE (CÓ RESET TRƯỚC KHI XỬ LÝ) =====
 async function processSmartDrive() {
+    // Reset trước khi xử lý mới
     forceResetWorkflow();
     
     const val = document.getElementById('smart-drive-link').value.trim();
@@ -1952,19 +1909,18 @@ function switchUploadMethod(method) {
     document.getElementById('method-drive-btn').classList.toggle('active', method === 'drive');
 }
 
-function updateDriveUI(hasOAuth) {
+function updateDriveUI(hasApiKey) {
     const warning = document.getElementById('api-key-warning');
-    if (hasOAuth) {
-        warning.style.display = 'block';
-        warning.innerHTML = '✅ <span class="highlight">Đã dùng OAuth</span> → Không cần API Key để duyệt folder.<br><span style="font-size:10px;">💡 OAuth đã thay thế API Key cho mọi chức năng.</span>';
+    if (hasApiKey) {
+        warning.style.display = 'none';
         const savedFolderId = localStorage.getItem('drive_folder_id');
         if (savedFolderId) {
             document.getElementById('folder-area').style.display = 'block';
             document.getElementById('saved-folder-id').textContent = localStorage.getItem('drive_folder_name') || savedFolderId;
-            loadFilesFromFolderOAuth();
+            loadFilesFromFolder();
         }
     } else {
-        warning.style.display = 'none';
+        warning.style.display = 'block';
         document.getElementById('folder-area').style.display = 'none';
     }
 }
@@ -2006,17 +1962,15 @@ function onYouTubeIframeAPIReady() {
     loadGistLibrary(false);
     initWorkflowLog();
     
-    const hasOAuth = !!(localStorage.oauth_refresh_token || document.getElementById('oauthRefreshToken').value.trim());
-    updateDriveUI(hasOAuth);
+    const apiKey = localStorage.google_api_key || '';
+    updateDriveUI(!!apiKey);
 }
 
 function loadSettings() {
     document.getElementById('ghUser').value = localStorage.gh_user || 'PinyinCode';
     document.getElementById('ghRepo').value = localStorage.gh_repo || 'subtitle-ai';
     document.getElementById('ghToken').value = localStorage.gh_token || '';
-    document.getElementById('oauthClientId').value = localStorage.oauth_client_id || '';
-    document.getElementById('oauthClientSecret').value = localStorage.oauth_client_secret || '';
-    document.getElementById('oauthRefreshToken').value = localStorage.oauth_refresh_token || '';
+    document.getElementById('googleApiKey').value = localStorage.google_api_key || '';
     targetUser = localStorage.gh_user || 'PinyinCode';
     targetRepo = localStorage.gh_repo || 'subtitle-ai';
     gh_cloud_map = JSON.parse(localStorage.getItem('gh_cloud_map') || '{}');
@@ -2026,17 +1980,14 @@ function saveSettings() {
     localStorage.gh_user = document.getElementById('ghUser').value.trim();
     localStorage.gh_repo = document.getElementById('ghRepo').value.trim();
     localStorage.gh_token = document.getElementById('ghToken').value.trim();
-    localStorage.oauth_client_id = document.getElementById('oauthClientId').value.trim();
-    localStorage.oauth_client_secret = document.getElementById('oauthClientSecret').value.trim();
-    localStorage.oauth_refresh_token = document.getElementById('oauthRefreshToken').value.trim();
+    localStorage.google_api_key = document.getElementById('googleApiKey').value.trim();
     targetUser = localStorage.gh_user || 'PinyinCode';
     targetRepo = localStorage.gh_repo || 'subtitle-ai';
     localStorage.removeItem('gh_last_scan');
     localStorage.removeItem('gh_cloud_map');
     gh_cloud_map = {};
     
-    const hasOAuth = !!(localStorage.oauth_refresh_token);
-    updateDriveUI(hasOAuth);
+    updateDriveUI(!!localStorage.google_api_key);
     
     log('✅ Settings saved!', 'ok');
     loadGistLibrary(true);
@@ -2563,7 +2514,6 @@ async function uploadToGitHub() {
     isUploading = false;
 }
 
-// ===== LOAD GIST LIBRARY - LẤY TOÀN BỘ GIST =====
 async function loadGistLibrary(force = false) {
     const select = document.getElementById('gist-select');
     select.innerHTML = '<option value="">-- Scanning... --</option>';
@@ -2579,6 +2529,7 @@ async function loadGistLibrary(force = false) {
     let lastScan = parseInt(localStorage.getItem('gh_last_scan') || '0');
     let now = Date.now();
     
+    // Nếu không force và cache còn hiệu lực (< 5 phút)
     if (!force && (now - lastScan) < 300000 && Object.keys(gh_cloud_map).length > 0) {
         for (let vId in gh_cloud_map) {
             let e = gh_cloud_map[vId];
@@ -2595,7 +2546,8 @@ async function loadGistLibrary(force = false) {
         let hasMore = true;
         let totalFetched = 0;
         
-        while (hasMore && page <= 20) {
+        // 🆕 LẤY TẤT CẢ GIST (PHÂN TRANG)
+        while (hasMore && page <= 20) { // Tối đa 20 trang (2000 gist)
             log(`📥 Đang tải trang ${page}...`, 'info');
             
             const res = await fetch(`https://api.github.com/gists?per_page=100&page=${page}`, {
@@ -2617,6 +2569,7 @@ async function loadGistLibrary(force = false) {
             allGists = allGists.concat(gists);
             totalFetched += gists.length;
             
+            // Kiểm tra xem còn trang tiếp theo không
             const linkHeader = res.headers.get('Link');
             if (!linkHeader || !linkHeader.includes('rel="next"')) {
                 hasMore = false;
@@ -2627,6 +2580,7 @@ async function loadGistLibrary(force = false) {
         
         log(`📊 Đã tải ${totalFetched} gist từ GitHub`, 'ok');
         
+        // Xây dựng map từ tất cả gist
         const newMap = {};
         let subtitleCount = 0;
         
@@ -2660,6 +2614,7 @@ async function loadGistLibrary(force = false) {
         
     } catch (e) {
         log('❌ Lỗi tải Gist: ' + e.message, 'err');
+        // Nếu lỗi, thử dùng cache cũ
         for (let vId in gh_cloud_map) {
             let e = gh_cloud_map[vId];
             items.push({ videoId: vId, rawUrl: e.url, title: e.title });
@@ -2669,6 +2624,7 @@ async function loadGistLibrary(force = false) {
     renderGistSelect(items);
 }
 
+// 🆕 HÀM HIỂN THỊ SELECT
 function renderGistSelect(items) {
     const select = document.getElementById('gist-select');
     
@@ -2819,8 +2775,7 @@ async function deleteCurrentVideo() {
 
 document.addEventListener('change', function(e) {
     if (e.target.id === 'ghUser' || e.target.id === 'ghRepo' || 
-        e.target.id === 'ghToken' || e.target.id === 'oauthClientId' ||
-        e.target.id === 'oauthClientSecret' || e.target.id === 'oauthRefreshToken') {
+        e.target.id === 'ghToken' || e.target.id === 'googleApiKey') {
         setTimeout(saveSettings, 500);
     }
 });
