@@ -17,6 +17,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    # 👈 THÊM BƯỚC NÀY ĐỂ CHUYỂN TÊN IMAGE THÀNH CHỮ THƯỜNG
+    - name: Set image name
+      id: image
+      run: |
+        echo "image=ghcr.io/${{ github.repository_owner }}/subtitle-ai" | tr '[:upper:]' '[:lower:]' >> $GITHUB_OUTPUT
+        echo "✅ Image: ${{ steps.image.outputs.image }}"
+    
     - name: Create processing lock
       env:
         VIDEO_ID: ${{ github.event.client_payload.video_id }}
@@ -60,28 +67,51 @@ jobs:
     
     - name: Pull AI Docker image
       run: |
-        docker pull ghcr.io/pinyincode/subtitle-ai:latest || true
+        docker pull ${{ steps.image.outputs.image }}:latest || true
         echo "✅ Docker image ready"
     
     - name: Process audio with AI
       id: process
       env:
         VIDEO_ID: ${{ github.event.client_payload.video_id }}
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
       run: |
         echo "🤖 Processing audio with AI..."
         mkdir -p output
         AUDIO_FILE="data/audio/${VIDEO_ID}.m4a"
         
+        # 👈 KIỂM TRA FILE AUDIO
+        if [ ! -f "$AUDIO_FILE" ]; then
+          echo "❌ Audio file not found: $AUDIO_FILE"
+          exit 1
+        fi
+        
+        echo "🎬 Video ID: $VIDEO_ID"
+        echo "📁 Audio file: $AUDIO_FILE"
+        
+        # 👈 SỬA: DÙNG BIẾN IMAGE ĐÃ CHUYỂN CHỮ THƯỜNG
         docker run --rm \
           -v $(pwd):/app \
           -w /app \
           -e HF_TOKEN="${{ secrets.HF_TOKEN }}" \
-          ghcr.io/pinyincode/subtitle-ai:latest \
-          bash -c "export HF_TOKEN='${{ secrets.HF_TOKEN }}' && python scripts/generate_subtitles.py --audio '/app/$AUDIO_FILE' --output '/app/output/${VIDEO_ID}.vtt'"
+          ${{ steps.image.outputs.image }}:latest \
+          bash -c "
+            echo '✅ HF_TOKEN inside container: length='\${#HF_TOKEN}
+            echo '✅ Token prefix: '\${HF_TOKEN:0:10}
+            python scripts/generate_subtitles.py --audio '/app/$AUDIO_FILE'
+          "
         
+        # 👈 KIỂM TRA FILE VTT
         if [ -f "output/${VIDEO_ID}.vtt" ]; then
           echo "✅ AI processing completed!"
           echo "has_subtitle=true" >> $GITHUB_OUTPUT
+          
+          # 👈 ĐỌC YOUTUBE LINK TỪ FILE INFO (SCRIPT TỰ TẠO)
+          if [ -f "output/${VIDEO_ID}.info.txt" ]; then
+            YOUTUBE_LINK=$(grep "YouTube Link:" "output/${VIDEO_ID}.info.txt" | cut -d' ' -f3-)
+            echo "🔗 YouTube: $YOUTUBE_LINK"
+            echo "youtube_link=$YOUTUBE_LINK" >> $GITHUB_OUTPUT
+          fi
         else
           echo "❌ AI processing failed!"
           echo "has_subtitle=false" >> $GITHUB_OUTPUT
@@ -94,9 +124,29 @@ jobs:
         GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         VIDEO_ID: ${{ github.event.client_payload.video_id }}
+        YOUTUBE_LINK: ${{ steps.process.outputs.youtube_link }}
       run: |
         echo "📤 Uploading subtitle to Gist..."
+        echo "🎯 Video ID: $VIDEO_ID"
+        echo "🔗 YouTube: $YOUTUBE_LINK"
+        
+        # 👈 KIỂM TRA FILE VTT
+        if [ ! -f "output/${VIDEO_ID}.vtt" ]; then
+          echo "❌ VTT file not found!"
+          exit 1
+        fi
+        
+        # 👈 CHẠY SCRIPT UPLOAD (ĐÃ SỬA ĐỂ NHẬN YOUTUBE_LINK)
         python scripts/push_to_gist.py
+        
+        if [ $? -eq 0 ]; then
+          echo "✅ Upload to Gist successful!"
+          echo "gist_uploaded=true" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Upload to Gist FAILED!"
+          echo "gist_uploaded=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
     
     - name: Remove processing lock
       if: always()
@@ -116,5 +166,6 @@ jobs:
         touch data/audio/.gitkeep
         rm -f output/*.vtt
         rm -f output/*_summary.json
+        rm -f output/*.info.txt  # 👈 THÊM XÓA FILE INFO
         touch output/.gitkeep
         echo "✅ Cleaned up"
