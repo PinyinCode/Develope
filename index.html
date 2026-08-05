@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pinyin AI - Subtitle Downloader</title>
     <style>
+        /* ===== GIỮ NGUYÊN CSS CŨ ===== */
         :root {
             --bg-color: #000000;
             --card-bg: rgba(28, 28, 30, 0.75);
@@ -146,6 +147,8 @@
         }
         .btn-sm:active { transform: scale(0.96); opacity: 0.9; }
         .btn-sm:disabled { opacity: 0.4; pointer-events: none; }
+        .btn-sm.danger { background: rgba(255,45,85,0.2); color: var(--accent); border-color: var(--accent); }
+        .btn-sm.danger:hover { background: var(--accent); color: white; }
         
         .btn-icon {
             padding: 6px 8px;
@@ -349,6 +352,7 @@
             border: 1px solid var(--border-color);
             cursor: pointer;
             transition: all 0.2s ease;
+            gap: 6px;
         }
         .library-item:hover {
             background: var(--accent-light);
@@ -361,13 +365,13 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            margin-right: 10px;
+            min-width: 0;
         }
         .library-item .video-id {
             font-size: 10px;
             color: var(--text-secondary);
             font-family: monospace;
-            margin-right: 10px;
+            flex-shrink: 0;
         }
         .library-item .btn-play {
             background: var(--blue);
@@ -379,9 +383,18 @@
             cursor: pointer;
             flex-shrink: 0;
         }
-        .library-item .btn-play:hover {
-            opacity: 0.8;
+        .library-item .btn-play:hover { opacity: 0.8; }
+        .library-item .btn-delete {
+            background: rgba(255,45,85,0.15);
+            color: var(--accent);
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            border: none;
+            cursor: pointer;
+            flex-shrink: 0;
         }
+        .library-item .btn-delete:hover { background: var(--accent); color: white; }
         .library-item.active {
             background: var(--accent-light);
             border-color: var(--accent);
@@ -393,19 +406,14 @@
             font-size: 14px;
         }
         .library-scroll {
-            max-height: 300px;
+            max-height: 350px;
             overflow-y: auto;
         }
         .library-scroll::-webkit-scrollbar {
             width: 4px;
         }
-        .library-scroll::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .library-scroll::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 2px;
-        }
+        .library-scroll::-webkit-scrollbar-track { background: transparent; }
+        .library-scroll::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
         
         .upload-id-hint {
             background: rgba(10,132,255,0.1);
@@ -676,16 +684,9 @@
             text-align: center;
             padding: 20px 0;
         }
-        .workflow-log::-webkit-scrollbar {
-            width: 4px;
-        }
-        .workflow-log::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .workflow-log::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 2px;
-        }
+        .workflow-log::-webkit-scrollbar { width: 4px; }
+        .workflow-log::-webkit-scrollbar-track { background: transparent; }
+        .workflow-log::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
 
         .reset-timer {
             font-size: 10px;
@@ -702,38 +703,78 @@
             cursor: pointer;
             transition: 0.2s;
         }
-        .btn-reset-workflow:hover {
-            opacity: 0.8;
-        }
-        .btn-reset-workflow:active {
-            transform: scale(0.95);
-        }
+        .btn-reset-workflow:hover { opacity: 0.8; }
+        .btn-reset-workflow:active { transform: scale(0.95); }
         
         .library-item .youtube-link {
             font-size: 10px;
             color: var(--blue);
             text-decoration: none;
-            margin-right: 10px;
             flex-shrink: 0;
         }
-        .library-item .youtube-link:hover {
-            text-decoration: underline;
+        .library-item .youtube-link:hover { text-decoration: underline; }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border-color);
+            border-top: 2px solid var(--blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--element-radius);
+            padding: 12px 20px;
+            font-size: 13px;
+            color: var(--text-main);
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            display: none;
+            animation: fadeInUp 0.3s ease;
+            max-width: 90%;
+        }
+        .toast.show { display: block; }
+        .toast.success { border-color: var(--green); }
+        .toast.error { border-color: var(--accent); }
+        .toast.info { border-color: var(--blue); }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
 <div class="container">
+    <!-- Toast notification -->
+    <div class="toast" id="toast"></div>
+    
     <div class="app-header hideable" id="header"><h3>🎬 Pinyin AI</h3></div>
 
-    <!-- === TABS === -->
+    <!-- TABS -->
     <div class="tab-group hideable" id="tab-group">
         <button class="btn-sm" onclick="switchTab('youtube')" id="tab-youtube">🎬 YouTube</button>
         <button class="btn-sm" onclick="switchTab('upload')" id="tab-upload">📤 Upload</button>
         <button class="btn-sm active" onclick="switchTab('library')" id="tab-library">📚 Library</button>
     </div>
 
-    <!-- === TAB 1: YOUTUBE === -->
+    <!-- TAB 1: YOUTUBE -->
     <div class="tab-content hideable" id="content-youtube">
         <div class="card">
             <label>🔗 YouTube Link</label>
@@ -782,7 +823,7 @@
         </div>
     </div>
 
-    <!-- === TAB 2: UPLOAD === -->
+    <!-- TAB 2: UPLOAD -->
     <div class="tab-content hideable" id="content-upload">
         <div class="card">
             <label>📤 Upload Audio</label>
@@ -906,7 +947,7 @@
         </div>
     </div>
 
-    <!-- === TAB 3: LIBRARY === -->
+    <!-- TAB 3: LIBRARY -->
     <div class="tab-content active hideable" id="content-library">
         <div class="card" id="gist-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -920,15 +961,18 @@
                 <div class="library-empty">⏳ Đang tải danh sách phụ đề...</div>
             </div>
             
-            <div style="display:flex;gap:6px;margin-top:12px;">
-                <button class="btn-sm" onclick="copyYouTubeLink()" style="background:var(--blue);color:white;flex:1;">
+            <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">
+                <button class="btn-sm" onclick="copyYouTubeLink()" style="background:var(--blue);color:white;flex:1;min-width:80px;">
                     🔗 Copy Link
                 </button>
-                <button class="btn-sm" onclick="playSelectedVideo()" style="background:var(--green);color:black;flex:1;">
+                <button class="btn-sm" onclick="playSelectedVideo()" style="background:var(--green);color:black;flex:1;min-width:80px;">
                     ▶️ Play
                 </button>
-                <button class="btn-sm" onclick="openYouTubeLink()" style="background:var(--accent);color:white;flex:1;">
-                    🔗 Open YouTube
+                <button class="btn-sm" onclick="openYouTubeLink()" style="background:var(--accent);color:white;flex:1;min-width:80px;">
+                    🔗 Open
+                </button>
+                <button class="btn-sm danger" onclick="deleteSelectedVideo()" style="flex:1;min-width:80px;">
+                    🗑️ Xóa
                 </button>
             </div>
             
@@ -936,7 +980,7 @@
         </div>
     </div>
 
-    <!-- === PLAYER === -->
+    <!-- PLAYER -->
     <div class="player-wrap hidden" id="video-wrapper"><div id="player"></div></div>
 
     <div class="card" style="padding:10px 16px" id="timeline-card">
@@ -948,7 +992,7 @@
         </div>
     </div>
 
-    <!-- === CONTROLS === -->
+    <!-- CONTROLS -->
     <div class="card" style="padding:10px 12px">
         <div class="controls-row">
             <button class="btn-icon" id="btn-play-pause" onclick="togglePlayPause()">▶</button>
@@ -976,10 +1020,10 @@
         </div>
     </div>
 
-    <!-- === SUBTITLE === -->
+    <!-- SUBTITLE -->
     <div id="subtitle-box"><span style="color:var(--text-secondary);font-size:14px">Chọn phụ đề trong Library và nhấn Play</span></div>
 
-    <!-- === SETTINGS GROUP === -->
+    <!-- SETTINGS -->
     <div class="settings-group hidden" id="settings-group">
         <div class="card" id="settings-card">
             <label>⚙️ GITHUB SETTINGS</label>
@@ -1024,7 +1068,7 @@
         </div>
     </div>
 
-    <!-- === LOG === -->
+    <!-- LOG -->
     <div class="card hideable hidden" id="log-card">
         <label>📋 Progress Log</label>
         <div id="logBox">🟢 Ready</div>
@@ -1055,6 +1099,7 @@ let resetTimerInterval = null;
 let resetCountdown = 0;
 let libraryItems = [];
 let selectedLibraryIndex = -1;
+let isDeleting = false;
 
 const workflowSteps = [
     { id: 'checkout', name: 'Checkout code', icon: '📥' },
@@ -1072,6 +1117,18 @@ let workflowStatus = [];
 let processingQueue = {};
 let processedLinks = {};
 
+// ===== TOAST =====
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast show ' + type;
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+// ===== SAVE STATE =====
 function saveProcessingState() {
     try {
         localStorage.setItem('pinyin_ai_queue', JSON.stringify(processingQueue));
@@ -1204,10 +1261,11 @@ function renderLibrary() {
             <div class="library-item ${isActive ? 'active' : ''}" 
                  onclick="selectLibraryItem(${index})"
                  data-index="${index}">
-                <span class="title">${displayTitle}</span>
+                <span class="title" title="${item.title}">${displayTitle}</span>
                 <span class="video-id">${item.videoId}</span>
-                ${item.youtubeLink ? `<a href="${item.youtubeLink}" target="_blank" class="youtube-link" onclick="event.stopPropagation();">🔗</a>` : ''}
-                <button class="btn-play" onclick="event.stopPropagation(); playLibraryItem(${index})">▶️</button>
+                ${item.youtubeLink ? `<a href="${item.youtubeLink}" target="_blank" class="youtube-link" onclick="event.stopPropagation();" title="Open YouTube">🔗</a>` : ''}
+                <button class="btn-play" onclick="event.stopPropagation(); playLibraryItem(${index})" title="Play">▶️</button>
+                <button class="btn-delete" onclick="event.stopPropagation(); deleteLibraryItem(${index})" title="Xóa">🗑️</button>
             </div>
         `;
     });
@@ -1229,11 +1287,94 @@ function selectLibraryItem(index) {
 
 function playLibraryItem(index) {
     selectLibraryItem(index);
+    // Đợi player load xong rồi phát
     setTimeout(() => {
         if (player && player.playVideo) {
             player.playVideo();
+        } else {
+            // Nếu player chưa sẵn sàng, thử lại
+            const checkPlayer = setInterval(() => {
+                if (player && player.playVideo) {
+                    player.playVideo();
+                    clearInterval(checkPlayer);
+                }
+            }, 500);
+            // Timeout sau 5s nếu vẫn không được
+            setTimeout(() => clearInterval(checkPlayer), 5000);
         }
-    }, 1000);
+    }, 1500);
+}
+
+async function deleteLibraryItem(index) {
+    const item = libraryItems[index];
+    if (!item) return;
+    
+    if (!confirm(`Bạn có chắc muốn xóa phụ đề "${item.title}"?\n\nHành động này không thể hoàn tác!`)) return;
+    
+    if (isDeleting) return;
+    isDeleting = true;
+    
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    if (!token) {
+        showToast('⚠️ Vui lòng nhập GitHub Token trong Settings!', 'error');
+        isDeleting = false;
+        return;
+    }
+    
+    try {
+        showToast(`⏳ Đang xóa: ${item.title}...`, 'info');
+        
+        // Xóa Gist
+        const deleteRes = await fetch(`https://api.github.com/gists/${item.gistId}`, {
+            method: 'DELETE',
+            headers: { "Authorization": `token ${token}` }
+        });
+        
+        if (deleteRes.ok || deleteRes.status === 404) {
+            // Xóa khỏi danh sách
+            libraryItems.splice(index, 1);
+            if (selectedLibraryIndex === index) {
+                selectedLibraryIndex = -1;
+                currentGistItem = null;
+                currentVideoId = null;
+                document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary);font-size:14px">Đã xóa phụ đề</span>`;
+                if (player) {
+                    player.destroy();
+                    player = null;
+                    document.getElementById('video-wrapper').classList.add('hidden');
+                }
+            } else if (selectedLibraryIndex > index) {
+                selectedLibraryIndex--;
+            }
+            
+            renderLibrary();
+            showToast(`✅ Đã xóa: ${item.title}`, 'success');
+            log(`🗑️ Đã xóa phụ đề: ${item.title} (${item.videoId})`, 'ok');
+            
+            // Cập nhật cache
+            if (gh_cloud_map && gh_cloud_map[item.videoId]) {
+                delete gh_cloud_map[item.videoId];
+                localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
+            }
+        } else {
+            const err = await deleteRes.text();
+            showToast(`❌ Lỗi xóa: ${err}`, 'error');
+            log(`❌ Lỗi xóa Gist: ${err}`, 'err');
+        }
+    } catch (e) {
+        showToast(`❌ Lỗi: ${e.message}`, 'error');
+        log(`❌ Lỗi xóa: ${e.message}`, 'err');
+    }
+    
+    isDeleting = false;
+}
+
+function deleteSelectedVideo() {
+    if (selectedLibraryIndex === -1 || !currentGistItem) {
+        showToast('⚠️ Vui lòng chọn phụ đề cần xóa!', 'warning');
+        return;
+    }
+    deleteLibraryItem(selectedLibraryIndex);
 }
 
 function refreshLibrary() {
@@ -1246,17 +1387,25 @@ function playSelectedVideo() {
         setTimeout(() => {
             if (player && player.playVideo) {
                 player.playVideo();
+            } else {
+                const checkPlayer = setInterval(() => {
+                    if (player && player.playVideo) {
+                        player.playVideo();
+                        clearInterval(checkPlayer);
+                    }
+                }, 500);
+                setTimeout(() => clearInterval(checkPlayer), 5000);
             }
-        }, 1000);
+        }, 1500);
     } else if (libraryItems.length > 0) {
         selectLibraryItem(0);
         setTimeout(() => {
             if (player && player.playVideo) {
                 player.playVideo();
             }
-        }, 1000);
+        }, 1500);
     } else {
-        alert('Chưa có phụ đề nào trong thư viện!');
+        showToast('📭 Chưa có phụ đề nào trong thư viện!', 'warning');
     }
 }
 
@@ -1267,6 +1416,7 @@ async function loadVideoFromGist(item) {
     document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary)">⏳ Đang tải phụ đề...</span>`;
     
     try {
+        // Tải file VTT
         const response = await fetch(item.vttUrl);
         const text = await response.text();
         const parsed = parseVTT(text);
@@ -1282,6 +1432,7 @@ async function loadVideoFromGist(item) {
             document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary)">📝 Phụ đề trống</span>`;
         }
         
+        // Load video
         document.getElementById('video-wrapper').classList.remove('hidden');
         currentVideoId = item.videoId;
         loadPlayer(item.videoId);
@@ -1292,6 +1443,7 @@ async function loadVideoFromGist(item) {
     } catch (e) {
         log(`❌ Lỗi tải phụ đề: ${e.message}`, 'err');
         document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--accent)">❌ Lỗi tải phụ đề</span>`;
+        showToast(`❌ Lỗi tải phụ đề: ${e.message}`, 'error');
     }
 }
 
@@ -1302,31 +1454,35 @@ function copyYouTubeLink() {
     } else if (currentVideoId) {
         link = `https://youtube.com/watch?v=${currentVideoId}`;
     } else {
-        alert('Chưa chọn video nào!');
+        showToast('⚠️ Chưa chọn video nào!', 'warning');
         return;
     }
     navigator.clipboard.writeText(link).then(() => {
+        showToast('✅ Đã copy link YouTube!', 'success');
         log('📋 Đã copy link YouTube', 'ok');
-        alert('✅ Đã copy link YouTube!');
     }).catch(() => {
+        // Fallback
         const textarea = document.createElement('textarea');
         textarea.value = link;
         document.body.appendChild(textarea);
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        alert('✅ Đã copy link YouTube!');
+        showToast('✅ Đã copy link YouTube!', 'success');
     });
 }
 
 function openYouTubeLink() {
+    let link = '';
     if (currentGistItem && currentGistItem.youtubeLink) {
-        window.open(currentGistItem.youtubeLink, '_blank');
+        link = currentGistItem.youtubeLink;
     } else if (currentVideoId) {
-        window.open(`https://youtube.com/watch?v=${currentVideoId}`, '_blank');
+        link = `https://youtube.com/watch?v=${currentVideoId}`;
     } else {
-        alert('Chưa chọn video nào!');
+        showToast('⚠️ Chưa chọn video nào!', 'warning');
+        return;
     }
+    window.open(link, '_blank');
 }
 
 function checkVideoExists(videoId) {
@@ -1344,10 +1500,10 @@ function goToExistingVideo() {
         if (idx !== -1) {
             selectLibraryItem(idx);
         }
-    }, 300);
+    }, 500);
 }
 
-// ===== WORKFLOW LOG FUNCTIONS =====
+// ===== WORKFLOW LOG =====
 function initWorkflowLog() {
     workflowStatus = workflowSteps.map(step => ({
         ...step,
@@ -1466,6 +1622,7 @@ function forceResetWorkflow() {
     processingQueue = {};
     saveProcessingState();
     log('🔄 Đã reset, sẵn sàng cho video mới!', 'info');
+    showToast('🔄 Đã reset workflow', 'info');
 }
 
 function startResetTimer(seconds) {
@@ -1535,26 +1692,58 @@ function checkPendingProcessing() {
     }
 }
 
-// ===== YOUTUBE PLAYER FUNCTIONS =====
+// ===== YOUTUBE PLAYER =====
 function loadPlayer(videoId) {
     document.getElementById('video-wrapper').classList.remove('hidden');
     if (player) {
         player.destroy();
         player = null;
     }
+    
+    // Đảm bảo API đã sẵn sàng
+    if (typeof YT === 'undefined' || typeof YT.Player === 'undefined') {
+        showToast('⏳ Đang tải YouTube Player...', 'info');
+        // Chờ API load
+        const checkApi = setInterval(() => {
+            if (typeof YT !== 'undefined' && typeof YT.Player !== 'undefined') {
+                clearInterval(checkApi);
+                createPlayer(videoId);
+            }
+        }, 500);
+        setTimeout(() => clearInterval(checkApi), 10000);
+        return;
+    }
+    
+    createPlayer(videoId);
+}
+
+function createPlayer(videoId) {
     player = new YT.Player('player', {
         height: '100%',
         width: '100%',
         videoId: videoId,
-        playerVars: { playsinline: 1, autoplay: 0, controls: 0, rel: 0, showinfo: 0 },
+        playerVars: { 
+            playsinline: 1, 
+            autoplay: 1, 
+            controls: 0, 
+            rel: 0, 
+            showinfo: 0,
+            origin: window.location.origin
+        },
         events: {
             onReady: (e) => {
                 startSync();
-                e.target.pauseVideo();
-                e.target.seekTo(0, true);
-                updatePlayPauseBtn(false);
+                // Tự động phát khi sẵn sàng
+                e.target.playVideo();
+                updatePlayPauseBtn(true);
+                showToast('▶️ Đang phát video', 'info');
             },
-            onStateChange: onPlayerStateChange
+            onStateChange: onPlayerStateChange,
+            onError: (e) => {
+                console.error('YouTube Player Error:', e);
+                showToast('❌ Lỗi phát video. Vui lòng thử lại hoặc mở trên YouTube.', 'error');
+                document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--accent)">❌ Lỗi phát video</span>`;
+            }
         }
     });
     log(`🎬 Loading video: ${videoId}`, 'info');
@@ -1563,23 +1752,33 @@ function loadPlayer(videoId) {
 function onPlayerStateChange(e) {
     if (e.data == YT.PlayerState.PLAYING) {
         updatePlayPauseBtn(true);
-    } else if (e.data == YT.PlayerState.PAUSED || e.data == YT.PlayerState.ENDED) {
+        document.getElementById('status-text').innerHTML = '▶️ Playing';
+    } else if (e.data == YT.PlayerState.PAUSED) {
         updatePlayPauseBtn(false);
-        if (e.data == YT.PlayerState.ENDED && isLoopEnabled && player) {
+        document.getElementById('status-text').innerHTML = '⏸ Paused';
+    } else if (e.data == YT.PlayerState.ENDED) {
+        updatePlayPauseBtn(false);
+        document.getElementById('status-text').innerHTML = '⏹ Ended';
+        if (isLoopEnabled && player) {
             player.seekTo(0, true);
             player.playVideo();
         }
+    } else if (e.data == YT.PlayerState.BUFFERING) {
+        document.getElementById('status-text').innerHTML = '⏳ Buffering...';
     }
 }
 
 function togglePlayPause() {
-    if (!player?.getPlayerState) {
+    if (!player || !player.getPlayerState) {
         if (currentVideoId) loadPlayer(currentVideoId);
         else if (currentGistItem) loadVideoFromGist(currentGistItem);
         return;
     }
-    if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo();
-    else player.playVideo();
+    if (player.getPlayerState() === YT.PlayerState.PLAYING) {
+        player.pauseVideo();
+    } else {
+        player.playVideo();
+    }
 }
 
 function updatePlayPauseBtn(p) {
@@ -1826,7 +2025,7 @@ function clearYtLink() {
 function extractAndGoToUpload() {
     const url = document.getElementById('yt-link').value.trim();
     const vid = extractVideoID(url);
-    if (!vid) { alert('Invalid YouTube link!'); return; }
+    if (!vid) { showToast('⚠️ Link YouTube không hợp lệ!', 'error'); return; }
     const existing = checkVideoExists(vid);
     if (existing) {
         existingVideoData = existing;
@@ -1853,10 +2052,10 @@ function extractAndGoToUpload() {
 
 function getYouTubeLink(videoId) { return `https://youtu.be/${videoId}`; }
 
-function playYouTubeVideo() { if (!currentVideoId) { alert('Enter YouTube link first!'); return; } loadPlayer(currentVideoId); }
+function playYouTubeVideo() { if (!currentVideoId) { showToast('⚠️ Nhập link YouTube trước!', 'warning'); return; } loadPlayer(currentVideoId); }
 
 function switchToVideoTab() {
-    if (!pendingVideoId && !currentVideoId) { alert('No video ID!'); return; }
+    if (!pendingVideoId && !currentVideoId) { showToast('⚠️ Chưa có video ID!', 'warning'); return; }
     const vid = pendingVideoId || currentVideoId;
     currentVideoId = vid;
     loadPlayer(vid);
@@ -1994,12 +2193,12 @@ async function loadFilesFromFolder() {
 function refreshFolderFiles() {
     const folderId = localStorage.getItem('drive_folder_id');
     if (!folderId) {
-        alert('Chưa có folder nào được lưu!');
+        showToast('⚠️ Chưa có folder nào được lưu!', 'warning');
         return;
     }
     const apiKey = localStorage.google_api_key || '';
     if (!apiKey) {
-        alert('⚠️ Vui lòng thêm Google API Key trong Settings!');
+        showToast('⚠️ Vui lòng thêm Google API Key trong Settings!', 'warning');
         return;
     }
     loadFilesFromFolder();
@@ -2023,7 +2222,7 @@ function onFolderFileSelect() {
 
 function clearSavedFolder() {
     const savedFolderId = localStorage.getItem('drive_folder_id');
-    if (!savedFolderId) { alert('Không có folder nào để xóa!'); return; }
+    if (!savedFolderId) { showToast('⚠️ Không có folder nào để xóa!', 'warning'); return; }
     const folderName = localStorage.getItem('drive_folder_name') || savedFolderId;
     if (!confirm(`Xóa folder "${folderName}" đã lưu?`)) return;
     localStorage.removeItem('drive_folder_id');
@@ -2037,7 +2236,7 @@ function clearSavedFolder() {
     document.getElementById('drive-info').innerHTML = '';
     document.getElementById('drive-info-box').style.display = 'none';
     log('🗑️ Đã xóa folder Drive đã lưu', 'info');
-    alert('🗑️ Đã xóa folder Drive đã lưu!');
+    showToast('🗑️ Đã xóa folder Drive đã lưu!', 'success');
 }
 
 // ===== PROCESS SMART DRIVE =====
@@ -2045,11 +2244,11 @@ async function processSmartDrive() {
     forceResetWorkflow();
     const val = document.getElementById('smart-drive-link').value.trim();
     const vid = pendingVideoId || currentVideoId;
-    if (!vid) { alert('No Video ID! Please enter YouTube link first.'); return; }
+    if (!vid) { showToast('⚠️ Chưa có Video ID! Nhập YouTube link trước.', 'warning'); return; }
     const existing = checkVideoExists(vid);
     if (existing) {
         log(`✅ Video ${vid} đã có trong kho!`, 'ok');
-        alert(`✅ Video ${vid} đã có trong kho!\n\nTiêu đề: ${existing.title}\nChuyển đến Library để xem.`);
+        showToast(`✅ Video ${vid} đã có trong kho!`, 'success');
         switchTab('library');
         setTimeout(() => {
             const idx = libraryItems.findIndex(item => item.videoId === vid);
@@ -2058,8 +2257,7 @@ async function processSmartDrive() {
         return;
     }
     if (isVideoProcessing(vid)) {
-        log(`⏳ Video ${vid} đang được xử lý ở trình duyệt này!`, 'warning');
-        alert(`⏳ Video ${vid} đang được xử lý!\nVui lòng đợi.`);
+        showToast(`⏳ Video ${vid} đang được xử lý!`, 'warning');
         return;
     }
     if (isVideoProcessed(vid)) {
@@ -2079,7 +2277,7 @@ async function processSmartDrive() {
         document.getElementById('processing-status').style.display = 'block';
         document.getElementById('processing-text').textContent = `⏳ ${vid} đang xử lý từ trình duyệt khác`;
         document.getElementById('processing-text').className = 'warning-highlight';
-        alert(`⏳ Video ${vid} đang được xử lý trên GitHub!\n\nThời gian bắt đầu: ${githubStatus.message}\nVui lòng đợi 3-5 phút.`);
+        showToast(`⏳ Video ${vid} đang được xử lý trên GitHub!`, 'warning');
         return;
     }
     
@@ -2090,19 +2288,19 @@ async function processSmartDrive() {
         driveLink = `https://drive.google.com/file/d/${fileId}/view`;
     } else {
         const selected = document.getElementById('folder-file-select').value;
-        if (!selected) { alert('Please select a file from the folder dropdown!'); return; }
+        if (!selected) { showToast('⚠️ Chọn file từ folder!', 'warning'); return; }
         try {
             const fileData = JSON.parse(selected);
             fileId = fileData.id;
             driveLink = `https://drive.google.com/file/d/${fileId}/view`;
-        } catch (e) { alert('Invalid file selection!'); return; }
+        } catch (e) { showToast('⚠️ Lỗi chọn file!', 'error'); return; }
     }
-    if (!fileId) { alert('Invalid file!'); return; }
+    if (!fileId) { showToast('⚠️ File không hợp lệ!', 'error'); return; }
     
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
     const user = targetUser;
     const repo = targetRepo;
-    if (!token) { alert('Please enter GitHub Token in Settings!'); return; }
+    if (!token) { showToast('⚠️ Nhập GitHub Token trong Settings!', 'error'); return; }
     
     markVideoProcessing(vid);
     resetWorkflowLog();
@@ -2142,6 +2340,7 @@ async function processSmartDrive() {
             document.getElementById('status-text').innerHTML = '✅ Done';
             document.getElementById('drive-info').innerHTML = `<span class="status-badge done">✅ Đã gửi</span>`;
             document.getElementById('library-status').innerHTML = `⏳ Đang xử lý ${vid}...`;
+            showToast(`✅ Đã gửi yêu cầu xử lý ${vid}!`, 'success');
             
             let checkCount = 0;
             const maxChecks = 30;
@@ -2163,7 +2362,6 @@ async function processSmartDrive() {
             setTimeout(() => clearVideoProcessing(vid), 300000);
             setTimeout(() => { loadLibrary(true); }, 30000);
             setTimeout(() => { loadLibrary(true); }, 180000);
-            alert(`✅ Đã gửi yêu cầu xử lý video!\n\n⏳ Quá trình mất 3-5 phút.\n📝 Phụ đề sẽ tự động xuất hiện trong Library.`);
         } else {
             const err = await response.json();
             log(`❌ Failed: ${err.message || response.status}`, 'err');
@@ -2174,6 +2372,7 @@ async function processSmartDrive() {
             document.getElementById('workflow-status-badge').textContent = '❌ Failed';
             clearVideoProcessing(vid);
             startResetTimer(3);
+            showToast(`❌ Lỗi gửi yêu cầu: ${err.message || response.status}`, 'error');
         }
     } catch (e) {
         log(`❌ Error: ${e.message}`, 'err');
@@ -2184,6 +2383,7 @@ async function processSmartDrive() {
         document.getElementById('workflow-status-badge').textContent = '❌ Failed';
         clearVideoProcessing(vid);
         startResetTimer(3);
+        showToast(`❌ Lỗi: ${e.message}`, 'error');
     }
     btn.textContent = originalText;
     btn.disabled = false;
@@ -2319,8 +2519,8 @@ async function uploadToGitHub() {
     const user = targetUser;
     const repo = targetRepo;
     const vid = pendingVideoId || currentVideoId;
-    if (!vid) { alert('No Video ID! Please enter YouTube link first.'); return; }
-    if (!token) { alert('Please enter GitHub Token in Settings!'); return; }
+    if (!vid) { showToast('⚠️ Chưa có Video ID! Nhập YouTube link trước.', 'warning'); return; }
+    if (!token) { showToast('⚠️ Nhập GitHub Token trong Settings!', 'error'); return; }
     isUploading = true;
     const btn = document.getElementById('btn-upload');
     btn.textContent = '⏳ UPLOADING...';
@@ -2378,6 +2578,7 @@ async function uploadToGitHub() {
             document.getElementById('status-text').innerHTML = '✅ Done';
             log(`🎉 Audio uploaded, AI is processing... (3-5 mins)`, 'ok');
             document.getElementById('library-status').innerHTML = `⏳ AI processing ${vid}...`;
+            showToast(`✅ Đã upload ${vid}, đang xử lý...`, 'success');
             setTimeout(() => { loadLibrary(true); }, 10000);
             setTimeout(() => { loadLibrary(true); }, 180000);
             selectedFile = null;
@@ -2390,11 +2591,13 @@ async function uploadToGitHub() {
             log(`❌ Upload failed: ${err.message || uploadRes.status}`, 'err');
             progUpload(0, 'Failed');
             document.getElementById('status-text').innerHTML = '❌ Error';
+            showToast(`❌ Upload thất bại: ${err.message}`, 'error');
         }
     } catch (e) {
         log(`❌ Error: ${e.message}`, 'err');
         progUpload(0, 'Error');
         document.getElementById('status-text').innerHTML = '❌ Error';
+        showToast(`❌ Lỗi: ${e.message}`, 'error');
     }
     btn.textContent = '📤 UPLOAD TO GITHUB';
     btn.disabled = false;
@@ -2418,6 +2621,7 @@ function handleFileSelect(file) {
         document.getElementById('btn-upload').disabled = false;
         progUpload(0, `Ready to upload with ID: ${vid}`);
         log(`📄 Selected file: ${file.name} (will use ID: ${vid})`, 'info');
+        showToast(`📄 Đã chọn: ${file.name}`, 'info');
     } else {
         info.innerHTML = `
             <span class="status-badge processing">📄 ${file.name}</span>
@@ -2427,6 +2631,7 @@ function handleFileSelect(file) {
         document.getElementById('btn-upload').disabled = true;
         progUpload(0, '❌ No Video ID. Enter YouTube link first.');
         log(`❌ No Video ID. Please enter YouTube link first.`, 'err');
+        showToast('⚠️ Chưa có Video ID! Nhập YouTube link trước.', 'warning');
     }
 }
 
@@ -2471,6 +2676,7 @@ function saveSettings() {
     updateDriveUI(!!localStorage.google_api_key);
     log('✅ Settings saved!', 'ok');
     loadLibrary(true);
+    showToast('✅ Đã lưu settings!', 'success');
 }
 
 function onYouTubeIframeAPIReady() {
