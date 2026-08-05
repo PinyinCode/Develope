@@ -751,10 +751,62 @@
         .toast.success { border-color: var(--green); }
         .toast.error { border-color: var(--accent); }
         .toast.info { border-color: var(--blue); }
+        .toast.warning { border-color: #ff9f0a; }
         
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateX(-50%) translateY(20px); }
             to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        
+        /* Drive Trigger Button */
+        .drive-trigger-area {
+            margin-top: 12px;
+            padding: 12px;
+            background: rgba(66, 133, 244, 0.08);
+            border: 1px solid rgba(66, 133, 244, 0.2);
+            border-radius: var(--element-radius);
+        }
+        .drive-trigger-area .btn-trigger {
+            background: var(--green);
+            color: black;
+            width: 100%;
+            padding: 14px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .drive-trigger-area .btn-trigger:hover {
+            opacity: 0.85;
+            transform: scale(0.98);
+        }
+        .drive-trigger-area .btn-trigger:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .drive-trigger-area .trigger-status {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-align: center;
+            display: none;
+        }
+        .drive-trigger-area .trigger-status.show {
+            display: block;
+        }
+        .drive-trigger-area .trigger-status.success {
+            color: var(--green);
+        }
+        .drive-trigger-area .trigger-status.error {
+            color: var(--accent);
+        }
+        .drive-trigger-area .trigger-status.loading {
+            color: #ff9f0a;
+        }
+        .drive-trigger-area .helper-text {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-top: 6px;
+            opacity: 0.7;
         }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -911,6 +963,18 @@
                     </div>
                 </div>
                 
+                <!-- ===== DRIVE TRIGGER AREA (NÚT MỚI) ===== -->
+                <div class="drive-trigger-area">
+                    <button class="btn-trigger" id="btn-trigger-drive" onclick="triggerDriveScan()">
+                        🔄 Trigger Drive Scan
+                    </button>
+                    <div class="trigger-status" id="drive-scan-status"></div>
+                    <div class="helper-text">
+                        ⚡ Kích hoạt Google Apps Script quét Drive ngay lập tức (thay vì đợi 5 phút)
+                    </div>
+                </div>
+                <!-- ===== END DRIVE TRIGGER AREA ===== -->
+                
                 <div style="margin-top:12px;">
                     <div class="workflow-header">
                         <span class="title">📋 Workflow Progress</span>
@@ -946,7 +1010,7 @@
         </div>
     </div>
 
-    <!-- TAB 3: LIBRARY (ĐÃ THÊM NÚT RENAME) -->
+    <!-- TAB 3: LIBRARY -->
     <div class="tab-content active hideable" id="content-library">
         <div class="card" id="gist-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -1126,48 +1190,24 @@ function showToast(message, type = 'info') {
     clearTimeout(toast._timeout);
     toast._timeout = setTimeout(() => {
         toast.classList.remove('show');
-    }, 3000);
+    }, 4000);
 }
 
-// ===== HÀM TRÍCH XUẤT VIDEO ID (HỖ TRỢ CẢ 2 DẠNG LINK + ID TRỰC TIẾP) =====
+// ===== EXTRACT VIDEO ID =====
 function extractVideoID(url) {
     if (!url) return null;
-    
     url = url.trim();
-    
-    // Nếu url chỉ là ID (11 ký tự)
-    if (url.match(/^[a-zA-Z0-9_-]{11}$/)) {
-        return url;
-    }
-    
-    // Pattern 1: youtu.be/xxxxx
+    if (url.match(/^[a-zA-Z0-9_-]{11}$/)) return url;
     let match = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
     if (match) return match[1];
-    
-    // Pattern 2: youtube.com/watch?v=xxxxx
     match = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/);
     if (match) return match[1];
-    
-    // Pattern 3: m.youtube.com/watch?v=xxxxx
-    match = url.match(/m\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/);
-    if (match) return match[1];
-    
-    // Pattern 4: youtube.com/embed/xxxxx
     match = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
     if (match) return match[1];
-    
-    // Pattern 5: youtube.com/v/xxxxx
-    match = url.match(/youtube\.com\/v\/([a-zA-Z0-9_-]{11})/);
-    if (match) return match[1];
-    
-    // Pattern 6: youtube.com/shorts/xxxxx
     match = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
     if (match) return match[1];
-    
-    // Pattern 7: Nếu url chứa tham số v= trong query string
     match = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
     if (match) return match[1];
-    
     return null;
 }
 
@@ -1197,12 +1237,9 @@ async function renameCurrentVideo() {
         showToast('⚠️ Vui lòng chọn phụ đề cần đổi tên!', 'warning');
         return;
     }
-    
     if (isRenaming) return;
-    
     const oldTitle = currentGistItem.title;
     const newTitle = prompt('✏️ Nhập tên mới cho phụ đề:', oldTitle);
-    
     if (newTitle === null) return;
     if (!newTitle || newTitle.trim() === '') {
         showToast('⚠️ Tên không được để trống!', 'warning');
@@ -1212,18 +1249,14 @@ async function renameCurrentVideo() {
         showToast('ℹ️ Tên không thay đổi', 'info');
         return;
     }
-    
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
     if (!token) {
         showToast('⚠️ Vui lòng nhập GitHub Token trong Settings!', 'error');
         return;
     }
-    
     isRenaming = true;
-    showToast(`⏳ Đang đổi tên...`, 'info');
-    
+    showToast('⏳ Đang đổi tên...', 'info');
     try {
-        // Cập nhật description của Gist
         const updateRes = await fetch(`https://api.github.com/gists/${currentGistItem.gistId}`, {
             method: 'PATCH',
             headers: {
@@ -1234,21 +1267,14 @@ async function renameCurrentVideo() {
                 description: `🎬 Pinyin AI Subtitle - ${newTitle.trim()}`
             })
         });
-        
         if (updateRes.ok) {
-            // Cập nhật local
             currentGistItem.title = newTitle.trim();
             const idx = libraryItems.findIndex(item => item.gistId === currentGistItem.gistId);
-            if (idx !== -1) {
-                libraryItems[idx].title = newTitle.trim();
-            }
-            
-            // Cập nhật gh_cloud_map
+            if (idx !== -1) libraryItems[idx].title = newTitle.trim();
             if (gh_cloud_map && gh_cloud_map[currentGistItem.videoId]) {
                 gh_cloud_map[currentGistItem.videoId].title = newTitle.trim();
                 localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
             }
-            
             renderLibrary();
             document.getElementById('library-status').textContent = `✏️ Đã đổi tên: ${newTitle.trim()}`;
             showToast(`✅ Đã đổi tên thành: ${newTitle.trim()}`, 'success');
@@ -1262,7 +1288,6 @@ async function renameCurrentVideo() {
         showToast(`❌ Lỗi: ${e.message}`, 'error');
         log(`❌ Lỗi đổi tên: ${e.message}`, 'err');
     }
-    
     isRenaming = false;
 }
 
@@ -1270,18 +1295,15 @@ async function renameCurrentVideo() {
 async function loadLibrary(force = false) {
     const container = document.getElementById('library-list');
     container.innerHTML = '<div class="library-empty">⏳ Đang tải danh sách phụ đề...</div>';
-    
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
     if (!token) {
         container.innerHTML = '<div class="library-empty">⚠️ Vui lòng nhập GitHub Token trong Settings</div>';
         return;
     }
-    
     try {
         let allGists = [];
         let page = 1;
         let hasMore = true;
-        
         while (hasMore && page <= 10) {
             const res = await fetch(`https://api.github.com/gists?per_page=100&page=${page}`, {
                 headers: { "Authorization": `token ${token}` }
@@ -1290,20 +1312,16 @@ async function loadLibrary(force = false) {
             const gists = await res.json();
             if (!gists || gists.length === 0) break;
             allGists = allGists.concat(gists);
-            
             const linkHeader = res.headers.get('Link');
             hasMore = linkHeader && linkHeader.includes('rel="next"');
             page++;
         }
-        
         libraryItems = [];
         for (let g of allGists) {
             if (!g.files) continue;
-            
             let vttFile = null;
             let infoFile = null;
             let videoId = null;
-            
             for (let fn in g.files) {
                 if (fn.endsWith('.vtt')) {
                     vttFile = g.files[fn];
@@ -1313,34 +1331,23 @@ async function loadLibrary(force = false) {
                     infoFile = g.files[fn];
                 }
             }
-            
             if (!vttFile) continue;
-            
             let youtubeLink = '';
             let title = videoId || 'Unknown';
-            
             if (infoFile) {
                 try {
                     const infoRes = await fetch(infoFile.raw_url);
                     const infoContent = await infoRes.text();
                     const match = infoContent.match(/YouTube Link:\s*(https?:\/\/[^\s]+)/i);
-                    if (match) {
-                        youtubeLink = match[1];
-                    }
+                    if (match) youtubeLink = match[1];
                     const descMatch = infoContent.match(/Video ID:\s*([^\s]+)/i);
-                    if (descMatch) {
-                        title = descMatch[1];
-                    }
-                } catch (e) {
-                    console.log('Không thể đọc info file:', e);
-                }
+                    if (descMatch) title = descMatch[1];
+                } catch (e) {}
             }
-            
             if (g.description) {
                 const match = g.description.replace(/^.*Subtitle\s*-\s*/i, '').trim();
                 if (match) title = match;
             }
-            
             libraryItems.push({
                 videoId: videoId,
                 title: title,
@@ -1351,10 +1358,8 @@ async function loadLibrary(force = false) {
                 description: g.description || ''
             });
         }
-        
         libraryItems.sort((a, b) => a.title.localeCompare(b.title));
         renderLibrary();
-        
     } catch (e) {
         container.innerHTML = `<div class="library-empty">❌ Lỗi tải danh sách: ${e.message}</div>`;
         console.error(e);
@@ -1363,18 +1368,15 @@ async function loadLibrary(force = false) {
 
 function renderLibrary() {
     const container = document.getElementById('library-list');
-    
     if (libraryItems.length === 0) {
         container.innerHTML = '<div class="library-empty">📭 Chưa có phụ đề nào trong kho</div>';
         document.getElementById('library-status').textContent = 'Chưa có phụ đề';
         return;
     }
-    
     let html = '';
     libraryItems.forEach((item, index) => {
         const isActive = (selectedLibraryIndex === index);
         const displayTitle = item.title.length > 50 ? item.title.substring(0, 50) + '...' : item.title;
-        
         html += `
             <div class="library-item ${isActive ? 'active' : ''}" 
                  onclick="selectLibraryItem(${index})"
@@ -1387,7 +1389,6 @@ function renderLibrary() {
             </div>
         `;
     });
-    
     container.innerHTML = html;
     document.getElementById('library-status').textContent = `📚 ${libraryItems.length} phụ đề`;
 }
@@ -1396,10 +1397,8 @@ function selectLibraryItem(index) {
     selectedLibraryIndex = index;
     currentGistItem = libraryItems[index];
     currentVideoId = currentGistItem.videoId;
-    
     renderLibrary();
     document.getElementById('library-status').textContent = `✅ Đã chọn: ${currentGistItem.title}`;
-    
     loadVideoFromGist(currentGistItem);
 }
 
@@ -1423,27 +1422,21 @@ function playLibraryItem(index) {
 async function deleteLibraryItem(index) {
     const item = libraryItems[index];
     if (!item) return;
-    
     if (!confirm(`Bạn có chắc muốn xóa phụ đề "${item.title}"?\n\nHành động này không thể hoàn tác!`)) return;
-    
     if (isDeleting) return;
     isDeleting = true;
-    
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
     if (!token) {
         showToast('⚠️ Vui lòng nhập GitHub Token trong Settings!', 'error');
         isDeleting = false;
         return;
     }
-    
     try {
         showToast(`⏳ Đang xóa: ${item.title}...`, 'info');
-        
         const deleteRes = await fetch(`https://api.github.com/gists/${item.gistId}`, {
             method: 'DELETE',
             headers: { "Authorization": `token ${token}` }
         });
-        
         if (deleteRes.ok || deleteRes.status === 404) {
             libraryItems.splice(index, 1);
             if (selectedLibraryIndex === index) {
@@ -1459,11 +1452,9 @@ async function deleteLibraryItem(index) {
             } else if (selectedLibraryIndex > index) {
                 selectedLibraryIndex--;
             }
-            
             renderLibrary();
             showToast(`✅ Đã xóa: ${item.title}`, 'success');
             log(`🗑️ Đã xóa phụ đề: ${item.title} (${item.videoId})`, 'ok');
-            
             if (gh_cloud_map && gh_cloud_map[item.videoId]) {
                 delete gh_cloud_map[item.videoId];
                 localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
@@ -1477,7 +1468,6 @@ async function deleteLibraryItem(index) {
         showToast(`❌ Lỗi: ${e.message}`, 'error');
         log(`❌ Lỗi xóa: ${e.message}`, 'err');
     }
-    
     isDeleting = false;
 }
 
@@ -1523,16 +1513,13 @@ function playSelectedVideo() {
 
 async function loadVideoFromGist(item) {
     if (!item) return;
-    
     log(`🎬 Loading: ${item.title}`, 'info');
     document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary)">⏳ Đang tải phụ đề...</span>`;
-    
     try {
         const response = await fetch(item.vttUrl);
         const text = await response.text();
         const parsed = parseVTT(text);
         subtitles = parsed;
-        
         if (subtitles.length > 0) {
             document.getElementById('subtitle-box').innerHTML = `
                 <div class="cn">${subtitles[0].rawLines[0] || ''}</div>
@@ -1542,14 +1529,11 @@ async function loadVideoFromGist(item) {
         } else {
             document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary)">📝 Phụ đề trống</span>`;
         }
-        
         document.getElementById('video-wrapper').classList.remove('hidden');
         currentVideoId = item.videoId;
         loadPlayer(item.videoId);
-        
         log(`✅ Đã tải ${subtitles.length} dòng phụ đề`, 'ok');
         document.getElementById('library-status').textContent = `🎬 Đang phát: ${item.title}`;
-        
     } catch (e) {
         log(`❌ Lỗi tải phụ đề: ${e.message}`, 'err');
         document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--accent)">❌ Lỗi tải phụ đề</span>`;
@@ -1626,7 +1610,6 @@ function renderWorkflowLog() {
     const log = document.getElementById('workflow-log');
     const empty = document.getElementById('log-empty');
     if (empty) empty.style.display = 'none';
-    
     let html = '';
     workflowStatus.forEach(step => {
         const statusIcon = step.status === 'running' ? '🔄' :
@@ -1662,7 +1645,6 @@ function updateWorkflowBadge() {
     const failed = workflowStatus.some(s => s.status === 'failed');
     const allDone = workflowStatus.every(s => s.status === 'success' || s.status === 'pending');
     const hasSuccess = workflowStatus.some(s => s.status === 'success');
-    
     if (failed) {
         badge.className = 'workflow-status-badge failed';
         badge.textContent = '❌ Failed';
@@ -1728,6 +1710,12 @@ function forceResetWorkflow() {
     if (pendingVideoId) {
         clearVideoProcessing(pendingVideoId);
     }
+    // Reset drive scan status
+    const statusEl = document.getElementById('drive-scan-status');
+    if (statusEl) {
+        statusEl.className = 'trigger-status';
+        statusEl.textContent = '';
+    }
     processingQueue = {};
     saveProcessingState();
     log('🔄 Đã reset, sẵn sàng cho video mới!', 'info');
@@ -1746,7 +1734,6 @@ function startResetTimer(seconds) {
             resetTimerInterval = null;
             timerEl.textContent = '';
             forceResetWorkflow();
-            console.log('🔄 Workflow auto-reset after completion');
         } else {
             timerEl.textContent = `🔄 reset in ${resetCountdown}s`;
         }
@@ -1808,7 +1795,6 @@ function loadPlayer(videoId) {
         player.destroy();
         player = null;
     }
-    
     if (typeof YT === 'undefined' || typeof YT.Player === 'undefined') {
         showToast('⏳ Đang tải YouTube Player...', 'info');
         const checkApi = setInterval(() => {
@@ -1820,7 +1806,6 @@ function loadPlayer(videoId) {
         setTimeout(() => clearInterval(checkApi), 10000);
         return;
     }
-    
     createPlayer(videoId);
 }
 
@@ -2339,6 +2324,132 @@ function clearSavedFolder() {
     showToast('🗑️ Đã xóa folder Drive đã lưu!', 'success');
 }
 
+// ===== TRIGGER DRIVE SCAN (HÀM MỚI) =====
+async function triggerDriveScan() {
+    const btn = document.getElementById('btn-trigger-drive');
+    const statusEl = document.getElementById('drive-scan-status');
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    const user = targetUser;
+    const repo = targetRepo;
+    
+    if (!token) {
+        showToast('⚠️ Vui lòng nhập GitHub Token trong Settings!', 'error');
+        return;
+    }
+    
+    const vid = pendingVideoId || currentVideoId;
+    if (!vid) {
+        showToast('⚠️ Chưa có Video ID! Nhập YouTube link trước.', 'warning');
+        return;
+    }
+    
+    const existing = checkVideoExists(vid);
+    if (existing) {
+        statusEl.className = 'trigger-status show success';
+        statusEl.textContent = `✅ Video "${existing.title}" đã có trong kho!`;
+        showToast(`✅ Video "${existing.title}" đã có trong kho!`, 'success');
+        setTimeout(() => {
+            switchTab('library');
+            const idx = libraryItems.findIndex(item => item.videoId === vid);
+            if (idx !== -1) selectLibraryItem(idx);
+        }, 1000);
+        return;
+    }
+    
+    btn.disabled = true;
+    btn.textContent = '⏳ Đang gửi...';
+    statusEl.className = 'trigger-status show loading';
+    statusEl.textContent = '⏳ Đang gửi yêu cầu quét Drive đến GitHub...';
+    
+    log(`🔍 Triggering Drive scan for video: ${vid}`, 'info');
+    
+    try {
+        const response = await fetch(`https://api.github.com/repos/${user}/${repo}/dispatches`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `token ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify({
+                event_type: 'manual_drive_scan',
+                client_payload: {
+                    video_id: vid,
+                    action: 'scan_drive',
+                    timestamp: new Date().toISOString()
+                }
+            })
+        });
+        
+        if (response.ok) {
+            statusEl.className = 'trigger-status show success';
+            statusEl.textContent = '✅ Đã gửi yêu cầu! Đang chờ GitHub xử lý...';
+            showToast('✅ Đã gửi yêu cầu quét Drive!', 'success');
+            log('✅ Drive scan triggered successfully', 'ok');
+            
+            // Ghi lại thời gian trigger
+            localStorage.setItem('last_drive_trigger', Date.now().toString());
+            
+            // Bắt đầu theo dõi workflow
+            let checkCount = 0;
+            const maxChecks = 30;
+            
+            if (workflowCheckInterval) clearInterval(workflowCheckInterval);
+            workflowCheckInterval = setInterval(async () => {
+                checkCount++;
+                await fetchWorkflowLogs(vid);
+                const badge = document.getElementById('workflow-status-badge');
+                if (badge.textContent.includes('Success') || 
+                    badge.textContent.includes('Failed') || 
+                    checkCount >= maxChecks) {
+                    clearInterval(workflowCheckInterval);
+                    workflowCheckInterval = null;
+                    if (badge.textContent.includes('Success')) {
+                        statusEl.className = 'trigger-status show success';
+                        statusEl.textContent = '✅ Workflow hoàn tất! Kiểm tra Library.';
+                        showToast('✅ Workflow hoàn tất! Kiểm tra Library.', 'success');
+                        setTimeout(() => loadLibrary(true), 3000);
+                    } else if (badge.textContent.includes('Failed')) {
+                        statusEl.className = 'trigger-status show error';
+                        statusEl.textContent = '❌ Workflow thất bại. Kiểm tra log.';
+                    } else {
+                        statusEl.className = 'trigger-status show';
+                        statusEl.textContent = '⏳ Timeout. Kiểm tra GitHub Actions.';
+                    }
+                    startResetTimer(5);
+                }
+            }, 10000);
+            
+            setTimeout(() => {
+                if (workflowCheckInterval) {
+                    clearInterval(workflowCheckInterval);
+                    workflowCheckInterval = null;
+                    statusEl.className = 'trigger-status show';
+                    statusEl.textContent = '⏳ Quá thời gian chờ. Kiểm tra GitHub Actions.';
+                    startResetTimer(3);
+                }
+            }, 300000);
+            
+        } else {
+            const err = await response.json();
+            statusEl.className = 'trigger-status show error';
+            statusEl.textContent = `❌ Lỗi: ${err.message || response.status}`;
+            showToast(`❌ Lỗi gửi yêu cầu: ${err.message}`, 'error');
+            log(`❌ Failed to trigger drive scan: ${err.message}`, 'err');
+            startResetTimer(3);
+        }
+    } catch (e) {
+        statusEl.className = 'trigger-status show error';
+        statusEl.textContent = `❌ Lỗi: ${e.message}`;
+        showToast(`❌ Lỗi: ${e.message}`, 'error');
+        log(`❌ Error triggering drive scan: ${e.message}`, 'err');
+        startResetTimer(3);
+    }
+    
+    btn.disabled = false;
+    btn.textContent = '🔄 Trigger Drive Scan';
+}
+
 // ===== PROCESS SMART DRIVE =====
 async function processSmartDrive() {
     forceResetWorkflow();
@@ -2761,6 +2872,17 @@ function loadSettings() {
     targetUser = localStorage.gh_user || 'PinyinCode';
     targetRepo = localStorage.gh_repo || 'subtitle-ai';
     gh_cloud_map = JSON.parse(localStorage.getItem('gh_cloud_map') || '{}');
+    updateDriveUI(!!localStorage.google_api_key);
+    
+    const statusEl = document.getElementById('drive-scan-status');
+    if (statusEl) {
+        const lastTrigger = localStorage.getItem('last_drive_trigger');
+        if (lastTrigger) {
+            const time = new Date(parseInt(lastTrigger));
+            statusEl.className = 'trigger-status show';
+            statusEl.textContent = `🕐 Lần quét cuối: ${time.toLocaleString()}`;
+        }
+    }
 }
 
 function saveSettings() {
