@@ -1257,6 +1257,9 @@ async function renameCurrentVideo() {
 // ============================================================
 // LOAD LIBRARY - CHỈ ĐỌC GIST CÓ 4 FILE
 // ============================================================
+// ============================================================
+// LOAD LIBRARY - CHỈ ĐỌC GIST CÓ 4 FILE, LOẠI BỎ TRÙNG LẶP
+// ============================================================
 async function loadLibrary(force = false) {
     const container = document.getElementById('library-list');
     container.innerHTML = '<div class="library-empty">⏳ Đang tải danh sách phụ đề...</div>';
@@ -1286,15 +1289,14 @@ async function loadLibrary(force = false) {
             page++;
         }
         
-        libraryItems = [];
+        // 👈 SỬ DỤNG MAP ĐỂ LOẠI BỎ TRÙNG LẶP THEO videoId
+        const uniqueItems = new Map();
         
         for (let g of allGists) {
             if (!g.files) continue;
             
-            // 👈 KIỂM TRA CÓ ĐỦ 4 FILE KHÔNG
             const fileNames = Object.keys(g.files);
             
-            // Tìm các file cần thiết
             let vttFile = null;
             let infoFile = null;
             let metadataFile = null;
@@ -1304,6 +1306,7 @@ async function loadLibrary(force = false) {
             for (let fn of fileNames) {
                 if (fn.endsWith('.vtt')) {
                     vttFile = g.files[fn];
+                    // Lấy videoId từ tên file .vtt (bỏ .vtt)
                     videoId = fn.replace('.vtt', '');
                 } else if (fn.endsWith('.info.txt')) {
                     infoFile = g.files[fn];
@@ -1316,69 +1319,80 @@ async function loadLibrary(force = false) {
             
             // 👈 CHỈ CHẤP NHẬN GIST CÓ ĐỦ 4 FILE
             if (!vttFile || !infoFile || !metadataFile || !summaryFile) {
-                continue; // Bỏ qua Gist không đủ file
+                continue;
             }
             
-            // Đọc nội dung file info.txt để lấy link YouTube
+            // 👈 NẾU ĐÃ CÓ videoId NÀY TRONG MAP => BỎ QUA (TRÁNH TRÙNG)
+            if (uniqueItems.has(videoId)) {
+                console.log(`⚠️ Bỏ qua video trùng: ${videoId}`);
+                continue;
+            }
+            
+            // Đọc nội dung file info.txt để lấy link YouTube và tên
             let youtubeLink = '';
             let title = videoId || 'Unknown';
+            let language = '';
             
             try {
                 const infoRes = await fetch(infoFile.raw_url);
                 const infoContent = await infoRes.text();
                 
-                // Tìm link YouTube trong file info.txt
+                // Tìm link YouTube
                 const linkMatch = infoContent.match(/YouTube Link:\s*(https?:\/\/[^\s]+)/i);
                 if (linkMatch) {
                     youtubeLink = linkMatch[1];
                 }
                 
-                // Lấy video ID từ file info
-                const idMatch = infoContent.match(/Video ID:\s*([^\s]+)/i);
-                if (idMatch) {
-                    videoId = idMatch[1];
-                }
-                
                 // Lấy language
                 const langMatch = infoContent.match(/Language:\s*([^\s]+)/i);
                 if (langMatch) {
-                    title = `${videoId} (${langMatch[1]})`;
+                    language = langMatch[1];
                 }
             } catch (e) {
                 console.log('Không thể đọc info file:', e);
             }
             
-            // Lấy title từ description của Gist
+            // 👈 LẤY TÊN TỪ DESCRIPTION CỦA GIST (ƯU TIÊN)
             if (g.description) {
-                const match = g.description.replace(/^.*Subtitle\s*-\s*/i, '').trim();
-                if (match) title = match;
+                // Loại bỏ phần "Pinyin AI Subtitle - " hoặc tương tự
+                let cleanTitle = g.description.replace(/^.*Subtitle\s*-\s*/i, '').trim();
+                // Nếu vẫn còn link YouTube trong description, loại bỏ
+                cleanTitle = cleanTitle.replace(/https?:\/\/[^\s]+/g, '').trim();
+                if (cleanTitle && cleanTitle.length > 0 && cleanTitle !== videoId) {
+                    title = cleanTitle;
+                }
             }
             
-            // Đọc metadata để lấy thêm thông tin
-            let metadata = {};
-            try {
-                const metaRes = await fetch(metadataFile.raw_url);
-                const metaContent = await metaRes.text();
-                metadata = JSON.parse(metaContent);
-                if (metadata.title) title = metadata.title;
-            } catch (e) {
-                console.log('Không thể đọc metadata:', e);
+            // 👈 NẾU TITLE VẪN LÀ VIDEO ID, THỬ LẤY TỪ METADATA
+            if (title === videoId && metadataFile) {
+                try {
+                    const metaRes = await fetch(metadataFile.raw_url);
+                    const metaContent = await metaRes.text();
+                    const metadata = JSON.parse(metaContent);
+                    if (metadata.title) {
+                        title = metadata.title;
+                    }
+                } catch (e) {}
             }
             
-            libraryItems.push({
+            // 👈 THÊM VÀO MAP
+            uniqueItems.set(videoId, {
                 videoId: videoId,
                 title: title,
                 vttUrl: vttFile.raw_url,
                 youtubeLink: youtubeLink,
-                infoUrl: infoFile.raw_url,
-                metadataUrl: metadataFile.raw_url,
-                summaryUrl: summaryFile.raw_url,
+                infoUrl: infoFile ? infoFile.raw_url : '',
+                metadataUrl: metadataFile ? metadataFile.raw_url : '',
+                summaryUrl: summaryFile ? summaryFile.raw_url : '',
                 gistId: g.id,
                 gistUrl: g.html_url,
                 description: g.description || '',
-                metadata: metadata
+                language: language
             });
         }
+        
+        // 👈 CHUYỂN MAP THÀNH MẢNG
+        libraryItems = Array.from(uniqueItems.values());
         
         // Sắp xếp theo tên
         libraryItems.sort((a, b) => a.title.localeCompare(b.title));
@@ -1393,9 +1407,8 @@ async function loadLibrary(force = false) {
         console.error(e);
     }
 }
-
-// ============================================================
-// RENDER LIBRARY
+  // ============================================================
+// RENDER LIBRARY - HIỂN THỊ TÊN VIDEO
 // ============================================================
 function renderLibrary() {
     const container = document.getElementById('library-list');
@@ -1409,15 +1422,13 @@ function renderLibrary() {
     let html = '';
     libraryItems.forEach((item, index) => {
         const isActive = (selectedLibraryIndex === index);
+        // 👈 HIỂN THỊ TÊN VIDEO (KHÔNG PHẢI LINK)
         const displayTitle = item.title.length > 50 ? item.title.substring(0, 50) + '...' : item.title;
         
-        // 👈 CHUYỂN ĐỔI LINK YOUTUBE VỀ DẠNG CHUẨN
-        const displayLink = item.youtubeLink || '';
+        // 👈 LẤY VIDEO ID TỪ LINK HOẶC TỪ ITEM
         let videoId = item.videoId;
-        
-        // Nếu không có videoId từ file info, lấy từ link
-        if (!videoId && displayLink) {
-            const extracted = extractVideoID(displayLink);
+        if (!videoId && item.youtubeLink) {
+            const extracted = extractVideoID(item.youtubeLink);
             if (extracted) videoId = extracted;
         }
         
@@ -1427,7 +1438,7 @@ function renderLibrary() {
                  data-index="${index}">
                 <span class="title" title="${item.title}">${displayTitle}</span>
                 <span class="video-id">${videoId || 'N/A'}</span>
-                ${displayLink ? `<a href="${displayLink}" target="_blank" class="youtube-link" onclick="event.stopPropagation();" title="Open YouTube">🔗</a>` : ''}
+                ${item.youtubeLink ? `<a href="${item.youtubeLink}" target="_blank" class="youtube-link" onclick="event.stopPropagation();" title="Mở trên YouTube">▶️</a>` : ''}
                 <button class="btn-play" onclick="event.stopPropagation(); playLibraryItem(${index})" title="Play">▶️</button>
                 <button class="btn-delete" onclick="event.stopPropagation(); deleteLibraryItem(${index})" title="Xóa">🗑️</button>
             </div>
@@ -1437,7 +1448,6 @@ function renderLibrary() {
     container.innerHTML = html;
     document.getElementById('library-status').textContent = `📚 ${libraryItems.length} phụ đề`;
 }
-
 // ============================================================
 // HÀM TRÍCH XUẤT VIDEO ID (HỖ TRỢ MỌI ĐỊNH DẠNG)
 // ============================================================
@@ -1456,7 +1466,7 @@ function extractVideoID(url) {
     let match = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
     if (match) return match[1];
     
-    // Pattern 2: youtube.com/watch?v=xxxxx
+    // Pattern 2: youtube.com/watch?v=xxxxx (có hoặc không có www)
     match = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/);
     if (match) return match[1];
     
@@ -1483,16 +1493,18 @@ function extractVideoID(url) {
     // Pattern 8: Tìm ID 11 ký tự bất kỳ trong URL
     match = url.match(/([a-zA-Z0-9_-]{11})/);
     if (match) {
-        // Kiểm tra không phải từ khóa
         const id = match[1];
+        // Kiểm tra không phải từ khóa
         if (!['audio', 'video', 'subtitle', 'track', 'watch'].includes(id.toLowerCase())) {
             return id;
         }
     }
     
     return null;
-}
-
+}    
+// ============================================================
+// SELECT LIBRARY ITEM
+// ============================================================
 // ============================================================
 // SELECT LIBRARY ITEM
 // ============================================================
@@ -1521,7 +1533,6 @@ function selectLibraryItem(index) {
     // Tải video và phụ đề
     loadVideoFromGist(currentGistItem);
 }
-
 // ============================================================
 // LOAD VIDEO FROM GIST
 // ============================================================
