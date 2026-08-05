@@ -39,19 +39,11 @@
         }
         .container { width: 100%; max-width: 540px; display: flex; flex-direction: column; gap: 14px; }
         
-        .hideable {
-            transition: all 0.3s ease;
-        }
-        .hideable.hidden {
-            display: none !important;
-        }
+        .hideable { transition: all 0.3s ease; }
+        .hideable.hidden { display: none !important; }
         
-        .settings-group {
-            transition: all 0.3s ease;
-        }
-        .settings-group.hidden {
-            display: none !important;
-        }
+        .settings-group { transition: all 0.3s ease; }
+        .settings-group.hidden { display: none !important; }
         
         .app-header { text-align: center; padding: 6px 0; }
         .app-header h3 { margin: 0; font-size: 17px; font-weight: 600; color: var(--text-main); }
@@ -460,6 +452,193 @@
             display: none;
         }
         .drive-info-box .highlight { color: var(--blue); }
+        
+        .processing-status {
+            background: rgba(255, 160, 0, 0.1);
+            border: 1px solid #ff9f0a;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: none;
+        }
+        .processing-status .highlight { color: #ff9f0a; }
+        .processing-status .done-highlight { color: var(--green); }
+        .processing-status .warning-highlight { color: var(--accent); }
+        
+        .folder-area {
+            margin-top: 8px;
+            display: none;
+        }
+        .folder-area .saved-folder-info {
+            background: rgba(48, 209, 88, 0.1);
+            border: 1px solid var(--green);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .folder-area .saved-folder-info .folder-name { color: var(--green); font-weight: 600; }
+        .folder-area .folder-select-area {
+            margin-top: 6px;
+        }
+        .folder-area .folder-select-area select {
+            flex: 1;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-color);
+            border-radius: var(--element-radius);
+            color: var(--text-main);
+            font-size: 13px;
+            outline: none;
+        }
+        
+        .api-key-warning {
+            background: rgba(255, 160, 0, 0.1);
+            border: 1px solid #ff9f0a;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: none;
+        }
+        .api-key-warning .highlight { color: #ff9f0a; }
+        
+        /* ===== WORKFLOW LOG STYLES ===== */
+        .workflow-log {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: var(--element-radius);
+            padding: 12px;
+            margin-top: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 11px;
+            border: 1px solid var(--border-color);
+        }
+        .workflow-log .step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin: 2px 0;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+        .workflow-log .step .icon { font-size: 14px; }
+        .workflow-log .step .name { flex: 1; font-size: 11px; }
+        .workflow-log .step .time { 
+            font-size: 10px; 
+            color: var(--text-secondary);
+            min-width: 50px;
+            text-align: right;
+        }
+        .workflow-log .step.pending { 
+            opacity: 0.4;
+            border-left: 2px solid transparent;
+        }
+        .workflow-log .step.running { 
+            border-left: 2px solid var(--blue);
+            color: var(--text-main);
+            background: rgba(10, 132, 255, 0.08);
+        }
+        .workflow-log .step.success { 
+            border-left: 2px solid var(--green);
+            color: var(--text-main);
+        }
+        .workflow-log .step.failed { 
+            border-left: 2px solid var(--accent);
+            color: var(--accent);
+            background: rgba(255, 45, 85, 0.08);
+        }
+        .workflow-log .step .status-icon {
+            font-size: 12px;
+            min-width: 16px;
+        }
+        .workflow-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .workflow-header .title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        .workflow-header .status {
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .workflow-status-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .workflow-status-badge.waiting { background: var(--text-secondary); color: white; }
+        .workflow-status-badge.running { background: var(--blue); color: white; animation: pulse 1.5s infinite; }
+        .workflow-status-badge.success { background: var(--green); color: black; }
+        .workflow-status-badge.failed { background: var(--accent); color: white; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .log-empty {
+            color: var(--text-secondary);
+            font-size: 11px;
+            text-align: center;
+            padding: 20px 0;
+        }
+        .workflow-log::-webkit-scrollbar {
+            width: 4px;
+        }
+        .workflow-log::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .workflow-log::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 2px;
+        }
+
+        .reset-timer {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-left: 4px;
+        }
+        .btn-reset-workflow {
+            background: var(--accent);
+            color: white;
+            padding: 2px 10px;
+            font-size: 10px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-reset-workflow:hover {
+            opacity: 0.8;
+        }
+        .btn-reset-workflow:active {
+            transform: scale(0.95);
+        }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
@@ -535,18 +714,18 @@
             
             <!-- Method Toggle -->
             <div class="method-toggle">
-                <button class="btn-sm active" onclick="switchUploadMethod('direct')" id="method-direct-btn">📤 Direct</button>
-                <button class="btn-sm" onclick="switchUploadMethod('drive')" id="method-drive-btn">☁️ Google Drive</button>
+                <button class="btn-sm" onclick="switchUploadMethod('direct')" id="method-direct-btn">📤 Direct</button>
+                <button class="btn-sm active" onclick="switchUploadMethod('drive')" id="method-drive-btn">☁️ Google Drive</button>
             </div>
             
             <!-- === METHOD 1: DIRECT UPLOAD === -->
-            <div id="upload-method-direct">
+            <div id="upload-method-direct" style="display:none;">
                 <div class="upload-guide">
                     <div style="font-weight:600;color:var(--text-main);margin-bottom:6px;">📋 Direct Upload:</div>
                     <div class="step"><span class="num">1</span><span class="text">Download audio from YouTube</span></div>
                     <div class="step"><span class="num">2</span><span class="text">Select file below</span></div>
                     <div class="step"><span class="num">3</span><span class="text">Press UPLOAD (may take 3-5 mins)</span></div>
-                    <div style="margin-top:6px;font-size:11px;color:var(--warning);">⚠️ Keep browser open during upload</div>
+                    <div style="margin-top:6px;font-size:11px;color:#ff9f0a;">⚠️ Keep browser open during upload</div>
                 </div>
                 
                 <div class="file-upload-area" id="drop-area" onclick="document.getElementById('file-input').click()">
@@ -564,28 +743,80 @@
             </div>
             
             <!-- === METHOD 2: GOOGLE DRIVE === -->
-            <div id="upload-method-drive" style="display:none;">
+            <div id="upload-method-drive">
                 <div class="upload-guide" style="border-color:var(--blue);">
                     <div style="font-weight:600;color:var(--blue);margin-bottom:6px;">☁️ Google Drive Method</div>
-                    <div class="step"><span class="num" style="background:var(--blue);">1</span><span class="text">Download audio from YouTube</span></div>
-                    <div class="step"><span class="num" style="background:var(--blue);">2</span><span class="text">Upload to <strong style="color:var(--blue);">Google Drive</strong></span></div>
-                    <div class="step"><span class="num" style="background:var(--blue);">3</span><span class="text">Right-click → <strong style="color:var(--blue);">Share</strong> → <strong style="color:var(--blue);">Anyone with the link</strong></span></div>
-                    <div class="step"><span class="num" style="background:var(--blue);">4</span><span class="text">Paste share link below</span></div>
-                    <div class="step"><span class="num" style="background:var(--blue);">5</span><span class="text">Press <strong style="color:var(--accent);">PROCESS</strong></span></div>
+                    <div class="step"><span class="num" style="background:var(--blue);">1</span><span class="text">Upload audio to Google Drive</span></div>
+                    <div class="step"><span class="num" style="background:var(--blue);">2</span><span class="text">Share folder/file with <strong>"Anyone with the link"</strong></span></div>
+                    <div class="step"><span class="num" style="background:var(--blue);">3</span><span class="text">Paste <strong>FILE</strong> or <strong>FOLDER</strong> link below</span></div>
+                    <div class="step"><span class="num" style="background:var(--blue);">4</span><span class="text">Auto-detect: file → process | folder → show file list</span></div>
+                    <div class="step"><span class="num" style="background:var(--blue);">5</span><span class="text">Press <strong style="color:var(--accent);">☁️ Process</strong></span></div>
                     <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border-color);font-size:11px;color:var(--text-secondary);">
-                        ✅ GitHub will download from Drive automatically (3-5 mins)<br>
-                        ✅ You can close browser after pasting link
+                        💡 <strong>Link file:</strong> Process immediately • <strong>Link folder:</strong> Browse and select file
                     </div>
                 </div>
                 
-                <div class="row" style="margin-top:8px;">
-                    <div class="input-wrap">
-                        <input type="text" id="drive-link" placeholder="Paste Google Drive share link..." oninput="onDriveLinkInput()">
-                        <button class="btn-clear-input" id="btn-clear-drive" onclick="clearDriveLink()" style="display:none;">×</button>
+                <!-- API KEY WARNING -->
+                <div class="api-key-warning" id="api-key-warning">
+                    ⚠️ <span class="highlight">Chưa có Google API Key</span> → Chỉ hỗ trợ link file trực tiếp.<br>
+                    <span style="font-size:10px;">💡 Vào Settings (⚙) để thêm API Key nếu muốn duyệt folder.</span>
+                </div>
+                
+                <!-- Ô NHẬP THÔNG MINH -->
+                <div style="margin-top:8px;">
+                    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">🔗 Drive Link (file or folder):</div>
+                    <div class="row">
+                        <div class="input-wrap">
+                            <input type="text" id="smart-drive-link" placeholder="Paste Google Drive file or folder link..." oninput="onSmartDriveInput()">
+                            <button class="btn-clear-input" id="btn-clear-smart" onclick="clearSmartInput()" style="display:none;">×</button>
+                        </div>
+                        <button class="btn-accent" id="btn-drive-process" onclick="processSmartDrive()" disabled style="width:100px;background:var(--blue);">
+                            ☁️ Process
+                        </button>
                     </div>
-                    <button class="btn-accent" id="btn-drive-process" onclick="processWithDrive()" disabled style="width:100px;background:var(--blue);">
-                        ☁️ Process
-                    </button>
+                </div>
+                
+                <!-- KHU VỰC FOLDER -->
+                <div class="folder-area" id="folder-area">
+                    <div class="saved-folder-info" id="saved-folder-info">
+                        <span>📁 Folder: <span class="folder-name" id="saved-folder-id">---</span></span>
+                        <button class="btn-sm" onclick="clearSavedFolder()" style="background:transparent;color:var(--accent);padding:2px 8px;font-size:10px;border:1px solid var(--accent);">
+                            🗑️ Xóa
+                        </button>
+                    </div>
+                    <div class="folder-select-area">
+                        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">📂 Chọn file từ folder:</div>
+                        <div class="row">
+                            <select id="folder-file-select" onchange="onFolderFileSelect()">
+                                <option value="">-- Chọn file audio --</option>
+                            </select>
+                            <button class="btn-sm" onclick="refreshFolderFiles()" style="background:var(--blue);color:white;padding:8px 12px;">
+                                🔄
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- WORKFLOW LOG -->
+                <div style="margin-top:12px;">
+                    <div class="workflow-header">
+                        <span class="title">📋 Workflow Progress</span>
+                        <span class="status">
+                            <span class="workflow-status-badge waiting" id="workflow-status-badge">⏳ Waiting</span>
+                            <span class="reset-timer" id="reset-timer"></span>
+                            <button class="btn-reset-workflow" onclick="forceResetWorkflow()" title="Reset để nhập link mới">
+                                🔄 Reset
+                            </button>
+                        </span>
+                    </div>
+                    <div class="workflow-log" id="workflow-log">
+                        <div class="log-empty" id="log-empty">🔄 Submit a job to see real-time progress</div>
+                    </div>
+                </div>
+                
+                <!-- TRẠNG THÁI -->
+                <div class="processing-status" id="processing-status">
+                    ⏳ <span class="highlight" id="processing-text">Đang xử lý...</span>
                 </div>
                 
                 <div class="drive-info-box" id="drive-info-box">
@@ -676,23 +907,40 @@
     <div id="subtitle-box"><span style="color:var(--text-secondary);font-size:14px">Select subtitle + Play, or enter new link...</span></div>
 
     <!-- === SETTINGS GROUP === -->
-    <div class="settings-group" id="settings-group">
+    <div class="settings-group hidden" id="settings-group">
         <div class="card" id="settings-card">
             <label>⚙️ GITHUB SETTINGS</label>
             
             <div class="setting-item">
-                <label>Username</label>
+                <label>Username (repo chứa workflow)</label>
                 <input type="text" id="ghUser" placeholder="GitHub Username" value="PinyinCode">
+                <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">
+                    👤 Tài khoản GitHub chứa repo subtitle-ai
+                </div>
             </div>
             
             <div class="setting-item">
-                <label>Repository</label>
+                <label>Repository (chứa workflow)</label>
                 <input type="text" id="ghRepo" placeholder="Repository name" value="subtitle-ai">
+                <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">
+                    📁 Repo chứa workflow và scripts xử lý AI
+                </div>
             </div>
             
             <div class="setting-item">
                 <label>Token (GitHub Personal Access Token)</label>
-                <input type="password" id="ghToken" placeholder="GitHub Token (repo + gist scope required)">
+                <input type="password" id="ghToken" placeholder="GitHub Token (repo + workflow scope)">
+                <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">
+                    🔑 Token cần có quyền trên repo subtitle-ai
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <label>Google API Key (for folder browsing)</label>
+                <input type="password" id="googleApiKey" placeholder="AIzaSy...">
+                <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">
+                    💡 Thêm API Key để duyệt folder Drive
+                </div>
             </div>
             
             <button class="btn-sm" style="width:100%;background:var(--blue);color:white;padding:12px;margin-top:4px;" onclick="saveSettings()">💾 SAVE</button>
@@ -704,7 +952,10 @@
     </div>
 
     <!-- === LOG === -->
-    <div class="card hideable" id="log-card"><label>📋 Progress Log</label><div id="logBox">🟢 Ready</div></div>
+    <div class="card hideable hidden" id="log-card">
+        <label>📋 Progress Log</label>
+        <div id="logBox">🟢 Ready</div>
+    </div>
 </div>
 
 <script>
@@ -719,20 +970,877 @@ let isUploading = false;
 let currentVideoId = null;
 let pendingVideoId = null;
 let isHideMode = false;
-let isSettingsVisible = true;
+let isSettingsVisible = false;
 let existingVideoData = null;
-let uploadMethod = 'direct';
+let uploadMethod = 'drive';
+let currentSmartFileId = null;
+let isFolderMode = false;
+let targetUser = 'PinyinCode';
+let targetRepo = 'subtitle-ai';
+let workflowCheckInterval = null;
+let resetTimerInterval = null;
+let resetCountdown = 0;
 
-// ===== CẢNH BÁO KHI TẮT TRÌNH DUYỆT ĐANG UPLOAD =====
-window.addEventListener('beforeunload', function (e) {
-    if (isUploading) {
-        e.preventDefault();
-        e.returnValue = '⚠️ Audio is still uploading! Are you sure you want to leave?';
-        return e.returnValue;
+// ===== WORKFLOW STEPS (CẬP NHẬT - THÊM DELETE DRIVE) =====
+const workflowSteps = [
+    { id: 'checkout', name: 'Checkout code', icon: '📥' },
+    { id: 'debug_hf', name: 'Debug - Check HF_TOKEN', icon: '🔍' },
+    { id: 'download', name: 'Download from Google Drive', icon: '🌐' },
+    { id: 'login', name: 'Login to GitHub Container Registry', icon: '🔑' },
+    { id: 'pull', name: 'Pull AI Docker image', icon: '🐳' },
+    { id: 'process', name: 'Process audio with AI', icon: '🤖' },
+    { id: 'upload', name: 'Upload subtitle to Gist', icon: '📤' },
+    { id: 'delete_drive', name: 'Delete from Google Drive', icon: '🗑️' },
+    { id: 'cleanup', name: 'Cleanup', icon: '🧹' }
+];
+
+let workflowStatus = [];
+
+// ===== BIẾN CHỐNG LẶP =====
+let processingQueue = {};
+let processedLinks = {};
+
+// ===== LOAD/SAVE LOCAL STATE =====
+function saveProcessingState() {
+    try {
+        localStorage.setItem('pinyin_ai_queue', JSON.stringify(processingQueue));
+        localStorage.setItem('pinyin_ai_processed', JSON.stringify(processedLinks));
+    } catch (e) {}
+}
+
+function loadProcessingState() {
+    try {
+        const queue = localStorage.getItem('pinyin_ai_queue');
+        const processed = localStorage.getItem('pinyin_ai_processed');
+        if (queue) processingQueue = JSON.parse(queue);
+        if (processed) processedLinks = JSON.parse(processed);
+    } catch (e) {
+        processingQueue = {};
+        processedLinks = {};
     }
-});
+}
 
-// ===== CHECK EXISTING VIDEO =====
+// ===== WORKFLOW LOG FUNCTIONS =====
+function initWorkflowLog() {
+    workflowStatus = workflowSteps.map(step => ({
+        ...step,
+        status: 'pending',
+        time: ''
+    }));
+    renderWorkflowLog();
+}
+
+function renderWorkflowLog() {
+    const log = document.getElementById('workflow-log');
+    const empty = document.getElementById('log-empty');
+    
+    if (empty) empty.style.display = 'none';
+    
+    let html = '';
+    workflowStatus.forEach(step => {
+        const statusIcon = step.status === 'running' ? '🔄' :
+                          step.status === 'success' ? '✅' :
+                          step.status === 'failed' ? '❌' : '⏳';
+        const timeDisplay = step.time ? `<span class="time">${step.time}</span>` : '';
+        html += `
+            <div class="step ${step.status}">
+                <span class="icon">${step.icon}</span>
+                <span class="name">${step.name}</span>
+                ${timeDisplay}
+                <span class="status-icon">${statusIcon}</span>
+            </div>
+        `;
+    });
+    log.innerHTML = html;
+    log.scrollTop = log.scrollHeight;
+}
+
+function updateWorkflowStep(stepId, status, time = '') {
+    const step = workflowStatus.find(s => s.id === stepId);
+    if (step) {
+        step.status = status;
+        if (time) step.time = time;
+        renderWorkflowLog();
+        updateWorkflowBadge();
+    }
+}
+
+function updateWorkflowBadge() {
+    const badge = document.getElementById('workflow-status-badge');
+    const running = workflowStatus.some(s => s.status === 'running');
+    const failed = workflowStatus.some(s => s.status === 'failed');
+    const allDone = workflowStatus.every(s => s.status === 'success' || s.status === 'pending');
+    const hasSuccess = workflowStatus.some(s => s.status === 'success');
+    
+    if (failed) {
+        badge.className = 'workflow-status-badge failed';
+        badge.textContent = '❌ Failed';
+    } else if (running) {
+        badge.className = 'workflow-status-badge running';
+        badge.textContent = '⏳ Running...';
+    } else if (hasSuccess && allDone) {
+        badge.className = 'workflow-status-badge success';
+        badge.textContent = '✅ Success';
+    } else {
+        badge.className = 'workflow-status-badge waiting';
+        badge.textContent = '⏳ Waiting';
+    }
+}
+
+function resetWorkflowLog() {
+    workflowStatus = workflowSteps.map(step => ({
+        ...step,
+        status: 'pending',
+        time: ''
+    }));
+    renderWorkflowLog();
+    document.getElementById('workflow-status-badge').className = 'workflow-status-badge waiting';
+    document.getElementById('workflow-status-badge').textContent = '⏳ Waiting';
+    document.getElementById('reset-timer').textContent = '';
+    const empty = document.getElementById('log-empty');
+    if (empty) empty.style.display = 'block';
+    if (resetTimerInterval) {
+        clearInterval(resetTimerInterval);
+        resetTimerInterval = null;
+    }
+}
+
+// ===== FORCE RESET - LUÔN CHO PHÉP NHẬP LINK MỚI =====
+function forceResetWorkflow() {
+    // Reset tất cả steps về pending
+    workflowStatus = workflowSteps.map(step => ({
+        ...step,
+        status: 'pending',
+        time: ''
+    }));
+    renderWorkflowLog();
+    
+    // Reset badge
+    const badge = document.getElementById('workflow-status-badge');
+    badge.className = 'workflow-status-badge waiting';
+    badge.textContent = '⏳ Waiting';
+    
+    // Reset timer
+    document.getElementById('reset-timer').textContent = '';
+    if (resetTimerInterval) {
+        clearInterval(resetTimerInterval);
+        resetTimerInterval = null;
+    }
+    
+    // Stop interval check
+    if (workflowCheckInterval) {
+        clearInterval(workflowCheckInterval);
+        workflowCheckInterval = null;
+    }
+    
+    // Ẩn processing status
+    document.getElementById('processing-status').style.display = 'none';
+    
+    // Reset progress bar
+    progUpload(0, 'Ready for new job');
+    document.getElementById('status-text').innerHTML = 'Ready';
+    
+    // Enable process button
+    const btn = document.getElementById('btn-drive-process');
+    btn.disabled = false;
+    btn.textContent = '☁️ Process';
+    
+    // Clear drive info
+    document.getElementById('drive-info').innerHTML = '';
+    document.getElementById('drive-info-box').style.display = 'none';
+    
+    // Show log empty
+    const empty = document.getElementById('log-empty');
+    if (empty) empty.style.display = 'block';
+    
+    // Xóa trạng thái processing của video
+    if (pendingVideoId) {
+        clearVideoProcessing(pendingVideoId);
+    }
+    
+    // Clear processing queue
+    processingQueue = {};
+    saveProcessingState();
+    
+    log('🔄 Đã reset, sẵn sàng cho video mới!', 'info');
+}
+
+// ===== KIỂM TRA WORKFLOW ĐÃ HOÀN THÀNH CHƯA =====
+function isWorkflowComplete() {
+    const allDone = workflowStatus.every(s => s.status === 'success' || s.status === 'failed');
+    const hasRunning = workflowStatus.some(s => s.status === 'running');
+    return allDone && !hasRunning;
+}
+
+function startResetTimer(seconds) {
+    resetCountdown = seconds;
+    const timerEl = document.getElementById('reset-timer');
+    timerEl.textContent = `🔄 reset in ${seconds}s`;
+    
+    if (resetTimerInterval) clearInterval(resetTimerInterval);
+    resetTimerInterval = setInterval(() => {
+        resetCountdown--;
+        if (resetCountdown <= 0) {
+            clearInterval(resetTimerInterval);
+            resetTimerInterval = null;
+            timerEl.textContent = '';
+            forceResetWorkflow();
+            console.log('🔄 Workflow auto-reset after completion');
+        } else {
+            timerEl.textContent = `🔄 reset in ${resetCountdown}s`;
+        }
+    }, 1000);
+}
+
+// ===== LẤY LOG WORKFLOW TỪ GITHUB API =====
+async function fetchWorkflowLogs(videoId) {
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    const user = targetUser;
+    const repo = targetRepo;
+    
+    if (!token) {
+        log('⚠️ Không có token để lấy log', 'warning');
+        return;
+    }
+    
+    try {
+        const runsRes = await fetch(
+            `https://api.github.com/repos/${user}/${repo}/actions/runs?per_page=5&event=repository_dispatch`,
+            {
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            }
+        );
+        
+        if (!runsRes.ok) {
+            log('❌ Không thể lấy workflow runs', 'err');
+            return;
+        }
+        
+        const runsData = await runsRes.json();
+        const runs = runsData.workflow_runs || [];
+        
+        if (runs.length === 0) {
+            log('⏳ Chưa có workflow nào được kích hoạt', 'info');
+            return;
+        }
+        
+        const latestRun = runs[0];
+        const isCompleted = latestRun.status === 'completed';
+        const isSuccess = latestRun.conclusion === 'success';
+        
+        const jobsRes = await fetch(
+            `https://api.github.com/repos/${user}/${repo}/actions/runs/${latestRun.id}/jobs`,
+            {
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            }
+        );
+        
+        if (jobsRes.ok) {
+            const jobsData = await jobsRes.json();
+            const jobs = jobsData.jobs || [];
+            
+            jobs.forEach(job => {
+                const steps = job.steps || [];
+                steps.forEach(step => {
+                    const stepName = step.name || '';
+                    const stepStatus = step.status || 'pending';
+                    const stepConclusion = step.conclusion || '';
+                    
+                    let stepId = null;
+                    if (stepName.includes('Checkout code')) stepId = 'checkout';
+                    else if (stepName.includes('Check HF_TOKEN')) stepId = 'debug_hf';
+                    else if (stepName.includes('Download from Google Drive')) stepId = 'download';
+                    else if (stepName.includes('Login to GitHub Container Registry')) stepId = 'login';
+                    else if (stepName.includes('Pull AI Docker image')) stepId = 'pull';
+                    else if (stepName.includes('Process audio with AI')) stepId = 'process';
+                    else if (stepName.includes('Upload subtitle to Gist')) stepId = 'upload';
+                    else if (stepName.includes('Delete file from Google Drive')) stepId = 'delete_drive';
+                    else if (stepName.includes('Cleanup')) stepId = 'cleanup';
+                    
+                    if (stepId) {
+                        let status = 'pending';
+                        if (stepStatus === 'completed') {
+                            status = stepConclusion === 'success' ? 'success' : 'failed';
+                        } else if (stepStatus === 'in_progress') {
+                            status = 'running';
+                        }
+                        const time = step.completed_at ? 
+                            `${Math.round((new Date(step.completed_at) - new Date(step.started_at)) / 1000)}s` : '';
+                        updateWorkflowStep(stepId, status, time);
+                    }
+                });
+            });
+            
+            const badge = document.getElementById('workflow-status-badge');
+            if (isCompleted) {
+                badge.className = isSuccess ? 'workflow-status-badge success' : 'workflow-status-badge failed';
+                badge.textContent = isSuccess ? '✅ Success' : '❌ Failed';
+                
+                if (workflowCheckInterval) {
+                    clearInterval(workflowCheckInterval);
+                    workflowCheckInterval = null;
+                }
+                
+                // Failed → reset nhanh (3s), Success → reset sau 10s
+                if (!isSuccess) {
+                    startResetTimer(3);
+                } else {
+                    startResetTimer(10);
+                    if (videoId) {
+                        setTimeout(() => checkAndLoadGist(videoId), 3000);
+                    }
+                }
+            } else {
+                badge.className = 'workflow-status-badge running';
+                badge.textContent = '⏳ Running...';
+                if (resetTimerInterval) {
+                    clearInterval(resetTimerInterval);
+                    resetTimerInterval = null;
+                    document.getElementById('reset-timer').textContent = '';
+                }
+            }
+        }
+        
+    } catch (e) {
+        log('❌ Lỗi lấy log: ' + e.message, 'err');
+    }
+}
+
+// ===== CHECK GIST =====
+async function checkAndLoadGist(vid) {
+    log(`🔍 Checking subtitles for ${vid}...`, 'info');
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    if (!token) return;
+    
+    try {
+        const res = await fetch('https://api.github.com/gists?per_page=100', {
+            headers: { "Authorization": `token ${token}` }
+        });
+        if (res.ok) {
+            const gists = await res.json();
+            for (let g of gists) {
+                if (g.files && g.files[`${vid}.vtt`]) {
+                    gh_cloud_map[vid] = {
+                        url: g.files[`${vid}.vtt`].raw_url,
+                        title: (g.description || '').replace(/^.*Subtitle\s*-\s*/i, '').trim() || `Video ${vid}`
+                    };
+                    localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
+                    await loadGistLibrary(true);
+                    document.getElementById('matched-sub-note').innerText = '✅ New subtitle!';
+                    log('🎉 Subtitles ready!', 'ok');
+                    document.getElementById('status-text').innerHTML = '✅ Done';
+                    return true;
+                }
+            }
+        }
+        log('⏳ No subtitles yet, retrying...', 'info');
+        setTimeout(() => checkAndLoadGist(vid), 30000);
+        return false;
+    } catch (e) {
+        log('Error checking: ' + e.message, 'err');
+        return false;
+    }
+}
+
+// ===== CÁC HÀM KHÁC =====
+function isVideoProcessing(videoId) {
+    return processingQueue[videoId] === true;
+}
+
+function isVideoProcessed(videoId) {
+    return processedLinks[videoId] === true;
+}
+
+function markVideoProcessing(videoId) {
+    processingQueue[videoId] = true;
+    saveProcessingState();
+    document.getElementById('processing-status').style.display = 'block';
+    document.getElementById('processing-text').textContent = `⏳ Đang xử lý ${videoId}...`;
+    document.getElementById('processing-text').className = 'highlight';
+}
+
+function markVideoProcessed(videoId) {
+    processingQueue[videoId] = false;
+    processedLinks[videoId] = true;
+    saveProcessingState();
+    document.getElementById('processing-status').style.display = 'block';
+    document.getElementById('processing-text').textContent = `✅ ${videoId} đã xử lý xong!`;
+    document.getElementById('processing-text').className = 'done-highlight';
+}
+
+function clearVideoProcessing(videoId) {
+    delete processingQueue[videoId];
+    saveProcessingState();
+    document.getElementById('processing-status').style.display = 'none';
+}
+
+function checkPendingProcessing() {
+    const queue = processingQueue;
+    for (let vid in queue) {
+        if (queue[vid] === true) {
+            document.getElementById('processing-status').style.display = 'block';
+            document.getElementById('processing-text').textContent = `⏳ ${vid} đang xử lý (từ phiên trước)...`;
+            document.getElementById('processing-text').className = 'highlight';
+            setTimeout(() => {
+                checkAndLoadGist(vid);
+                setTimeout(() => clearVideoProcessing(vid), 5000);
+            }, 30000);
+            break;
+        }
+    }
+}
+
+async function checkGitHubProcessingStatus(videoId) {
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    const user = targetUser;
+    const repo = targetRepo;
+    
+    if (!token) return null;
+    
+    try {
+        const response = await fetch(
+            `https://api.github.com/repos/${user}/${repo}/contents/.processing/${videoId}.lock`,
+            {
+                headers: { 
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            }
+        );
+        
+        if (response.ok) {
+            const data = await response.json();
+            const content = atob(data.content);
+            return { status: 'processing', message: content };
+        } else if (response.status === 404) {
+            return { status: 'idle', message: 'Sẵn sàng xử lý' };
+        } else {
+            return null;
+        }
+    } catch (e) {
+        console.error('Error checking status:', e);
+        return null;
+    }
+}
+
+function extractDriveFileId(link) {
+    if (!link) return null;
+    const patterns = [
+        /\/file\/d\/([a-zA-Z0-9_-]+)/,
+        /id=([a-zA-Z0-9_-]+)/,
+        /\/uc\?id=([a-zA-Z0-9_-]+)/
+    ];
+    for (const pattern of patterns) {
+        const match = link.match(pattern);
+        if (match) return match[1];
+    }
+    return null;
+}
+
+function extractDriveFolderId(link) {
+    if (!link) return null;
+    const patterns = [
+        /\/folders\/([a-zA-Z0-9_-]+)/,
+        /id=([a-zA-Z0-9_-]+)/,
+        /\/drive\/folders\/([a-zA-Z0-9_-]+)/
+    ];
+    for (const pattern of patterns) {
+        const match = link.match(pattern);
+        if (match) return match[1];
+    }
+    if (link.match(/^[a-zA-Z0-9_-]{19,}$/)) return link;
+    return null;
+}
+
+function onSmartDriveInput() {
+    const val = document.getElementById('smart-drive-link').value;
+    document.getElementById('btn-clear-smart').style.display = val ? 'block' : 'none';
+    
+    document.getElementById('folder-area').style.display = 'none';
+    document.getElementById('drive-info-box').style.display = 'none';
+    document.getElementById('drive-info').innerHTML = '';
+    document.getElementById('processing-status').style.display = 'none';
+    currentSmartFileId = null;
+    isFolderMode = false;
+    document.getElementById('btn-drive-process').disabled = true;
+    
+    if (!val) return;
+    
+    const fileId = extractDriveFileId(val);
+    const folderId = extractDriveFolderId(val);
+    const hasApiKey = !!localStorage.google_api_key;
+    
+    if (fileId) {
+        currentSmartFileId = fileId;
+        isFolderMode = false;
+        document.getElementById('btn-drive-process').disabled = false;
+        document.getElementById('drive-info-box').style.display = 'block';
+        document.getElementById('drive-file-id').textContent = fileId;
+        document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">✅ File link detected</span>`;
+        log(`📁 File ID: ${fileId}`, 'info');
+        
+    } else if (folderId && hasApiKey) {
+        isFolderMode = true;
+        document.getElementById('btn-drive-process').disabled = true;
+        
+        localStorage.setItem('drive_folder_id', folderId);
+        const folderName = val.match(/\/folders\/([^\/]+)/)?.[1] || folderId;
+        localStorage.setItem('drive_folder_name', folderName);
+        
+        document.getElementById('folder-area').style.display = 'block';
+        document.getElementById('saved-folder-id').textContent = folderName;
+        document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">📁 Folder detected: ${folderName}</span>`;
+        
+        log(`📁 Folder ID: ${folderId}`, 'info');
+        loadFilesFromFolder();
+        
+    } else if (folderId && !hasApiKey) {
+        document.getElementById('btn-drive-process').disabled = true;
+        document.getElementById('drive-info').innerHTML = `<span class="status-badge warning">⚠️ Need API Key for folder browsing</span>`;
+        log('⚠️ Vui lòng thêm Google API Key trong Settings để duyệt folder', 'warning');
+        
+    } else {
+        document.getElementById('btn-drive-process').disabled = true;
+        document.getElementById('drive-info').innerHTML = `<span class="status-badge error">❌ Invalid Drive link</span>`;
+    }
+}
+
+function clearSmartInput() {
+    document.getElementById('smart-drive-link').value = '';
+    document.getElementById('btn-clear-smart').style.display = 'none';
+    document.getElementById('btn-drive-process').disabled = true;
+    document.getElementById('drive-info-box').style.display = 'none';
+    document.getElementById('drive-info').innerHTML = '';
+    document.getElementById('folder-area').style.display = 'none';
+    document.getElementById('processing-status').style.display = 'none';
+    currentSmartFileId = null;
+    isFolderMode = false;
+}
+
+async function loadFilesFromFolder() {
+    const folderId = localStorage.getItem('drive_folder_id');
+    if (!folderId) return;
+    
+    const apiKey = localStorage.google_api_key || '';
+    if (!apiKey) {
+        document.getElementById('folder-file-select').innerHTML = '<option value="">-- Need API Key --</option>';
+        return;
+    }
+    
+    const select = document.getElementById('folder-file-select');
+    select.innerHTML = '<option value="">⏳ Đang tải...</option>';
+    
+    try {
+        const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=${apiKey}&fields=files(id,name,mimeType,size)`;
+        const response = await fetch(url);
+        
+        if (response.ok) {
+            const data = await response.json();
+            const files = data.files || [];
+            const audioFiles = files.filter(f => f.mimeType && f.mimeType.startsWith('audio/'));
+            
+            if (audioFiles.length === 0) {
+                select.innerHTML = '<option value="">-- Không có file audio --</option>';
+                return;
+            }
+            
+            select.innerHTML = '<option value="">-- Chọn file audio --</option>';
+            audioFiles.forEach(file => {
+                const opt = document.createElement('option');
+                const fileData = { id: file.id, name: file.name, size: file.size || 0 };
+                opt.value = JSON.stringify(fileData);
+                const sizeMB = file.size ? (file.size / 1024 / 1024).toFixed(1) : '?';
+                opt.textContent = `${file.name} (${sizeMB} MB)`;
+                select.appendChild(opt);
+            });
+            
+            document.getElementById('btn-drive-process').disabled = false;
+            log(`📂 Đã tải ${audioFiles.length} file audio từ folder`, 'ok');
+        } else {
+            select.innerHTML = '<option value="">-- Lỗi tải danh sách --</option>';
+            log('❌ Không thể tải danh sách file từ folder', 'err');
+        }
+    } catch (e) {
+        select.innerHTML = '<option value="">-- Lỗi kết nối --</option>';
+        log('❌ Lỗi tải danh sách file: ' + e.message, 'err');
+    }
+}
+
+function refreshFolderFiles() {
+    const folderId = localStorage.getItem('drive_folder_id');
+    if (!folderId) {
+        alert('Chưa có folder nào được lưu!');
+        return;
+    }
+    const apiKey = localStorage.google_api_key || '';
+    if (!apiKey) {
+        alert('⚠️ Vui lòng thêm Google API Key trong Settings!');
+        return;
+    }
+    loadFilesFromFolder();
+}
+
+function onFolderFileSelect() {
+    const select = document.getElementById('folder-file-select');
+    const selected = select.value;
+    
+    if (selected) {
+        document.getElementById('btn-drive-process').disabled = false;
+        try {
+            const fileData = JSON.parse(selected);
+            document.getElementById('drive-file-id').textContent = fileData.id;
+            document.getElementById('drive-info-box').style.display = 'block';
+            document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">✅ Chọn: ${fileData.name}</span>`;
+        } catch (e) {}
+    } else {
+        document.getElementById('btn-drive-process').disabled = true;
+    }
+}
+
+function clearSavedFolder() {
+    const savedFolderId = localStorage.getItem('drive_folder_id');
+    if (!savedFolderId) {
+        alert('Không có folder nào để xóa!');
+        return;
+    }
+    
+    const folderName = localStorage.getItem('drive_folder_name') || savedFolderId;
+    if (!confirm(`Xóa folder "${folderName}" đã lưu?`)) return;
+    
+    localStorage.removeItem('drive_folder_id');
+    localStorage.removeItem('drive_folder_name');
+    
+    document.getElementById('folder-area').style.display = 'none';
+    document.getElementById('saved-folder-id').textContent = '';
+    document.getElementById('folder-file-select').innerHTML = '<option value="">-- Chọn file audio --</option>';
+    document.getElementById('smart-drive-link').value = '';
+    document.getElementById('btn-clear-smart').style.display = 'none';
+    document.getElementById('btn-drive-process').disabled = true;
+    document.getElementById('drive-info').innerHTML = '';
+    document.getElementById('drive-info-box').style.display = 'none';
+    
+    log('🗑️ Đã xóa folder Drive đã lưu', 'info');
+    alert('🗑️ Đã xóa folder Drive đã lưu!');
+}
+
+// ===== PROCESS SMART DRIVE (CÓ RESET TRƯỚC KHI XỬ LÝ) =====
+async function processSmartDrive() {
+    // Reset trước khi xử lý mới
+    forceResetWorkflow();
+    
+    const val = document.getElementById('smart-drive-link').value.trim();
+    const vid = pendingVideoId || currentVideoId;
+    
+    if (!vid) {
+        alert('No Video ID! Please enter YouTube link first.');
+        return;
+    }
+    
+    const existing = checkVideoExists(vid);
+    if (existing) {
+        log(`✅ Video ${vid} đã có trong kho!`, 'ok');
+        alert(`✅ Video ${vid} đã có trong kho!\n\nTiêu đề: ${existing.title}\nChuyển đến Library để xem.`);
+        switchTab('library');
+        setTimeout(() => {
+            const select = document.getElementById('gist-select');
+            for (let i = 0; i < select.options.length; i++) {
+                const opt = select.options[i];
+                if (opt.value) {
+                    try {
+                        const item = JSON.parse(opt.value);
+                        if (item.videoId === vid) {
+                            select.selectedIndex = i;
+                            onGistSelected(opt.value);
+                            document.getElementById('matched-sub-note').innerHTML = `✅ <span class="highlight">Đã chọn: ${item.title}</span>`;
+                            loadVideoFromGist(item);
+                            break;
+                        }
+                    } catch(e) {}
+                }
+            }
+        }, 500);
+        return;
+    }
+    
+    if (isVideoProcessing(vid)) {
+        log(`⏳ Video ${vid} đang được xử lý ở trình duyệt này!`, 'warning');
+        alert(`⏳ Video ${vid} đang được xử lý!\nVui lòng đợi.`);
+        return;
+    }
+    
+    if (isVideoProcessed(vid)) {
+        log(`✅ Video ${vid} đã được xử lý trước đó!`, 'ok');
+        await loadGistLibrary(true);
+        switchTab('library');
+        setTimeout(() => {
+            const select = document.getElementById('gist-select');
+            for (let i = 0; i < select.options.length; i++) {
+                const opt = select.options[i];
+                if (opt.value) {
+                    try {
+                        const item = JSON.parse(opt.value);
+                        if (item.videoId === vid) {
+                            select.selectedIndex = i;
+                            onGistSelected(opt.value);
+                            document.getElementById('matched-sub-note').innerHTML = `✅ <span class="highlight">Đã chọn: ${item.title}</span>`;
+                            loadVideoFromGist(item);
+                            break;
+                        }
+                    } catch(e) {}
+                }
+            }
+        }, 500);
+        return;
+    }
+    
+    const githubStatus = await checkGitHubProcessingStatus(vid);
+    if (githubStatus && githubStatus.status === 'processing') {
+        log(`⏳ Video ${vid} đang được xử lý trên GitHub!`, 'warning');
+        document.getElementById('processing-status').style.display = 'block';
+        document.getElementById('processing-text').textContent = `⏳ ${vid} đang xử lý từ trình duyệt khác`;
+        document.getElementById('processing-text').className = 'warning-highlight';
+        alert(`⏳ Video ${vid} đang được xử lý trên GitHub!\n\nThời gian bắt đầu: ${githubStatus.message}\nVui lòng đợi 3-5 phút.`);
+        return;
+    }
+    
+    let fileId = null;
+    let driveLink = '';
+    
+    if (currentSmartFileId && !isFolderMode) {
+        fileId = currentSmartFileId;
+        driveLink = `https://drive.google.com/file/d/${fileId}/view`;
+    } else {
+        const selected = document.getElementById('folder-file-select').value;
+        if (!selected) {
+            alert('Please select a file from the folder dropdown!');
+            return;
+        }
+        try {
+            const fileData = JSON.parse(selected);
+            fileId = fileData.id;
+            driveLink = `https://drive.google.com/file/d/${fileId}/view`;
+        } catch (e) {
+            alert('Invalid file selection!');
+            return;
+        }
+    }
+    
+    if (!fileId) {
+        alert('Invalid file!');
+        return;
+    }
+    
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    const user = targetUser;
+    const repo = targetRepo;
+    
+    if (!token) {
+        alert('Please enter GitHub Token in Settings!');
+        return;
+    }
+    
+    markVideoProcessing(vid);
+    
+    resetWorkflowLog();
+    const empty = document.getElementById('log-empty');
+    if (empty) empty.style.display = 'none';
+    document.getElementById('workflow-status-badge').className = 'workflow-status-badge running';
+    document.getElementById('workflow-status-badge').textContent = '⏳ Running...';
+    
+    const btn = document.getElementById('btn-drive-process');
+    const originalText = btn.textContent;
+    btn.textContent = '⏳ Sending...';
+    btn.disabled = true;
+    
+    log(`☁️ Processing with Google Drive: ${fileId}`, 'info');
+    progUpload(10, 'Sending to GitHub...');
+    document.getElementById('status-text').innerHTML = '☁️ Processing';
+    document.getElementById('drive-info').innerHTML = `<span class="status-badge processing">⏳ Đang xử lý...</span>`;
+    
+    try {
+        const response = await fetch(`https://api.github.com/repos/${user}/${repo}/dispatches`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `token ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                event_type: 'process_drive_audio',
+                client_payload: {
+                    video_id: vid,
+                    drive_file_id: fileId,
+                    drive_link: driveLink
+                }
+            })
+        });
+        
+        if (response.ok) {
+            log(`✅ Drive link sent! GitHub will download and process`, 'ok');
+            progUpload(100, '✅ Processing started!');
+            document.getElementById('status-text').innerHTML = '✅ Done';
+            document.getElementById('drive-info').innerHTML = `<span class="status-badge done">✅ Đã gửi</span>`;
+            document.getElementById('matched-sub-note').innerText = `⏳ Đang xử lý ${vid}...`;
+            
+            let checkCount = 0;
+            const maxChecks = 30;
+            
+            setTimeout(async () => {
+                await fetchWorkflowLogs(vid);
+            }, 5000);
+            
+            if (workflowCheckInterval) clearInterval(workflowCheckInterval);
+            workflowCheckInterval = setInterval(async () => {
+                checkCount++;
+                await fetchWorkflowLogs(vid);
+                const badge = document.getElementById('workflow-status-badge');
+                if (badge.textContent.includes('Success') || badge.textContent.includes('Failed') || checkCount >= maxChecks) {
+                    clearInterval(workflowCheckInterval);
+                    workflowCheckInterval = null;
+                    if (badge.textContent.includes('Success') || badge.textContent.includes('Failed')) {
+                        startResetTimer(badge.textContent.includes('Failed') ? 3 : 10);
+                    }
+                }
+            }, 10000);
+            
+            markVideoProcessed(vid);
+            setTimeout(() => clearVideoProcessing(vid), 300000);
+            setTimeout(() => checkAndLoadGist(vid), 30000);
+            setTimeout(() => loadGistLibrary(true), 180000);
+            
+            alert(`✅ Đã gửi yêu cầu xử lý video!\n\n⏳ Quá trình mất 3-5 phút.\n📝 Phụ đề sẽ tự động xuất hiện trong Library.`);
+            
+        } else {
+            const err = await response.json();
+            log(`❌ Failed: ${err.message || response.status}`, 'err');
+            progUpload(0, 'Failed');
+            document.getElementById('drive-info').innerHTML = `<span class="status-badge error">❌ Lỗi</span>`;
+            updateWorkflowStep('process', 'failed');
+            document.getElementById('workflow-status-badge').className = 'workflow-status-badge failed';
+            document.getElementById('workflow-status-badge').textContent = '❌ Failed';
+            clearVideoProcessing(vid);
+            startResetTimer(3);
+        }
+    } catch (e) {
+        log(`❌ Error: ${e.message}`, 'err');
+        progUpload(0, 'Error');
+        document.getElementById('drive-info').innerHTML = `<span class="status-badge error">❌ Lỗi</span>`;
+        updateWorkflowStep('process', 'failed');
+        document.getElementById('workflow-status-badge').className = 'workflow-status-badge failed';
+        document.getElementById('workflow-status-badge').textContent = '❌ Failed';
+        clearVideoProcessing(vid);
+        startResetTimer(3);
+    }
+    
+    btn.textContent = originalText;
+    btn.disabled = false;
+}
+
 function checkVideoExists(videoId) {
     if (!videoId) return null;
     if (gh_cloud_map && gh_cloud_map[videoId]) {
@@ -745,7 +1853,6 @@ function checkVideoExists(videoId) {
     return null;
 }
 
-// ===== TOGGLE HIDE MODE =====
 function toggleHideMode() {
     isHideMode = !isHideMode;
     const btn = document.getElementById('btn-toggle-hide');
@@ -768,7 +1875,6 @@ function toggleHideMode() {
     }
 }
 
-// ===== TOGGLE FULL SETTINGS =====
 function toggleFullSettings() {
     isSettingsVisible = !isSettingsVisible;
     const btn = document.getElementById('btn-toggle-settings');
@@ -794,7 +1900,6 @@ function toggleFullSettings() {
     }
 }
 
-// ===== SWITCH UPLOAD METHOD =====
 function switchUploadMethod(method) {
     uploadMethod = method;
     document.getElementById('upload-method-direct').style.display = method === 'direct' ? 'block' : 'none';
@@ -804,131 +1909,22 @@ function switchUploadMethod(method) {
     document.getElementById('method-drive-btn').classList.toggle('active', method === 'drive');
 }
 
-// ===== GOOGLE DRIVE LINK HANDLING =====
-function onDriveLinkInput() {
-    const val = document.getElementById('drive-link').value;
-    document.getElementById('btn-clear-drive').style.display = val ? 'block' : 'none';
-    
-    const fileId = extractDriveFileId(val);
-    const infoBox = document.getElementById('drive-info-box');
-    const info = document.getElementById('drive-info');
-    
-    if (fileId) {
-        document.getElementById('btn-drive-process').disabled = false;
-        infoBox.style.display = 'block';
-        document.getElementById('drive-file-id').textContent = fileId;
-        info.innerHTML = `<span class="status-badge drive">✅ Drive link valid</span>`;
-        log(`☁️ Google Drive file ID: ${fileId}`, 'info');
-    } else if (val) {
-        document.getElementById('btn-drive-process').disabled = true;
-        infoBox.style.display = 'none';
-        info.innerHTML = `<span class="status-badge warning">⚠️ Invalid Drive link</span>`;
-    } else {
-        document.getElementById('btn-drive-process').disabled = true;
-        infoBox.style.display = 'none';
-        info.innerHTML = '';
-    }
-}
-
-function clearDriveLink() {
-    document.getElementById('drive-link').value = '';
-    document.getElementById('btn-clear-drive').style.display = 'none';
-    document.getElementById('btn-drive-process').disabled = true;
-    document.getElementById('drive-info-box').style.display = 'none';
-    document.getElementById('drive-info').innerHTML = '';
-}
-
-function extractDriveFileId(link) {
-    if (!link) return null;
-    const patterns = [
-        /\/file\/d\/([a-zA-Z0-9_-]+)/,
-        /id=([a-zA-Z0-9_-]+)/,
-        /\/uc\?id=([a-zA-Z0-9_-]+)/
-    ];
-    for (const pattern of patterns) {
-        const match = link.match(pattern);
-        if (match) return match[1];
-    }
-    return null;
-}
-
-// ===== PROCESS WITH DRIVE =====
-async function processWithDrive() {
-    const driveLink = document.getElementById('drive-link').value.trim();
-    const vid = pendingVideoId || currentVideoId;
-    
-    if (!vid) {
-        alert('No Video ID! Please enter YouTube link first.');
-        return;
-    }
-    
-    const fileId = extractDriveFileId(driveLink);
-    if (!fileId) {
-        alert('Invalid Google Drive link! Please make sure it\'s a share link.');
-        return;
-    }
-    
-    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    const user = localStorage.gh_user || document.getElementById('ghUser').value.trim() || 'PinyinCode';
-    const repo = localStorage.gh_repo || document.getElementById('ghRepo').value.trim() || 'subtitle-ai';
-    
-    if (!token) {
-        alert('Please enter GitHub Token in Settings!');
-        return;
-    }
-    
-    const btn = document.getElementById('btn-drive-process');
-    btn.textContent = '⏳ Processing...';
-    btn.disabled = true;
-    
-    log(`☁️ Processing with Google Drive: ${fileId}`, 'info');
-    progUpload(10, 'Sending to GitHub...');
-    document.getElementById('status-text').innerHTML = '☁️ Processing';
-    document.getElementById('drive-info').innerHTML = `<span class="status-badge processing">⏳ Sending to GitHub...</span>`;
-    
-    try {
-        const response = await fetch(`https://api.github.com/repos/${user}/${repo}/dispatches`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `token ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                event_type: 'process_drive_audio',
-                client_payload: {
-                    video_id: vid,
-                    drive_file_id: fileId,
-                    drive_link: driveLink
-                }
-            })
-        });
-        
-        if (response.ok) {
-            log(`✅ Drive link sent! GitHub will download and process`, 'ok');
-            progUpload(100, '✅ Processing started!');
-            document.getElementById('status-text').innerHTML = '✅ Done';
-            document.getElementById('drive-info').innerHTML = `<span class="status-badge done">✅ Sent to GitHub</span>`;
-            document.getElementById('matched-sub-note').innerText = `⏳ GitHub downloading from Drive...`;
-            
-            setTimeout(() => checkAndLoadGist(vid), 30000);
-            setTimeout(() => loadGistLibrary(true), 180000);
-        } else {
-            const err = await response.json();
-            log(`❌ Failed: ${err.message || response.status}`, 'err');
-            progUpload(0, 'Failed');
-            document.getElementById('drive-info').innerHTML = `<span class="status-badge error">❌ Failed</span>`;
+function updateDriveUI(hasApiKey) {
+    const warning = document.getElementById('api-key-warning');
+    if (hasApiKey) {
+        warning.style.display = 'none';
+        const savedFolderId = localStorage.getItem('drive_folder_id');
+        if (savedFolderId) {
+            document.getElementById('folder-area').style.display = 'block';
+            document.getElementById('saved-folder-id').textContent = localStorage.getItem('drive_folder_name') || savedFolderId;
+            loadFilesFromFolder();
         }
-    } catch (e) {
-        log(`❌ Error: ${e.message}`, 'err');
-        progUpload(0, 'Error');
-        document.getElementById('drive-info').innerHTML = `<span class="status-badge error">❌ Error</span>`;
+    } else {
+        warning.style.display = 'block';
+        document.getElementById('folder-area').style.display = 'none';
     }
-    
-    btn.textContent = '☁️ Process';
-    btn.disabled = false;
 }
 
-// ===== GO TO EXISTING VIDEO =====
 function goToExistingVideo() {
     if (!existingVideoData) return;
     
@@ -959,16 +1955,24 @@ function goToExistingVideo() {
     }, 300);
 }
 
-// ===== INIT =====
 function onYouTubeIframeAPIReady() {
     loadSettings();
+    loadProcessingState();
+    checkPendingProcessing();
     loadGistLibrary(false);
+    initWorkflowLog();
+    
+    const apiKey = localStorage.google_api_key || '';
+    updateDriveUI(!!apiKey);
 }
 
 function loadSettings() {
     document.getElementById('ghUser').value = localStorage.gh_user || 'PinyinCode';
     document.getElementById('ghRepo').value = localStorage.gh_repo || 'subtitle-ai';
     document.getElementById('ghToken').value = localStorage.gh_token || '';
+    document.getElementById('googleApiKey').value = localStorage.google_api_key || '';
+    targetUser = localStorage.gh_user || 'PinyinCode';
+    targetRepo = localStorage.gh_repo || 'subtitle-ai';
     gh_cloud_map = JSON.parse(localStorage.getItem('gh_cloud_map') || '{}');
 }
 
@@ -976,9 +1980,15 @@ function saveSettings() {
     localStorage.gh_user = document.getElementById('ghUser').value.trim();
     localStorage.gh_repo = document.getElementById('ghRepo').value.trim();
     localStorage.gh_token = document.getElementById('ghToken').value.trim();
+    localStorage.google_api_key = document.getElementById('googleApiKey').value.trim();
+    targetUser = localStorage.gh_user || 'PinyinCode';
+    targetRepo = localStorage.gh_repo || 'subtitle-ai';
     localStorage.removeItem('gh_last_scan');
     localStorage.removeItem('gh_cloud_map');
     gh_cloud_map = {};
+    
+    updateDriveUI(!!localStorage.google_api_key);
+    
     log('✅ Settings saved!', 'ok');
     loadGistLibrary(true);
 }
@@ -1005,7 +2015,6 @@ function toggleLoop() {
     document.getElementById('btn-loop').classList.toggle('active', isLoopEnabled);
 }
 
-// ===== TABS =====
 function switchTab(tab) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-group .btn-sm').forEach(el => el.classList.remove('active'));
@@ -1017,7 +2026,6 @@ function switchTab(tab) {
     }
 }
 
-// ===== UPDATE UPLOAD TAB =====
 function updateUploadTabWithVideoId() {
     const vid = pendingVideoId || currentVideoId;
     const hint = document.getElementById('upload-id-hint');
@@ -1031,7 +2039,6 @@ function updateUploadTabWithVideoId() {
     }
 }
 
-// ===== LOG & PROGRESS =====
 function log(m, c = '') {
     const t = new Date().toLocaleTimeString('vi-VN');
     const logBox = document.getElementById('logBox');
@@ -1051,7 +2058,6 @@ function progUpload(p, text = '', speed = '') {
     if (speed) document.getElementById('pb-upload-speed').innerText = speed;
 }
 
-// ===== YOUTUBE LINK =====
 function extractVideoID(url) {
     if (!url) return null;
     const match = url.match(/(?:v=|\/)([\w-]{11})/);
@@ -1109,7 +2115,6 @@ function clearYtLink() {
     }
 }
 
-// ===== EXTRACT ID AND GO TO UPLOAD =====
 function extractAndGoToUpload() {
     const url = document.getElementById('yt-link').value.trim();
     const vid = extractVideoID(url);
@@ -1125,10 +2130,7 @@ function extractAndGoToUpload() {
         notification.style.display = 'block';
         document.getElementById('exists-vid').textContent = `${vid} - ${existing.title}`;
         log(`✅ Video ${vid} exists in library. Redirecting...`, 'ok');
-        
-        setTimeout(() => {
-            goToExistingVideo();
-        }, 1000);
+        setTimeout(() => goToExistingVideo(), 1000);
         return;
     }
     
@@ -1143,10 +2145,11 @@ function extractAndGoToUpload() {
     switchTab('upload');
     updateUploadTabWithVideoId();
     
-    log(`📤 Select method to upload audio for AI processing`, 'info');
-    log(`💡 Use Google Drive for long videos (can close browser)`, 'warning');
+    log(`📤 Paste Google Drive link and press Process`, 'info');
+    log(`💡 You can close browser after clicking Process`, 'info');
     
     document.getElementById('pb-upload-text').innerHTML = `🎯 Ready for video: <strong style="color:var(--accent);">${vid}</strong>`;
+    document.getElementById('smart-drive-link').focus();
 }
 
 function getYouTubeLink(videoId) {
@@ -1182,7 +2185,6 @@ function switchToVideoTab() {
     updateUploadTabWithVideoId();
 }
 
-// ===== PLAYER =====
 function loadPlayer(videoId) {
     document.getElementById('video-wrapper').classList.remove('hidden');
     if (player) {
@@ -1258,7 +2260,6 @@ function toggleVideoVisibility() {
     document.getElementById('video-wrapper').classList.toggle('hidden');
 }
 
-// ===== TIMELINE =====
 let videoDuration = 0, isSeeking = false;
 
 function formatTime(seconds) {
@@ -1290,7 +2291,6 @@ function updateTimeline() {
     }
 }
 
-// ===== PARSE VTT =====
 function parseVTT(d) {
     const n = d.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     const b = n.split('\n\n');
@@ -1325,7 +2325,6 @@ function parseTime(t) {
     return parseFloat(p[0]) * 3600 + parseFloat(p[1]) * 60 + parseFloat(p[2]);
 }
 
-// ===== FILE UPLOAD =====
 function updateFileInfo() {
     if (!selectedFile) return;
     const vid = pendingVideoId || currentVideoId;
@@ -1397,14 +2396,13 @@ dropArea.addEventListener('drop', (e) => {
     }
 });
 
-// ===== UPLOAD TO GITHUB =====
 async function uploadToGitHub() {
     if (!selectedFile) return;
     if (isUploading) return;
     
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    const user = localStorage.gh_user || document.getElementById('ghUser').value.trim() || 'PinyinCode';
-    const repo = localStorage.gh_repo || document.getElementById('ghRepo').value.trim() || 'subtitle-ai';
+    const user = targetUser;
+    const repo = targetRepo;
     
     const vid = pendingVideoId || currentVideoId;
     if (!vid) {
@@ -1516,7 +2514,6 @@ async function uploadToGitHub() {
     isUploading = false;
 }
 
-// ===== GIST FUNCTIONS =====
 async function loadGistLibrary(force = false) {
     const select = document.getElementById('gist-select');
     select.innerHTML = '<option value="">-- Scanning... --</option>';
@@ -1532,63 +2529,118 @@ async function loadGistLibrary(force = false) {
     let lastScan = parseInt(localStorage.getItem('gh_last_scan') || '0');
     let now = Date.now();
     
+    // Nếu không force và cache còn hiệu lực (< 5 phút)
     if (!force && (now - lastScan) < 300000 && Object.keys(gh_cloud_map).length > 0) {
         for (let vId in gh_cloud_map) {
             let e = gh_cloud_map[vId];
             items.push({ videoId: vId, rawUrl: e.url, title: e.title });
         }
-    } else {
-        try {
-            const res = await fetch('https://api.github.com/gists?per_page=100', {
+        log(`📚 Đã tải ${items.length} phụ đề từ cache`, 'ok');
+        renderGistSelect(items);
+        return;
+    }
+    
+    try {
+        let page = 1;
+        let allGists = [];
+        let hasMore = true;
+        let totalFetched = 0;
+        
+        // 🆕 LẤY TẤT CẢ GIST (PHÂN TRANG)
+        while (hasMore && page <= 20) { // Tối đa 20 trang (2000 gist)
+            log(`📥 Đang tải trang ${page}...`, 'info');
+            
+            const res = await fetch(`https://api.github.com/gists?per_page=100&page=${page}`, {
                 headers: { "Authorization": `token ${token}` }
             });
-            if (res.ok) {
-                const gists = await res.json();
-                const newMap = {};
-                for (let g of gists) {
-                    if (g.files) {
-                        for (let fn in g.files) {
-                            if (fn.endsWith('.vtt')) {
-                                let v = fn.replace('.vtt', '');
-                                if (!newMap[v]) {
-                                    newMap[v] = {
-                                        url: g.files[fn].raw_url,
-                                        title: (g.description || '').replace(/^.*Subtitle\s*-\s*/i, '').trim() || `Video ${v}`
-                                    };
-                                }
-                            }
+            
+            if (!res.ok) {
+                log(`❌ Lỗi tải Gist: ${res.status}`, 'err');
+                break;
+            }
+            
+            const gists = await res.json();
+            
+            if (!gists || gists.length === 0) {
+                hasMore = false;
+                break;
+            }
+            
+            allGists = allGists.concat(gists);
+            totalFetched += gists.length;
+            
+            // Kiểm tra xem còn trang tiếp theo không
+            const linkHeader = res.headers.get('Link');
+            if (!linkHeader || !linkHeader.includes('rel="next"')) {
+                hasMore = false;
+            }
+            
+            page++;
+        }
+        
+        log(`📊 Đã tải ${totalFetched} gist từ GitHub`, 'ok');
+        
+        // Xây dựng map từ tất cả gist
+        const newMap = {};
+        let subtitleCount = 0;
+        
+        for (let g of allGists) {
+            if (g.files) {
+                for (let fn in g.files) {
+                    if (fn.endsWith('.vtt')) {
+                        let v = fn.replace('.vtt', '');
+                        if (!newMap[v]) {
+                            newMap[v] = {
+                                url: g.files[fn].raw_url,
+                                title: (g.description || '').replace(/^.*Subtitle\s*-\s*/i, '').trim() || `Video ${v}`
+                            };
+                            subtitleCount++;
                         }
                     }
                 }
-                gh_cloud_map = newMap;
-                localStorage.setItem('gh_cloud_map', JSON.stringify(newMap));
-                localStorage.setItem('gh_last_scan', now);
-                for (let vId in newMap) {
-                    let e = newMap[vId];
-                    items.push({ videoId: vId, rawUrl: e.url, title: e.title });
-                }
             }
-        } catch (e) {
-            log('❌ Error loading Gist: ' + e.message, 'err');
         }
-    }
-    
-    if (!items.length) {
+        
+        gh_cloud_map = newMap;
+        localStorage.setItem('gh_cloud_map', JSON.stringify(newMap));
+        localStorage.setItem('gh_last_scan', now.toString());
+        
+        log(`✅ Đã tìm thấy ${subtitleCount} phụ đề`, 'ok');
+        
+        for (let vId in newMap) {
+            let e = newMap[vId];
+            items.push({ videoId: vId, rawUrl: e.url, title: e.title });
+        }
+        
+    } catch (e) {
+        log('❌ Lỗi tải Gist: ' + e.message, 'err');
+        // Nếu lỗi, thử dùng cache cũ
         for (let vId in gh_cloud_map) {
             let e = gh_cloud_map[vId];
             items.push({ videoId: vId, rawUrl: e.url, title: e.title });
         }
     }
     
+    renderGistSelect(items);
+}
+
+// 🆕 HÀM HIỂN THỊ SELECT
+function renderGistSelect(items) {
+    const select = document.getElementById('gist-select');
+    
     items.sort((a, b) => b.videoId.localeCompare(a.videoId));
-    select.innerHTML = items.length ? `<option value="">-- Select (${items.length}) --</option>` :
+    
+    select.innerHTML = items.length ? 
+        `<option value="">-- Select (${items.length}) --</option>` :
         '<option value="">-- None --</option>';
+    
     items.forEach(i => {
         let o = document.createElement('option');
         o.value = JSON.stringify(i);
         o.textContent = i.title;
         select.appendChild(o);
     });
+    
     document.getElementById('matched-sub-note').innerText = items.length ? `${items.length} videos` : 'No videos';
 }
 
@@ -1647,41 +2699,6 @@ function copyYouTubeLink() {
         document.body.removeChild(textarea);
         alert('✅ YouTube link copied!');
     });
-}
-
-async function checkAndLoadGist(vid) {
-    log(`🔍 Checking subtitles for ${vid}...`, 'info');
-    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    if (!token) return;
-    
-    try {
-        const res = await fetch('https://api.github.com/gists?per_page=100', {
-            headers: { "Authorization": `token ${token}` }
-        });
-        if (res.ok) {
-            const gists = await res.json();
-            for (let g of gists) {
-                if (g.files && g.files[`${vid}.vtt`]) {
-                    gh_cloud_map[vid] = {
-                        url: g.files[`${vid}.vtt`].raw_url,
-                        title: (g.description || '').replace(/^.*Subtitle\s*-\s*/i, '').trim() || `Video ${vid}`
-                    };
-                    localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
-                    await loadGistLibrary(true);
-                    document.getElementById('matched-sub-note').innerText = '✅ New subtitle!';
-                    log('🎉 Subtitles ready!', 'ok');
-                    document.getElementById('status-text').innerHTML = '✅ Done';
-                    return true;
-                }
-            }
-        }
-        log('⏳ No subtitles yet, retrying...', 'info');
-        setTimeout(() => checkAndLoadGist(vid), 30000);
-        return false;
-    } catch (e) {
-        log('Error checking: ' + e.message, 'err');
-        return false;
-    }
 }
 
 async function renameCurrentVideo() {
@@ -1756,16 +2773,16 @@ async function deleteCurrentVideo() {
     document.getElementById('matched-sub-note').innerText = `Deleted: ${title}`;
 }
 
-// ===== AUTO SAVE SETTINGS =====
 document.addEventListener('change', function(e) {
     if (e.target.id === 'ghUser' || e.target.id === 'ghRepo' || 
-        e.target.id === 'ghToken') {
+        e.target.id === 'ghToken' || e.target.id === 'googleApiKey') {
         setTimeout(saveSettings, 500);
     }
 });
 
-// ===== LOAD GIST ON START =====
 window.addEventListener('load', function() {
+    loadProcessingState();
+    checkPendingProcessing();
     setTimeout(() => loadGistLibrary(true), 1000);
 });
 </script>
