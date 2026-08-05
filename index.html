@@ -1446,6 +1446,7 @@ function refreshLibrary() {
     loadLibrary(true);
 }
 
+// ===== PLAY SELECTED VIDEO (SỬA LỖI) =====
 function playSelectedVideo() {
     if (currentGistItem) {
         loadVideoFromGist(currentGistItem);
@@ -1462,30 +1463,30 @@ function playSelectedVideo() {
                 setTimeout(() => clearInterval(checkPlayer), 5000);
             }
         }, 1500);
-    } else if (libraryItems.length > 0) {
+        return;
+    }
+    if (libraryItems.length > 0) {
         selectLibraryItem(0);
         setTimeout(() => {
             if (player && player.playVideo) {
                 player.playVideo();
             }
-        }, 1500);
-    } else {
-        showToast('📭 Chưa có phụ đề nào trong thư viện!', 'warning');
+        }, 2000);
+        return;
     }
+    showToast('📭 Chưa có phụ đề nào trong thư viện!', 'warning');
 }
 
-// ===== LOAD VIDEO FROM GIST (ĐÃ SỬA) =====
+// ===== LOAD VIDEO FROM GIST =====
 async function loadVideoFromGist(item) {
     if (!item) return;
     log(`🎬 Loading: ${item.title}`, 'info');
     document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary)">⏳ Đang tải phụ đề...</span>`;
     try {
-        // Dừng sync cũ
         if (syncInterval) {
             clearInterval(syncInterval);
             syncInterval = null;
         }
-        // Hủy player cũ
         if (player) {
             try {
                 player.destroy();
@@ -1493,7 +1494,9 @@ async function loadVideoFromGist(item) {
             player = null;
             document.getElementById('video-wrapper').classList.add('hidden');
         }
-        // Tải file VTT
+        document.getElementById('player').innerHTML = '';
+        subtitles = [];
+        activeSubIndex = -1;
         const response = await fetch(item.vttUrl + '?t=' + Date.now());
         const text = await response.text();
         const parsed = parseVTT(text);
@@ -1504,10 +1507,10 @@ async function loadVideoFromGist(item) {
                 <div class="py">${subtitles[0].rawLines[1] || ''}</div>
                 <div class="vi">${subtitles[0].rawLines[2] || ''}</div>
             `;
+            showToast(`✅ Đã tải ${subtitles.length} dòng phụ đề`, 'success');
         } else {
             document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary)">📝 Phụ đề trống</span>`;
         }
-        // Load video
         currentVideoId = item.videoId;
         loadPlayer(item.videoId);
         log(`✅ Đã tải ${subtitles.length} dòng phụ đề`, 'ok');
@@ -1517,6 +1520,198 @@ async function loadVideoFromGist(item) {
         document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--accent)">❌ Lỗi tải phụ đề</span>`;
         showToast(`❌ Lỗi tải phụ đề: ${e.message}`, 'error');
     }
+}
+
+// ===== YOUTUBE PLAYER =====
+function loadPlayer(videoId) {
+    if (player) {
+        try {
+            player.destroy();
+        } catch (e) {
+            console.log('Destroy error:', e);
+        }
+        player = null;
+    }
+    document.getElementById('player').innerHTML = '';
+    document.getElementById('video-wrapper').classList.remove('hidden');
+    document.getElementById('status-text').innerHTML = '⏳ Loading...';
+    player = new YT.Player('player', {
+        height: '100%',
+        width: '100%',
+        videoId: videoId,
+        playerVars: { 
+            playsinline: 1, 
+            autoplay: 1, 
+            controls: 0, 
+            rel: 0, 
+            showinfo: 0,
+            origin: window.location.origin,
+            modestbranding: 1
+        },
+        events: {
+            onReady: (e) => {
+                startSync();
+                e.target.playVideo();
+                updatePlayPauseBtn(true);
+                document.getElementById('status-text').innerHTML = '▶️ Playing';
+                showToast('▶️ Đang phát video', 'info');
+            },
+            onStateChange: onPlayerStateChange,
+            onError: (e) => {
+                console.error('YouTube Error:', e);
+                document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--accent)">❌ Lỗi phát video</span>`;
+                document.getElementById('status-text').innerHTML = '❌ Error';
+                showToast('❌ Lỗi phát video. Vui lòng thử lại.', 'error');
+                if (videoId) {
+                    const confirmOpen = confirm('Video không thể phát trên trình duyệt. Bạn có muốn mở trên YouTube không?');
+                    if (confirmOpen) {
+                        window.open(`https://youtube.com/watch?v=${videoId}`, '_blank');
+                    }
+                }
+            }
+        }
+    });
+    log(`🎬 Loading video: ${videoId}`, 'info');
+}
+
+function onPlayerStateChange(e) {
+    if (e.data == YT.PlayerState.PLAYING) {
+        updatePlayPauseBtn(true);
+        document.getElementById('status-text').innerHTML = '▶️ Playing';
+    } else if (e.data == YT.PlayerState.PAUSED) {
+        updatePlayPauseBtn(false);
+        document.getElementById('status-text').innerHTML = '⏸ Paused';
+    } else if (e.data == YT.PlayerState.ENDED) {
+        updatePlayPauseBtn(false);
+        document.getElementById('status-text').innerHTML = '⏹ Ended';
+        if (isLoopEnabled && player) {
+            player.seekTo(0, true);
+            player.playVideo();
+        }
+    } else if (e.data == YT.PlayerState.BUFFERING) {
+        document.getElementById('status-text').innerHTML = '⏳ Buffering...';
+    }
+}
+
+function togglePlayPause() {
+    if (!player || !player.getPlayerState) {
+        if (currentVideoId) {
+            loadPlayer(currentVideoId);
+        } else if (currentGistItem) {
+            loadVideoFromGist(currentGistItem);
+        } else if (libraryItems.length > 0) {
+            selectLibraryItem(0);
+        } else {
+            showToast('📭 Chưa có video nào để phát!', 'warning');
+        }
+        return;
+    }
+    if (player.getPlayerState() === YT.PlayerState.PLAYING) {
+        player.pauseVideo();
+        document.getElementById('status-text').innerHTML = '⏸ Paused';
+    } else {
+        player.playVideo();
+        document.getElementById('status-text').innerHTML = '▶️ Playing';
+    }
+}
+
+function updatePlayPauseBtn(p) {
+    const b = document.getElementById('btn-play-pause');
+    if (b) b.innerHTML = p ? '⏸' : '▶';
+}
+
+function toggleVideoVisibility() {
+    document.getElementById('video-wrapper').classList.toggle('hidden');
+}
+
+function startSync() {
+    if (syncInterval) clearInterval(syncInterval);
+    syncInterval = setInterval(syncSub, 200);
+}
+
+function syncSub() {
+    updateTimeline();
+    if (!player?.getCurrentTime || !subtitles.length) return;
+    const t = player.getCurrentTime();
+    const idx = subtitles.findIndex(s => t >= s.start && t <= s.end);
+    if (idx !== -1 && idx !== activeSubIndex) {
+        activeSubIndex = idx;
+        const s = subtitles[idx];
+        document.getElementById('subtitle-box').innerHTML = `
+            <div class="cn">${s.rawLines[0] || ''}</div>
+            <div class="py">${s.rawLines[1] || ''}</div>
+            <div class="vi">${s.rawLines[2] || ''}</div>`;
+    }
+}
+
+function resetPlayer() {
+    if (player) {
+        try {
+            player.destroy();
+        } catch (e) {}
+        player = null;
+    }
+    if (syncInterval) {
+        clearInterval(syncInterval);
+        syncInterval = null;
+    }
+    document.getElementById('video-wrapper').classList.add('hidden');
+    document.getElementById('player').innerHTML = '';
+    subtitles = [];
+    activeSubIndex = -1;
+    currentVideoId = null;
+    document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary);font-size:14px">Chọn phụ đề trong Library và nhấn Play</span>`;
+    updatePlayPauseBtn(false);
+    document.getElementById('status-text').innerHTML = 'Ready';
+}
+
+function selectLibraryItem(index) {
+    if (index < 0 || index >= libraryItems.length) {
+        showToast('⚠️ Phụ đề không tồn tại!', 'warning');
+        return;
+    }
+    selectedLibraryIndex = index;
+    currentGistItem = libraryItems[index];
+    currentVideoId = currentGistItem.videoId;
+    renderLibrary();
+    document.getElementById('library-status').textContent = `✅ Đã chọn: ${currentGistItem.title}`;
+    loadVideoFromGist(currentGistItem);
+}
+
+function playLibraryItem(index) {
+    selectLibraryItem(index);
+    setTimeout(() => {
+        if (player && player.playVideo) {
+            player.playVideo();
+        }
+    }, 1500);
+}
+
+function renderLibrary() {
+    const container = document.getElementById('library-list');
+    if (libraryItems.length === 0) {
+        container.innerHTML = '<div class="library-empty">📭 Chưa có phụ đề nào trong kho</div>';
+        document.getElementById('library-status').textContent = 'Chưa có phụ đề';
+        return;
+    }
+    let html = '';
+    libraryItems.forEach((item, index) => {
+        const isActive = (selectedLibraryIndex === index);
+        const displayTitle = item.title.length > 50 ? item.title.substring(0, 50) + '...' : item.title;
+        html += `
+            <div class="library-item ${isActive ? 'active' : ''}" 
+                 onclick="selectLibraryItem(${index})"
+                 data-index="${index}">
+                <span class="title" title="${item.title}">${displayTitle}</span>
+                <span class="video-id">${item.videoId}</span>
+                ${item.youtubeLink ? `<a href="${item.youtubeLink}" target="_blank" class="youtube-link" onclick="event.stopPropagation();" title="Open YouTube">🔗</a>` : ''}
+                <button class="btn-play" onclick="event.stopPropagation(); playLibraryItem(${index})" title="Play">▶️</button>
+                <button class="btn-delete" onclick="event.stopPropagation(); deleteLibraryItem(${index})" title="Xóa">🗑️</button>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+    document.getElementById('library-status').textContent = `📚 ${libraryItems.length} phụ đề`;
 }
 
 function copyYouTubeLink() {
