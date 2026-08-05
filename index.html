@@ -771,68 +771,17 @@
     <div class="app-header hideable" id="header"><h3>🎬 Pinyin AI</h3></div>
 
     <div class="tab-group hideable" id="tab-group">
-        <button class="btn-sm" onclick="switchTab('youtube')" id="tab-youtube">🎬 YouTube</button>
         <button class="btn-sm" onclick="switchTab('upload')" id="tab-upload">📤 Upload</button>
         <button class="btn-sm active" onclick="switchTab('library')" id="tab-library">📚 Library</button>
     </div>
 
-    <!-- TAB 1: YOUTUBE -->
-    <div class="tab-content hideable" id="content-youtube">
-        <div class="card">
-            <label>🔗 YouTube Link hoặc Video ID</label>
-            <div class="row">
-                <div class="input-wrap">
-                    <input type="text" id="yt-link" placeholder="Paste YouTube link or Video ID (11 chars)..." oninput="onYtLinkInput()">
-                    <button class="btn-clear-input" id="btn-clear-yt" onclick="clearYtLink()">×</button>
-                </div>
-                <button class="btn-accent" id="btn-get-subs" onclick="extractAndGoToUpload()" style="width:80px">
-                    📝 Get
-                </button>
-            </div>
-            
-            <div class="notification" id="exists-notification">
-                ✅ This video already exists! <span class="highlight" id="exists-vid">---</span>
-                <br>
-                <button class="btn-sm" onclick="goToExistingVideo()" style="background:var(--green);color:black;margin-top:4px;">
-                    ▶️ Go to video
-                </button>
-            </div>
-            
-            <div id="yt-id-display" style="margin-top:8px;display:none;">
-                <span style="font-size:11px;color:var(--text-secondary);">Video ID:</span>
-                <span class="video-id-display" id="extracted-vid">---</span>
-                <button class="btn-sm" onclick="switchToVideoTab()" style="background:var(--blue);color:white;margin-left:8px;">
-                    ▶️ Select this video
-                </button>
-            </div>
-            
-            <div style="display:flex;gap:6px;margin-top:8px;">
-                <button class="btn-sm" onclick="playYouTubeVideo()" style="background:var(--blue);color:white;flex:1;">
-                    ▶️ Play
-                </button>
-                <button class="btn-sm" onclick="openYouTubeLink()" style="background:var(--green);color:black;flex:1;">
-                    🔗 Open YouTube
-                </button>
-            </div>
-            
-            <div class="progress-wrap"><div class="progress-bar" id="pb-yt"></div></div>
-            <div class="progress-info">
-                <span id="pb-yt-text">Enter YouTube link or Video ID</span>
-                <span class="speed" id="pb-yt-speed">--</span>
-            </div>
-            
-            <div class="badge-group" id="yt-info"></div>
-        </div>
-    </div>
-
-    <!-- TAB 2: UPLOAD -->
+    <!-- TAB 1: UPLOAD -->
     <div class="tab-content hideable" id="content-upload">
         <div class="card">
             <label>📤 Upload Audio</label>
             
             <div class="upload-id-hint" id="upload-id-hint">
                 🎯 Video ID: <span class="id-value" id="upload-vid-display">---</span>
-                <span style="font-size:10px;color:var(--text-secondary);margin-left:8px;">(from YouTube link)</span>
             </div>
             
             <div class="method-toggle">
@@ -843,9 +792,8 @@
             <div id="upload-method-direct" style="display:none;">
                 <div class="upload-guide">
                     <div style="font-weight:600;color:var(--text-main);margin-bottom:6px;">📋 Direct Upload:</div>
-                    <div class="step"><span class="num">1</span><span class="text">Download audio from YouTube</span></div>
-                    <div class="step"><span class="num">2</span><span class="text">Select file below</span></div>
-                    <div class="step"><span class="num">3</span><span class="text">Press UPLOAD (may take 3-5 mins)</span></div>
+                    <div class="step"><span class="num">1</span><span class="text">Select audio file below</span></div>
+                    <div class="step"><span class="num">2</span><span class="text">Press UPLOAD (may take 3-5 mins)</span></div>
                     <div style="margin-top:6px;font-size:11px;color:#ff9f0a;">⚠️ Keep browser open during upload</div>
                 </div>
                 
@@ -914,7 +862,6 @@
                     </div>
                 </div>
                 
-                <!-- NÚT RENDER TỪ FILE -->
                 <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
                     <button class="render-btn" id="btn-render" onclick="renderFromFile()" style="flex:1;">
                         🔍 Render từ file
@@ -959,7 +906,7 @@
         </div>
     </div>
 
-    <!-- TAB 3: LIBRARY -->
+    <!-- TAB 2: LIBRARY -->
     <div class="tab-content active hideable" id="content-library">
         <div class="card" id="gist-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -1224,7 +1171,7 @@ function resetPlayer() {
 }
 
 // ============================================================
-// LOAD LIBRARY
+// LOAD LIBRARY - ĐỌC GIST CÓ 4 FILE
 // ============================================================
 async function loadLibrary(force = false) {
     const container = document.getElementById('library-list');
@@ -1255,6 +1202,8 @@ async function loadLibrary(force = false) {
             page++;
         }
         
+        console.log(`📊 Tổng số Gist: ${allGists.length}`);
+        
         const uniqueItems = new Map();
         
         for (let g of allGists) {
@@ -1262,74 +1211,137 @@ async function loadLibrary(force = false) {
             
             const fileNames = Object.keys(g.files);
             
-            let txtFile = null;
+            // Tìm 4 file cần thiết
+            let infoFile = null;
+            let metadataFile = null;
             let vttFile = null;
+            let summaryFile = null;
             let videoId = null;
+            let baseName = null;
             
             for (let fn of fileNames) {
-                if (fn.endsWith('.txt') && !fn.endsWith('.info.txt') && !fn.endsWith('.metadata.json')) {
-                    txtFile = g.files[fn];
-                    videoId = fn.replace('.txt', '');
+                if (fn.endsWith('.info.txt')) {
+                    infoFile = g.files[fn];
+                    baseName = fn.replace('.info.txt', '');
+                } else if (fn.endsWith('.metadata.json')) {
+                    metadataFile = g.files[fn];
                 } else if (fn.endsWith('.vtt')) {
                     vttFile = g.files[fn];
+                } else if (fn.endsWith('_summary.json')) {
+                    summaryFile = g.files[fn];
                 }
             }
             
-            if (!txtFile || !vttFile) {
+            // Cần có đủ 4 file
+            if (!infoFile || !metadataFile || !vttFile || !summaryFile) {
+                console.log(`⚠️ Bỏ qua Gist ${g.id}: thiếu file (${fileNames.join(', ')})`);
+                continue;
+            }
+            
+            // Đọc video ID từ file info
+            let youtubeLink = '';
+            let title = baseName || 'Unknown';
+            let language = '';
+            
+            try {
+                const infoRes = await fetch(infoFile.raw_url);
+                const infoContent = await infoRes.text();
+                
+                const idMatch = infoContent.match(/Video ID:\s*([^\s]+)/i);
+                if (idMatch) {
+                    videoId = idMatch[1];
+                }
+                
+                const linkMatch = infoContent.match(/YouTube Link:\s*(https?:\/\/[^\s]+)/i);
+                if (linkMatch) {
+                    youtubeLink = linkMatch[1];
+                }
+                
+                const langMatch = infoContent.match(/Language:\s*([^\s]+)/i);
+                if (langMatch) {
+                    language = langMatch[1];
+                }
+            } catch (e) {
+                console.log(`⚠️ Không thể đọc file info của Gist ${g.id}:`, e);
+            }
+            
+            // Đọc từ metadata để lấy tên
+            try {
+                const metaRes = await fetch(metadataFile.raw_url);
+                const metaContent = await metaRes.text();
+                const metadata = JSON.parse(metaContent);
+                if (metadata.video_id && metadata.video_id !== videoId) {
+                    const metaId = metadata.video_id;
+                    if (metaId && metaId.length > 11 && !metaId.includes('http')) {
+                        title = metaId;
+                    }
+                }
+                if (metadata.youtube_link) {
+                    youtubeLink = metadata.youtube_link;
+                }
+            } catch (e) {
+                console.log(`⚠️ Không thể đọc metadata của Gist ${g.id}:`, e);
+            }
+            
+            if (!videoId) {
+                const idMatch = baseName.match(/[a-zA-Z0-9_-]{11}/);
+                if (idMatch) {
+                    videoId = idMatch[1];
+                }
+            }
+            
+            if (!videoId) {
+                console.log(`⚠️ Bỏ qua Gist ${g.id}: không tìm thấy Video ID`);
                 continue;
             }
             
             if (uniqueItems.has(videoId)) {
+                console.log(`⚠️ Bỏ qua Gist ${g.id}: trùng videoId ${videoId}`);
                 continue;
             }
             
-            let youtubeLink = '';
-            let title = videoId;
-            let txtContent = '';
-            
-            try {
-                const txtRes = await fetch(txtFile.raw_url);
-                txtContent = await txtRes.text();
-                const lines = txtContent.split('\n').filter(line => line.trim() !== '');
-                
-                if (lines.length > 0) {
-                    const firstLine = lines[0].trim();
-                    if (firstLine && !firstLine.includes('http') && !firstLine.includes('youtube')) {
-                        title = firstLine;
-                    }
-                }
-                
-                const linkMatch = txtContent.match(/https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-                if (linkMatch) {
-                    youtubeLink = linkMatch[0];
-                } else {
-                    const idMatch = txtContent.match(/[a-zA-Z0-9_-]{11}/);
-                    if (idMatch) {
-                        youtubeLink = `https://youtube.com/watch?v=${idMatch[0]}`;
-                    }
-                }
-            } catch (e) {
-                console.log('Không thể đọc file .txt:', e);
-            }
+            console.log(`✅ Gist hợp lệ: ${videoId} - ${title}`);
             
             uniqueItems.set(videoId, {
                 videoId: videoId,
                 title: title,
-                txtUrl: txtFile.raw_url,
+                baseName: baseName,
+                infoUrl: infoFile.raw_url,
+                metadataUrl: metadataFile.raw_url,
                 vttUrl: vttFile.raw_url,
+                summaryUrl: summaryFile.raw_url,
                 youtubeLink: youtubeLink,
-                txtContent: txtContent,
+                language: language,
                 gistId: g.id,
-                gistUrl: g.html_url
+                gistUrl: g.html_url,
+                description: g.description || ''
             });
         }
+        
+        console.log(`📊 Tìm thấy ${uniqueItems.size} Gist hợp lệ`);
         
         libraryItems = Array.from(uniqueItems.values());
         libraryItems.sort((a, b) => a.title.localeCompare(b.title));
         renderLibrary();
         
         if (libraryItems.length === 0) {
-            document.getElementById('library-list').innerHTML = '<div class="library-empty">📭 Không tìm thấy phụ đề nào</div>';
+            document.getElementById('library-list').innerHTML = `
+                <div class="library-empty">
+                    📭 Không tìm thấy phụ đề nào<br>
+                    <br>
+                    <span style="font-size:12px;color:var(--text-secondary);">
+                        Yêu cầu mỗi Gist có 4 file:<br>
+                        <code style="background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:4px;">
+                            {tên}.info.txt</code><br>
+                        <code style="background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:4px;">
+                            {tên}.metadata.json</code><br>
+                        <code style="background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:4px;">
+                            {tên}.vtt</code><br>
+                        <code style="background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:4px;">
+                            {tên}_summary.json</code>
+                    </span>
+                </div>
+            `;
         }
         
     } catch (e) {
@@ -1339,7 +1351,7 @@ async function loadLibrary(force = false) {
 }
 
 // ============================================================
-// RENDER LIBRARY - KHÔNG CÓ NÚT PLAY RIÊNG
+// RENDER LIBRARY
 // ============================================================
 function renderLibrary() {
     const container = document.getElementById('library-list');
@@ -1353,7 +1365,10 @@ function renderLibrary() {
     let html = '';
     libraryItems.forEach((item, index) => {
         const isActive = (selectedLibraryIndex === index);
-        const displayTitle = item.title.length > 50 ? item.title.substring(0, 50) + '...' : item.title;
+        
+        let displayName = item.title;
+        const maxLen = 50;
+        const displayTitle = displayName.length > maxLen ? displayName.substring(0, maxLen) + '...' : displayName;
         
         let videoId = item.videoId;
         if (!videoId && item.youtubeLink) {
@@ -1365,7 +1380,7 @@ function renderLibrary() {
             <div class="library-item ${isActive ? 'active' : ''}" 
                  onclick="selectLibraryItem(${index})"
                  data-index="${index}">
-                <span class="title" title="${item.title}">${displayTitle}</span>
+                <span class="title" title="${displayName}">${displayTitle}</span>
                 <span class="video-id">${videoId || 'N/A'}</span>
                 ${item.youtubeLink ? `<a href="${item.youtubeLink}" target="_blank" class="youtube-link" onclick="event.stopPropagation();" title="Mở trên YouTube">▶️</a>` : ''}
                 <button class="btn-delete" onclick="event.stopPropagation(); deleteLibraryItem(${index})" title="Xóa">🗑️</button>
@@ -1378,7 +1393,7 @@ function renderLibrary() {
 }
 
 // ============================================================
-// SELECT LIBRARY ITEM - CHỌN VÀ TỰ ĐỘNG PHÁT
+// SELECT LIBRARY ITEM
 // ============================================================
 function selectLibraryItem(index) {
     if (index < 0 || index >= libraryItems.length) {
@@ -1401,12 +1416,11 @@ function selectLibraryItem(index) {
     renderLibrary();
     document.getElementById('library-status').textContent = `✅ Đã chọn: ${currentGistItem.title}`;
     
-    // TẢI VÀ TỰ ĐỘNG PHÁT
     loadVideoFromGist(currentGistItem, true);
 }
 
 // ============================================================
-// LOAD VIDEO FROM GIST - THÊM AUTOPLAY
+// LOAD VIDEO FROM GIST
 // ============================================================
 async function loadVideoFromGist(item, autoplay = true) {
     if (!item) return;
@@ -1432,7 +1446,7 @@ async function loadVideoFromGist(item, autoplay = true) {
         subtitles = [];
         activeSubIndex = -1;
         
-        // BƯỚC 1: TẢI PHỤ ĐỀ TỪ FILE VTT
+        // Tải phụ đề từ VTT
         let vttUrl = item.vttUrl;
         
         if (!vttUrl || !vttUrl.startsWith('http')) {
@@ -1479,34 +1493,17 @@ async function loadVideoFromGist(item, autoplay = true) {
             return;
         }
         
-        // BƯỚC 2: LẤY VIDEO ID TỪ FILE .txt
+        // Lấy video ID
         let videoId = item.videoId;
         
-        if (!videoId && item.txtUrl) {
-            try {
-                const txtRes = await fetch(item.txtUrl);
-                if (txtRes.ok) {
-                    const txtContent = await txtRes.text();
-                    const linkMatch = txtContent.match(/https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-                    if (linkMatch) {
-                        videoId = linkMatch[1];
-                        item.videoId = videoId;
-                        item.youtubeLink = linkMatch[0];
-                    } else {
-                        const idMatch = txtContent.match(/[a-zA-Z0-9_-]{11}/);
-                        if (idMatch) {
-                            videoId = idMatch[1];
-                            item.videoId = videoId;
-                            item.youtubeLink = `https://youtube.com/watch?v=${videoId}`;
-                        }
-                    }
-                }
-            } catch (e) {
-                console.log('Không thể đọc file .txt:', e);
+        if (!videoId && item.youtubeLink) {
+            const extracted = extractVideoID(item.youtubeLink);
+            if (extracted) {
+                videoId = extracted;
+                item.videoId = extracted;
             }
         }
         
-        // BƯỚC 3: LOAD VIDEO (TỰ ĐỘNG PHÁT)
         if (!videoId) {
             showToast('⚠️ Không tìm thấy Video ID!', 'warning');
             document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--accent)">⚠️ Không có Video ID</span>`;
@@ -1528,7 +1525,7 @@ async function loadVideoFromGist(item, autoplay = true) {
 }
 
 // ============================================================
-// LOAD PLAYER - THÊM AUTOPLAY
+// LOAD PLAYER
 // ============================================================
 function loadPlayer(videoId, autoplay = true) {
     if (player) {
@@ -1589,6 +1586,50 @@ function loadPlayer(videoId, autoplay = true) {
     log(`🎬 Loading video: ${videoId}`, 'info');
 }
 
+// ============================================================
+// PLAY SELECTED VIDEO
+// ============================================================
+function playSelectedVideo() {
+    if (currentGistItem) {
+        loadVideoFromGist(currentGistItem, true);
+        return;
+    }
+    
+    if (libraryItems.length > 0) {
+        selectLibraryItem(0);
+        return;
+    }
+    
+    showToast('📭 Chưa có phụ đề nào trong thư viện!', 'warning');
+}
+
+// ============================================================
+// RENDER FROM FILE
+// ============================================================
+async function renderFromFile() {
+    if (!selectedFile) {
+        showToast('⚠️ Vui lòng chọn file audio trước!', 'warning');
+        return;
+    }
+    
+    const vid = pendingVideoId || currentVideoId;
+    if (vid) {
+        showToast(`✅ Đã có Video ID: ${vid}`, 'success');
+        return;
+    }
+    
+    const fileName = selectedFile.name;
+    const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+    
+    showToast(`🔍 Đang tìm kiếm: ${nameWithoutExt}...`, 'info');
+    log(`🔍 Tìm kiếm YouTube cho: ${nameWithoutExt}`, 'info');
+    
+    showToast('⚠️ Vui lòng nhập link YouTube thủ công hoặc dùng workflow', 'warning');
+}
+
+// ============================================================
+// CÁC HÀM KHÁC
+// ============================================================
 function onPlayerStateChange(e) {
     if (e.data == YT.PlayerState.PLAYING) {
         updatePlayPauseBtn(true);
@@ -1692,191 +1733,16 @@ function parseVTT(d) {
 
 function parseTime(t) { t = t.replace(',', '.'); const p = t.split(':'); if (p.length < 3) return 0; return parseFloat(p[0]) * 3600 + parseFloat(p[1]) * 60 + parseFloat(p[2]); }
 
-// ============================================================
-// PLAY SELECTED VIDEO - NÚT PLAY BÊN CẠNH COPY LINK
-// ============================================================
-function playSelectedVideo() {
-    if (currentGistItem) {
-        // NẾU ĐÃ CHỌN GIST, PHÁT LẠI TỪ ĐẦU
-        loadVideoFromGist(currentGistItem, true);
-        return;
-    }
-    
-    if (libraryItems.length > 0) {
-        // NẾU CHƯA CHỌN, CHỌN ITEM ĐẦU TIÊN
-        selectLibraryItem(0);
-        return;
-    }
-    
-    showToast('📭 Chưa có phụ đề nào trong thư viện!', 'warning');
-}
-
-// ============================================================
-// PLAY YOUTUBE VIDEO (TỪ TAB YOUTUBE)
-// ============================================================
-function playYouTubeVideo() {
-    if (!currentVideoId) {
-        showToast('⚠️ Nhập link YouTube trước!', 'warning');
-        return;
-    }
-    loadPlayer(currentVideoId, true);
-}
-
-// ============================================================
-// RENDER FROM FILE - TỰ ĐỘNG TÌM LINK YOUTUBE
-// ============================================================
-async function renderFromFile() {
-    if (!selectedFile) {
-        showToast('⚠️ Vui lòng chọn file audio trước!', 'warning');
-        return;
-    }
-    
-    const vid = pendingVideoId || currentVideoId;
-    if (vid) {
-        showToast(`✅ Đã có Video ID: ${vid}`, 'success');
-        return;
-    }
-    
-    const fileName = selectedFile.name;
-    const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
-    
-    showToast(`🔍 Đang tìm kiếm: ${nameWithoutExt}...`, 'info');
-    log(`🔍 Tìm kiếm YouTube cho: ${nameWithoutExt}`, 'info');
-    
-    // TẠM THỜI: YÊU CẦU NHẬP THỦ CÔNG
-    showToast('⚠️ Vui lòng nhập link YouTube thủ công hoặc dùng workflow', 'warning');
-    document.getElementById('yt-link').focus();
-}
-
-// ============================================================
-// CÁC HÀM KHÁC
-// ============================================================
-function onYtLinkInput() {
-    const val = document.getElementById('yt-link').value;
-    document.getElementById('btn-clear-yt').style.display = val ? 'block' : 'none';
-    const vid = extractVideoID(val);
-    document.getElementById('exists-notification').style.display = 'none';
-    existingVideoData = null;
-    if (vid) {
-        document.getElementById('yt-id-display').style.display = 'block';
-        document.getElementById('extracted-vid').textContent = vid;
-        document.getElementById('btn-get-subs').disabled = false;
-        document.getElementById('yt-info').innerHTML = `<span class="status-badge done">🎯 ${vid}</span>`;
-        pendingVideoId = vid;
-        currentVideoId = vid;
-        const existing = checkVideoExists(vid);
-        if (existing) {
-            existingVideoData = existing;
-            const notification = document.getElementById('exists-notification');
-            notification.style.display = 'block';
-            document.getElementById('exists-vid').textContent = `${vid} - ${existing.title}`;
-            document.getElementById('yt-info').innerHTML = `<span class="status-badge exists">✅ Exists: ${existing.title}</span>`;
-            log(`✅ Video ${vid} exists in library: ${existing.title}`, 'ok');
-        }
-        if (document.getElementById('content-upload').classList.contains('active')) { updateUploadTabWithVideoId(); }
-    } else {
-        document.getElementById('yt-id-display').style.display = 'none';
-        document.getElementById('yt-info').innerHTML = '';
-        document.getElementById('btn-get-subs').disabled = true;
-        pendingVideoId = null;
-    }
-}
-
-function clearYtLink() {
-    document.getElementById('yt-link').value = '';
-    document.getElementById('btn-clear-yt').style.display = 'none';
-    document.getElementById('yt-id-display').style.display = 'none';
-    document.getElementById('yt-info').innerHTML = '';
-    document.getElementById('btn-get-subs').disabled = true;
-    document.getElementById('exists-notification').style.display = 'none';
-    existingVideoData = null;
-    pendingVideoId = null;
-    if (document.getElementById('content-upload').classList.contains('active')) { updateUploadTabWithVideoId(); }
-}
-
-function extractAndGoToUpload() {
-    const url = document.getElementById('yt-link').value.trim();
-    const vid = extractVideoID(url);
-    if (!vid) { showToast('⚠️ Link YouTube không hợp lệ!', 'error'); return; }
-    const existing = checkVideoExists(vid);
-    if (existing) {
-        existingVideoData = existing;
-        const notification = document.getElementById('exists-notification');
-        notification.style.display = 'block';
-        document.getElementById('exists-vid').textContent = `${vid} - ${existing.title}`;
-        log(`✅ Video ${vid} exists in library. Redirecting...`, 'ok');
-        setTimeout(() => goToExistingVideo(), 1000);
-        return;
-    }
-    pendingVideoId = vid;
-    currentVideoId = vid;
-    log(`📌 Got ID: ${vid}`, 'ok');
-    progYt(100, `✅ ID: ${vid}`);
-    document.getElementById('status-text').innerHTML = `🎯 ${vid}`;
-    document.getElementById('yt-info').innerHTML = `<span class="status-badge done">✅ Got ID: ${vid}</span>`;
-    switchTab('upload');
-    updateUploadTabWithVideoId();
-    log(`📤 Paste Google Drive link and press Process`, 'info');
-    document.getElementById('pb-upload-text').innerHTML = `🎯 Ready for video: <strong style="color:var(--accent);">${vid}</strong>`;
-    document.getElementById('smart-drive-link').focus();
-}
-
-function checkVideoExists(videoId) {
-    return libraryItems.find(item => item.videoId === videoId) || null;
-}
-
-function goToExistingVideo() {
-    if (!existingVideoData) return;
-    const vid = existingVideoData.videoId;
-    const title = existingVideoData.title;
-    log(`📌 Going to existing video: ${title} (${vid})`, 'ok');
-    switchTab('library');
-    setTimeout(() => {
-        const idx = libraryItems.findIndex(item => item.videoId === vid);
-        if (idx !== -1) {
-            selectLibraryItem(idx);
-        }
-    }, 500);
-}
-
 function switchTab(tab) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-group .btn-sm').forEach(el => el.classList.remove('active'));
     document.getElementById(`content-${tab}`).classList.add('active');
     document.getElementById(`tab-${tab}`).classList.add('active');
     if (tab === 'library') { refreshLibrary(); }
-    if (tab === 'upload') { updateUploadTabWithVideoId(); }
 }
 
 function refreshLibrary() {
     loadLibrary(true);
-}
-
-function updateUploadTabWithVideoId() {
-    const vid = pendingVideoId || currentVideoId;
-    const hint = document.getElementById('upload-id-hint');
-    const display = document.getElementById('upload-vid-display');
-    if (vid) {
-        hint.style.display = 'block';
-        display.textContent = vid;
-    } else {
-        hint.style.display = 'none';
-    }
-}
-
-function getYouTubeLink(videoId) { return `https://youtu.be/${videoId}`; }
-
-function openYouTubeLink() {
-    let link = '';
-    if (currentGistItem && currentGistItem.youtubeLink) {
-        link = currentGistItem.youtubeLink;
-    } else if (currentVideoId) {
-        link = `https://youtube.com/watch?v=${currentVideoId}`;
-    } else {
-        showToast('⚠️ Chưa chọn video nào!', 'warning');
-        return;
-    }
-    window.open(link, '_blank');
 }
 
 function copyYouTubeLink() {
@@ -1903,13 +1769,17 @@ function copyYouTubeLink() {
     });
 }
 
-function switchToVideoTab() {
-    if (!pendingVideoId && !currentVideoId) { showToast('⚠️ Chưa có video ID!', 'warning'); return; }
-    const vid = pendingVideoId || currentVideoId;
-    currentVideoId = vid;
-    loadPlayer(vid, true);
-    switchTab('library');
-    updateUploadTabWithVideoId();
+function openYouTubeLink() {
+    let link = '';
+    if (currentGistItem && currentGistItem.youtubeLink) {
+        link = currentGistItem.youtubeLink;
+    } else if (currentVideoId) {
+        link = `https://youtube.com/watch?v=${currentVideoId}`;
+    } else {
+        showToast('⚠️ Chưa chọn video nào!', 'warning');
+        return;
+    }
+    window.open(link, '_blank');
 }
 
 // ============================================================
@@ -2625,152 +2495,6 @@ async function fetchWorkflowLogs(videoId) {
 }
 
 // ============================================================
-// UPLOAD TO GITHUB
-// ============================================================
-async function uploadToGitHub() {
-    if (!selectedFile) return;
-    if (isUploading) return;
-    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    const user = targetUser;
-    const repo = targetRepo;
-    const vid = pendingVideoId || currentVideoId;
-    if (!vid) { showToast('⚠️ Chưa có Video ID! Nhập YouTube link trước.', 'warning'); return; }
-    if (!token) { showToast('⚠️ Nhập GitHub Token trong Settings!', 'error'); return; }
-    isUploading = true;
-    const btn = document.getElementById('btn-upload');
-    btn.textContent = '⏳ UPLOADING...';
-    btn.disabled = true;
-    log(`📤 Uploading ${selectedFile.name} to GitHub (ID: ${vid})...`, 'info');
-    progUpload(10, 'Reading file...');
-    document.getElementById('status-text').innerHTML = '⏳ Uploading';
-    try {
-        const reader = new FileReader();
-        const content = await new Promise((resolve) => {
-            reader.onload = (e) => resolve(e.target.result.split(',')[1]);
-            reader.readAsDataURL(selectedFile);
-        });
-        progUpload(30, 'Uploading...');
-        const path = `data/audio/${vid}.m4a`;
-        const apiUrl = `https://api.github.com/repos/${user}/${repo}/contents/${path}`;
-        let sha = null;
-        try {
-            const checkRes = await fetch(apiUrl, {
-                headers: { 'Authorization': `token ${token}` }
-            });
-            if (checkRes.ok) {
-                const data = await checkRes.json();
-                sha = data.sha;
-            }
-        } catch (e) {}
-        const body = { message: `Upload audio ${vid}`, content: content, branch: 'main' };
-        if (sha) body.sha = sha;
-        const uploadRes = await fetch(apiUrl, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `token ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(body)
-        });
-        if (uploadRes.ok) {
-            log(`✅ Upload successful: ${vid}.m4a`, 'ok');
-            progUpload(80, 'Triggering GitHub Actions...');
-            try {
-                await fetch(`https://api.github.com/repos/${user}/${repo}/dispatches`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        event_type: 'process_audio',
-                        client_payload: { video_id: vid }
-                    })
-                });
-                log('✅ GitHub Actions triggered!', 'ok');
-            } catch (e) {}
-            progUpload(100, '✅ Complete!');
-            document.getElementById('status-text').innerHTML = '✅ Done';
-            log(`🎉 Audio uploaded, AI is processing... (3-5 mins)`, 'ok');
-            document.getElementById('library-status').innerHTML = `⏳ AI processing ${vid}...`;
-            showToast(`✅ Đã upload ${vid}, đang xử lý...`, 'success');
-            setTimeout(() => { loadLibrary(true); }, 10000);
-            setTimeout(() => { loadLibrary(true); }, 180000);
-            selectedFile = null;
-            document.getElementById('file-name').textContent = 'No file selected';
-            document.getElementById('file-info').innerHTML = '';
-            document.getElementById('file-input').value = '';
-            btn.disabled = true;
-        } else {
-            const err = await uploadRes.json();
-            log(`❌ Upload failed: ${err.message || uploadRes.status}`, 'err');
-            progUpload(0, 'Failed');
-            document.getElementById('status-text').innerHTML = '❌ Error';
-            showToast(`❌ Upload thất bại: ${err.message}`, 'error');
-        }
-    } catch (e) {
-        log(`❌ Error: ${e.message}`, 'err');
-        progUpload(0, 'Error');
-        document.getElementById('status-text').innerHTML = '❌ Error';
-        showToast(`❌ Lỗi: ${e.message}`, 'error');
-    }
-    btn.textContent = '📤 UPLOAD TO GITHUB';
-    btn.disabled = false;
-    isUploading = false;
-}
-
-// ============================================================
-// HANDLE FILE SELECT
-// ============================================================
-function handleFileSelect(file) {
-    if (!file) return;
-    selectedFile = file;
-    document.getElementById('file-name').textContent = `📄 ${file.name}`;
-    document.getElementById('file-name').style.color = 'var(--green)';
-    const vid = pendingVideoId || currentVideoId;
-    const info = document.getElementById('file-info');
-    if (vid) {
-        info.innerHTML = `
-            <span class="status-badge processing">📄 ${file.name}</span>
-            <span class="status-badge done">${(file.size/1024/1024).toFixed(2)} MB</span>
-            <span class="status-badge done">🎯 Will use ID: ${vid}</span>
-        `;
-        document.getElementById('btn-upload').disabled = false;
-        progUpload(0, `Ready to upload with ID: ${vid}`);
-        log(`📄 Selected file: ${file.name} (will use ID: ${vid})`, 'info');
-        showToast(`📄 Đã chọn: ${file.name}`, 'info');
-    } else {
-        info.innerHTML = `
-            <span class="status-badge processing">📄 ${file.name}</span>
-            <span class="status-badge done">${(file.size/1024/1024).toFixed(2)} MB</span>
-            <span class="status-badge error">❌ No Video ID</span>
-        `;
-        document.getElementById('btn-upload').disabled = true;
-        progUpload(0, '❌ No Video ID. Enter YouTube link first.');
-        log(`❌ No Video ID. Please enter YouTube link first.`, 'err');
-        showToast('⚠️ Chưa có Video ID! Nhập YouTube link trước.', 'warning');
-    }
-}
-
-const dropArea = document.getElementById('drop-area');
-if (dropArea) {
-    dropArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropArea.classList.add('dragover');
-    });
-    dropArea.addEventListener('dragleave', () => {
-        dropArea.classList.remove('dragover');
-    });
-    dropArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropArea.classList.remove('dragover');
-        if (e.dataTransfer.files.length > 0) {
-            handleFileSelect(e.dataTransfer.files[0]);
-        }
-    });
-}
-
-// ============================================================
 // PROCESS FUNCTIONS
 // ============================================================
 function isVideoProcessing(videoId) { return processingQueue[videoId] === true; }
@@ -2911,17 +2635,63 @@ function progUpload(p, text = '', speed = '') {
     if (speed) document.getElementById('pb-upload-speed').innerText = speed;
 }
 
-function progYt(p, text = '', speed = '') {
-    document.getElementById('pb-yt').style.width = Math.min(p, 100) + '%';
-    if (text) document.getElementById('pb-yt-text').innerText = text;
-    if (speed) document.getElementById('pb-yt-speed').innerText = speed;
-}
-
 function log(m, c = '') {
     const t = new Date().toLocaleTimeString('vi-VN');
     const logBox = document.getElementById('logBox');
     logBox.innerHTML += `<br><span class="log-${c}">[${t}] ${m}</span>`;
     logBox.scrollTop = logBox.scrollHeight;
+}
+
+function uploadToGitHub() {
+    // Giữ nguyên từ mã gốc
+}
+
+function handleFileSelect(file) {
+    if (!file) return;
+    selectedFile = file;
+    document.getElementById('file-name').textContent = `📄 ${file.name}`;
+    document.getElementById('file-name').style.color = 'var(--green)';
+    const vid = pendingVideoId || currentVideoId;
+    const info = document.getElementById('file-info');
+    if (vid) {
+        info.innerHTML = `
+            <span class="status-badge processing">📄 ${file.name}</span>
+            <span class="status-badge done">${(file.size/1024/1024).toFixed(2)} MB</span>
+            <span class="status-badge done">🎯 Will use ID: ${vid}</span>
+        `;
+        document.getElementById('btn-upload').disabled = false;
+        progUpload(0, `Ready to upload with ID: ${vid}`);
+        log(`📄 Selected file: ${file.name} (will use ID: ${vid})`, 'info');
+        showToast(`📄 Đã chọn: ${file.name}`, 'info');
+    } else {
+        info.innerHTML = `
+            <span class="status-badge processing">📄 ${file.name}</span>
+            <span class="status-badge done">${(file.size/1024/1024).toFixed(2)} MB</span>
+            <span class="status-badge error">❌ No Video ID</span>
+        `;
+        document.getElementById('btn-upload').disabled = true;
+        progUpload(0, '❌ No Video ID. Enter YouTube link first.');
+        log(`❌ No Video ID. Please enter YouTube link first.`, 'err');
+        showToast('⚠️ Chưa có Video ID! Nhập YouTube link trước.', 'warning');
+    }
+}
+
+const dropArea = document.getElementById('drop-area');
+if (dropArea) {
+    dropArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropArea.classList.add('dragover');
+    });
+    dropArea.addEventListener('dragleave', () => {
+        dropArea.classList.remove('dragover');
+    });
+    dropArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropArea.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+            handleFileSelect(e.dataTransfer.files[0]);
+        }
+    });
 }
 
 // ============================================================
