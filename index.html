@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pinyin AI - Subtitle Downloader</title>
     <style>
-        /* ===== GIỮ NGUYÊN CSS CŨ ===== */
         :root {
             --bg-color: #000000;
             --card-bg: rgba(28, 28, 30, 0.75);
@@ -777,10 +776,10 @@
     <!-- TAB 1: YOUTUBE -->
     <div class="tab-content hideable" id="content-youtube">
         <div class="card">
-            <label>🔗 YouTube Link</label>
+            <label>🔗 YouTube Link hoặc Video ID</label>
             <div class="row">
                 <div class="input-wrap">
-                    <input type="text" id="yt-link" placeholder="Paste YouTube link..." oninput="onYtLinkInput()">
+                    <input type="text" id="yt-link" placeholder="Paste YouTube link or Video ID (11 chars)..." oninput="onYtLinkInput()">
                     <button class="btn-clear-input" id="btn-clear-yt" onclick="clearYtLink()">×</button>
                 </div>
                 <button class="btn-accent" id="btn-get-subs" onclick="extractAndGoToUpload()" style="width:80px">
@@ -815,7 +814,7 @@
             
             <div class="progress-wrap"><div class="progress-bar" id="pb-yt"></div></div>
             <div class="progress-info">
-                <span id="pb-yt-text">Enter YouTube link to get ID</span>
+                <span id="pb-yt-text">Enter YouTube link or Video ID</span>
                 <span class="speed" id="pb-yt-speed">--</span>
             </div>
             
@@ -947,13 +946,14 @@
         </div>
     </div>
 
-    <!-- TAB 3: LIBRARY -->
+    <!-- TAB 3: LIBRARY (ĐÃ THÊM NÚT RENAME) -->
     <div class="tab-content active hideable" id="content-library">
         <div class="card" id="gist-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                 <label style="margin-bottom:0;">📚 Subtitle Library</label>
                 <div style="display:flex;gap:6px;">
-                    <button class="btn-sm" onclick="refreshLibrary()" style="background:var(--blue);color:white;">🔄 Refresh</button>
+                    <button class="btn-sm" onclick="renameCurrentVideo()" style="background:var(--blue);color:white;" title="Đổi tên phụ đề">✏️</button>
+                    <button class="btn-sm" onclick="refreshLibrary()" style="background:var(--green);color:black;" title="Làm mới danh sách">🔄</button>
                 </div>
             </div>
             
@@ -1100,6 +1100,7 @@ let resetCountdown = 0;
 let libraryItems = [];
 let selectedLibraryIndex = -1;
 let isDeleting = false;
+let isRenaming = false;
 
 const workflowSteps = [
     { id: 'checkout', name: 'Checkout code', icon: '📥' },
@@ -1128,6 +1129,48 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
+// ===== HÀM TRÍCH XUẤT VIDEO ID (HỖ TRỢ CẢ 2 DẠNG LINK + ID TRỰC TIẾP) =====
+function extractVideoID(url) {
+    if (!url) return null;
+    
+    url = url.trim();
+    
+    // Nếu url chỉ là ID (11 ký tự)
+    if (url.match(/^[a-zA-Z0-9_-]{11}$/)) {
+        return url;
+    }
+    
+    // Pattern 1: youtu.be/xxxxx
+    let match = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+    if (match) return match[1];
+    
+    // Pattern 2: youtube.com/watch?v=xxxxx
+    match = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/);
+    if (match) return match[1];
+    
+    // Pattern 3: m.youtube.com/watch?v=xxxxx
+    match = url.match(/m\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/);
+    if (match) return match[1];
+    
+    // Pattern 4: youtube.com/embed/xxxxx
+    match = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
+    if (match) return match[1];
+    
+    // Pattern 5: youtube.com/v/xxxxx
+    match = url.match(/youtube\.com\/v\/([a-zA-Z0-9_-]{11})/);
+    if (match) return match[1];
+    
+    // Pattern 6: youtube.com/shorts/xxxxx
+    match = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
+    if (match) return match[1];
+    
+    // Pattern 7: Nếu url chứa tham số v= trong query string
+    match = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+    if (match) return match[1];
+    
+    return null;
+}
+
 // ===== SAVE STATE =====
 function saveProcessingState() {
     try {
@@ -1146,6 +1189,81 @@ function loadProcessingState() {
         processingQueue = {};
         processedLinks = {};
     }
+}
+
+// ===== RENAME CURRENT VIDEO =====
+async function renameCurrentVideo() {
+    if (!currentGistItem) {
+        showToast('⚠️ Vui lòng chọn phụ đề cần đổi tên!', 'warning');
+        return;
+    }
+    
+    if (isRenaming) return;
+    
+    const oldTitle = currentGistItem.title;
+    const newTitle = prompt('✏️ Nhập tên mới cho phụ đề:', oldTitle);
+    
+    if (newTitle === null) return;
+    if (!newTitle || newTitle.trim() === '') {
+        showToast('⚠️ Tên không được để trống!', 'warning');
+        return;
+    }
+    if (newTitle.trim() === oldTitle) {
+        showToast('ℹ️ Tên không thay đổi', 'info');
+        return;
+    }
+    
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    if (!token) {
+        showToast('⚠️ Vui lòng nhập GitHub Token trong Settings!', 'error');
+        return;
+    }
+    
+    isRenaming = true;
+    showToast(`⏳ Đang đổi tên...`, 'info');
+    
+    try {
+        // Cập nhật description của Gist
+        const updateRes = await fetch(`https://api.github.com/gists/${currentGistItem.gistId}`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `token ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                description: `🎬 Pinyin AI Subtitle - ${newTitle.trim()}`
+            })
+        });
+        
+        if (updateRes.ok) {
+            // Cập nhật local
+            currentGistItem.title = newTitle.trim();
+            const idx = libraryItems.findIndex(item => item.gistId === currentGistItem.gistId);
+            if (idx !== -1) {
+                libraryItems[idx].title = newTitle.trim();
+            }
+            
+            // Cập nhật gh_cloud_map
+            if (gh_cloud_map && gh_cloud_map[currentGistItem.videoId]) {
+                gh_cloud_map[currentGistItem.videoId].title = newTitle.trim();
+                localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
+            }
+            
+            renderLibrary();
+            document.getElementById('library-status').textContent = `✏️ Đã đổi tên: ${newTitle.trim()}`;
+            showToast(`✅ Đã đổi tên thành: ${newTitle.trim()}`, 'success');
+            log(`✏️ Đã đổi tên phụ đề: ${oldTitle} → ${newTitle.trim()}`, 'ok');
+        } else {
+            const err = await updateRes.text();
+            showToast(`❌ Lỗi đổi tên: ${err}`, 'error');
+            log(`❌ Lỗi đổi tên: ${err}`, 'err');
+        }
+    } catch (e) {
+        showToast(`❌ Lỗi: ${e.message}`, 'error');
+        log(`❌ Lỗi đổi tên: ${e.message}`, 'err');
+    }
+    
+    isRenaming = false;
 }
 
 // ===== LIBRARY FUNCTIONS =====
@@ -1287,19 +1405,16 @@ function selectLibraryItem(index) {
 
 function playLibraryItem(index) {
     selectLibraryItem(index);
-    // Đợi player load xong rồi phát
     setTimeout(() => {
         if (player && player.playVideo) {
             player.playVideo();
         } else {
-            // Nếu player chưa sẵn sàng, thử lại
             const checkPlayer = setInterval(() => {
                 if (player && player.playVideo) {
                     player.playVideo();
                     clearInterval(checkPlayer);
                 }
             }, 500);
-            // Timeout sau 5s nếu vẫn không được
             setTimeout(() => clearInterval(checkPlayer), 5000);
         }
     }, 1500);
@@ -1324,14 +1439,12 @@ async function deleteLibraryItem(index) {
     try {
         showToast(`⏳ Đang xóa: ${item.title}...`, 'info');
         
-        // Xóa Gist
         const deleteRes = await fetch(`https://api.github.com/gists/${item.gistId}`, {
             method: 'DELETE',
             headers: { "Authorization": `token ${token}` }
         });
         
         if (deleteRes.ok || deleteRes.status === 404) {
-            // Xóa khỏi danh sách
             libraryItems.splice(index, 1);
             if (selectedLibraryIndex === index) {
                 selectedLibraryIndex = -1;
@@ -1351,7 +1464,6 @@ async function deleteLibraryItem(index) {
             showToast(`✅ Đã xóa: ${item.title}`, 'success');
             log(`🗑️ Đã xóa phụ đề: ${item.title} (${item.videoId})`, 'ok');
             
-            // Cập nhật cache
             if (gh_cloud_map && gh_cloud_map[item.videoId]) {
                 delete gh_cloud_map[item.videoId];
                 localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
@@ -1416,7 +1528,6 @@ async function loadVideoFromGist(item) {
     document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary)">⏳ Đang tải phụ đề...</span>`;
     
     try {
-        // Tải file VTT
         const response = await fetch(item.vttUrl);
         const text = await response.text();
         const parsed = parseVTT(text);
@@ -1432,7 +1543,6 @@ async function loadVideoFromGist(item) {
             document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary)">📝 Phụ đề trống</span>`;
         }
         
-        // Load video
         document.getElementById('video-wrapper').classList.remove('hidden');
         currentVideoId = item.videoId;
         loadPlayer(item.videoId);
@@ -1461,7 +1571,6 @@ function copyYouTubeLink() {
         showToast('✅ Đã copy link YouTube!', 'success');
         log('📋 Đã copy link YouTube', 'ok');
     }).catch(() => {
-        // Fallback
         const textarea = document.createElement('textarea');
         textarea.value = link;
         document.body.appendChild(textarea);
@@ -1700,10 +1809,8 @@ function loadPlayer(videoId) {
         player = null;
     }
     
-    // Đảm bảo API đã sẵn sàng
     if (typeof YT === 'undefined' || typeof YT.Player === 'undefined') {
         showToast('⏳ Đang tải YouTube Player...', 'info');
-        // Chờ API load
         const checkApi = setInterval(() => {
             if (typeof YT !== 'undefined' && typeof YT.Player !== 'undefined') {
                 clearInterval(checkApi);
@@ -1733,7 +1840,6 @@ function createPlayer(videoId) {
         events: {
             onReady: (e) => {
                 startSync();
-                // Tự động phát khi sẵn sàng
                 e.target.playVideo();
                 updatePlayPauseBtn(true);
                 showToast('▶️ Đang phát video', 'info');
@@ -1971,12 +2077,6 @@ function progYt(p, text = '', speed = '') {
     document.getElementById('pb-yt').style.width = Math.min(p, 100) + '%';
     if (text) document.getElementById('pb-yt-text').innerText = text;
     if (speed) document.getElementById('pb-yt-speed').innerText = speed;
-}
-
-function extractVideoID(url) {
-    if (!url) return null;
-    const match = url.match(/(?:v=|\/)([\w-]{11})/);
-    return match ? match[1] : (url.length === 11 ? url : null);
 }
 
 function onYtLinkInput() {
