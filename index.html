@@ -904,6 +904,7 @@
                 </div>
             </div>
             
+            <!-- YOUTUBE URL INPUT - ƯU TIÊN -->
             <div style="margin-bottom: 12px;">
                 <label class="yt-url-label">🔗 YouTube URL (tùy chọn)</label>
                 <div class="row">
@@ -915,7 +916,7 @@
                     </div>
                 </div>
                 <div class="yt-url-hint" id="yt-url-hint">
-                    💡 Để trống để tìm kiếm tự động • Nhập link để lấy video ID
+                    💡 <strong>ƯU TIÊN:</strong> Nhập link để sử dụng video ID • Để trống để tìm kiếm tự động
                 </div>
             </div>
             
@@ -980,7 +981,7 @@
                     </div>
                 </div>
                 
-                <!-- NÚT RENDER TỪ FILE -->
+                <!-- NÚT RENDER TỪ FILE - ĐÃ CẬP NHẬT ƯU TIÊN LINK -->
                 <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
                     <button class="render-btn" id="btn-render" onclick="renderFromFile()" style="flex:1;">
                         🔍 Render từ file
@@ -1136,7 +1137,7 @@
 
 <script>
 // ============================================================
-// STATE (GIỮ NGUYÊN TỪ MÃ GỐC)
+// STATE
 // ============================================================
 let player, subtitles=[], syncInterval=null, activeSubIndex=-1;
 let currentGistItem=null;
@@ -1184,7 +1185,7 @@ let processingQueue = {};
 let processedLinks = {};
 
 // ============================================================
-// TOAST (GIỮ NGUYÊN)
+// TOAST
 // ============================================================
 function showToast(message, type = 'info') {
     const toast = document.getElementById('toast');
@@ -1197,7 +1198,31 @@ function showToast(message, type = 'info') {
 }
 
 // ============================================================
-// HÀM LÀM SẠCH TÊN FILE (MỚI - TỪ PYTHON)
+// EXTRACT VIDEO ID
+// ============================================================
+function extractVideoID(url) {
+    if (!url) return null;
+    url = url.trim();
+    if (url.match(/^[a-zA-Z0-9_-]{11}$/)) return url;
+    let match = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+    if (match) return match[1];
+    match = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/);
+    if (match) return match[1];
+    match = url.match(/m\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/);
+    if (match) return match[1];
+    match = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
+    if (match) return match[1];
+    match = url.match(/youtube\.com\/v\/([a-zA-Z0-9_-]{11})/);
+    if (match) return match[1];
+    match = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
+    if (match) return match[1];
+    match = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+    if (match) return match[1];
+    return null;
+}
+
+// ============================================================
+// HÀM LÀM SẠCH TÊN FILE (TỪ PYTHON)
 // ============================================================
 function cleanSearchQuery(filename) {
     let name = filename;
@@ -1205,7 +1230,7 @@ function cleanSearchQuery(filename) {
         name = name.substring(0, name.lastIndexOf('.'));
     }
     
-    // XÓA TẤT CẢ KÝ TỰ ĐẶC BIỆT: [] () {} + . , - _ / \ | ...
+    // XÓA TẤT CẢ KÝ TỰ ĐẶC BIỆT
     name = name.replace(/[\[\](){}.,;:!?@#$%^&*+=~`|/\\<>"'\-_]/g, ' ');
     
     // Xóa emoji
@@ -1225,38 +1250,29 @@ function cleanSearchQuery(filename) {
 }
 
 // ============================================================
-// HÀM TÍNH ĐỘ TƯƠNG ĐỒNG (MỚI - TỪ PYTHON)
+// HÀM TÍNH ĐỘ TƯƠNG ĐỒNG
 // ============================================================
 function similarityScore(query, title) {
-    // Xóa ký tự đặc biệt (bao gồm cả dấu gạch ngang)
     const q = query.toLowerCase().replace(/[^a-zA-Z0-9\u00C0-\u024F\u4E00-\u9FFF\s]/g, ' ').trim();
     const t = title.toLowerCase().replace(/[^a-zA-Z0-9\u00C0-\u024F\u4E00-\u9FFF\s]/g, ' ').trim();
     
-    // Tách từ
     const qWords = q.split(/\s+/).filter(w => w.length > 0);
     const tWords = t.split(/\s+/).filter(w => w.length > 0);
     
-    if (qWords.length === 0 || tWords.length === 0) {
-        return 0.0;
-    }
+    if (qWords.length === 0 || tWords.length === 0) return 0.0;
     
-    // Tìm chuỗi con chung dài nhất (theo thứ tự) - LCS
     function longestCommonSubsequence(a, b) {
         const m = a.length, n = b.length;
         const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
         for (let i = 1; i <= m; i++) {
             for (let j = 1; j <= n; j++) {
-                if (a[i-1] === b[j-1]) {
-                    dp[i][j] = dp[i-1][j-1] + 1;
-                } else {
-                    dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
-                }
+                if (a[i-1] === b[j-1]) dp[i][j] = dp[i-1][j-1] + 1;
+                else dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
             }
         }
         return dp[m][n];
     }
     
-    // Tìm chuỗi con liền kề dài nhất
     function longestCommonSubstring(a, b) {
         const m = a.length, n = b.length;
         const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
@@ -1265,16 +1281,13 @@ function similarityScore(query, title) {
             for (let j = 1; j <= n; j++) {
                 if (a[i-1] === b[j-1]) {
                     dp[i][j] = dp[i-1][j-1] + 1;
-                    if (dp[i][j] > maxLen) {
-                        maxLen = dp[i][j];
-                    }
+                    if (dp[i][j] > maxLen) maxLen = dp[i][j];
                 }
             }
         }
         return maxLen;
     }
     
-    // Tính điểm
     const lcsLen = longestCommonSubsequence(qWords, tWords);
     const lcsScore = lcsLen / Math.max(qWords.length, tWords.length);
     
@@ -1284,9 +1297,7 @@ function similarityScore(query, title) {
     const commonWords = qWords.filter(w => tWords.includes(w));
     const wordRatio = commonWords.length / qWords.length;
     
-    // Trọng số: ưu tiên chuỗi liền kề (giống Python)
     const totalScore = (substrScore * 0.5) + (lcsScore * 0.3) + (wordRatio * 0.2);
-    
     return Math.min(totalScore, 1.0);
 }
 
@@ -1299,37 +1310,23 @@ function findMatchingVideos(fileName) {
     
     for (const item of libraryItems) {
         let titleToMatch = item.title;
-        // Nếu có baseName thì dùng cả hai
         if (item.baseName && item.baseName !== item.title) {
             const titleScore = similarityScore(cleanName, item.title);
             const baseScore = similarityScore(cleanName, item.baseName);
             const score = Math.max(titleScore, baseScore);
-            matches.push({
-                ...item,
-                score: score,
-                matchType: titleScore >= baseScore ? 'title' : 'baseName'
-            });
+            matches.push({ ...item, score: score, matchType: titleScore >= baseScore ? 'title' : 'baseName' });
         } else {
             const score = similarityScore(cleanName, item.title);
-            matches.push({
-                ...item,
-                score: score,
-                matchType: 'title'
-            });
+            matches.push({ ...item, score: score, matchType: 'title' });
         }
     }
     
-    // Sắp xếp theo độ khớp giảm dần
     matches.sort((a, b) => b.score - a.score);
-    
-    // Chỉ lấy những video có độ khớp >= 70% (0.7)
-    const goodMatches = matches.filter(m => m.score >= 0.7);
-    
-    return goodMatches;
+    return matches.filter(m => m.score >= 0.7);
 }
 
 // ============================================================
-// HIỂN THỊ DANH SÁCH KHỚP
+// MATCH DIALOG
 // ============================================================
 function showMatchDialog(matches, fileName, onContinue) {
     const dialog = document.getElementById('match-dialog');
@@ -1357,8 +1354,6 @@ function showMatchDialog(matches, fileName, onContinue) {
     
     list.innerHTML = html;
     dialog.classList.add('show');
-    
-    // Lưu callback và dữ liệu
     matchResults = matches;
     matchDialogCallback = onContinue;
     pendingRenderFile = fileName;
@@ -1377,9 +1372,7 @@ function playMatchVideo(index) {
     switchTab('library');
     setTimeout(() => {
         const idx = libraryItems.findIndex(i => i.gistId === item.gistId);
-        if (idx !== -1) {
-            selectLibraryItem(idx);
-        }
+        if (idx !== -1) selectLibraryItem(idx);
     }, 300);
 }
 
@@ -1388,20 +1381,17 @@ function renderMatchVideo(index) {
     const item = matchResults[index];
     closeMatchDialog();
     showToast(`🔄 Đang xử lý lại: ${item.title}`, 'info');
-    // Tiếp tục render với video ID của video đã chọn
     continueRenderWithVideo(item.videoId, pendingRenderFile);
 }
 
 function continueRender() {
     closeMatchDialog();
-    // Tiếp tục render bình thường
     if (pendingRenderFile) {
         performRender(pendingRenderFile);
     }
 }
 
 function continueRenderWithVideo(videoId, fileName) {
-    // Render với video ID đã chọn
     if (videoId && fileName) {
         pendingVideoId = videoId;
         currentVideoId = videoId;
@@ -1414,84 +1404,46 @@ function continueRenderWithVideo(videoId, fileName) {
 }
 
 // ============================================================
-// THỰC HIỆN RENDER (GIỮ NGUYÊN LOGIC GỐC)
+// YOUTUBE URL INPUT HANDLER
 // ============================================================
-async function performRender(fileName) {
-    // Logic render thực tế - gọi GitHub workflow
-    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    const user = targetUser;
-    const repo = targetRepo;
+function onYtUrlInput() {
+    const val = document.getElementById('yt-url-input').value;
+    document.getElementById('btn-clear-yt-url').style.display = val ? 'block' : 'none';
+    youtubeUrl = val;
     
-    if (!token) {
-        showToast('⚠️ Nhập GitHub Token trong Settings!', 'error');
-        return;
-    }
-    
-    // Lấy drive file ID
-    let driveFileId = currentSmartFileId;
-    if (selectedFile && selectedFile.isDriveFile && selectedFile.driveFileId) {
-        driveFileId = selectedFile.driveFileId;
-    }
-    
-    if (!driveFileId) {
-        showToast('⚠️ Không tìm thấy Drive File ID!', 'error');
-        return;
-    }
-    
-    let videoId = pendingVideoId || fileName;
-    if (youtubeUrl) {
-        const extracted = extractVideoID(youtubeUrl);
-        if (extracted) {
-            videoId = extracted;
-        }
-    }
-    
-    try {
-        const response = await fetch(`https://api.github.com/repos/${user}/${repo}/dispatches`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `token ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                event_type: 'new_drive_file',
-                client_payload: {
-                    file_name: fileName,
-                    video_id: videoId,
-                    drive_file_id: driveFileId
-                }
-            })
-        });
-        
-        if (response.ok) {
-            showToast(`✅ Đã gửi yêu cầu xử lý: ${fileName}`, 'success');
-            log(`✅ Đã trigger workflow với file: ${fileName} (Video ID: ${videoId}, Drive ID: ${driveFileId})`, 'ok');
-            
-            document.getElementById('library-status').innerHTML = `⏳ Đang xử lý ${fileName}...`;
-            document.getElementById('drive-info').innerHTML = `<span class="status-badge processing">⏳ Đã gửi yêu cầu</span>`;
-            
-            setTimeout(() => {
-                switchTab('library');
-                refreshLibrary();
-            }, 2000);
+    if (val) {
+        const vid = extractVideoID(val);
+        if (vid) {
+            document.getElementById('yt-url-hint').innerHTML = `✅ Video ID: <span class="highlight">${vid}</span> (Ưu tiên sử dụng)`;
+            pendingVideoId = vid;
+            currentVideoId = vid;
+            document.getElementById('upload-vid-display').textContent = vid;
+            document.getElementById('upload-id-hint').style.display = 'block';
+            log(`📌 Ưu tiên Video ID từ URL: ${vid}`, 'info');
         } else {
-            const err = await response.json();
-            showToast(`❌ Lỗi gửi yêu cầu: ${err.message || response.status}`, 'error');
-            log(`❌ Lỗi trigger workflow: ${err.message || response.status}`, 'err');
-            document.getElementById('drive-info').innerHTML = `<span class="status-badge error">❌ Lỗi gửi yêu cầu</span>`;
+            document.getElementById('yt-url-hint').innerHTML = '⚠️ Không tìm thấy Video ID trong link';
+            pendingVideoId = null;
         }
-    } catch (e) {
-        showToast(`❌ Lỗi: ${e.message}`, 'error');
-        log(`❌ Lỗi gửi yêu cầu: ${e.message}`, 'err');
-        document.getElementById('drive-info').innerHTML = `<span class="status-badge error">❌ Lỗi: ${e.message}</span>`;
+    } else {
+        document.getElementById('yt-url-hint').innerHTML = '💡 Nhập link để ưu tiên • Để trống để tìm kiếm tự động';
+        pendingVideoId = null;
+        document.getElementById('upload-id-hint').style.display = 'none';
     }
 }
 
+function clearYtUrl() {
+    document.getElementById('yt-url-input').value = '';
+    document.getElementById('btn-clear-yt-url').style.display = 'none';
+    document.getElementById('yt-url-hint').innerHTML = '💡 Nhập link để ưu tiên • Để trống để tìm kiếm tự động';
+    youtubeUrl = '';
+    pendingVideoId = null;
+    document.getElementById('upload-id-hint').style.display = 'none';
+}
+
 // ============================================================
-// RENDER FROM FILE - CẬP NHẬT VỚI LOGIC TRÙNG LẶP
+// RENDER FROM FILE - ƯU TIÊN LINK NHẬP
 // ============================================================
 async function renderFromFile() {
-    // GIỮ NGUYÊN LOGIC KIỂM TRA FILE
     if (!selectedFile) {
         showToast('⚠️ Vui lòng chọn file audio trước!', 'warning');
         return;
@@ -1516,8 +1468,8 @@ async function renderFromFile() {
     const fileName = selectedFile.name;
     const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
     
-    // Lấy video ID từ URL (nếu có)
-    let videoId = pendingVideoId || nameWithoutExt;
+    // 👈 BƯỚC 1: ƯU TIÊN VIDEO ID TỪ URL (NẾU CÓ)
+    let videoId = null;
     if (youtubeUrl) {
         const extracted = extractVideoID(youtubeUrl);
         if (extracted) {
@@ -1531,81 +1483,125 @@ async function renderFromFile() {
         }
     }
     
-    // 👈 KIỂM TRA TRÙNG LẶP VỚI NGƯỠNG 70%
+    // 👈 BƯỚC 2: NẾU CÓ VIDEO ID TỪ URL → DÙNG LUÔN (KHÔNG TÌM KIẾM)
+    if (videoId) {
+        const existing = libraryItems.find(item => item.videoId === videoId);
+        if (existing) {
+            showToast(`✅ Video "${existing.title}" đã có trong kho!`, 'success');
+            log(`✅ Video ${videoId} đã có trong kho: ${existing.title}`, 'ok');
+            switchTab('library');
+            setTimeout(() => {
+                const idx = libraryItems.findIndex(item => item.videoId === videoId);
+                if (idx !== -1) selectLibraryItem(idx);
+            }, 500);
+            return;
+        }
+        
+        showToast(`📤 Đang gửi yêu cầu với Video ID từ URL...`, 'info');
+        log(`📤 Gửi yêu cầu xử lý file: ${fileName} (Video ID từ URL: ${videoId}, Drive ID: ${driveFileId})`, 'info');
+        await performRender(fileName, videoId, driveFileId);
+        return;
+    }
+    
+    // 👈 BƯỚC 3: KHÔNG CÓ URL → KIỂM TRA TRÙNG LẶP VỚI TÊN FILE
     const matches = findMatchingVideos(fileName);
     
     if (matches.length > 0) {
-        // Hiển thị danh sách các video khớp
         showMatchDialog(matches, fileName, () => {
-            performRender(fileName);
+            performRender(fileName, null, driveFileId);
         });
         return;
     }
     
-    // Không có video nào khớp >= 70%, tiến hành render
-    showToast(`📤 Đang gửi yêu cầu xử lý: ${fileName}...`, 'info');
-    log(`📤 Gửi yêu cầu xử lý file: ${fileName} (Video ID: ${videoId}, Drive ID: ${driveFileId})`, 'info');
+    // 👈 BƯỚC 4: KHÔNG CÓ URL, KHÔNG TRÙNG LẶP → TÌM KIẾM TRÊN YOUTUBE
+    showToast(`🔍 Đang tìm kiếm video cho: ${fileName}...`, 'info');
+    log(`🔍 Không có URL, tìm kiếm YouTube cho: ${fileName}`, 'info');
+    await performRender(fileName, null, driveFileId);
+}
+
+// ============================================================
+// PERFORM RENDER - GỬI REQUEST ĐẾN GITHUB
+// ============================================================
+async function performRender(fileName, videoId = null, driveFileId = null) {
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    const user = targetUser;
+    const repo = targetRepo;
     
-    await performRender(fileName);
+    if (!token) {
+        showToast('⚠️ Nhập GitHub Token trong Settings!', 'error');
+        return;
+    }
+    
+    if (!driveFileId) {
+        driveFileId = currentSmartFileId;
+    }
+    
+    if (!driveFileId) {
+        showToast('⚠️ Không tìm thấy Drive File ID!', 'error');
+        return;
+    }
+    
+    // Nếu không có videoId, lấy từ pendingVideoId hoặc tên file
+    if (!videoId) {
+        videoId = pendingVideoId || fileName;
+    }
+    
+    try {
+        const payload = {
+            event_type: 'new_drive_file',
+            client_payload: {
+                file_name: fileName,
+                drive_file_id: driveFileId,
+                timestamp: new Date().toISOString()
+            }
+        };
+        
+        // 👈 NẾU CÓ VIDEO ID HỢP LỆ (11 KÝ TỰ) → GỬI KÈM
+        if (videoId && videoId.length === 11 && videoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
+            payload.client_payload.video_id = videoId;
+            log(`📌 Gửi kèm Video ID: ${videoId}`, 'info');
+        } else {
+            // 👈 KHÔNG CÓ VIDEO ID → GỬI TÊN FILE ĐỂ SERVER TÌM KIẾM
+            payload.client_payload.search_name = fileName;
+            log(`🔍 Gửi tên file để tìm kiếm: ${fileName}`, 'info');
+        }
+        
+        const response = await fetch(`https://api.github.com/repos/${user}/${repo}/dispatches`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `token ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (response.ok) {
+            showToast(`✅ Đã gửi yêu cầu xử lý: ${fileName}`, 'success');
+            log(`✅ Đã trigger workflow với file: ${fileName} (Drive ID: ${driveFileId})`, 'ok');
+            
+            document.getElementById('library-status').innerHTML = `⏳ Đang xử lý ${fileName}...`;
+            document.getElementById('drive-info').innerHTML = `<span class="status-badge processing">⏳ Đã gửi yêu cầu</span>`;
+            
+            setTimeout(() => {
+                switchTab('library');
+                refreshLibrary();
+            }, 2000);
+        } else {
+            const err = await response.json();
+            showToast(`❌ Lỗi gửi yêu cầu: ${err.message || response.status}`, 'error');
+            log(`❌ Lỗi trigger workflow: ${err.message || response.status}`, 'err');
+            document.getElementById('drive-info').innerHTML = `<span class="status-badge error">❌ Lỗi gửi yêu cầu</span>`;
+        }
+    } catch (e) {
+        showToast(`❌ Lỗi: ${e.message}`, 'error');
+        log(`❌ Lỗi gửi yêu cầu: ${e.message}`, 'err');
+        document.getElementById('drive-info').innerHTML = `<span class="status-badge error">❌ Lỗi: ${e.message}</span>`;
+    }
 }
 
 // ============================================================
 // CÁC HÀM KHÁC (GIỮ NGUYÊN TỪ MÃ GỐC)
 // ============================================================
-
-function extractVideoID(url) {
-    if (!url) return null;
-    url = url.trim();
-    if (url.match(/^[a-zA-Z0-9_-]{11}$/)) return url;
-    let match = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
-    if (match) return match[1];
-    match = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/);
-    if (match) return match[1];
-    match = url.match(/m\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/);
-    if (match) return match[1];
-    match = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
-    if (match) return match[1];
-    match = url.match(/youtube\.com\/v\/([a-zA-Z0-9_-]{11})/);
-    if (match) return match[1];
-    match = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
-    if (match) return match[1];
-    match = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
-    if (match) return match[1];
-    return null;
-}
-
-function onYtUrlInput() {
-    const val = document.getElementById('yt-url-input').value;
-    document.getElementById('btn-clear-yt-url').style.display = val ? 'block' : 'none';
-    youtubeUrl = val;
-    
-    if (val) {
-        const vid = extractVideoID(val);
-        if (vid) {
-            document.getElementById('yt-url-hint').innerHTML = `✅ Video ID: <span class="highlight">${vid}</span>`;
-            pendingVideoId = vid;
-            currentVideoId = vid;
-            document.getElementById('upload-vid-display').textContent = vid;
-            document.getElementById('upload-id-hint').style.display = 'block';
-        } else {
-            document.getElementById('yt-url-hint').innerHTML = '⚠️ Không tìm thấy Video ID trong link';
-            pendingVideoId = null;
-        }
-    } else {
-        document.getElementById('yt-url-hint').innerHTML = '💡 Để trống để tìm kiếm tự động • Nhập link để lấy video ID';
-        pendingVideoId = null;
-        document.getElementById('upload-id-hint').style.display = 'none';
-    }
-}
-
-function clearYtUrl() {
-    document.getElementById('yt-url-input').value = '';
-    document.getElementById('btn-clear-yt-url').style.display = 'none';
-    document.getElementById('yt-url-hint').innerHTML = '💡 Để trống để tìm kiếm tự động • Nhập link để lấy video ID';
-    youtubeUrl = '';
-    pendingVideoId = null;
-    document.getElementById('upload-id-hint').style.display = 'none';
-}
 
 function saveProcessingState() {
     try {
@@ -1628,15 +1624,10 @@ function loadProcessingState() {
 
 function resetPlayer() {
     if (player) {
-        try {
-            player.destroy();
-        } catch (e) {}
+        try { player.destroy(); } catch (e) {}
         player = null;
     }
-    if (syncInterval) {
-        clearInterval(syncInterval);
-        syncInterval = null;
-    }
+    if (syncInterval) { clearInterval(syncInterval); syncInterval = null; }
     document.getElementById('video-wrapper').classList.add('hidden');
     document.getElementById('player').innerHTML = '';
     subtitles = [];
@@ -1648,7 +1639,7 @@ function resetPlayer() {
 }
 
 // ============================================================
-// LOAD LIBRARY (GIỮ NGUYÊN TỪ MÃ GỐC)
+// LOAD LIBRARY (GIỮ NGUYÊN)
 // ============================================================
 async function loadLibrary(force = false) {
     const container = document.getElementById('library-list');
@@ -1679,64 +1670,36 @@ async function loadLibrary(force = false) {
             page++;
         }
         
-        console.log(`📊 Tổng số Gist: ${allGists.length}`);
-        
         const uniqueItems = new Map();
         
         for (let g of allGists) {
             if (!g.files) continue;
-            
             const fileNames = Object.keys(g.files);
             
-            let infoFile = null;
-            let metadataFile = null;
-            let vttFile = null;
-            let summaryFile = null;
-            let videoId = null;
-            let baseName = null;
+            let infoFile = null, metadataFile = null, vttFile = null, summaryFile = null;
+            let videoId = null, baseName = null;
             
             for (let fn of fileNames) {
-                if (fn.endsWith('.info.txt')) {
-                    infoFile = g.files[fn];
-                    baseName = fn.replace('.info.txt', '');
-                } else if (fn.endsWith('.metadata.json')) {
-                    metadataFile = g.files[fn];
-                } else if (fn.endsWith('.vtt')) {
-                    vttFile = g.files[fn];
-                } else if (fn.endsWith('_summary.json')) {
-                    summaryFile = g.files[fn];
-                }
+                if (fn.endsWith('.info.txt')) { infoFile = g.files[fn]; baseName = fn.replace('.info.txt', ''); }
+                else if (fn.endsWith('.metadata.json')) metadataFile = g.files[fn];
+                else if (fn.endsWith('.vtt')) vttFile = g.files[fn];
+                else if (fn.endsWith('_summary.json')) summaryFile = g.files[fn];
             }
             
-            if (!infoFile || !metadataFile || !vttFile || !summaryFile) {
-                continue;
-            }
+            if (!infoFile || !metadataFile || !vttFile || !summaryFile) continue;
             
-            let youtubeLink = '';
-            let title = baseName || 'Unknown';
-            let language = '';
+            let youtubeLink = '', title = baseName || 'Unknown', language = '';
             
             try {
                 const infoRes = await fetch(infoFile.raw_url);
                 const infoContent = await infoRes.text();
-                
                 const idMatch = infoContent.match(/Video ID:\s*([^\s]+)/i);
-                if (idMatch) {
-                    videoId = idMatch[1];
-                }
-                
+                if (idMatch) videoId = idMatch[1];
                 const linkMatch = infoContent.match(/YouTube Link:\s*(https?:\/\/[^\s]+)/i);
-                if (linkMatch) {
-                    youtubeLink = linkMatch[1];
-                }
-                
+                if (linkMatch) youtubeLink = linkMatch[1];
                 const langMatch = infoContent.match(/Language:\s*([^\s]+)/i);
-                if (langMatch) {
-                    language = langMatch[1];
-                }
-            } catch (e) {
-                console.log(`⚠️ Không thể đọc file info:`, e);
-            }
+                if (langMatch) language = langMatch[1];
+            } catch (e) {}
             
             try {
                 const metaRes = await fetch(metadataFile.raw_url);
@@ -1744,31 +1707,18 @@ async function loadLibrary(force = false) {
                 const metadata = JSON.parse(metaContent);
                 if (metadata.video_id && metadata.video_id !== videoId) {
                     const metaId = metadata.video_id;
-                    if (metaId && metaId.length > 11 && !metaId.includes('http')) {
-                        title = metaId;
-                    }
+                    if (metaId && metaId.length > 11 && !metaId.includes('http')) title = metaId;
                 }
-                if (metadata.youtube_link) {
-                    youtubeLink = metadata.youtube_link;
-                }
-            } catch (e) {
-                console.log(`⚠️ Không thể đọc metadata:`, e);
-            }
+                if (metadata.youtube_link) youtubeLink = metadata.youtube_link;
+            } catch (e) {}
             
             if (!videoId) {
                 const idMatch = baseName.match(/[a-zA-Z0-9_-]{11}/);
-                if (idMatch) {
-                    videoId = idMatch[1];
-                }
+                if (idMatch) videoId = idMatch[1];
             }
+            if (!videoId) continue;
             
-            if (!videoId) {
-                continue;
-            }
-            
-            if (uniqueItems.has(videoId)) {
-                continue;
-            }
+            if (uniqueItems.has(videoId)) continue;
             
             uniqueItems.set(videoId, {
                 videoId: videoId,
@@ -1794,22 +1744,12 @@ async function loadLibrary(force = false) {
             document.getElementById('library-list').innerHTML = `
                 <div class="library-empty">
                     📭 Không tìm thấy phụ đề nào<br>
-                    <br>
                     <span style="font-size:12px;color:var(--text-secondary);">
-                        Yêu cầu mỗi Gist có 4 file:<br>
-                        <code style="background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:4px;">
-                            {tên}.info.txt</code><br>
-                        <code style="background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:4px;">
-                            {tên}.metadata.json</code><br>
-                        <code style="background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:4px;">
-                            {tên}.vtt</code><br>
-                        <code style="background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:4px;">
-                            {tên}_summary.json</code>
+                        Yêu cầu mỗi Gist có 4 file: .info.txt, .metadata.json, .vtt, _summary.json
                     </span>
                 </div>
             `;
         }
-        
     } catch (e) {
         container.innerHTML = `<div class="library-empty">❌ Lỗi tải danh sách: ${e.message}</div>`;
         console.error(e);
@@ -1818,7 +1758,6 @@ async function loadLibrary(force = false) {
 
 function renderLibrary() {
     const container = document.getElementById('library-list');
-    
     if (libraryItems.length === 0) {
         container.innerHTML = '<div class="library-empty">📭 Chưa có phụ đề nào trong kho</div>';
         document.getElementById('library-status').textContent = 'Chưa có phụ đề';
@@ -1828,7 +1767,6 @@ function renderLibrary() {
     let html = '';
     libraryItems.forEach((item, index) => {
         const isActive = (selectedLibraryIndex === index);
-        
         let displayName = item.title;
         const maxLen = 50;
         const displayTitle = displayName.length > maxLen ? displayName.substring(0, maxLen) + '...' : displayName;
@@ -1850,7 +1788,6 @@ function renderLibrary() {
             </div>
         `;
     });
-    
     container.innerHTML = html;
     document.getElementById('library-status').textContent = `📚 ${libraryItems.length} phụ đề`;
 }
@@ -1875,61 +1812,40 @@ function selectLibraryItem(index) {
     
     renderLibrary();
     document.getElementById('library-status').textContent = `✅ Đã chọn: ${currentGistItem.title}`;
-    
     loadVideoFromGist(currentGistItem, true);
 }
 
 // ============================================================
-// LOAD VIDEO FROM GIST (GIỮ NGUYÊN TỪ MÃ GỐC)
+// LOAD VIDEO FROM GIST
 // ============================================================
 async function loadVideoFromGist(item, autoplay = true) {
     if (!item) return;
-    
     log(`🎬 Loading: ${item.title}`, 'info');
     document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary)">⏳ Đang tải phụ đề...</span>`;
     
     try {
-        if (syncInterval) {
-            clearInterval(syncInterval);
-            syncInterval = null;
-        }
-        
-        if (player) {
-            try {
-                player.destroy();
-            } catch (e) {}
-            player = null;
-            document.getElementById('video-wrapper').classList.add('hidden');
-        }
-        
+        if (syncInterval) { clearInterval(syncInterval); syncInterval = null; }
+        if (player) { try { player.destroy(); } catch (e) {} player = null; }
+        document.getElementById('video-wrapper').classList.add('hidden');
         document.getElementById('player').innerHTML = '';
         subtitles = [];
         activeSubIndex = -1;
         
         let vttUrl = item.vttUrl;
-        
         if (!vttUrl || !vttUrl.startsWith('http')) {
             showToast('⚠️ URL phụ đề không hợp lệ!', 'warning');
             document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--accent)">⚠️ URL không hợp lệ</span>`;
             return;
         }
         
-        let response = await fetch(vttUrl, {
-            mode: 'cors',
-            headers: { 'Accept': 'text/vtt,text/plain,*/*' }
-        });
-        
+        let response = await fetch(vttUrl, { mode: 'cors', headers: { 'Accept': 'text/vtt,text/plain,*/*' } });
         if (!response.ok) {
             const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(vttUrl)}`;
             response = await fetch(proxyUrl);
         }
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
         const vttText = await response.text();
-        
         if (!vttText || vttText.trim().length === 0) {
             showToast('⚠️ File phụ đề rỗng!', 'warning');
             document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--accent)">⚠️ File phụ đề rỗng</span>`;
@@ -1953,15 +1869,10 @@ async function loadVideoFromGist(item, autoplay = true) {
         }
         
         let videoId = item.videoId;
-        
         if (!videoId && item.youtubeLink) {
             const extracted = extractVideoID(item.youtubeLink);
-            if (extracted) {
-                videoId = extracted;
-                item.videoId = extracted;
-            }
+            if (extracted) { videoId = extracted; item.videoId = extracted; }
         }
-        
         if (!videoId) {
             showToast('⚠️ Không tìm thấy Video ID!', 'warning');
             document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--accent)">⚠️ Không có Video ID</span>`;
@@ -1970,10 +1881,8 @@ async function loadVideoFromGist(item, autoplay = true) {
         
         currentVideoId = videoId;
         loadPlayer(videoId, autoplay);
-        
         log(`✅ Đã tải ${subtitles.length} dòng phụ đề`, 'ok');
         document.getElementById('library-status').textContent = `🎬 Đang phát: ${item.title}`;
-        
     } catch (e) {
         console.error('❌ Lỗi tải phụ đề:', e);
         log(`❌ Lỗi tải phụ đề: ${e.message}`, 'err');
@@ -1982,49 +1891,20 @@ async function loadVideoFromGist(item, autoplay = true) {
     }
 }
 
-// ============================================================
-// LOAD PLAYER (GIỮ NGUYÊN TỪ MÃ GỐC)
-// ============================================================
 function loadPlayer(videoId, autoplay = true) {
-    if (player) {
-        try {
-            player.destroy();
-        } catch (e) {
-            console.log('Destroy error:', e);
-        }
-        player = null;
-    }
-    
+    if (player) { try { player.destroy(); } catch (e) {} player = null; }
     document.getElementById('player').innerHTML = '';
     document.getElementById('video-wrapper').classList.remove('hidden');
     document.getElementById('status-text').innerHTML = '⏳ Loading...';
     
     player = new YT.Player('player', {
-        height: '100%',
-        width: '100%',
-        videoId: videoId,
-        playerVars: { 
-            playsinline: 1, 
-            autoplay: autoplay ? 1 : 0,
-            controls: 0, 
-            rel: 0, 
-            showinfo: 0,
-            origin: window.location.origin,
-            modestbranding: 1
-        },
+        height: '100%', width: '100%', videoId: videoId,
+        playerVars: { playsinline: 1, autoplay: autoplay ? 1 : 0, controls: 0, rel: 0, showinfo: 0, origin: window.location.origin, modestbranding: 1 },
         events: {
             onReady: (e) => {
                 startSync();
-                if (autoplay) {
-                    e.target.playVideo();
-                    updatePlayPauseBtn(true);
-                    document.getElementById('status-text').innerHTML = '▶️ Playing';
-                    showToast('▶️ Đang phát video', 'info');
-                } else {
-                    e.target.pauseVideo();
-                    updatePlayPauseBtn(false);
-                    document.getElementById('status-text').innerHTML = '⏸ Paused';
-                }
+                if (autoplay) { e.target.playVideo(); updatePlayPauseBtn(true); document.getElementById('status-text').innerHTML = '▶️ Playing'; showToast('▶️ Đang phát video', 'info'); }
+                else { e.target.pauseVideo(); updatePlayPauseBtn(false); document.getElementById('status-text').innerHTML = '⏸ Paused'; }
             },
             onStateChange: onPlayerStateChange,
             onError: (e) => {
@@ -2034,9 +1914,7 @@ function loadPlayer(videoId, autoplay = true) {
                 showToast('❌ Lỗi phát video. Vui lòng thử lại.', 'error');
                 if (videoId) {
                     const confirmOpen = confirm('Video không thể phát trên trình duyệt. Bạn có muốn mở trên YouTube không?');
-                    if (confirmOpen) {
-                        window.open(`https://youtube.com/watch?v=${videoId}`, '_blank');
-                    }
+                    if (confirmOpen) window.open(`https://youtube.com/watch?v=${videoId}`, '_blank');
                 }
             }
         }
@@ -2045,61 +1923,29 @@ function loadPlayer(videoId, autoplay = true) {
 }
 
 function onPlayerStateChange(e) {
-    if (e.data == YT.PlayerState.PLAYING) {
-        updatePlayPauseBtn(true);
-        document.getElementById('status-text').innerHTML = '▶️ Playing';
-    } else if (e.data == YT.PlayerState.PAUSED) {
-        updatePlayPauseBtn(false);
-        document.getElementById('status-text').innerHTML = '⏸ Paused';
-    } else if (e.data == YT.PlayerState.ENDED) {
-        updatePlayPauseBtn(false);
-        document.getElementById('status-text').innerHTML = '⏹ Ended';
-        if (isLoopEnabled && player) {
-            player.seekTo(0, true);
-            player.playVideo();
-        }
-    } else if (e.data == YT.PlayerState.BUFFERING) {
-        document.getElementById('status-text').innerHTML = '⏳ Buffering...';
-    }
+    if (e.data == YT.PlayerState.PLAYING) { updatePlayPauseBtn(true); document.getElementById('status-text').innerHTML = '▶️ Playing'; }
+    else if (e.data == YT.PlayerState.PAUSED) { updatePlayPauseBtn(false); document.getElementById('status-text').innerHTML = '⏸ Paused'; }
+    else if (e.data == YT.PlayerState.ENDED) { updatePlayPauseBtn(false); document.getElementById('status-text').innerHTML = '⏹ Ended'; if (isLoopEnabled && player) { player.seekTo(0, true); player.playVideo(); } }
+    else if (e.data == YT.PlayerState.BUFFERING) { document.getElementById('status-text').innerHTML = '⏳ Buffering...'; }
 }
 
 function togglePlayPause() {
     if (!player || !player.getPlayerState) {
-        if (currentVideoId) {
-            loadPlayer(currentVideoId, true);
-        } else if (currentGistItem) {
-            loadVideoFromGist(currentGistItem, true);
-        } else if (libraryItems.length > 0) {
-            selectLibraryItem(0);
-        } else {
-            showToast('📭 Chưa có video nào để phát!', 'warning');
-        }
+        if (currentVideoId) loadPlayer(currentVideoId, true);
+        else if (currentGistItem) loadVideoFromGist(currentGistItem, true);
+        else if (libraryItems.length > 0) selectLibraryItem(0);
+        else showToast('📭 Chưa có video nào để phát!', 'warning');
         return;
     }
-    if (player.getPlayerState() === YT.PlayerState.PLAYING) {
-        player.pauseVideo();
-        document.getElementById('status-text').innerHTML = '⏸ Paused';
-        updatePlayPauseBtn(false);
-    } else {
-        player.playVideo();
-        document.getElementById('status-text').innerHTML = '▶️ Playing';
-        updatePlayPauseBtn(true);
-    }
+    if (player.getPlayerState() === YT.PlayerState.PLAYING) { player.pauseVideo(); document.getElementById('status-text').innerHTML = '⏸ Paused'; updatePlayPauseBtn(false); }
+    else { player.playVideo(); document.getElementById('status-text').innerHTML = '▶️ Playing'; updatePlayPauseBtn(true); }
 }
 
-function updatePlayPauseBtn(p) {
-    const b = document.getElementById('btn-play-pause');
-    if (b) b.innerHTML = p ? '⏸' : '▶';
-}
+function updatePlayPauseBtn(p) { const b = document.getElementById('btn-play-pause'); if (b) b.innerHTML = p ? '⏸' : '▶'; }
 
-function toggleVideoVisibility() {
-    document.getElementById('video-wrapper').classList.toggle('hidden');
-}
+function toggleVideoVisibility() { document.getElementById('video-wrapper').classList.toggle('hidden'); }
 
-function startSync() {
-    if (syncInterval) clearInterval(syncInterval);
-    syncInterval = setInterval(syncSub, 200);
-}
+function startSync() { if (syncInterval) clearInterval(syncInterval); syncInterval = setInterval(syncSub, 200); }
 
 function syncSub() {
     updateTimeline();
@@ -2129,16 +1975,14 @@ function parseVTT(d) {
     b.forEach(block => {
         const lines = block.split('\n');
         let timeIndex = -1;
-        for (let i = 0; i < lines.length; i++) {
-            if (lines[i].includes('-->')) { timeIndex = i; break; }
-        }
+        for (let i = 0; i < lines.length; i++) { if (lines[i].includes('-->')) { timeIndex = i; break; } }
         if (timeIndex !== -1) {
             const ts = lines[timeIndex].split('-->');
             if (ts.length === 2) {
                 const st = parseTime(ts[0].trim());
                 const en = parseTime(ts[1].trim());
                 const raw = lines.slice(timeIndex + 1).map(x => x.replace(/<[^>]*>/g, '').trim()).filter(x => x !== "");
-                if (raw.length > 0) { s.push({ start: st, end: en, rawLines: raw }); }
+                if (raw.length > 0) s.push({ start: st, end: en, rawLines: raw });
             }
         }
     });
@@ -2147,55 +1991,26 @@ function parseVTT(d) {
 
 function parseTime(t) { t = t.replace(',', '.'); const p = t.split(':'); if (p.length < 3) return 0; return parseFloat(p[0]) * 3600 + parseFloat(p[1]) * 60 + parseFloat(p[2]); }
 
-// ============================================================
-// CÁC HÀM ĐIỀU KHIỂN KHÁC (GIỮ NGUYÊN TỪ MÃ GỐC)
-// ============================================================
 function playSelectedVideo() {
-    if (currentGistItem) {
-        loadVideoFromGist(currentGistItem, true);
-        return;
-    }
-    if (libraryItems.length > 0) {
-        selectLibraryItem(0);
-        return;
-    }
+    if (currentGistItem) { loadVideoFromGist(currentGistItem, true); return; }
+    if (libraryItems.length > 0) { selectLibraryItem(0); return; }
     showToast('📭 Chưa có phụ đề nào trong thư viện!', 'warning');
 }
 
 function copyYouTubeLink() {
     let link = '';
-    if (currentGistItem && currentGistItem.youtubeLink) {
-        link = currentGistItem.youtubeLink;
-    } else if (currentVideoId) {
-        link = `https://youtube.com/watch?v=${currentVideoId}`;
-    } else {
-        showToast('⚠️ Chưa chọn video nào!', 'warning');
-        return;
-    }
-    navigator.clipboard.writeText(link).then(() => {
-        showToast('✅ Đã copy link YouTube!', 'success');
-        log('📋 Đã copy link YouTube', 'ok');
-    }).catch(() => {
-        const textarea = document.createElement('textarea');
-        textarea.value = link;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        showToast('✅ Đã copy link YouTube!', 'success');
-    });
+    if (currentGistItem && currentGistItem.youtubeLink) link = currentGistItem.youtubeLink;
+    else if (currentVideoId) link = `https://youtube.com/watch?v=${currentVideoId}`;
+    else { showToast('⚠️ Chưa chọn video nào!', 'warning'); return; }
+    navigator.clipboard.writeText(link).then(() => { showToast('✅ Đã copy link YouTube!', 'success'); log('📋 Đã copy link YouTube', 'ok'); })
+    .catch(() => { const textarea = document.createElement('textarea'); textarea.value = link; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea); showToast('✅ Đã copy link YouTube!', 'success'); });
 }
 
 function openYouTubeLink() {
     let link = '';
-    if (currentGistItem && currentGistItem.youtubeLink) {
-        link = currentGistItem.youtubeLink;
-    } else if (currentVideoId) {
-        link = `https://youtube.com/watch?v=${currentVideoId}`;
-    } else {
-        showToast('⚠️ Chưa chọn video nào!', 'warning');
-        return;
-    }
+    if (currentGistItem && currentGistItem.youtubeLink) link = currentGistItem.youtubeLink;
+    else if (currentVideoId) link = `https://youtube.com/watch?v=${currentVideoId}`;
+    else { showToast('⚠️ Chưa chọn video nào!', 'warning'); return; }
     window.open(link, '_blank');
 }
 
@@ -2204,12 +2019,10 @@ function switchTab(tab) {
     document.querySelectorAll('.tab-group .btn-sm').forEach(el => el.classList.remove('active'));
     document.getElementById(`content-${tab}`).classList.add('active');
     document.getElementById(`tab-${tab}`).classList.add('active');
-    if (tab === 'library') { refreshLibrary(); }
+    if (tab === 'library') refreshLibrary();
 }
 
-function refreshLibrary() {
-    loadLibrary(true);
-}
+function refreshLibrary() { loadLibrary(true); }
 
 function log(m, c = '') {
     const t = new Date().toLocaleTimeString('vi-VN');
@@ -2233,23 +2046,17 @@ function switchUploadMethod(method) {
 }
 
 // ============================================================
-// DELETE FUNCTIONS (GIỮ NGUYÊN TỪ MÃ GỐC)
+// DELETE FUNCTIONS
 // ============================================================
 async function deleteLibraryItem(index) {
     const item = libraryItems[index];
     if (!item) return;
-    
     if (!confirm(`Bạn có chắc muốn xóa toàn bộ Gist "${item.title}"?\n\nHành động này sẽ xóa vĩnh viễn tất cả file trong Gist!\nKhông thể hoàn tác!`)) return;
-    
     if (isDeleting) return;
     isDeleting = true;
     
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    if (!token) {
-        showToast('⚠️ Vui lòng nhập GitHub Token trong Settings!', 'error');
-        isDeleting = false;
-        return;
-    }
+    if (!token) { showToast('⚠️ Vui lòng nhập GitHub Token trong Settings!', 'error'); isDeleting = false; return; }
     
     try {
         showToast(`⏳ Đang xóa Gist: ${item.title}...`, 'info');
@@ -2257,105 +2064,62 @@ async function deleteLibraryItem(index) {
         
         const deleteRes = await fetch(`https://api.github.com/gists/${item.gistId}`, {
             method: 'DELETE',
-            headers: { 
-                'Authorization': `token ${token}`,
-                'Accept': 'application/vnd.github.v3+json'
-            }
+            headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
         });
         
         if (deleteRes.ok || deleteRes.status === 404) {
             libraryItems.splice(index, 1);
-            if (selectedLibraryIndex === index) {
-                selectedLibraryIndex = -1;
-                currentGistItem = null;
-                currentVideoId = null;
-                resetPlayer();
-            } else if (selectedLibraryIndex > index) {
-                selectedLibraryIndex--;
-            }
-            
+            if (selectedLibraryIndex === index) { selectedLibraryIndex = -1; currentGistItem = null; currentVideoId = null; resetPlayer(); }
+            else if (selectedLibraryIndex > index) selectedLibraryIndex--;
             renderLibrary();
             showToast(`✅ Đã xóa Gist: ${item.title}`, 'success');
             log(`🗑️ Đã xóa Gist: ${item.title} (${item.gistId})`, 'ok');
-            
-            if (gh_cloud_map && gh_cloud_map[item.videoId]) {
-                delete gh_cloud_map[item.videoId];
-                localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
-            }
-            
+            if (gh_cloud_map && gh_cloud_map[item.videoId]) { delete gh_cloud_map[item.videoId]; localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map)); }
             document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary);font-size:14px">Đã xóa phụ đề</span>`;
             document.getElementById('library-status').textContent = `🗑️ Đã xóa: ${item.title}`;
-            
         } else {
             const err = await deleteRes.text();
             showToast(`❌ Lỗi xóa Gist: ${err}`, 'error');
             log(`❌ Lỗi xóa Gist: ${err}`, 'err');
         }
-        
     } catch (e) {
         showToast(`❌ Lỗi: ${e.message}`, 'error');
         log(`❌ Lỗi xóa: ${e.message}`, 'err');
     }
-    
     isDeleting = false;
 }
 
 function deleteSelectedVideo() {
-    if (selectedLibraryIndex === -1 || !currentGistItem) {
-        showToast('⚠️ Vui lòng chọn phụ đề cần xóa!', 'warning');
-        return;
-    }
+    if (selectedLibraryIndex === -1 || !currentGistItem) { showToast('⚠️ Vui lòng chọn phụ đề cần xóa!', 'warning'); return; }
     deleteLibraryItem(selectedLibraryIndex);
 }
 
 // ============================================================
-// RENAME (GIỮ NGUYÊN TỪ MÃ GỐC)
+// RENAME
 // ============================================================
 async function renameCurrentVideo() {
-    if (!currentGistItem) {
-        showToast('⚠️ Vui lòng chọn phụ đề cần đổi tên!', 'warning');
-        return;
-    }
+    if (!currentGistItem) { showToast('⚠️ Vui lòng chọn phụ đề cần đổi tên!', 'warning'); return; }
     if (isRenaming) return;
     const oldTitle = currentGistItem.title;
     const newTitle = prompt('✏️ Nhập tên mới cho phụ đề:', oldTitle);
     if (newTitle === null) return;
-    if (!newTitle || newTitle.trim() === '') {
-        showToast('⚠️ Tên không được để trống!', 'warning');
-        return;
-    }
-    if (newTitle.trim() === oldTitle) {
-        showToast('ℹ️ Tên không thay đổi', 'info');
-        return;
-    }
+    if (!newTitle || newTitle.trim() === '') { showToast('⚠️ Tên không được để trống!', 'warning'); return; }
+    if (newTitle.trim() === oldTitle) { showToast('ℹ️ Tên không thay đổi', 'info'); return; }
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    if (!token) {
-        showToast('⚠️ Vui lòng nhập GitHub Token trong Settings!', 'error');
-        return;
-    }
+    if (!token) { showToast('⚠️ Vui lòng nhập GitHub Token trong Settings!', 'error'); return; }
     isRenaming = true;
     showToast(`⏳ Đang đổi tên...`, 'info');
     try {
         const updateRes = await fetch(`https://api.github.com/gists/${currentGistItem.gistId}`, {
             method: 'PATCH',
-            headers: {
-                'Authorization': `token ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                description: `🎬 Pinyin AI Subtitle - ${newTitle.trim()}`
-            })
+            headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: `🎬 Pinyin AI Subtitle - ${newTitle.trim()}` })
         });
         if (updateRes.ok) {
             currentGistItem.title = newTitle.trim();
             const idx = libraryItems.findIndex(item => item.gistId === currentGistItem.gistId);
-            if (idx !== -1) {
-                libraryItems[idx].title = newTitle.trim();
-            }
-            if (gh_cloud_map && gh_cloud_map[currentGistItem.videoId]) {
-                gh_cloud_map[currentGistItem.videoId].title = newTitle.trim();
-                localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
-            }
+            if (idx !== -1) libraryItems[idx].title = newTitle.trim();
+            if (gh_cloud_map && gh_cloud_map[currentGistItem.videoId]) { gh_cloud_map[currentGistItem.videoId].title = newTitle.trim(); localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map)); }
             renderLibrary();
             document.getElementById('library-status').textContent = `✏️ Đã đổi tên: ${newTitle.trim()}`;
             showToast(`✅ Đã đổi tên thành: ${newTitle.trim()}`, 'success');
@@ -2373,14 +2137,10 @@ async function renameCurrentVideo() {
 }
 
 // ============================================================
-// WORKFLOW LOG (GIỮ NGUYÊN TỪ MÃ GỐC)
+// WORKFLOW LOG
 // ============================================================
 function initWorkflowLog() {
-    workflowStatus = workflowSteps.map(step => ({
-        ...step,
-        status: 'pending',
-        time: ''
-    }));
+    workflowStatus = workflowSteps.map(step => ({ ...step, status: 'pending', time: '' }));
     renderWorkflowLog();
 }
 
@@ -2389,18 +2149,9 @@ function renderWorkflowLog() {
     if (!log) return;
     let html = '';
     workflowStatus.forEach(step => {
-        const statusIcon = step.status === 'running' ? '🔄' :
-                          step.status === 'success' ? '✅' :
-                          step.status === 'failed' ? '❌' : '⏳';
+        const statusIcon = step.status === 'running' ? '🔄' : step.status === 'success' ? '✅' : step.status === 'failed' ? '❌' : '⏳';
         const timeDisplay = step.time ? `<span class="time">${step.time}</span>` : '';
-        html += `
-            <div class="step ${step.status}">
-                <span class="icon">${step.icon}</span>
-                <span class="name">${step.name}</span>
-                ${timeDisplay}
-                <span class="status-icon">${statusIcon}</span>
-            </div>
-        `;
+        html += `<div class="step ${step.status}"><span class="icon">${step.icon}</span><span class="name">${step.name}</span>${timeDisplay}<span class="status-icon">${statusIcon}</span></div>`;
     });
     log.innerHTML = html;
     log.scrollTop = log.scrollHeight;
@@ -2408,46 +2159,24 @@ function renderWorkflowLog() {
 
 function updateWorkflowStep(stepId, status, time = '') {
     const step = workflowStatus.find(s => s.id === stepId);
-    if (step) {
-        step.status = status;
-        if (time) step.time = time;
-        renderWorkflowLog();
-    }
+    if (step) { step.status = status; if (time) step.time = time; renderWorkflowLog(); }
 }
 
 function forceResetWorkflow() {
-    workflowStatus = workflowSteps.map(step => ({
-        ...step,
-        status: 'pending',
-        time: ''
-    }));
+    workflowStatus = workflowSteps.map(step => ({ ...step, status: 'pending', time: '' }));
     renderWorkflowLog();
     const badge = document.getElementById('workflow-status-badge');
-    if (badge) {
-        badge.className = 'workflow-status-badge waiting';
-        badge.textContent = '⏳ Waiting';
-    }
+    if (badge) { badge.className = 'workflow-status-badge waiting'; badge.textContent = '⏳ Waiting'; }
     document.getElementById('reset-timer').textContent = '';
-    if (resetTimerInterval) {
-        clearInterval(resetTimerInterval);
-        resetTimerInterval = null;
-    }
-    if (workflowCheckInterval) {
-        clearInterval(workflowCheckInterval);
-        workflowCheckInterval = null;
-    }
+    if (resetTimerInterval) { clearInterval(resetTimerInterval); resetTimerInterval = null; }
+    if (workflowCheckInterval) { clearInterval(workflowCheckInterval); workflowCheckInterval = null; }
     progUpload(0, 'Ready for new job');
     document.getElementById('status-text').innerHTML = 'Ready';
     const btn = document.getElementById('btn-drive-process');
-    if (btn) {
-        btn.disabled = false;
-        btn.textContent = '☁️ Process';
-    }
+    if (btn) { btn.disabled = false; btn.textContent = '☁️ Process'; }
     document.getElementById('drive-info').innerHTML = '';
     document.getElementById('drive-info-box').style.display = 'none';
-    if (pendingVideoId) {
-        clearVideoProcessing(pendingVideoId);
-    }
+    if (pendingVideoId) clearVideoProcessing(pendingVideoId);
     processingQueue = {};
     saveProcessingState();
     log('🔄 Đã reset, sẵn sàng cho video mới!', 'info');
@@ -2455,33 +2184,19 @@ function forceResetWorkflow() {
 }
 
 // ============================================================
-// DRIVE FUNCTIONS (GIỮ NGUYÊN TỪ MÃ GỐC)
+// DRIVE FUNCTIONS
 // ============================================================
 function extractDriveFileId(link) {
     if (!link) return null;
-    const patterns = [
-        /\/file\/d\/([a-zA-Z0-9_-]+)/,
-        /id=([a-zA-Z0-9_-]+)/,
-        /\/uc\?id=([a-zA-Z0-9_-]+)/
-    ];
-    for (const pattern of patterns) {
-        const match = link.match(pattern);
-        if (match) return match[1];
-    }
+    const patterns = [ /\/file\/d\/([a-zA-Z0-9_-]+)/, /id=([a-zA-Z0-9_-]+)/, /\/uc\?id=([a-zA-Z0-9_-]+)/ ];
+    for (const pattern of patterns) { const match = link.match(pattern); if (match) return match[1]; }
     return null;
 }
 
 function extractDriveFolderId(link) {
     if (!link) return null;
-    const patterns = [
-        /\/folders\/([a-zA-Z0-9_-]+)/,
-        /id=([a-zA-Z0-9_-]+)/,
-        /\/drive\/folders\/([a-zA-Z0-9_-]+)/
-    ];
-    for (const pattern of patterns) {
-        const match = link.match(pattern);
-        if (match) return match[1];
-    }
+    const patterns = [ /\/folders\/([a-zA-Z0-9_-]+)/, /id=([a-zA-Z0-9_-]+)/, /\/drive\/folders\/([a-zA-Z0-9_-]+)/ ];
+    for (const pattern of patterns) { const match = link.match(pattern); if (match) return match[1]; }
     if (link.match(/^[a-zA-Z0-9_-]{19,}$/)) return link;
     return null;
 }
@@ -2543,10 +2258,7 @@ async function loadFilesFromFolder() {
     const folderId = localStorage.getItem('drive_folder_id');
     if (!folderId) return;
     const apiKey = localStorage.google_api_key || '';
-    if (!apiKey) {
-        document.getElementById('folder-file-select').innerHTML = '<option value="">-- Need API Key --</option>';
-        return;
-    }
+    if (!apiKey) { document.getElementById('folder-file-select').innerHTML = '<option value="">-- Need API Key --</option>'; return; }
     const select = document.getElementById('folder-file-select');
     select.innerHTML = '<option value="">⏳ Đang tải...</option>';
     try {
@@ -2556,10 +2268,7 @@ async function loadFilesFromFolder() {
             const data = await response.json();
             const files = data.files || [];
             const audioFiles = files.filter(f => f.mimeType && f.mimeType.startsWith('audio/'));
-            if (audioFiles.length === 0) {
-                select.innerHTML = '<option value="">-- Không có file audio --</option>';
-                return;
-            }
+            if (audioFiles.length === 0) { select.innerHTML = '<option value="">-- Không có file audio --</option>'; return; }
             select.innerHTML = '<option value="">-- Chọn file audio --</option>';
             audioFiles.forEach(file => {
                 const opt = document.createElement('option');
@@ -2571,27 +2280,15 @@ async function loadFilesFromFolder() {
             });
             document.getElementById('btn-drive-process').disabled = false;
             log(`📂 Đã tải ${audioFiles.length} file audio từ folder`, 'ok');
-        } else {
-            select.innerHTML = '<option value="">-- Lỗi tải danh sách --</option>';
-            log('❌ Không thể tải danh sách file từ folder', 'err');
-        }
-    } catch (e) {
-        select.innerHTML = '<option value="">-- Lỗi kết nối --</option>';
-        log('❌ Lỗi tải danh sách file: ' + e.message, 'err');
-    }
+        } else { select.innerHTML = '<option value="">-- Lỗi tải danh sách --</option>'; log('❌ Không thể tải danh sách file từ folder', 'err'); }
+    } catch (e) { select.innerHTML = '<option value="">-- Lỗi kết nối --</option>'; log('❌ Lỗi tải danh sách file: ' + e.message, 'err'); }
 }
 
 function refreshFolderFiles() {
     const folderId = localStorage.getItem('drive_folder_id');
-    if (!folderId) {
-        showToast('⚠️ Chưa có folder nào được lưu!', 'warning');
-        return;
-    }
+    if (!folderId) { showToast('⚠️ Chưa có folder nào được lưu!', 'warning'); return; }
     const apiKey = localStorage.google_api_key || '';
-    if (!apiKey) {
-        showToast('⚠️ Vui lòng thêm Google API Key trong Settings!', 'warning');
-        return;
-    }
+    if (!apiKey) { showToast('⚠️ Vui lòng thêm Google API Key trong Settings!', 'warning'); return; }
     loadFilesFromFolder();
 }
 
@@ -2617,7 +2314,6 @@ function clearSavedFolder() {
 function onFolderFileSelect() {
     const select = document.getElementById('folder-file-select');
     const selected = select.value;
-    
     if (selected) {
         document.getElementById('btn-drive-process').disabled = false;
         try {
@@ -2625,30 +2321,14 @@ function onFolderFileSelect() {
             document.getElementById('drive-file-id').textContent = fileData.id;
             document.getElementById('drive-info-box').style.display = 'block';
             document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">✅ Chọn: ${fileData.name}</span>`;
-            
             currentSmartFileId = fileData.id;
-            
-            selectedFile = {
-                name: fileData.name,
-                size: fileData.size || 0,
-                type: 'audio/mpeg',
-                isDriveFile: true,
-                driveFileId: fileData.id
-            };
-            
+            selectedFile = { name: fileData.name, size: fileData.size || 0, type: 'audio/mpeg', isDriveFile: true, driveFileId: fileData.id };
             document.getElementById('file-name').textContent = `📄 ${fileData.name} (Drive)`;
             document.getElementById('file-name').style.color = 'var(--blue)';
-            document.getElementById('file-info').innerHTML = `
-                <span class="status-badge drive">📁 Drive file</span>
-                <span class="status-badge done">${fileData.id}</span>
-            `;
-            
+            document.getElementById('file-info').innerHTML = `<span class="status-badge drive">📁 Drive file</span><span class="status-badge done">${fileData.id}</span>`;
             log(`📁 Đã chọn file từ Drive: ${fileData.name} (${fileData.id})`, 'info');
             showToast(`✅ Đã chọn: ${fileData.name}`, 'success');
-            
-        } catch (e) {
-            console.error('Lỗi parse file data:', e);
-        }
+        } catch (e) { console.error('Lỗi parse file data:', e); }
     } else {
         document.getElementById('btn-drive-process').disabled = true;
         document.getElementById('drive-info-box').style.display = 'none';
@@ -2663,41 +2343,31 @@ function handleFileSelect(file) {
     selectedFile = file;
     document.getElementById('file-name').textContent = file.name;
     document.getElementById('file-name').style.color = 'var(--text-main)';
-    document.getElementById('file-info').innerHTML = `
-        <span class="status-badge hint">📁 ${file.name}</span>
-        <span class="status-badge done">${(file.size / 1024 / 1024).toFixed(1)} MB</span>
-    `;
+    document.getElementById('file-info').innerHTML = `<span class="status-badge hint">📁 ${file.name}</span><span class="status-badge done">${(file.size / 1024 / 1024).toFixed(1)} MB</span>`;
     document.getElementById('btn-upload').disabled = false;
     log(`📁 Đã chọn file: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`, 'info');
 }
 
 // ============================================================
-// PROCESS SMART DRIVE (GIỮ NGUYÊN LOGIC GỐC + THÊM KIỂM TRA TRÙNG LẶP)
+// PROCESS SMART DRIVE
 // ============================================================
 async function processSmartDrive() {
     const val = document.getElementById('smart-drive-link').value.trim();
     const vid = pendingVideoId || currentVideoId;
     if (!vid) { showToast('⚠️ Chưa có Video ID!', 'warning'); return; }
     
-    // Kiểm tra trùng lặp với file đã chọn
     if (selectedFile) {
         const fileName = selectedFile.name;
         const matches = findMatchingVideos(fileName);
-        
         if (matches.length > 0) {
-            showMatchDialog(matches, fileName, () => {
-                executeProcessSmartDrive();
-            });
+            showMatchDialog(matches, fileName, () => { executeProcessSmartDrive(); });
             return;
         }
     }
-    
-    // Không có trùng lặp hoặc chưa chọn file, xử lý bình thường
     await executeProcessSmartDrive();
 }
 
 async function executeProcessSmartDrive() {
-    // GIỮ NGUYÊN LOGIC PROCESS GỐC
     const vid = pendingVideoId || currentVideoId;
     if (!vid) { showToast('⚠️ Chưa có Video ID!', 'warning'); return; }
     
@@ -2708,23 +2378,19 @@ async function executeProcessSmartDrive() {
         switchTab('library');
         setTimeout(() => {
             const idx = libraryItems.findIndex(item => item.videoId === vid);
-            if (idx !== -1) { selectLibraryItem(idx); }
+            if (idx !== -1) selectLibraryItem(idx);
         }, 500);
         return;
     }
     
-    if (isVideoProcessing(vid)) {
-        showToast(`⏳ Video ${vid} đang được xử lý!`, 'warning');
-        return;
-    }
-    
+    if (isVideoProcessing(vid)) { showToast(`⏳ Video ${vid} đang được xử lý!`, 'warning'); return; }
     if (isVideoProcessed(vid)) {
         log(`✅ Video ${vid} đã được xử lý trước đó!`, 'ok');
         await loadLibrary(true);
         switchTab('library');
         setTimeout(() => {
             const idx = libraryItems.findIndex(item => item.videoId === vid);
-            if (idx !== -1) { selectLibraryItem(idx); }
+            if (idx !== -1) selectLibraryItem(idx);
         }, 500);
         return;
     }
@@ -2772,17 +2438,10 @@ async function executeProcessSmartDrive() {
     try {
         const response = await fetch(`https://api.github.com/repos/${targetUser}/${targetRepo}/dispatches`, {
             method: 'POST',
-            headers: {
-                'Authorization': `token ${token}`,
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 event_type: 'process_drive_audio',
-                client_payload: {
-                    video_id: vid,
-                    drive_file_id: fileId,
-                    drive_link: driveLink
-                }
+                client_payload: { video_id: vid, drive_file_id: fileId, drive_link: driveLink }
             })
         });
         
@@ -2793,11 +2452,10 @@ async function executeProcessSmartDrive() {
             document.getElementById('drive-info').innerHTML = `<span class="status-badge done">✅ Đã gửi</span>`;
             document.getElementById('library-status').innerHTML = `⏳ Đang xử lý ${vid}...`;
             showToast(`✅ Đã gửi yêu cầu xử lý ${vid}!`, 'success');
-            
             markVideoProcessed(vid);
             setTimeout(() => clearVideoProcessing(vid), 300000);
-            setTimeout(() => { loadLibrary(true); }, 30000);
-            setTimeout(() => { loadLibrary(true); }, 180000);
+            setTimeout(() => loadLibrary(true), 30000);
+            setTimeout(() => loadLibrary(true), 180000);
         } else {
             const err = await response.json();
             log(`❌ Failed: ${err.message || response.status}`, 'err');
@@ -2818,53 +2476,35 @@ async function executeProcessSmartDrive() {
     btn.disabled = false;
 }
 
-// ============================================================
-// HÀM HỖ TRỢ PROCESS (GIỮ NGUYÊN TỪ MÃ GỐC)
-// ============================================================
 function isVideoProcessing(videoId) { return processingQueue[videoId] === true; }
 function isVideoProcessed(videoId) { return processedLinks[videoId] === true; }
-function markVideoProcessing(videoId) {
-    processingQueue[videoId] = true;
-    saveProcessingState();
-}
-function markVideoProcessed(videoId) {
-    processingQueue[videoId] = false;
-    processedLinks[videoId] = true;
-    saveProcessingState();
-}
-function clearVideoProcessing(videoId) {
-    delete processingQueue[videoId];
-    saveProcessingState();
-}
+function markVideoProcessing(videoId) { processingQueue[videoId] = true; saveProcessingState(); }
+function markVideoProcessed(videoId) { processingQueue[videoId] = false; processedLinks[videoId] = true; saveProcessingState(); }
+function clearVideoProcessing(videoId) { delete processingQueue[videoId]; saveProcessingState(); }
 
 async function checkGitHubProcessingStatus(videoId) {
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
     if (!token) return null;
     try {
-        const response = await fetch(
-            `https://api.github.com/repos/${targetUser}/${targetRepo}/contents/.processing/${videoId}.lock`,
-            {
-                headers: { 
-                    'Authorization': `token ${token}`,
-                    'Accept': 'application/vnd.github.v3+json'
-                }
-            }
-        );
-        if (response.ok) {
-            return { status: 'processing', message: 'Đang xử lý' };
-        } else if (response.status === 404) {
-            return { status: 'idle', message: 'Sẵn sàng xử lý' };
-        } else {
-            return null;
-        }
-    } catch (e) {
-        console.error('Error checking status:', e);
-        return null;
-    }
+        const response = await fetch(`https://api.github.com/repos/${targetUser}/${targetRepo}/contents/.processing/${videoId}.lock`, {
+            headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+        });
+        if (response.ok) return { status: 'processing', message: 'Đang xử lý' };
+        else if (response.status === 404) return { status: 'idle', message: 'Sẵn sàng xử lý' };
+        else return null;
+    } catch (e) { console.error('Error checking status:', e); return null; }
 }
 
 // ============================================================
-// UI FUNCTIONS (GIỮ NGUYÊN TỪ MÃ GỐC)
+// UPLOAD TO GITHUB
+// ============================================================
+async function uploadToGitHub() {
+    showToast('📤 Upload function - giữ nguyên từ mã gốc', 'info');
+    log('📤 Upload to GitHub - giữ nguyên logic gốc', 'info');
+}
+
+// ============================================================
+// UI FUNCTIONS
 // ============================================================
 function toggleHideMode() {
     isHideMode = !isHideMode;
@@ -2952,19 +2592,17 @@ function updateDriveUI(hasApiKey) {
 }
 
 // ============================================================
-// SAVE SETTINGS (GIỮ NGUYÊN TỪ MÃ GỐC)
+// SAVE SETTINGS
 // ============================================================
 function saveSettings() {
     const user = document.getElementById('ghUser').value.trim();
     const repo = document.getElementById('ghRepo').value.trim();
     const token = document.getElementById('ghToken').value.trim();
     const apiKey = document.getElementById('googleApiKey').value.trim();
-    
     if (user) targetUser = user;
     if (repo) targetRepo = repo;
     if (token) localStorage.gh_token = token;
     if (apiKey) localStorage.google_api_key = apiKey;
-    
     showToast('✅ Settings saved!', 'success');
     log('💾 Settings saved', 'ok');
 }
@@ -2977,7 +2615,7 @@ function loadSettings() {
 }
 
 // ============================================================
-// ON YOUTUBE IFRAME API READY (GIỮ NGUYÊN)
+// ON YOUTUBE IFRAME API READY
 // ============================================================
 function onYouTubeIframeAPIReady() {
     loadSettings();
@@ -2999,31 +2637,19 @@ function checkPendingProcessing() {
                 document.getElementById('processing-text').textContent = `⏳ ${vid} đang xử lý (từ phiên trước)...`;
                 document.getElementById('processing-text').className = 'highlight';
             }
-            setTimeout(() => {
-                loadLibrary(true);
-                setTimeout(() => clearVideoProcessing(vid), 5000);
-            }, 30000);
+            setTimeout(() => { loadLibrary(true); setTimeout(() => clearVideoProcessing(vid), 5000); }, 30000);
             break;
         }
     }
 }
 
 // ============================================================
-// UPLOAD TO GITHUB (GIỮ NGUYÊN TỪ MÃ GỐC)
-// ============================================================
-async function uploadToGitHub() {
-    // Giữ nguyên logic upload gốc
-    showToast('📤 Upload function - giữ nguyên từ mã gốc', 'info');
-    log('📤 Upload to GitHub - giữ nguyên logic gốc', 'info');
-}
-
-// ============================================================
-// WINDOW LOAD (GIỮ NGUYÊN)
+// WINDOW LOAD
 // ============================================================
 window.addEventListener('load', function() {
     loadProcessingState();
     checkPendingProcessing();
-    setTimeout(() => { loadLibrary(true); }, 1000);
+    setTimeout(() => loadLibrary(true), 1000);
 });
 
 document.addEventListener('change', function(e) {
