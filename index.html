@@ -349,14 +349,15 @@
             border: 1px solid rgba(255,45,85,0.2);
         }
         
-        /* ===== LIBRARY STYLES MỚI ===== */
+        /* ===== LIBRARY STYLES ===== */
         .library-container {
             position: relative;
-            max-height: 280px;
+            max-height: 200px;
             overflow-y: auto;
             overflow-x: hidden;
             padding-right: 4px;
             scroll-behavior: smooth;
+            border-radius: var(--element-radius);
         }
         .library-container::-webkit-scrollbar {
             width: 3px;
@@ -1054,12 +1055,11 @@
                 </div>
             </div>
             
-            <!-- 👈 CONTAINER CÓ SCROLL -->
+            <!-- CONTAINER CÓ SCROLL - CHỈ HIỂN THỊ ~3 DÒNG -->
             <div class="library-container" id="library-list">
                 <div class="library-empty">⏳ Đang tải danh sách phụ đề...</div>
             </div>
             
-            <!-- 👈 SỐ LƯỢNG HIỂN THỊ -->
             <div class="library-count" id="library-status">Sẵn sàng</div>
             
             <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">
@@ -1262,9 +1262,161 @@ function extractVideoID(url) {
 }
 
 // ============================================================
-// LIBRARY FUNCTIONS - CÓ SẮP XẾP THEO THỜI GIAN
+// HÀM LÀM SẠCH TÊN FILE
 // ============================================================
+function cleanSearchQuery(filename) {
+    let name = filename;
+    if (name.includes('.')) { name = name.substring(0, name.lastIndexOf('.')); }
+    name = name.replace(/[\[\](){}.,;:!?@#$%^&*+=~`|/\\<>"\'\-_]/g, ' ');
+    const emojiPattern = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2702}-\u{27B0}\u{24C2}-\u{1F251}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}]+/gu;
+    name = name.replace(emojiPattern, ' ');
+    const removeWords = ['audio', 'video', 'subtitle', 'track', 'clip', 'full', 'official', '128k', '320k', 'podcast'];
+    for (const word of removeWords) { name = name.replace(new RegExp('\\b' + word + '\\b', 'gi'), ' '); }
+    name = name.replace(/\s+/g, ' ').trim();
+    return name.toLowerCase();
+}
 
+// ============================================================
+// HÀM TÍNH ĐỘ TƯƠNG ĐỒNG
+// ============================================================
+function similarityScore(query, title) {
+    const q = query.toLowerCase().replace(/[^a-zA-Z0-9\u00C0-\u024F\u4E00-\u9FFF\s]/g, ' ').trim();
+    const t = title.toLowerCase().replace(/[^a-zA-Z0-9\u00C0-\u024F\u4E00-\u9FFF\s]/g, ' ').trim();
+    const qWords = q.split(/\s+/).filter(w => w.length > 0);
+    const tWords = t.split(/\s+/).filter(w => w.length > 0);
+    if (qWords.length === 0 || tWords.length === 0) return 0.0;
+    function longestCommonSubsequence(a, b) {
+        const m = a.length, n = b.length;
+        const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+        for (let i = 1; i <= m; i++) {
+            for (let j = 1; j <= n; j++) {
+                if (a[i-1] === b[j-1]) dp[i][j] = dp[i-1][j-1] + 1;
+                else dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+            }
+        }
+        return dp[m][n];
+    }
+    function longestCommonSubstring(a, b) {
+        const m = a.length, n = b.length;
+        const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+        let maxLen = 0;
+        for (let i = 1; i <= m; i++) {
+            for (let j = 1; j <= n; j++) {
+                if (a[i-1] === b[j-1]) {
+                    dp[i][j] = dp[i-1][j-1] + 1;
+                    if (dp[i][j] > maxLen) maxLen = dp[i][j];
+                }
+            }
+        }
+        return maxLen;
+    }
+    const lcsLen = longestCommonSubsequence(qWords, tWords);
+    const lcsScore = lcsLen / Math.max(qWords.length, tWords.length);
+    const substrLen = longestCommonSubstring(qWords, tWords);
+    const substrScore = substrLen / qWords.length;
+    const commonWords = qWords.filter(w => tWords.includes(w));
+    const wordRatio = commonWords.length / qWords.length;
+    const totalScore = (substrScore * 0.5) + (lcsScore * 0.3) + (wordRatio * 0.2);
+    return Math.min(totalScore, 1.0);
+}
+
+// ============================================================
+// TÌM VIDEO TRÙNG LẶP
+// ============================================================
+function findMatchingVideos(fileName) {
+    const cleanName = cleanSearchQuery(fileName);
+    const matches = [];
+    for (const item of libraryItems) {
+        let titleToMatch = item.title;
+        if (item.baseName && item.baseName !== item.title) {
+            const titleScore = similarityScore(cleanName, item.title);
+            const baseScore = similarityScore(cleanName, item.baseName);
+            const score = Math.max(titleScore, baseScore);
+            matches.push({ ...item, score: score, matchType: titleScore >= baseScore ? 'title' : 'baseName' });
+        } else {
+            const score = similarityScore(cleanName, item.title);
+            matches.push({ ...item, score: score, matchType: 'title' });
+        }
+    }
+    matches.sort((a, b) => b.score - a.score);
+    return matches.filter(m => m.score >= 0.7);
+}
+
+// ============================================================
+// MATCH DIALOG
+// ============================================================
+function showMatchDialog(matches, fileName, onContinue) {
+    const dialog = document.getElementById('match-dialog');
+    const list = document.getElementById('match-list');
+    const subtitle = document.getElementById('match-subtitle');
+    subtitle.textContent = `📄 Tên file: "${fileName}" • Tìm thấy ${matches.length} video khớp ≥ 70%`;
+    let html = '';
+    matches.forEach((match, index) => {
+        const scorePercent = Math.round(match.score * 100);
+        const displayName = match.title.length > 45 ? match.title.substring(0, 45) + '...' : match.title;
+        html += `
+            <div class="match-item">
+                <span class="name" title="${match.title}">${displayName}</span>
+                <span class="score">${scorePercent}%</span>
+                <div class="actions">
+                    <button class="btn-sm play-btn" onclick="playMatchVideo(${index})">▶️ Xem</button>
+                    <button class="btn-sm render-btn" onclick="renderMatchVideo(${index})">🔄 Render</button>
+                </div>
+            </div>
+        `;
+    });
+    list.innerHTML = html;
+    dialog.classList.add('show');
+    matchResults = matches;
+    matchDialogCallback = onContinue;
+    pendingRenderFile = fileName;
+}
+
+function closeMatchDialog() {
+    document.getElementById('match-dialog').classList.remove('show');
+    matchResults = [];
+    matchDialogCallback = null;
+}
+
+function playMatchVideo(index) {
+    if (index < 0 || index >= matchResults.length) return;
+    const item = matchResults[index];
+    closeMatchDialog();
+    switchTab('library');
+    setTimeout(() => {
+        const idx = libraryItems.findIndex(i => i.gistId === item.gistId);
+        if (idx !== -1) selectLibraryItem(idx);
+    }, 300);
+}
+
+function renderMatchVideo(index) {
+    if (index < 0 || index >= matchResults.length) return;
+    const item = matchResults[index];
+    closeMatchDialog();
+    showToast(`🔄 Đang xử lý lại: ${item.title}`, 'info');
+    continueRenderWithVideo(item.videoId, pendingRenderFile);
+}
+
+function continueRender() {
+    closeMatchDialog();
+    if (pendingRenderFile) performRender(pendingRenderFile);
+}
+
+function continueRenderWithVideo(videoId, fileName) {
+    if (videoId && fileName) {
+        pendingVideoId = videoId;
+        currentVideoId = videoId;
+        document.getElementById('upload-vid-display').textContent = videoId;
+        document.getElementById('upload-id-hint').style.display = 'block';
+        showToast(`✅ Sử dụng Video ID: ${videoId}`, 'success');
+        log(`📌 Sử dụng Video ID từ video đã chọn: ${videoId}`, 'info');
+        performRender(fileName);
+    }
+}
+
+// ============================================================
+// LIBRARY FUNCTIONS
+// ============================================================
 async function loadLibrary(force = false) {
     const container = document.getElementById('library-list');
     container.innerHTML = '<div class="library-empty">⏳ Đang tải danh sách phụ đề...</div>';
@@ -1352,7 +1504,6 @@ async function loadLibrary(force = false) {
             
             if (uniqueItems.has(videoId)) continue;
             
-            // 👈 LƯU THỜI GIAN TẠO
             const createdTime = new Date(createdAt).getTime();
             
             uniqueItems.set(videoId, {
@@ -1372,7 +1523,7 @@ async function loadLibrary(force = false) {
             });
         }
         
-        // 👈 SẮP XẾP THEO THỜI GIAN (MỚI NHẤT LÊN TRÊN)
+        // SẮP XẾP THEO THỜI GIAN (MỚI NHẤT LÊN TRÊN)
         libraryItems = Array.from(uniqueItems.values());
         libraryItems.sort((a, b) => b.createdAt - a.createdAt);
         
@@ -1408,11 +1559,13 @@ function renderLibrary() {
         return;
     }
     
-    let html = '';
-    const maxDisplay = 3; // 👈 HIỂN THỊ 3 DÒNG (CÓ THỂ SCROLL)
-    const showCount = Math.min(libraryItems.length, maxDisplay);
+    // CHỈ HIỂN THỊ TỐI ĐA 3 DÒNG
+    const maxDisplay = 3;
+    const displayItems = libraryItems.slice(0, maxDisplay);
+    const hiddenCount = libraryItems.length - maxDisplay;
     
-    libraryItems.forEach((item, index) => {
+    let html = '';
+    displayItems.forEach((item, index) => {
         const isActive = (selectedLibraryIndex === index);
         const isNew = (lastAddedVideoId === item.videoId);
         let displayName = item.title;
@@ -1425,7 +1578,6 @@ function renderLibrary() {
             if (extracted) videoId = extracted;
         }
         
-        // 👈 NẾU CÓ BADGE "MỚI"
         const newBadge = isNew ? '<span class="badge-new">MỚI</span>' : '';
         
         html += `
@@ -1441,13 +1593,19 @@ function renderLibrary() {
         `;
     });
     
-    container.innerHTML = html;
+    // THÊM THÔNG BÁO NẾU CÓ THÊM FILE
+    if (hiddenCount > 0) {
+        html += `
+            <div style="text-align:center;padding:6px 0;font-size:10px;color:var(--text-secondary);border-top:1px solid var(--border-color);margin-top:4px;">
+                ⬇️ +${hiddenCount} phụ đề khác (cuộn để xem)
+            </div>
+        `;
+    }
     
-    // 👈 CẬP NHẬT SỐ LƯỢNG
+    container.innerHTML = html;
     document.getElementById('library-status').textContent = `${libraryItems.length} phụ đề • Hiển thị ${Math.min(libraryItems.length, 3)} dòng đầu`;
     document.getElementById('library-count-display').textContent = `${libraryItems.length} phụ đề`;
     
-    // 👈 CUỘN LÊN ĐẦU SAU KHI RENDER
     container.scrollTop = 0;
 }
 
@@ -1471,7 +1629,6 @@ function selectLibraryItem(index) {
     
     renderLibrary();
     document.getElementById('library-status').textContent = `✅ Đã chọn: ${currentGistItem.title}`;
-    
     loadVideoFromGist(currentGistItem, true);
 }
 
@@ -1480,9 +1637,8 @@ function refreshLibrary() {
 }
 
 // ============================================================
-// CÁC HÀM KHÁC (GIỮ NGUYÊN TỪ MÃ GỐC)
+// CÁC HÀM KHÁC (GIỮ NGUYÊN)
 // ============================================================
-
 function playSelectedVideo() {
     if (currentGistItem) {
         loadVideoFromGist(currentGistItem, true);
@@ -1540,9 +1696,6 @@ function switchTab(tab) {
     if (tab === 'library') { refreshLibrary(); }
 }
 
-// ============================================================
-// CÁC HÀM ĐIỀU KHIỂN KHÁC (GIỮ NGUYÊN TỪ MÃ GỐC)
-// ============================================================
 function toggleHideMode() {
     isHideMode = !isHideMode;
     const btn = document.getElementById('btn-toggle-hide');
@@ -1808,42 +1961,8 @@ function parseVTT(d) {
 function parseTime(t) { t = t.replace(',', '.'); const p = t.split(':'); if (p.length < 3) return 0; return parseFloat(p[0]) * 3600 + parseFloat(p[1]) * 60 + parseFloat(p[2]); }
 
 // ============================================================
-// CÁC HÀM DRIVE, RENDER, DELETE, RENAME (GIỮ NGUYÊN TỪ MÃ GỐC)
+// SAVE STATE, RESET PLAYER
 // ============================================================
-
-function onYtUrlInput() {
-    const val = document.getElementById('yt-url-input').value;
-    document.getElementById('btn-clear-yt-url').style.display = val ? 'block' : 'none';
-    youtubeUrl = val;
-    
-    if (val) {
-        const vid = extractVideoID(val);
-        if (vid) {
-            document.getElementById('yt-url-hint').innerHTML = `✅ Video ID: <span class="highlight">${vid}</span> (Ưu tiên sử dụng)`;
-            pendingVideoId = vid;
-            currentVideoId = vid;
-            document.getElementById('upload-vid-display').textContent = vid;
-            document.getElementById('upload-id-hint').style.display = 'block';
-        } else {
-            document.getElementById('yt-url-hint').innerHTML = '⚠️ Không tìm thấy Video ID trong link';
-            pendingVideoId = null;
-        }
-    } else {
-        document.getElementById('yt-url-hint').innerHTML = '💡 Nhập link để ưu tiên • Để trống để tìm kiếm tự động';
-        pendingVideoId = null;
-        document.getElementById('upload-id-hint').style.display = 'none';
-    }
-}
-
-function clearYtUrl() {
-    document.getElementById('yt-url-input').value = '';
-    document.getElementById('btn-clear-yt-url').style.display = 'none';
-    document.getElementById('yt-url-hint').innerHTML = '💡 Nhập link để ưu tiên • Để trống để tìm kiếm tự động';
-    youtubeUrl = '';
-    pendingVideoId = null;
-    document.getElementById('upload-id-hint').style.display = 'none';
-}
-
 function saveProcessingState() {
     try {
         localStorage.setItem('pinyin_ai_queue', JSON.stringify(processingQueue));
@@ -1968,7 +2087,54 @@ async function renameCurrentVideo() {
 }
 
 // ============================================================
-// DRIVE FUNCTIONS (GIỮ NGUYÊN TỪ MÃ GỐC)
+// WORKFLOW LOG
+// ============================================================
+function initWorkflowLog() {
+    workflowStatus = workflowSteps.map(step => ({ ...step, status: 'pending', time: '' }));
+    renderWorkflowLog();
+}
+
+function renderWorkflowLog() {
+    const log = document.getElementById('workflow-log');
+    if (!log) return;
+    let html = '';
+    workflowStatus.forEach(step => {
+        const statusIcon = step.status === 'running' ? '🔄' : step.status === 'success' ? '✅' : step.status === 'failed' ? '❌' : '⏳';
+        const timeDisplay = step.time ? `<span class="time">${step.time}</span>` : '';
+        html += `<div class="step ${step.status}"><span class="icon">${step.icon}</span><span class="name">${step.name}</span>${timeDisplay}<span class="status-icon">${statusIcon}</span></div>`;
+    });
+    log.innerHTML = html;
+    log.scrollTop = log.scrollHeight;
+}
+
+function updateWorkflowStep(stepId, status, time = '') {
+    const step = workflowStatus.find(s => s.id === stepId);
+    if (step) { step.status = status; if (time) step.time = time; renderWorkflowLog(); }
+}
+
+function forceResetWorkflow() {
+    workflowStatus = workflowSteps.map(step => ({ ...step, status: 'pending', time: '' }));
+    renderWorkflowLog();
+    const badge = document.getElementById('workflow-status-badge');
+    if (badge) { badge.className = 'workflow-status-badge waiting'; badge.textContent = '⏳ Waiting'; }
+    document.getElementById('reset-timer').textContent = '';
+    if (resetTimerInterval) { clearInterval(resetTimerInterval); resetTimerInterval = null; }
+    if (workflowCheckInterval) { clearInterval(workflowCheckInterval); workflowCheckInterval = null; }
+    progUpload(0, 'Ready for new job');
+    document.getElementById('status-text').innerHTML = 'Ready';
+    const btn = document.getElementById('btn-drive-process');
+    if (btn) { btn.disabled = false; btn.textContent = '☁️ Process'; }
+    document.getElementById('drive-info').innerHTML = '';
+    document.getElementById('drive-info-box').style.display = 'none';
+    if (pendingVideoId) clearVideoProcessing(pendingVideoId);
+    processingQueue = {};
+    saveProcessingState();
+    log('🔄 Đã reset, sẵn sàng cho video mới!', 'info');
+    showToast('🔄 Đã reset workflow', 'info');
+}
+
+// ============================================================
+// DRIVE FUNCTIONS
 // ============================================================
 function extractDriveFileId(link) {
     if (!link) return null;
@@ -2133,54 +2299,7 @@ function handleFileSelect(file) {
 }
 
 // ============================================================
-// WORKFLOW LOG (GIỮ NGUYÊN TỪ MÃ GỐC)
-// ============================================================
-function initWorkflowLog() {
-    workflowStatus = workflowSteps.map(step => ({ ...step, status: 'pending', time: '' }));
-    renderWorkflowLog();
-}
-
-function renderWorkflowLog() {
-    const log = document.getElementById('workflow-log');
-    if (!log) return;
-    let html = '';
-    workflowStatus.forEach(step => {
-        const statusIcon = step.status === 'running' ? '🔄' : step.status === 'success' ? '✅' : step.status === 'failed' ? '❌' : '⏳';
-        const timeDisplay = step.time ? `<span class="time">${step.time}</span>` : '';
-        html += `<div class="step ${step.status}"><span class="icon">${step.icon}</span><span class="name">${step.name}</span>${timeDisplay}<span class="status-icon">${statusIcon}</span></div>`;
-    });
-    log.innerHTML = html;
-    log.scrollTop = log.scrollHeight;
-}
-
-function updateWorkflowStep(stepId, status, time = '') {
-    const step = workflowStatus.find(s => s.id === stepId);
-    if (step) { step.status = status; if (time) step.time = time; renderWorkflowLog(); }
-}
-
-function forceResetWorkflow() {
-    workflowStatus = workflowSteps.map(step => ({ ...step, status: 'pending', time: '' }));
-    renderWorkflowLog();
-    const badge = document.getElementById('workflow-status-badge');
-    if (badge) { badge.className = 'workflow-status-badge waiting'; badge.textContent = '⏳ Waiting'; }
-    document.getElementById('reset-timer').textContent = '';
-    if (resetTimerInterval) { clearInterval(resetTimerInterval); resetTimerInterval = null; }
-    if (workflowCheckInterval) { clearInterval(workflowCheckInterval); workflowCheckInterval = null; }
-    progUpload(0, 'Ready for new job');
-    document.getElementById('status-text').innerHTML = 'Ready';
-    const btn = document.getElementById('btn-drive-process');
-    if (btn) { btn.disabled = false; btn.textContent = '☁️ Process'; }
-    document.getElementById('drive-info').innerHTML = '';
-    document.getElementById('drive-info-box').style.display = 'none';
-    if (pendingVideoId) clearVideoProcessing(pendingVideoId);
-    processingQueue = {};
-    saveProcessingState();
-    log('🔄 Đã reset, sẵn sàng cho video mới!', 'info');
-    showToast('🔄 Đã reset workflow', 'info');
-}
-
-// ============================================================
-// UPLOAD TO GITHUB, PROCESS SMART DRIVE (GIỮ NGUYÊN TỪ MÃ GỐC)
+// UPLOAD TO GITHUB, PROCESS SMART DRIVE
 // ============================================================
 async function uploadToGitHub() {
     showToast('📤 Upload function - giữ nguyên từ mã gốc', 'info');
@@ -2289,7 +2408,7 @@ async function executeProcessSmartDrive() {
             document.getElementById('library-status').innerHTML = `⏳ Đang xử lý ${vid}...`;
             showToast(`✅ Đã gửi yêu cầu xử lý ${vid}!`, 'success');
             markVideoProcessed(vid);
-            // 👈 ĐÁNH DẤU VIDEO MỚI THÊM
+            // ĐÁNH DẤU VIDEO MỚI THÊM
             lastAddedVideoId = vid;
             setTimeout(() => clearVideoProcessing(vid), 300000);
             setTimeout(() => { loadLibrary(true); }, 30000);
@@ -2331,150 +2450,6 @@ async function checkGitHubProcessingStatus(videoId) {
         else if (response.status === 404) return { status: 'idle', message: 'Sẵn sàng xử lý' };
         else return null;
     } catch (e) { console.error('Error checking status:', e); return null; }
-}
-
-// ============================================================
-// MATCH FUNCTIONS, CLEAN SEARCH, SIMILARITY (GIỮ NGUYÊN TỪ MÃ GỐC)
-// ============================================================
-function cleanSearchQuery(filename) {
-    let name = filename;
-    if (name.includes('.')) { name = name.substring(0, name.lastIndexOf('.')); }
-    name = name.replace(/[\[\](){}.,;:!?@#$%^&*+=~`|/\\<>"\'\-_]/g, ' ');
-    const emojiPattern = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2702}-\u{27B0}\u{24C2}-\u{1F251}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}]+/gu;
-    name = name.replace(emojiPattern, ' ');
-    const removeWords = ['audio', 'video', 'subtitle', 'track', 'clip', 'full', 'official', '128k', '320k', 'podcast'];
-    for (const word of removeWords) { name = name.replace(new RegExp('\\b' + word + '\\b', 'gi'), ' '); }
-    name = name.replace(/\s+/g, ' ').trim();
-    return name.toLowerCase();
-}
-
-function similarityScore(query, title) {
-    const q = query.toLowerCase().replace(/[^a-zA-Z0-9\u00C0-\u024F\u4E00-\u9FFF\s]/g, ' ').trim();
-    const t = title.toLowerCase().replace(/[^a-zA-Z0-9\u00C0-\u024F\u4E00-\u9FFF\s]/g, ' ').trim();
-    const qWords = q.split(/\s+/).filter(w => w.length > 0);
-    const tWords = t.split(/\s+/).filter(w => w.length > 0);
-    if (qWords.length === 0 || tWords.length === 0) return 0.0;
-    function longestCommonSubsequence(a, b) {
-        const m = a.length, n = b.length;
-        const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
-        for (let i = 1; i <= m; i++) {
-            for (let j = 1; j <= n; j++) {
-                if (a[i-1] === b[j-1]) dp[i][j] = dp[i-1][j-1] + 1;
-                else dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
-            }
-        }
-        return dp[m][n];
-    }
-    function longestCommonSubstring(a, b) {
-        const m = a.length, n = b.length;
-        const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
-        let maxLen = 0;
-        for (let i = 1; i <= m; i++) {
-            for (let j = 1; j <= n; j++) {
-                if (a[i-1] === b[j-1]) {
-                    dp[i][j] = dp[i-1][j-1] + 1;
-                    if (dp[i][j] > maxLen) maxLen = dp[i][j];
-                }
-            }
-        }
-        return maxLen;
-    }
-    const lcsLen = longestCommonSubsequence(qWords, tWords);
-    const lcsScore = lcsLen / Math.max(qWords.length, tWords.length);
-    const substrLen = longestCommonSubstring(qWords, tWords);
-    const substrScore = substrLen / qWords.length;
-    const commonWords = qWords.filter(w => tWords.includes(w));
-    const wordRatio = commonWords.length / qWords.length;
-    const totalScore = (substrScore * 0.5) + (lcsScore * 0.3) + (wordRatio * 0.2);
-    return Math.min(totalScore, 1.0);
-}
-
-function findMatchingVideos(fileName) {
-    const cleanName = cleanSearchQuery(fileName);
-    const matches = [];
-    for (const item of libraryItems) {
-        let titleToMatch = item.title;
-        if (item.baseName && item.baseName !== item.title) {
-            const titleScore = similarityScore(cleanName, item.title);
-            const baseScore = similarityScore(cleanName, item.baseName);
-            const score = Math.max(titleScore, baseScore);
-            matches.push({ ...item, score: score, matchType: titleScore >= baseScore ? 'title' : 'baseName' });
-        } else {
-            const score = similarityScore(cleanName, item.title);
-            matches.push({ ...item, score: score, matchType: 'title' });
-        }
-    }
-    matches.sort((a, b) => b.score - a.score);
-    return matches.filter(m => m.score >= 0.7);
-}
-
-function showMatchDialog(matches, fileName, onContinue) {
-    const dialog = document.getElementById('match-dialog');
-    const list = document.getElementById('match-list');
-    const subtitle = document.getElementById('match-subtitle');
-    subtitle.textContent = `📄 Tên file: "${fileName}" • Tìm thấy ${matches.length} video khớp ≥ 70%`;
-    let html = '';
-    matches.forEach((match, index) => {
-        const scorePercent = Math.round(match.score * 100);
-        const displayName = match.title.length > 45 ? match.title.substring(0, 45) + '...' : match.title;
-        html += `
-            <div class="match-item">
-                <span class="name" title="${match.title}">${displayName}</span>
-                <span class="score">${scorePercent}%</span>
-                <div class="actions">
-                    <button class="btn-sm play-btn" onclick="playMatchVideo(${index})">▶️ Xem</button>
-                    <button class="btn-sm render-btn" onclick="renderMatchVideo(${index})">🔄 Render</button>
-                </div>
-            </div>
-        `;
-    });
-    list.innerHTML = html;
-    dialog.classList.add('show');
-    matchResults = matches;
-    matchDialogCallback = onContinue;
-    pendingRenderFile = fileName;
-}
-
-function closeMatchDialog() {
-    document.getElementById('match-dialog').classList.remove('show');
-    matchResults = [];
-    matchDialogCallback = null;
-}
-
-function playMatchVideo(index) {
-    if (index < 0 || index >= matchResults.length) return;
-    const item = matchResults[index];
-    closeMatchDialog();
-    switchTab('library');
-    setTimeout(() => {
-        const idx = libraryItems.findIndex(i => i.gistId === item.gistId);
-        if (idx !== -1) selectLibraryItem(idx);
-    }, 300);
-}
-
-function renderMatchVideo(index) {
-    if (index < 0 || index >= matchResults.length) return;
-    const item = matchResults[index];
-    closeMatchDialog();
-    showToast(`🔄 Đang xử lý lại: ${item.title}`, 'info');
-    continueRenderWithVideo(item.videoId, pendingRenderFile);
-}
-
-function continueRender() {
-    closeMatchDialog();
-    if (pendingRenderFile) performRender(pendingRenderFile);
-}
-
-function continueRenderWithVideo(videoId, fileName) {
-    if (videoId && fileName) {
-        pendingVideoId = videoId;
-        currentVideoId = videoId;
-        document.getElementById('upload-vid-display').textContent = videoId;
-        document.getElementById('upload-id-hint').style.display = 'block';
-        showToast(`✅ Sử dụng Video ID: ${videoId}`, 'success');
-        log(`📌 Sử dụng Video ID từ video đã chọn: ${videoId}`, 'info');
-        performRender(fileName);
-    }
 }
 
 // ============================================================
