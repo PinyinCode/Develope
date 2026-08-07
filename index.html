@@ -1066,6 +1066,8 @@ let targetRepo = 'subtitle-ai';
 let workflowCheckInterval = null;
 let resetTimerInterval = null;
 let resetCountdown = 0;
+let libraryItems = [];
+let selectedLibraryIndex = -1;
 let isDeleting = false;
 let isRenaming = false;
 let youtubeUrl = '';
@@ -1192,19 +1194,20 @@ function similarityScore(query, title) {
 function findMatchingVideos(fileName) {
     const cleanName = cleanSearchQuery(fileName);
     const matches = [];
-    for (const item in gh_cloud_map) {
-        let titleToMatch = gh_cloud_map[item].title || item;
-        const score = similarityScore(cleanName, titleToMatch);
-        if (score >= 0.7) {
-            matches.push({
-                videoId: item,
-                title: titleToMatch,
-                score: score
-            });
+    for (const item of libraryItems) {
+        let titleToMatch = item.title;
+        if (item.baseName && item.baseName !== item.title) {
+            const titleScore = similarityScore(cleanName, item.title);
+            const baseScore = similarityScore(cleanName, item.baseName);
+            const score = Math.max(titleScore, baseScore);
+            matches.push({ ...item, score: score, matchType: titleScore >= baseScore ? 'title' : 'baseName' });
+        } else {
+            const score = similarityScore(cleanName, item.title);
+            matches.push({ ...item, score: score, matchType: 'title' });
         }
     }
     matches.sort((a, b) => b.score - a.score);
-    return matches;
+    return matches.filter(m => m.score >= 0.7);
 }
 
 // ============================================================
@@ -1224,52 +1227,42 @@ function showMatchDialog(matches, fileName, onContinue) {
                 <span class="name" title="${match.title}">${displayName}</span>
                 <span class="score">${scorePercent}%</span>
                 <div class="actions">
-                    <button class="btn-sm play-btn" onclick="playMatchVideo('${match.videoId}')">▶️ Xem</button>
-                    <button class="btn-sm render-btn" onclick="renderMatchVideo('${match.videoId}')">🔄 Render</button>
+                    <button class="btn-sm play-btn" onclick="playMatchVideo(${index})">▶️ Xem</button>
+                    <button class="btn-sm render-btn" onclick="renderMatchVideo(${index})">🔄 Render</button>
                 </div>
             </div>
         `;
     });
     list.innerHTML = html;
     dialog.classList.add('show');
+    matchResults = matches;
     matchDialogCallback = onContinue;
     pendingRenderFile = fileName;
 }
 
 function closeMatchDialog() {
     document.getElementById('match-dialog').classList.remove('show');
+    matchResults = [];
     matchDialogCallback = null;
 }
 
-function playMatchVideo(videoId) {
-    if (!videoId || !gh_cloud_map[videoId]) return;
+function playMatchVideo(index) {
+    if (index < 0 || index >= matchResults.length) return;
+    const item = matchResults[index];
     closeMatchDialog();
     switchTab('library');
     setTimeout(() => {
-        const select = document.getElementById('gist-select');
-        for (let i = 0; i < select.options.length; i++) {
-            const opt = select.options[i];
-            if (opt.value) {
-                try {
-                    const item = JSON.parse(opt.value);
-                    if (item.videoId === videoId) {
-                        select.selectedIndex = i;
-                        onGistSelected(opt.value);
-                        break;
-                    }
-                } catch(e) {}
-            }
-        }
+        const idx = libraryItems.findIndex(i => i.gistId === item.gistId);
+        if (idx !== -1) selectLibraryItem(idx);
     }, 300);
 }
 
-function renderMatchVideo(videoId) {
-    if (!videoId || !gh_cloud_map[videoId]) return;
+function renderMatchVideo(index) {
+    if (index < 0 || index >= matchResults.length) return;
+    const item = matchResults[index];
     closeMatchDialog();
-    showToast(`🔄 Đang xử lý lại: ${gh_cloud_map[videoId].title}`, 'info');
-    pendingVideoId = videoId;
-    currentVideoId = videoId;
-    performRender(pendingRenderFile || videoId);
+    showToast(`🔄 Đang xử lý lại: ${item.title}`, 'info');
+    continueRenderWithVideo(item.videoId, pendingRenderFile);
 }
 
 function continueRender() {
@@ -1277,11 +1270,22 @@ function continueRender() {
     if (pendingRenderFile) performRender(pendingRenderFile);
 }
 
-// ============================================================
-// LIBRARY FUNCTIONS - DROPDOWN
-// ============================================================
+function continueRenderWithVideo(videoId, fileName) {
+    if (videoId && fileName) {
+        pendingVideoId = videoId;
+        currentVideoId = videoId;
+        document.getElementById('upload-vid-display').textContent = videoId;
+        document.getElementById('upload-id-hint').style.display = 'block';
+        showToast(`✅ Sử dụng Video ID: ${videoId}`, 'success');
+        log(`📌 Sử dụng Video ID từ video đã chọn: ${videoId}`, 'info');
+        performRender(fileName);
+    }
+}
 
-async function loadGistLibrary(force = false) {
+// ============================================================
+// LOAD LIBRARY - DROPDOWN
+// ============================================================
+async function loadLibrary(force = false) {
     const select = document.getElementById('gist-select');
     select.innerHTML = '<option value="">-- Đang tải... --</option>';
     
@@ -1342,7 +1346,6 @@ async function loadGistLibrary(force = false) {
                         let v = fn.replace('.vtt', '');
                         if (!newMap[v]) {
                             let title = (g.description || '').replace(/^.*Subtitle\s*-\s*/i, '').trim() || `Video ${v}`;
-                            // Thử lấy từ metadata
                             try {
                                 for (let f2 in g.files) {
                                     if (f2.endsWith('.metadata.json')) {
@@ -1389,7 +1392,6 @@ async function loadGistLibrary(force = false) {
 function renderGistSelect(items) {
     const select = document.getElementById('gist-select');
     
-    // Sắp xếp theo tên
     items.sort((a, b) => a.title.localeCompare(b.title));
     
     select.innerHTML = items.length ? 
@@ -1405,6 +1407,9 @@ function renderGistSelect(items) {
     
     document.getElementById('library-status').textContent = items.length ? `${items.length} phụ đề` : 'Chưa có phụ đề';
     document.getElementById('library-count-display').textContent = `${items.length} phụ đề`;
+    
+    // Cập nhật libraryItems để tương thích với các hàm cũ
+    libraryItems = items;
 }
 
 function onGistSelected(val) {
@@ -1425,6 +1430,13 @@ function onGistSelected(val) {
     }
 }
 
+function refreshLibrary() {
+    loadLibrary(true);
+}
+
+// ============================================================
+// DELETE CURRENT VIDEO
+// ============================================================
 async function deleteCurrentVideo() {
     if (!currentGistItem) { 
         showToast('Chọn phụ đề cần xóa!', 'warning');
@@ -1465,7 +1477,7 @@ async function deleteCurrentVideo() {
         localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
         currentGistItem = null;
         currentVideoId = null;
-        loadGistLibrary(false);
+        loadLibrary(false);
         document.getElementById('subtitle-box').innerHTML = '<span style="color:var(--text-secondary);font-size:14px">Đã xóa phụ đề</span>';
         document.getElementById('library-status').textContent = `🗑️ Đã xóa: ${title}`;
         showToast(`✅ Đã xóa: ${title}`, 'success');
@@ -1477,6 +1489,9 @@ async function deleteCurrentVideo() {
     isDeleting = false;
 }
 
+// ============================================================
+// RENAME CURRENT VIDEO
+// ============================================================
 async function renameCurrentVideo() {
     if (!currentGistItem) {
         showToast('⚠️ Vui lòng chọn phụ đề cần đổi tên!', 'warning');
@@ -1535,7 +1550,7 @@ async function renameCurrentVideo() {
             gh_cloud_map[vid].title = newTitle.trim();
             localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
             currentGistItem.title = newTitle.trim();
-            loadGistLibrary(false);
+            loadLibrary(false);
             document.getElementById('library-status').textContent = `✏️ Đã đổi tên: ${newTitle.trim()}`;
             showToast(`✅ Đã đổi tên thành: ${newTitle.trim()}`, 'success');
             log(`✏️ Đã đổi tên phụ đề: ${oldTitle} → ${newTitle.trim()}`, 'ok');
@@ -1550,10 +1565,9 @@ async function renameCurrentVideo() {
     isRenaming = false;
 }
 
-function refreshLibrary() {
-    loadGistLibrary(true);
-}
-
+// ============================================================
+// CÁC HÀM KHÁC (GIỮ NGUYÊN TỪ MÃ GỐC)
+// ============================================================
 function playSelectedVideo() {
     if (currentGistItem) {
         loadVideoFromGist(currentGistItem, true);
@@ -1610,7 +1624,7 @@ function switchTab(tab) {
     document.querySelectorAll('.tab-group .btn-sm').forEach(el => el.classList.remove('active'));
     document.getElementById(`content-${tab}`).classList.add('active');
     document.getElementById(`tab-${tab}`).classList.add('active');
-    if (tab === 'library') { loadGistLibrary(false); }
+    if (tab === 'library') { loadLibrary(false); }
 }
 
 function toggleHideMode() {
@@ -1702,7 +1716,7 @@ function progUpload(p, text = '', speed = '') {
 }
 
 // ============================================================
-// CÁC HÀM YOUTUBE PLAYER
+// CÁC HÀM YOUTUBE PLAYER (GIỮ NGUYÊN)
 // ============================================================
 async function loadVideoFromGist(item, autoplay = true) {
     if (!item) return;
@@ -1909,7 +1923,56 @@ function resetPlayer() {
 }
 
 // ============================================================
-// WORKFLOW LOG
+// DELETE LIBRARY ITEM (GIỮ NGUYÊN TỪ MÃ GỐC)
+// ============================================================
+async function deleteLibraryItem(index) {
+    const item = libraryItems[index];
+    if (!item) return;
+    if (!confirm(`Bạn có chắc muốn xóa Gist "${item.title}"?\n\nKhông thể hoàn tác!`)) return;
+    if (isDeleting) return;
+    isDeleting = true;
+    
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    if (!token) { showToast('⚠️ Vui lòng nhập GitHub Token trong Settings!', 'error'); isDeleting = false; return; }
+    
+    try {
+        showToast(`⏳ Đang xóa Gist: ${item.title}...`, 'info');
+        log(`🗑️ Đang xóa Gist: ${item.title} (${item.gistId})`, 'info');
+        
+        const deleteRes = await fetch(`https://api.github.com/gists/${item.gistId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+        });
+        
+        if (deleteRes.ok || deleteRes.status === 404) {
+            libraryItems.splice(index, 1);
+            if (selectedLibraryIndex === index) { selectedLibraryIndex = -1; currentGistItem = null; currentVideoId = null; resetPlayer(); }
+            else if (selectedLibraryIndex > index) selectedLibraryIndex--;
+            loadLibrary(false);
+            showToast(`✅ Đã xóa Gist: ${item.title}`, 'success');
+            log(`🗑️ Đã xóa Gist: ${item.title} (${item.gistId})`, 'ok');
+            if (gh_cloud_map && gh_cloud_map[item.videoId]) { delete gh_cloud_map[item.videoId]; localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map)); }
+            document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary);font-size:14px">Đã xóa phụ đề</span>`;
+            document.getElementById('library-status').textContent = `🗑️ Đã xóa: ${item.title}`;
+        } else {
+            const err = await deleteRes.text();
+            showToast(`❌ Lỗi xóa Gist: ${err}`, 'error');
+            log(`❌ Lỗi xóa Gist: ${err}`, 'err');
+        }
+    } catch (e) {
+        showToast(`❌ Lỗi: ${e.message}`, 'error');
+        log(`❌ Lỗi xóa: ${e.message}`, 'err');
+    }
+    isDeleting = false;
+}
+
+function deleteSelectedVideo() {
+    if (selectedLibraryIndex === -1 || !currentGistItem) { showToast('⚠️ Vui lòng chọn phụ đề cần xóa!', 'warning'); return; }
+    deleteLibraryItem(selectedLibraryIndex);
+}
+
+// ============================================================
+// WORKFLOW LOG (GIỮ NGUYÊN)
 // ============================================================
 function initWorkflowLog() {
     workflowStatus = workflowSteps.map(step => ({ ...step, status: 'pending', time: '' }));
@@ -1956,7 +2019,7 @@ function forceResetWorkflow() {
 }
 
 // ============================================================
-// DRIVE FUNCTIONS
+// DRIVE FUNCTIONS (GIỮ NGUYÊN)
 // ============================================================
 function extractDriveFileId(link) {
     if (!link) return null;
@@ -2121,7 +2184,7 @@ function handleFileSelect(file) {
 }
 
 // ============================================================
-// UPLOAD TO GITHUB, PROCESS SMART DRIVE
+// UPLOAD TO GITHUB, PROCESS SMART DRIVE (GIỮ NGUYÊN)
 // ============================================================
 async function uploadToGitHub() {
     showToast('📤 Upload function - giữ nguyên từ mã gốc', 'info');
@@ -2148,13 +2211,12 @@ async function executeProcessSmartDrive() {
     const vid = pendingVideoId || currentVideoId;
     if (!vid) { showToast('⚠️ Chưa có Video ID!', 'warning'); return; }
     
-    // Kiểm tra video đã tồn tại
-    if (gh_cloud_map[vid]) {
+    const existing = libraryItems.find(item => item.videoId === vid);
+    if (existing) {
         log(`✅ Video ${vid} đã có trong kho!`, 'ok');
         showToast(`✅ Video ${vid} đã có trong kho!`, 'success');
         switchTab('library');
         setTimeout(() => {
-            loadGistLibrary(false);
             const select = document.getElementById('gist-select');
             for (let i = 0; i < select.options.length; i++) {
                 const opt = select.options[i];
@@ -2176,7 +2238,7 @@ async function executeProcessSmartDrive() {
     if (isVideoProcessing(vid)) { showToast(`⏳ Video ${vid} đang được xử lý!`, 'warning'); return; }
     if (isVideoProcessed(vid)) {
         log(`✅ Video ${vid} đã được xử lý trước đó!`, 'ok');
-        await loadGistLibrary(true);
+        await loadLibrary(true);
         switchTab('library');
         setTimeout(() => {
             const select = document.getElementById('gist-select');
@@ -2257,8 +2319,8 @@ async function executeProcessSmartDrive() {
             markVideoProcessed(vid);
             lastAddedVideoId = vid;
             setTimeout(() => clearVideoProcessing(vid), 300000);
-            setTimeout(() => loadGistLibrary(true), 30000);
-            setTimeout(() => loadGistLibrary(true), 180000);
+            setTimeout(() => loadLibrary(true), 30000);
+            setTimeout(() => loadLibrary(true), 180000);
         } else {
             const err = await response.json();
             log(`❌ Failed: ${err.message || response.status}`, 'err');
@@ -2299,7 +2361,7 @@ async function checkGitHubProcessingStatus(videoId) {
 }
 
 // ============================================================
-// RENDER FROM FILE
+// RENDER FROM FILE (GIỮ NGUYÊN)
 // ============================================================
 async function renderFromFile() {
     if (!selectedFile) { showToast('⚠️ Vui lòng chọn file audio trước!', 'warning'); return; }
@@ -2374,7 +2436,7 @@ async function performRender(fileName) {
             log(`✅ Đã trigger workflow với file: ${fileName} (Video ID: ${videoId}, Drive ID: ${driveFileId})`, 'ok');
             document.getElementById('library-status').innerHTML = `⏳ Đang xử lý ${fileName}...`;
             document.getElementById('drive-info').innerHTML = `<span class="status-badge processing">⏳ Đã gửi yêu cầu</span>`;
-            setTimeout(() => { switchTab('library'); loadGistLibrary(true); }, 2000);
+            setTimeout(() => { switchTab('library'); loadLibrary(true); }, 2000);
         } else {
             const err = await response.json();
             showToast(`❌ Lỗi gửi yêu cầu: ${err.message || response.status}`, 'error');
@@ -2389,7 +2451,7 @@ async function performRender(fileName) {
 }
 
 // ============================================================
-// SETTINGS
+// SETTINGS (GIỮ NGUYÊN)
 // ============================================================
 function saveSettings() {
     const user = document.getElementById('ghUser').value.trim();
@@ -2439,7 +2501,7 @@ function checkPendingProcessing() {
                 document.getElementById('processing-text').textContent = `⏳ ${vid} đang xử lý (từ phiên trước)...`;
                 document.getElementById('processing-text').className = 'highlight';
             }
-            setTimeout(() => { loadGistLibrary(true); setTimeout(() => clearVideoProcessing(vid), 5000); }, 30000);
+            setTimeout(() => { loadLibrary(true); setTimeout(() => clearVideoProcessing(vid), 5000); }, 30000);
             break;
         }
     }
@@ -2452,7 +2514,7 @@ function onYouTubeIframeAPIReady() {
     loadSettings();
     loadProcessingState();
     checkPendingProcessing();
-    loadGistLibrary(false);
+    loadLibrary(false);
     initWorkflowLog();
     const apiKey = localStorage.google_api_key || '';
     updateDriveUI(!!apiKey);
@@ -2461,7 +2523,7 @@ function onYouTubeIframeAPIReady() {
 window.addEventListener('load', function() {
     loadProcessingState();
     checkPendingProcessing();
-    setTimeout(() => loadGistLibrary(true), 1000);
+    setTimeout(() => loadLibrary(true), 1000);
 });
 
 document.addEventListener('change', function(e) {
