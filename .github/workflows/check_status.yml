@@ -29,17 +29,38 @@ jobs:
       id: check
       env:
         VIDEO_ID: ${{ github.event.inputs.video_id || github.event.client_payload.video_id }}
+        FILE_NAME: ${{ github.event.client_payload.file_name }}
       run: |
-        STATUS_FILE=".processing/${VIDEO_ID}.lock"
         mkdir -p .processing
+        
+        # 👈 ƯU TIÊN VIDEO_ID, NẾU KHÔNG CÓ THÌ DÙNG FILE_NAME (SẠCH)
+        if [ -n "$VIDEO_ID" ]; then
+          LOCK_NAME="$VIDEO_ID"
+        elif [ -n "$FILE_NAME" ]; then
+          # 👈 LÀM SẠCH FILE_NAME (CHỈ LẤY TÊN KHÔNG EXTENSION)
+          CLEAN_NAME=$(basename "$FILE_NAME" | sed 's/\.[^.]*$//' | sed 's/[^a-zA-Z0-9_-]/_/g')
+          LOCK_NAME="$CLEAN_NAME"
+        else
+          echo "❌ Không có video_id hoặc file_name để kiểm tra"
+          echo "status=error" >> $GITHUB_OUTPUT
+          echo "message=Thiếu video_id hoặc file_name" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+        
+        STATUS_FILE=".processing/${LOCK_NAME}.lock"
+        
+        echo "🔍 Kiểm tra trạng thái: $LOCK_NAME"
+        echo "📁 File lock: $STATUS_FILE"
         
         if [ -f "$STATUS_FILE" ]; then
           TIMESTAMP=$(cat "$STATUS_FILE")
           echo "status=processing" >> $GITHUB_OUTPUT
-          echo "message=Video ${VIDEO_ID} đang được xử lý từ ${TIMESTAMP}" >> $GITHUB_OUTPUT
+          echo "message=Video ${LOCK_NAME} đang được xử lý từ ${TIMESTAMP}" >> $GITHUB_OUTPUT
           echo "timestamp=${TIMESTAMP}" >> $GITHUB_OUTPUT
+          echo "✅ Đang xử lý"
         else
           echo "status=idle" >> $GITHUB_OUTPUT
-          echo "message=Video ${VIDEO_ID} sẵn sàng xử lý" >> $GITHUB_OUTPUT
+          echo "message=Video ${LOCK_NAME} sẵn sàng xử lý" >> $GITHUB_OUTPUT
           echo "timestamp=" >> $GITHUB_OUTPUT
+          echo "✅ Sẵn sàng"
         fi
