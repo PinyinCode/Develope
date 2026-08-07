@@ -349,28 +349,40 @@
             border: 1px solid rgba(255,45,85,0.2);
         }
         
-        /* ===== LIBRARY STYLES ===== */
+        /* ===== LIBRARY STYLES - HIỂN THỊ THANH CUỘN ===== */
         .library-container {
             position: relative;
             max-height: 200px;
-            overflow-y: auto;
+            overflow-y: scroll; /* 👈 LUÔN HIỂN THỊ THANH CUỘN */
             overflow-x: hidden;
             padding-right: 4px;
             scroll-behavior: smooth;
             border-radius: var(--element-radius);
+            /* Hỗ trợ iOS */
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            touch-action: pan-y;
         }
+        /* Thanh cuộn - HIỂN THỊ RÕ RÀNG */
         .library-container::-webkit-scrollbar {
-            width: 3px;
+            width: 6px;
+            height: 6px;
         }
         .library-container::-webkit-scrollbar-track {
-            background: transparent;
+            background: rgba(255,255,255,0.05);
+            border-radius: 3px;
         }
         .library-container::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 2px;
+            background: var(--accent);
+            border-radius: 3px;
         }
         .library-container::-webkit-scrollbar-thumb:hover {
-            background: var(--text-secondary);
+            background: var(--text-main);
+        }
+        /* Hỗ trợ Firefox */
+        .library-container {
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent) rgba(255,255,255,0.05);
         }
         
         .library-item {
@@ -385,6 +397,7 @@
             cursor: pointer;
             transition: all 0.2s ease;
             gap: 4px;
+            touch-action: manipulation;
         }
         .library-item:hover {
             background: var(--accent-light);
@@ -1043,7 +1056,7 @@
         </div>
     </div>
 
-    <!-- TAB 2: LIBRARY (ĐÃ SỬA) -->
+    <!-- TAB 2: LIBRARY (ĐÃ SỬA - HIỂN THỊ THANH CUỘN) -->
     <div class="tab-content active hideable" id="content-library">
         <div class="card" id="gist-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:4px;">
@@ -1055,9 +1068,14 @@
                 </div>
             </div>
             
-            <!-- CONTAINER CÓ SCROLL - CHỈ HIỂN THỊ ~3 DÒNG -->
+            <!-- CONTAINER CÓ SCROLL - HIỂN THỊ THANH CUỘN -->
             <div class="library-container" id="library-list">
                 <div class="library-empty">⏳ Đang tải danh sách phụ đề...</div>
+            </div>
+            
+            <!-- HINT CUỘN -->
+            <div style="text-align:center;padding:4px 0;font-size:9px;color:var(--text-secondary);opacity:0.6;display:none;" id="scroll-hint">
+                ↕ Cuộn để xem thêm
             </div>
             
             <div class="library-count" id="library-status">Sẵn sàng</div>
@@ -1551,11 +1569,13 @@ async function loadLibrary(force = false) {
 
 function renderLibrary() {
     const container = document.getElementById('library-list');
+    const hint = document.getElementById('scroll-hint');
     
     if (libraryItems.length === 0) {
         container.innerHTML = '<div class="library-empty">📭 Chưa có phụ đề nào trong kho</div>';
         document.getElementById('library-status').textContent = 'Chưa có phụ đề';
         document.getElementById('library-count-display').textContent = '0 phụ đề';
+        if (hint) hint.style.display = 'none';
         return;
     }
     
@@ -1597,9 +1617,13 @@ function renderLibrary() {
     if (hiddenCount > 0) {
         html += `
             <div style="text-align:center;padding:6px 0;font-size:10px;color:var(--text-secondary);border-top:1px solid var(--border-color);margin-top:4px;">
-                ⬇️ +${hiddenCount} phụ đề khác (cuộn để xem)
+                ⬇️ +${hiddenCount} phụ đề khác
             </div>
         `;
+        // HIỂN THỊ HINT CUỘN
+        if (hint) hint.style.display = 'block';
+    } else {
+        if (hint) hint.style.display = 'none';
     }
     
     container.innerHTML = html;
