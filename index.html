@@ -926,7 +926,7 @@
                     <span style="font-size:10px;color:var(--text-secondary);" id="library-count-display">0 phụ đề</span>
                     <button class="btn-sm" onclick="renameCurrentVideo()" style="background:var(--blue);color:white;padding:4px 10px;font-size:10px;" title="Đổi tên phụ đề">✏️</button>
                     <button class="btn-sm" onclick="deleteCurrentVideo()" style="background:var(--accent);color:white;padding:4px 10px;font-size:10px;" title="Xóa phụ đề">🗑️</button>
-                    <button class="btn-sm" onclick="loadGistLibrary(true)" style="background:var(--green);color:black;padding:4px 10px;font-size:10px;" title="Làm mới">🔄</button>
+                    <button class="btn-sm" onclick="refreshLibrary()" style="background:var(--green);color:black;padding:4px 10px;font-size:10px;" title="Làm mới">🔄</button>
                 </div>
             </div>
             
@@ -1066,8 +1066,6 @@ let targetRepo = 'subtitle-ai';
 let workflowCheckInterval = null;
 let resetTimerInterval = null;
 let resetCountdown = 0;
-let libraryItems = [];
-let selectedLibraryIndex = -1;
 let isDeleting = false;
 let isRenaming = false;
 let youtubeUrl = '';
@@ -1194,20 +1192,19 @@ function similarityScore(query, title) {
 function findMatchingVideos(fileName) {
     const cleanName = cleanSearchQuery(fileName);
     const matches = [];
-    for (const item of libraryItems) {
-        let titleToMatch = item.title;
-        if (item.baseName && item.baseName !== item.title) {
-            const titleScore = similarityScore(cleanName, item.title);
-            const baseScore = similarityScore(cleanName, item.baseName);
-            const score = Math.max(titleScore, baseScore);
-            matches.push({ ...item, score: score, matchType: titleScore >= baseScore ? 'title' : 'baseName' });
-        } else {
-            const score = similarityScore(cleanName, item.title);
-            matches.push({ ...item, score: score, matchType: 'title' });
+    for (const item in gh_cloud_map) {
+        let titleToMatch = gh_cloud_map[item].title || item;
+        const score = similarityScore(cleanName, titleToMatch);
+        if (score >= 0.7) {
+            matches.push({
+                videoId: item,
+                title: titleToMatch,
+                score: score
+            });
         }
     }
     matches.sort((a, b) => b.score - a.score);
-    return matches.filter(m => m.score >= 0.7);
+    return matches;
 }
 
 // ============================================================
@@ -1227,59 +1224,57 @@ function showMatchDialog(matches, fileName, onContinue) {
                 <span class="name" title="${match.title}">${displayName}</span>
                 <span class="score">${scorePercent}%</span>
                 <div class="actions">
-                    <button class="btn-sm play-btn" onclick="playMatchVideo(${index})">▶️ Xem</button>
-                    <button class="btn-sm render-btn" onclick="renderMatchVideo(${index})">🔄 Render</button>
+                    <button class="btn-sm play-btn" onclick="playMatchVideo('${match.videoId}')">▶️ Xem</button>
+                    <button class="btn-sm render-btn" onclick="renderMatchVideo('${match.videoId}')">🔄 Render</button>
                 </div>
             </div>
         `;
     });
     list.innerHTML = html;
     dialog.classList.add('show');
-    matchResults = matches;
     matchDialogCallback = onContinue;
     pendingRenderFile = fileName;
 }
 
 function closeMatchDialog() {
     document.getElementById('match-dialog').classList.remove('show');
-    matchResults = [];
     matchDialogCallback = null;
 }
 
-function playMatchVideo(index) {
-    if (index < 0 || index >= matchResults.length) return;
-    const item = matchResults[index];
+function playMatchVideo(videoId) {
+    if (!videoId || !gh_cloud_map[videoId]) return;
     closeMatchDialog();
     switchTab('library');
     setTimeout(() => {
-        const idx = libraryItems.findIndex(i => i.gistId === item.gistId);
-        if (idx !== -1) selectLibraryItem(idx);
+        const select = document.getElementById('gist-select');
+        for (let i = 0; i < select.options.length; i++) {
+            const opt = select.options[i];
+            if (opt.value) {
+                try {
+                    const item = JSON.parse(opt.value);
+                    if (item.videoId === videoId) {
+                        select.selectedIndex = i;
+                        onGistSelected(opt.value);
+                        break;
+                    }
+                } catch(e) {}
+            }
+        }
     }, 300);
 }
 
-function renderMatchVideo(index) {
-    if (index < 0 || index >= matchResults.length) return;
-    const item = matchResults[index];
+function renderMatchVideo(videoId) {
+    if (!videoId || !gh_cloud_map[videoId]) return;
     closeMatchDialog();
-    showToast(`🔄 Đang xử lý lại: ${item.title}`, 'info');
-    continueRenderWithVideo(item.videoId, pendingRenderFile);
+    showToast(`🔄 Đang xử lý lại: ${gh_cloud_map[videoId].title}`, 'info');
+    pendingVideoId = videoId;
+    currentVideoId = videoId;
+    performRender(pendingRenderFile || videoId);
 }
 
 function continueRender() {
     closeMatchDialog();
     if (pendingRenderFile) performRender(pendingRenderFile);
-}
-
-function continueRenderWithVideo(videoId, fileName) {
-    if (videoId && fileName) {
-        pendingVideoId = videoId;
-        currentVideoId = videoId;
-        document.getElementById('upload-vid-display').textContent = videoId;
-        document.getElementById('upload-id-hint').style.display = 'block';
-        showToast(`✅ Sử dụng Video ID: ${videoId}`, 'success');
-        log(`📌 Sử dụng Video ID từ video đã chọn: ${videoId}`, 'info');
-        performRender(fileName);
-    }
 }
 
 // ============================================================
@@ -1482,20 +1477,92 @@ async function deleteCurrentVideo() {
     isDeleting = false;
 }
 
-// ============================================================
-// CÁC HÀM KHÁC
-// ============================================================
+async function renameCurrentVideo() {
+    if (!currentGistItem) {
+        showToast('⚠️ Vui lòng chọn phụ đề cần đổi tên!', 'warning');
+        return;
+    }
+    if (isRenaming) return;
+    
+    const oldTitle = currentGistItem.title;
+    const newTitle = prompt('✏️ Nhập tên mới cho phụ đề:', oldTitle);
+    
+    if (newTitle === null) return;
+    if (!newTitle || newTitle.trim() === '') {
+        showToast('⚠️ Tên không được để trống!', 'warning');
+        return;
+    }
+    if (newTitle.trim() === oldTitle) {
+        showToast('ℹ️ Tên không thay đổi', 'info');
+        return;
+    }
+    
+    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+    if (!token) {
+        showToast('⚠️ Vui lòng nhập GitHub Token trong Settings!', 'error');
+        return;
+    }
+    
+    isRenaming = true;
+    showToast(`⏳ Đang đổi tên...`, 'info');
+    
+    try {
+        let vid = currentGistItem.videoId;
+        let found = false;
+        
+        for (let page = 1; page <= 10; page++) {
+            let res = await fetch(`https://api.github.com/gists?page=${page}&per_page=100`, {
+                headers: { "Authorization": `token ${token}` }
+            });
+            if (!res.ok) break;
+            let gists = await res.json();
+            if (!gists || !gists.length) break;
+            for (let g of gists) {
+                if (g.files && g.files[`${vid}.vtt`]) {
+                    await fetch(`https://api.github.com/gists/${g.id}`, {
+                        method: 'PATCH',
+                        headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
+                        body: JSON.stringify({ description: `Pinyin AI Subtitle - ${newTitle.trim()}` })
+                    });
+                    found = true;
+                    break;
+                }
+            }
+            if (found) break;
+        }
+        
+        if (found) {
+            gh_cloud_map[vid].title = newTitle.trim();
+            localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
+            currentGistItem.title = newTitle.trim();
+            loadGistLibrary(false);
+            document.getElementById('library-status').textContent = `✏️ Đã đổi tên: ${newTitle.trim()}`;
+            showToast(`✅ Đã đổi tên thành: ${newTitle.trim()}`, 'success');
+            log(`✏️ Đã đổi tên phụ đề: ${oldTitle} → ${newTitle.trim()}`, 'ok');
+        } else {
+            showToast('❌ Không tìm thấy Gist để đổi tên!', 'error');
+        }
+    } catch (e) {
+        showToast(`❌ Lỗi: ${e.message}`, 'error');
+        log(`❌ Lỗi đổi tên: ${e.message}`, 'err');
+    }
+    
+    isRenaming = false;
+}
+
+function refreshLibrary() {
+    loadGistLibrary(true);
+}
+
 function playSelectedVideo() {
     if (currentGistItem) {
         loadVideoFromGist(currentGistItem, true);
         return;
     }
-    if (libraryItems.length > 0) {
-        const select = document.getElementById('gist-select');
-        if (select.options.length > 1) {
-            select.selectedIndex = 1;
-            onGistSelected(select.value);
-        }
+    const select = document.getElementById('gist-select');
+    if (select.options.length > 1) {
+        select.selectedIndex = 1;
+        onGistSelected(select.value);
         return;
     }
     showToast('📭 Chưa có phụ đề nào trong thư viện!', 'warning');
@@ -1748,7 +1815,7 @@ function togglePlayPause() {
     if (!player || !player.getPlayerState) {
         if (currentVideoId) loadPlayer(currentVideoId, true);
         else if (currentGistItem) loadVideoFromGist(currentGistItem, true);
-        else if (libraryItems.length > 0) playSelectedVideo();
+        else if (document.getElementById('gist-select').options.length > 1) playSelectedVideo();
         else showToast('📭 Chưa có video nào để phát!', 'warning');
         return;
     }
@@ -2081,8 +2148,8 @@ async function executeProcessSmartDrive() {
     const vid = pendingVideoId || currentVideoId;
     if (!vid) { showToast('⚠️ Chưa có Video ID!', 'warning'); return; }
     
-    const existing = libraryItems.find(item => item.videoId === vid);
-    if (existing) {
+    // Kiểm tra video đã tồn tại
+    if (gh_cloud_map[vid]) {
         log(`✅ Video ${vid} đã có trong kho!`, 'ok');
         showToast(`✅ Video ${vid} đã có trong kho!`, 'success');
         switchTab('library');
@@ -2376,82 +2443,6 @@ function checkPendingProcessing() {
             break;
         }
     }
-}
-
-// ============================================================
-// RENAME CURRENT VIDEO
-// ============================================================
-async function renameCurrentVideo() {
-    if (!currentGistItem) {
-        showToast('⚠️ Vui lòng chọn phụ đề cần đổi tên!', 'warning');
-        return;
-    }
-    if (isRenaming) return;
-    
-    const oldTitle = currentGistItem.title;
-    const newTitle = prompt('✏️ Nhập tên mới cho phụ đề:', oldTitle);
-    
-    if (newTitle === null) return;
-    if (!newTitle || newTitle.trim() === '') {
-        showToast('⚠️ Tên không được để trống!', 'warning');
-        return;
-    }
-    if (newTitle.trim() === oldTitle) {
-        showToast('ℹ️ Tên không thay đổi', 'info');
-        return;
-    }
-    
-    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    if (!token) {
-        showToast('⚠️ Vui lòng nhập GitHub Token trong Settings!', 'error');
-        return;
-    }
-    
-    isRenaming = true;
-    showToast(`⏳ Đang đổi tên...`, 'info');
-    
-    try {
-        let vid = currentGistItem.videoId;
-        let found = false;
-        
-        for (let page = 1; page <= 10; page++) {
-            let res = await fetch(`https://api.github.com/gists?page=${page}&per_page=100`, {
-                headers: { "Authorization": `token ${token}` }
-            });
-            if (!res.ok) break;
-            let gists = await res.json();
-            if (!gists || !gists.length) break;
-            for (let g of gists) {
-                if (g.files && g.files[`${vid}.vtt`]) {
-                    await fetch(`https://api.github.com/gists/${g.id}`, {
-                        method: 'PATCH',
-                        headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
-                        body: JSON.stringify({ description: `Pinyin AI Subtitle - ${newTitle.trim()}` })
-                    });
-                    found = true;
-                    break;
-                }
-            }
-            if (found) break;
-        }
-        
-        if (found) {
-            gh_cloud_map[vid].title = newTitle.trim();
-            localStorage.setItem('gh_cloud_map', JSON.stringify(gh_cloud_map));
-            currentGistItem.title = newTitle.trim();
-            loadGistLibrary(false);
-            document.getElementById('library-status').textContent = `✏️ Đã đổi tên: ${newTitle.trim()}`;
-            showToast(`✅ Đã đổi tên thành: ${newTitle.trim()}`, 'success');
-            log(`✏️ Đã đổi tên phụ đề: ${oldTitle} → ${newTitle.trim()}`, 'ok');
-        } else {
-            showToast('❌ Không tìm thấy Gist để đổi tên!', 'error');
-        }
-    } catch (e) {
-        showToast(`❌ Lỗi: ${e.message}`, 'error');
-        log(`❌ Lỗi đổi tên: ${e.message}`, 'err');
-    }
-    
-    isRenaming = false;
 }
 
 // ============================================================
