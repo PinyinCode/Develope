@@ -79,6 +79,21 @@
         }
         
         /* ============================================================
+           HIDE MODE - ẨN TẤT CẢ TRỪ PLAYER, SUBTITLE VÀ CONTROLS
+           ============================================================ */
+        .hide-mode .hideable:not(.player-section):not(.subtitle-section):not(.controls-section) {
+            display: none !important;
+        }
+        
+        .hide-mode .subtitle-section {
+            display: block !important;
+        }
+        
+        .player-section, .subtitle-section, .controls-section {
+            transition: all 0.3s ease;
+        }
+        
+        /* ============================================================
            UTILITY
            ============================================================ */
         .hidden { display: none !important; }
@@ -1024,25 +1039,29 @@
 
     <!-- TAB 1: UPLOAD -->
     <div class="tab-content hideable" id="content-upload">
-        <!-- PLAYER UPLOAD -->
-        <div class="card" style="padding:12px 14px;">
-            <span class="player-label">🎬 Upload Preview</span>
-            <div class="player-container hidden" id="upload-player-wrapper">
-                <div class="player-iframe" id="upload-player"></div>
-            </div>
-            <div class="player-status" id="upload-player-status">
-                <span class="icon">💡</span>
-                <span class="info">Nhập link YouTube để xem trước</span>
+        <!-- PLAYER UPLOAD - player-section -->
+        <div class="player-section">
+            <div class="card" style="padding:12px 14px;">
+                <span class="player-label">🎬 Upload Preview</span>
+                <div class="player-container hidden" id="upload-player-wrapper">
+                    <div class="player-iframe" id="upload-player"></div>
+                </div>
+                <div class="player-status" id="upload-player-status">
+                    <span class="icon">💡</span>
+                    <span class="info">Nhập link YouTube để xem trước</span>
+                </div>
             </div>
         </div>
         
-        <!-- SUBTITLE UPLOAD -->
-        <div class="subtitle-box" id="upload-subtitle-box">
-            <span class="label">📝 Upload Subtitles</span>
-            <span class="empty">Chưa có phụ đề</span>
+        <!-- SUBTITLE UPLOAD - subtitle-section (KHÔNG BỊ ẨN) -->
+        <div class="subtitle-section">
+            <div class="subtitle-box" id="upload-subtitle-box">
+                <span class="label">📝 Upload Subtitles</span>
+                <span class="empty">Chưa có phụ đề</span>
+            </div>
         </div>
         
-        <div class="card">
+        <div class="card hideable">
             <span class="card-label">Upload Audio</span>
             
             <!-- YouTube URL -->
@@ -1114,7 +1133,7 @@
                 </button>
             </div>
             
-            <!-- Drive Upload - ĐÃ BỎ NÚT PROCESS -->
+            <!-- Drive Upload -->
             <div id="upload-method-drive">
                 <div style="margin-top:4px;">
                     <div style="font-size:11px;color:var(--text-secondary);margin-bottom:3px;">Drive Link</div>
@@ -1178,25 +1197,29 @@
 
     <!-- TAB 2: LIBRARY -->
     <div class="tab-content active hideable" id="content-library">
-        <!-- PLAYER LIBRARY -->
-        <div class="card" style="padding:12px 14px;">
-            <span class="player-label">🎬 Library Player</span>
-            <div class="player-container hidden" id="library-player-wrapper">
-                <div class="player-iframe" id="library-player"></div>
-            </div>
-            <div class="player-status" id="library-player-status">
-                <span class="icon">⏳</span>
-                <span>Chọn phụ đề trong Library để phát</span>
+        <!-- PLAYER LIBRARY - player-section -->
+        <div class="player-section">
+            <div class="card" style="padding:12px 14px;">
+                <span class="player-label">🎬 Library Player</span>
+                <div class="player-container hidden" id="library-player-wrapper">
+                    <div class="player-iframe" id="library-player"></div>
+                </div>
+                <div class="player-status" id="library-player-status">
+                    <span class="icon">⏳</span>
+                    <span>Chọn phụ đề trong Library để phát</span>
+                </div>
             </div>
         </div>
         
-        <!-- SUBTITLE LIBRARY -->
-        <div class="subtitle-box" id="library-subtitle-box">
-            <span class="label">📝 Library Subtitles</span>
-            <span class="empty">Chọn phụ đề để xem</span>
+        <!-- SUBTITLE LIBRARY - subtitle-section (KHÔNG BỊ ẨN) -->
+        <div class="subtitle-section">
+            <div class="subtitle-box" id="library-subtitle-box">
+                <span class="label">📝 Library Subtitles</span>
+                <span class="empty">Chọn phụ đề để xem</span>
+            </div>
         </div>
         
-        <div class="card">
+        <div class="card hideable">
             <div class="flex-between" style="margin-bottom:8px;">
                 <span class="card-label" style="margin-bottom:0;">Subtitle Library</span>
                 <div class="flex gap-1">
@@ -1226,50 +1249,54 @@
         </div>
     </div>
 
-    <!-- CONTROLS (cho Library Player) -->
-    <div class="card" id="timeline-card">
-        <div class="flex gap-2" style="align-items:center;">
-            <input type="range" id="time-slider" value="0" min="0" max="100" step="0.1" 
-                   oninput="onSliderSeek(this.value)" onchange="onSliderChange(this.value)">
-            <span id="time-display">00:00 / 00:00</span>
+    <!-- CONTROLS SECTION - controls-section (KHÔNG BỊ ẨN) -->
+    <div class="controls-section">
+        <!-- TIMELINE -->
+        <div class="card" id="timeline-card">
+            <div class="flex gap-2" style="align-items:center;">
+                <input type="range" id="time-slider" value="0" min="0" max="100" step="0.1" 
+                       oninput="onSliderSeek(this.value)" onchange="onSliderChange(this.value)">
+                <span id="time-display">00:00 / 00:00</span>
+            </div>
         </div>
-    </div>
 
-    <div class="card">
-        <div class="controls-row">
-            <div class="btn-icon-group">
-                <button class="btn-icon" id="btn-play-pause" onclick="togglePlayPause()">▶</button>
-                <button class="btn-icon" onclick="toggleVideoVisibility()">⊞</button>
-                <button class="btn-sm" onclick="cyclePlaybackRate()" id="btn-speed" style="min-width:36px;font-size:10px;">1.0x</button>
-                <button class="btn-icon" id="btn-loop" onclick="toggleLoop()">↺</button>
+        <!-- CONTROLS -->
+        <div class="card">
+            <div class="controls-row">
+                <div class="btn-icon-group">
+                    <button class="btn-icon" id="btn-play-pause" onclick="togglePlayPause()">▶</button>
+                    <button class="btn-icon" onclick="toggleVideoVisibility()">⊞</button>
+                    <button class="btn-sm" onclick="cyclePlaybackRate()" id="btn-speed" style="min-width:36px;font-size:10px;">1.0x</button>
+                    <button class="btn-icon" id="btn-loop" onclick="toggleLoop()">↺</button>
+                </div>
+                
+                <span class="spacer"></span>
+                
+                <div class="btn-icon-group">
+                    <button class="btn-icon" onclick="toggleSubSettings()" title="Font size">Aa</button>
+                    <button class="btn-icon" id="btn-toggle-settings" onclick="toggleFullSettings()" title="Settings">⚙</button>
+                    <button class="btn-icon" id="btn-toggle-hide" onclick="toggleHideMode()" title="Hide/Show">👁</button>
+                </div>
+                
+                <span class="status-text" id="status-text">Ready</span>
             </div>
             
-            <span class="spacer"></span>
-            
-            <div class="btn-icon-group">
-                <button class="btn-icon" onclick="toggleSubSettings()" title="Font size">Aa</button>
-                <button class="btn-icon" id="btn-toggle-settings" onclick="toggleFullSettings()" title="Settings">⚙</button>
-                <button class="btn-icon" id="btn-toggle-hide" onclick="toggleHideMode()" title="Hide/Show">👁</button>
-            </div>
-            
-            <span class="status-text" id="status-text">Ready</span>
-        </div>
-        
-        <div id="sub-settings-panel" style="display:none;">
-            <div class="setting-row">
-                <label>Chinese</label>
-                <input type="range" min="14" max="36" value="20" oninput="updateFont('cn',this.value)">
-                <span id="val-cn">20</span>
-            </div>
-            <div class="setting-row">
-                <label>Pinyin</label>
-                <input type="range" min="12" max="28" value="16" oninput="updateFont('py',this.value)">
-                <span id="val-py">16</span>
-            </div>
-            <div class="setting-row">
-                <label>Vietnamese</label>
-                <input type="range" min="10" max="24" value="14" oninput="updateFont('vi',this.value)">
-                <span id="val-vi">14</span>
+            <div id="sub-settings-panel" style="display:none;">
+                <div class="setting-row">
+                    <label>Chinese</label>
+                    <input type="range" min="14" max="36" value="20" oninput="updateFont('cn',this.value)">
+                    <span id="val-cn">20</span>
+                </div>
+                <div class="setting-row">
+                    <label>Pinyin</label>
+                    <input type="range" min="12" max="28" value="16" oninput="updateFont('py',this.value)">
+                    <span id="val-py">16</span>
+                </div>
+                <div class="setting-row">
+                    <label>Vietnamese</label>
+                    <input type="range" min="10" max="24" value="14" oninput="updateFont('vi',this.value)">
+                    <span id="val-vi">14</span>
+                </div>
             </div>
         </div>
     </div>
@@ -1310,7 +1337,36 @@
 
 <script>
 // ============================================================
-// STATE
+// TOGGLE HIDE MODE - SỬA LẠI (GIỮ PLAYER, SUBTITLE, CONTROLS)
+// ============================================================
+function toggleHideMode() {
+    isHideMode = !isHideMode;
+    const btn = document.getElementById('btn-toggle-hide');
+    const container = document.querySelector('.container');
+    
+    if (isHideMode) {
+        container.classList.add('hide-mode');
+        btn.innerHTML = '👁';
+        btn.style.background = 'rgba(255,255,255,0.15)';
+        btn.style.borderColor = 'var(--accent-green)';
+        btn.style.color = 'var(--accent-green)';
+        btn.title = 'Show all';
+        log('👁 Ẩn giao diện, chỉ hiển thị Player, Subtitle & Controls', 'info');
+        showToast('👁 Chế độ xem phim', 'info');
+    } else {
+        container.classList.remove('hide-mode');
+        btn.innerHTML = '👁';
+        btn.style.background = 'rgba(255,45,85,0.15)';
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        btn.title = 'Hide/Show';
+        log('👁 Hiện lại toàn bộ giao diện', 'info');
+        showToast('👁 Hiện lại giao diện', 'info');
+    }
+}
+
+// ============================================================
+// STATE (giữ nguyên từ mã gốc)
 // ============================================================
 // === PLAYER LIBRARY ===
 let libraryPlayer, librarySubtitles=[], librarySyncInterval=null, libraryActiveSubIndex=-1;
@@ -1854,7 +1910,7 @@ function continueRenderWithVideo(videoId, fileName) {
 }
 
 // ============================================================
-// CONFIRM DIALOG - SỬA LẠI
+// CONFIRM DIALOG
 // ============================================================
 function showConfirmDialog(matches, fileName, onConfirm, onSkip) {
     const dialog = document.getElementById('confirm-dialog');
@@ -1910,20 +1966,17 @@ function confirmRender() {
 }
 
 // ============================================================
-// SKIP AND RENDER - QUAN TRỌNG: GỬI LỆNH SANG GITHUB
+// SKIP AND RENDER
 // ============================================================
 function skipAndRender() {
     console.log('⏭️ skipAndRender() called');
     console.log('📌 pendingRenderFile:', pendingRenderFile);
     
-    // Đóng dialog
     closeConfirmDialog();
     
-    // Hiển thị thông báo
     showToast('⏭️ Bỏ qua video, GitHub sẽ tự tìm kiếm theo tên file', 'info');
     log('⏭️ Người dùng chọn bỏ qua video, render với tên file', 'info');
     
-    // 👈 QUAN TRỌNG: GỌI performRender VỚI pendingRenderFile
     if (pendingRenderFile) {
         console.log('📤 Gọi performRender với file:', pendingRenderFile);
         performRender(pendingRenderFile);
@@ -1934,7 +1987,7 @@ function skipAndRender() {
 }
 
 // ============================================================
-// PERFORM RENDER - GỬI LỆNH SANG GITHUB
+// PERFORM RENDER
 // ============================================================
 async function performRender(fileName) {
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
@@ -1967,7 +2020,6 @@ async function performRender(fileName) {
     let videoId = pendingVideoId;
     let hasVideoId = false;
     
-    // Kiểm tra video_id hợp lệ
     if (videoId && videoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
         hasVideoId = true;
         log(`✅ Gửi Video ID từ link: ${videoId}`, 'id');
@@ -1978,7 +2030,6 @@ async function performRender(fileName) {
         showToast(`🔍 GitHub sẽ tìm kiếm video theo tên file`, 'info');
     }
     
-    // Tạo payload
     const payload = {
         event_type: 'new_drive_file',
         client_payload: {
@@ -2058,7 +2109,6 @@ async function renderFromFile() {
     
     const fileName = selectedFile.name;
     
-    // Lưu pendingRenderFile
     pendingRenderFile = fileName;
     
     console.log('📌 renderFromFile() called');
@@ -2066,7 +2116,6 @@ async function renderFromFile() {
     console.log('🎯 pendingVideoId:', pendingVideoId);
     console.log('💾 driveFileId:', driveFileId);
     
-    // Nếu có link YouTube, dùng ID
     if (pendingVideoId && pendingVideoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
         showToast(`✅ Dùng Video ID từ link: ${pendingVideoId}`, 'success');
         log(`📌 Render với Video ID từ link: ${pendingVideoId}`, 'id');
@@ -2074,14 +2123,12 @@ async function renderFromFile() {
         return;
     }
     
-    // Tìm video trong Library (≥70%)
     const matches = findMatchingVideos(fileName);
     if (matches.length > 0) {
         showMatchDialog(matches, fileName, () => performRender(fileName));
         return;
     }
     
-    // Tìm video khớp thấp
     const allMatches = [];
     const cleanName = cleanSearchQuery(fileName);
     for (const item of libraryItems) {
@@ -2097,7 +2144,6 @@ async function renderFromFile() {
         showConfirmDialog(
             lowMatches, 
             fileName,
-            // Callback: Render với video
             (bestMatch) => {
                 console.log('✅ User chọn render với video:', bestMatch.title);
                 pendingVideoId = bestMatch.videoId;
@@ -2112,7 +2158,6 @@ async function renderFromFile() {
                 `;
                 performRender(fileName);
             },
-            // Callback: Bỏ qua
             () => {
                 console.log('⏭️ User chọn bỏ qua, gọi performRender với file:', fileName);
                 performRender(fileName);
@@ -2121,7 +2166,6 @@ async function renderFromFile() {
         return;
     }
     
-    // Không có video nào -> render bình thường
     console.log('📤 Không có video nào, render bình thường');
     await performRender(fileName);
 }
@@ -2724,7 +2768,7 @@ function switchUploadMethod(method) {
 }
 
 // ============================================================
-// DRIVE FUNCTIONS (giữ nguyên)
+// DRIVE FUNCTIONS
 // ============================================================
 function extractDriveFileId(link) {
     if (!link) return null;
@@ -2967,21 +3011,6 @@ function handleFileSelect(file) {
 // ============================================================
 // UI FUNCTIONS
 // ============================================================
-function toggleHideMode() {
-    isHideMode = !isHideMode;
-    const btn = document.getElementById('btn-toggle-hide');
-    const hideables = document.querySelectorAll('.hideable');
-    if (isHideMode) {
-        hideables.forEach(el => el.classList.add('hidden'));
-        btn.innerHTML = '👁';
-        log('Hidden extra elements', 'info');
-    } else {
-        hideables.forEach(el => el.classList.remove('hidden'));
-        btn.innerHTML = '👁';
-        log('Show all elements', 'info');
-    }
-}
-
 function toggleFullSettings() {
     isSettingsVisible = !isSettingsVisible;
     const btn = document.getElementById('btn-toggle-settings');
@@ -2991,12 +3020,18 @@ function toggleFullSettings() {
         settingsGroup.classList.remove('hidden');
         logCard.classList.remove('hidden');
         btn.innerHTML = '⚙';
-        log('Settings & Log shown', 'info');
+        btn.style.background = 'rgba(10,132,255,0.15)';
+        btn.style.borderColor = 'var(--accent-blue)';
+        btn.style.color = 'var(--accent-blue)';
+        log('⚙ Settings & Log shown', 'info');
     } else {
         settingsGroup.classList.add('hidden');
         logCard.classList.add('hidden');
         btn.innerHTML = '⚙';
-        log('Settings & Log hidden', 'info');
+        btn.style.background = 'rgba(255,45,85,0.15)';
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        log('⚙ Settings & Log hidden', 'info');
     }
 }
 
@@ -3068,6 +3103,12 @@ function loadProcessingState() {
         if (processed) processedLinks = JSON.parse(processed);
     } catch (e) { processingQueue = {}; processedLinks = {}; }
 }
+
+function isVideoProcessing(videoId) { return processingQueue[videoId] === true; }
+function isVideoProcessed(videoId) { return processedLinks[videoId] === true; }
+function markVideoProcessing(videoId) { processingQueue[videoId] = true; saveProcessingState(); }
+function markVideoProcessed(videoId) { processingQueue[videoId] = false; processedLinks[videoId] = true; saveProcessingState(); }
+function clearVideoProcessing(videoId) { delete processingQueue[videoId]; saveProcessingState(); }
 
 // ============================================================
 // WINDOW LOAD
