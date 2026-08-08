@@ -791,8 +791,43 @@
         .match-dialog .dialog-actions .btn-sm { flex: 1; text-align: center; padding: 8px; }
         
         /* ============================================================
-           DRIVE / FOLDER
+           DRIVE / FOLDER - PHẦN ĐÃ CẬP NHẬT
            ============================================================ */
+        .drive-link-wrapper {
+            position: relative;
+            flex: 1;
+        }
+        .drive-link-wrapper input {
+            width: 100%;
+            padding-right: 70px;
+        }
+        .drive-link-wrapper .btn-clear-input {
+            right: 56px;
+        }
+        .drive-link-wrapper .btn-replace {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--accent-red);
+            border: none;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: none;
+            transition: all 0.2s;
+            font-family: var(--font);
+        }
+        .drive-link-wrapper .btn-replace:hover {
+            background: #e0352b;
+        }
+        .drive-link-wrapper .btn-replace:active {
+            transform: scale(0.95);
+        }
+        
         .drive-info-box {
             background: var(--bg-input);
             border: 0.5px solid var(--border-color);
@@ -895,6 +930,8 @@
             .file-upload-area { padding: 20px 12px; }
             .file-upload-area .icon { font-size: 24px; }
             #time-display { font-size: 9px; min-width: 56px; }
+            .drive-link-wrapper input { padding-right: 60px; }
+            .drive-link-wrapper .btn-replace { font-size: 9px; padding: 3px 6px; }
         }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -973,25 +1010,33 @@
                 </button>
             </div>
             
-            <!-- Drive Upload -->
+            <!-- Drive Upload - PHẦN ĐÃ CẬP NHẬT -->
             <div id="upload-method-drive">
                 <div style="margin-top:4px;">
                     <div style="font-size:11px;color:var(--text-secondary);margin-bottom:3px;">Drive Link</div>
                     <div class="flex gap-2">
-                        <div class="input-wrap">
-                            <input type="text" id="smart-drive-link" placeholder="Paste Drive file or folder link..." oninput="onSmartDriveInput()">
+                        <div class="drive-link-wrapper">
+                            <input type="text" id="smart-drive-link" 
+                                   placeholder="Paste Drive file or folder link..." 
+                                   oninput="onSmartDriveInput()">
                             <button class="btn-clear-input" id="btn-clear-smart" onclick="clearSmartInput()" style="display:none;">×</button>
+                            <button class="btn-replace" id="btn-replace-link" onclick="replaceDriveLink()" style="display:none;">
+                                ✕ Replace
+                            </button>
                         </div>
                         <button class="btn btn-primary" id="btn-drive-process" onclick="processSmartDrive()" disabled style="width:90px;font-size:12px;">
                             Process
                         </button>
+                    </div>
+                    <div style="font-size:9px;color:var(--text-tertiary);margin-top:2px;">
+                        💡 Saved folder will be replaced when pasting new link
                     </div>
                 </div>
                 
                 <div class="folder-area" id="folder-area">
                     <div class="saved-folder-info" id="saved-folder-info">
                         <span>📁 Folder: <span class="folder-name" id="saved-folder-id">---</span></span>
-                        <button class="btn-sm" onclick="clearSavedFolder()" style="padding:2px 8px;">✕</button>
+                        <button class="btn-sm" onclick="clearSavedFolder()" style="padding:2px 8px;">✕ Clear</button>
                     </div>
                     <div class="folder-select-area">
                         <div style="font-size:10px;color:var(--text-secondary);margin-bottom:2px;">Select audio file:</div>
@@ -1180,6 +1225,7 @@ let youtubeUrl = '';
 let pendingRenderFile = null;
 let matchResults = [];
 let matchDialogCallback = null;
+let savedDriveLink = '';
 
 const workflowSteps = [
     { id: 'checkout', name: 'Checkout code', icon: '📥' },
@@ -2064,7 +2110,7 @@ function forceResetWorkflow() {
 }
 
 // ============================================================
-// DRIVE FUNCTIONS
+// DRIVE FUNCTIONS - PHẦN ĐÃ CẬP NHẬT
 // ============================================================
 function extractDriveFileId(link) {
     if (!link) return null;
@@ -2087,19 +2133,64 @@ function extractDriveFolderId(link) {
     return null;
 }
 
+function saveDriveLink(link) {
+    savedDriveLink = link;
+    try {
+        localStorage.setItem('saved_drive_link', link);
+    } catch(e) {}
+}
+
+function loadSavedDriveLink() {
+    try {
+        const saved = localStorage.getItem('saved_drive_link');
+        if (saved) {
+            savedDriveLink = saved;
+            return saved;
+        }
+    } catch(e) {}
+    return null;
+}
+
+function restoreDriveLink() {
+    const saved = loadSavedDriveLink();
+    if (saved) {
+        document.getElementById('smart-drive-link').value = saved;
+        onSmartDriveInput();
+        showToast('Restored saved Drive link', 'info');
+        log('Restored saved Drive link', 'info');
+        return true;
+    }
+    return false;
+}
+
 function onSmartDriveInput() {
     const val = document.getElementById('smart-drive-link').value;
-    document.getElementById('btn-clear-smart').style.display = val ? 'block' : 'none';
+    const hasValue = val && val.trim().length > 0;
+    
+    // Hiển thị nút clear
+    document.getElementById('btn-clear-smart').style.display = hasValue ? 'block' : 'none';
+    
+    // Hiển thị nút replace nếu có link đã lưu và link hiện tại khác
+    const replaceBtn = document.getElementById('btn-replace-link');
+    if (savedDriveLink && savedDriveLink !== val && hasValue) {
+        replaceBtn.style.display = 'block';
+    } else {
+        replaceBtn.style.display = 'none';
+    }
+    
     document.getElementById('folder-area').style.display = 'none';
     document.getElementById('drive-info-box').style.display = 'none';
     document.getElementById('drive-info').innerHTML = '';
     currentSmartFileId = null;
     isFolderMode = false;
     document.getElementById('btn-drive-process').disabled = true;
-    if (!val) return;
+    
+    if (!hasValue) return;
+    
     const fileId = extractDriveFileId(val);
     const folderId = extractDriveFolderId(val);
     const hasApiKey = !!localStorage.google_api_key;
+    
     if (fileId) {
         currentSmartFileId = fileId;
         isFolderMode = false;
@@ -2108,6 +2199,8 @@ function onSmartDriveInput() {
         document.getElementById('drive-file-id').textContent = fileId;
         document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">File link detected</span>`;
         log(`File ID: ${fileId}`, 'info');
+        // Lưu link
+        saveDriveLink(val);
     } else if (folderId && hasApiKey) {
         isFolderMode = true;
         document.getElementById('btn-drive-process').disabled = true;
@@ -2119,6 +2212,8 @@ function onSmartDriveInput() {
         document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">📁 Folder: ${folderName}</span>`;
         log(`Folder ID: ${folderId}`, 'info');
         loadFilesFromFolder();
+        // Lưu link
+        saveDriveLink(val);
     } else if (folderId && !hasApiKey) {
         document.getElementById('btn-drive-process').disabled = true;
         document.getElementById('drive-info').innerHTML = `<span class="status-badge">Need API Key</span>`;
@@ -2129,15 +2224,35 @@ function onSmartDriveInput() {
     }
 }
 
+function replaceDriveLink() {
+    const currentVal = document.getElementById('smart-drive-link').value;
+    if (!currentVal || currentVal.trim().length === 0) return;
+    
+    if (!confirm('Replace saved Drive link with the new link?')) return;
+    
+    // Xóa link cũ và lưu link mới
+    savedDriveLink = '';
+    localStorage.removeItem('saved_drive_link');
+    saveDriveLink(currentVal);
+    
+    // Ẩn nút replace
+    document.getElementById('btn-replace-link').style.display = 'none';
+    
+    showToast('Drive link replaced!', 'success');
+    log(`Replaced Drive link with: ${currentVal}`, 'ok');
+}
+
 function clearSmartInput() {
     document.getElementById('smart-drive-link').value = '';
     document.getElementById('btn-clear-smart').style.display = 'none';
+    document.getElementById('btn-replace-link').style.display = 'none';
     document.getElementById('btn-drive-process').disabled = true;
     document.getElementById('drive-info-box').style.display = 'none';
     document.getElementById('drive-info').innerHTML = '';
     document.getElementById('folder-area').style.display = 'none';
     currentSmartFileId = null;
     isFolderMode = false;
+    // Không xóa link đã lưu, chỉ xóa input
 }
 
 async function loadFilesFromFolder() {
@@ -2191,16 +2306,19 @@ function clearSavedFolder() {
     if (!confirm(`Clear folder "${folderName}"?`)) return;
     localStorage.removeItem('drive_folder_id');
     localStorage.removeItem('drive_folder_name');
+    localStorage.removeItem('saved_drive_link');
+    savedDriveLink = '';
     document.getElementById('folder-area').style.display = 'none';
     document.getElementById('saved-folder-id').textContent = '';
     document.getElementById('folder-file-select').innerHTML = '<option value="">-- Select file --</option>';
     document.getElementById('smart-drive-link').value = '';
     document.getElementById('btn-clear-smart').style.display = 'none';
+    document.getElementById('btn-replace-link').style.display = 'none';
     document.getElementById('btn-drive-process').disabled = true;
     document.getElementById('drive-info').innerHTML = '';
     document.getElementById('drive-info-box').style.display = 'none';
-    log('Cleared Drive folder', 'info');
-    showToast('Folder cleared', 'success');
+    log('Cleared Drive folder and saved link', 'info');
+    showToast('Folder and saved link cleared', 'success');
 }
 
 function onFolderFileSelect() {
@@ -2485,6 +2603,11 @@ function onYouTubeIframeAPIReady() {
     initWorkflowLog();
     const apiKey = localStorage.google_api_key || '';
     updateDriveUI(!!apiKey);
+    
+    // Khôi phục link Drive đã lưu
+    setTimeout(() => {
+        restoreDriveLink();
+    }, 500);
 }
 
 function checkPendingProcessing() {
