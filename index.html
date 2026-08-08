@@ -89,6 +89,13 @@
             display: block !important;
         }
         
+        /* Đảm bảo Settings và Log bị ẩn */
+        .hide-mode #settings-group,
+        .hide-mode #log-card,
+        .hide-mode .settings-group {
+            display: none !important;
+        }
+        
         .player-section, .subtitle-section, .controls-section {
             transition: all 0.3s ease;
         }
@@ -1025,13 +1032,13 @@
     <!-- TOAST -->
     <div class="toast" id="toast"></div>
     
-    <!-- HEADER -->
+    <!-- HEADER - bị ẩn khi bật hide mode -->
     <div class="app-header hideable" id="header">
         <div class="logo">Pinyin AI</div>
         <div class="sub">Subtitle Downloader</div>
     </div>
 
-    <!-- TABS -->
+    <!-- TABS - bị ẩn khi bật hide mode -->
     <div class="tab-group hideable" id="tab-group">
         <button class="tab-btn" onclick="switchTab('upload')" id="tab-upload">Upload</button>
         <button class="tab-btn active" onclick="switchTab('library')" id="tab-library">Library</button>
@@ -1039,7 +1046,7 @@
 
     <!-- TAB 1: UPLOAD -->
     <div class="tab-content hideable" id="content-upload">
-        <!-- PLAYER UPLOAD - player-section -->
+        <!-- PLAYER UPLOAD - KHÔNG BỊ ẨN -->
         <div class="player-section">
             <div class="card" style="padding:12px 14px;">
                 <span class="player-label">🎬 Upload Preview</span>
@@ -1053,7 +1060,7 @@
             </div>
         </div>
         
-        <!-- SUBTITLE UPLOAD - subtitle-section (KHÔNG BỊ ẨN) -->
+        <!-- SUBTITLE UPLOAD - KHÔNG BỊ ẨN -->
         <div class="subtitle-section">
             <div class="subtitle-box" id="upload-subtitle-box">
                 <span class="label">📝 Upload Subtitles</span>
@@ -1061,143 +1068,146 @@
             </div>
         </div>
         
-        <div class="card hideable">
-            <span class="card-label">Upload Audio</span>
-            
-            <!-- YouTube URL -->
-            <div style="margin-bottom: 8px;">
-                <span class="yt-url-label">YouTube URL</span>
-                <div class="flex gap-2">
-                    <div class="yt-url-wrapper">
-                        <input type="text" id="yt-url-input" 
-                               placeholder="Paste YouTube link or Video ID..." 
-                               oninput="onYtUrlInput()">
-                        <button class="btn-clear-input" id="btn-clear-yt-url" onclick="clearYtUrl()">×</button>
-                    </div>
-                </div>
-                <div class="yt-url-hint" id="yt-url-hint">
-                    💡 Để trống → GitHub tự tìm kiếm • Nhập link → dùng ID cụ thể
-                </div>
-            </div>
-            
-            <!-- Video ID Display -->
-            <div class="upload-id-hint" id="upload-id-hint">
-                🎯 Video: <span class="id-value" id="upload-vid-display">---</span>
-                <span style="display:block;font-size:10px;color:var(--text-secondary);margin-top:2px;" id="upload-vid-status">
-                    ⏳ Chưa có video ID
-                </span>
-            </div>
-            
-            <!-- MATCH DIALOG -->
-            <div class="match-dialog" id="match-dialog">
-                <button class="close-btn" onclick="closeMatchDialog()">×</button>
-                <div class="title">🔍 Duplicate <span class="highlight">≥70%</span></div>
-                <div class="subtitle" id="match-subtitle">Searching for matching videos...</div>
-                <div id="match-list"></div>
-                <div class="dialog-actions">
-                    <button class="btn-sm btn-success" onclick="continueRender()">Continue</button>
-                    <button class="btn-sm" onclick="closeMatchDialog()">Cancel</button>
-                </div>
-            </div>
-            
-            <!-- CONFIRM DIALOG -->
-            <div class="match-dialog" id="confirm-dialog">
-                <button class="close-btn" onclick="closeConfirmDialog()">×</button>
-                <div class="title" style="color: var(--accent-blue);">🔍 Không tìm thấy video khớp (≥70%)</div>
-                <div class="subtitle" id="confirm-subtitle">Đang tìm kiếm video phù hợp...</div>
-                <div id="confirm-list"></div>
-                <div class="dialog-actions">
-                    <button class="btn-sm btn-success" onclick="confirmRender()">🚀 Render với video này</button>
-                    <button class="btn-sm" onclick="skipAndRender()" style="background:var(--accent-orange);color:white;border-color:var(--accent-orange);">⏭️ Bỏ qua, render với tên file</button>
-                    <button class="btn-sm" onclick="closeConfirmDialog()">❌ Hủy</button>
-                </div>
-            </div>
-            
-            <!-- Method Toggle -->
-            <div class="method-toggle">
-                <button class="btn-sm" onclick="switchUploadMethod('direct')" id="method-direct-btn">Direct</button>
-                <button class="btn-sm active" onclick="switchUploadMethod('drive')" id="method-drive-btn">Drive</button>
-            </div>
-            
-            <!-- Direct Upload -->
-            <div id="upload-method-direct" style="display:none;">
-                <div class="file-upload-area" id="drop-area" onclick="document.getElementById('file-input').click()">
-                    <span class="icon">📁</span>
-                    <div class="text">Drag & drop audio or tap to select</div>
-                    <div class="filename" id="file-name">No file selected</div>
-                    <input type="file" id="file-input" accept=".m4a,.mp3,.webm" onchange="handleFileSelect(this.files[0])">
-                </div>
-                <div class="badge-group" id="file-info"></div>
-                <button class="btn btn-primary" id="btn-upload" onclick="uploadToGitHub()" disabled style="width:100%;margin-top:6px;">
-                    Upload to GitHub
-                </button>
-            </div>
-            
-            <!-- Drive Upload -->
-            <div id="upload-method-drive">
-                <div style="margin-top:4px;">
-                    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:3px;">Drive Link</div>
+        <!-- Phần còn lại của Upload - bị ẩn khi bật hide mode -->
+        <div class="hideable">
+            <div class="card">
+                <span class="card-label">Upload Audio</span>
+                
+                <!-- YouTube URL -->
+                <div style="margin-bottom: 8px;">
+                    <span class="yt-url-label">YouTube URL</span>
                     <div class="flex gap-2">
-                        <div class="drive-link-wrapper">
-                            <input type="text" id="smart-drive-link" 
-                                   placeholder="Paste Drive file or folder link..." 
-                                   oninput="onSmartDriveInput()">
-                            <button class="btn-clear-input" id="btn-clear-smart" onclick="clearSmartInput()" style="display:none;">×</button>
-                            <button class="btn-replace" id="btn-replace-link" onclick="replaceDriveLink()" style="display:none;">
-                                ✕ Replace
-                            </button>
+                        <div class="yt-url-wrapper">
+                            <input type="text" id="yt-url-input" 
+                                   placeholder="Paste YouTube link or Video ID..." 
+                                   oninput="onYtUrlInput()">
+                            <button class="btn-clear-input" id="btn-clear-yt-url" onclick="clearYtUrl()">×</button>
                         </div>
                     </div>
-                    <div style="font-size:9px;color:var(--text-tertiary);margin-top:2px;">
-                        💡 Dán link file hoặc folder Google Drive
+                    <div class="yt-url-hint" id="yt-url-hint">
+                        💡 Để trống → GitHub tự tìm kiếm • Nhập link → dùng ID cụ thể
                     </div>
                 </div>
                 
-                <div class="folder-area" id="folder-area">
-                    <div class="saved-folder-info" id="saved-folder-info">
-                        <span>📁 Folder: <span class="folder-name" id="saved-folder-id">---</span></span>
-                        <button class="btn-sm" onclick="clearSavedFolder()" style="padding:2px 8px;color:var(--accent-red);border-color:var(--accent-red);">✕ Clear</button>
-                    </div>
-                    <div class="folder-select-area">
-                        <div style="font-size:10px;color:var(--text-secondary);margin-bottom:2px;">Chọn file audio:</div>
-                        <div class="flex gap-2">
-                            <select id="folder-file-select" onchange="onFolderFileSelect()">
-                                <option value="">-- Chọn file --</option>
-                            </select>
-                            <button class="btn-sm" onclick="refreshFolderFiles()" style="padding:8px 12px;background:var(--accent-blue);color:white;border-color:var(--accent-blue);">
-                                🔄
-                            </button>
-                        </div>
+                <!-- Video ID Display -->
+                <div class="upload-id-hint" id="upload-id-hint">
+                    🎯 Video: <span class="id-value" id="upload-vid-display">---</span>
+                    <span style="display:block;font-size:10px;color:var(--text-secondary);margin-top:2px;" id="upload-vid-status">
+                        ⏳ Chưa có video ID
+                    </span>
+                </div>
+                
+                <!-- MATCH DIALOG -->
+                <div class="match-dialog" id="match-dialog">
+                    <button class="close-btn" onclick="closeMatchDialog()">×</button>
+                    <div class="title">🔍 Duplicate <span class="highlight">≥70%</span></div>
+                    <div class="subtitle" id="match-subtitle">Searching for matching videos...</div>
+                    <div id="match-list"></div>
+                    <div class="dialog-actions">
+                        <button class="btn-sm btn-success" onclick="continueRender()">Continue</button>
+                        <button class="btn-sm" onclick="closeMatchDialog()">Cancel</button>
                     </div>
                 </div>
                 
-                <!-- Render Button -->
-                <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
-                    <button class="render-btn" id="btn-render" onclick="renderFromFile()" style="flex:1;">
-                        🚀 Render từ file
+                <!-- CONFIRM DIALOG -->
+                <div class="match-dialog" id="confirm-dialog">
+                    <button class="close-btn" onclick="closeConfirmDialog()">×</button>
+                    <div class="title" style="color: var(--accent-blue);">🔍 Không tìm thấy video khớp (≥70%)</div>
+                    <div class="subtitle" id="confirm-subtitle">Đang tìm kiếm video phù hợp...</div>
+                    <div id="confirm-list"></div>
+                    <div class="dialog-actions">
+                        <button class="btn-sm btn-success" onclick="confirmRender()">🚀 Render với video này</button>
+                        <button class="btn-sm" onclick="skipAndRender()" style="background:var(--accent-orange);color:white;border-color:var(--accent-orange);">⏭️ Bỏ qua, render với tên file</button>
+                        <button class="btn-sm" onclick="closeConfirmDialog()">❌ Hủy</button>
+                    </div>
+                </div>
+                
+                <!-- Method Toggle -->
+                <div class="method-toggle">
+                    <button class="btn-sm" onclick="switchUploadMethod('direct')" id="method-direct-btn">Direct</button>
+                    <button class="btn-sm active" onclick="switchUploadMethod('drive')" id="method-drive-btn">Drive</button>
+                </div>
+                
+                <!-- Direct Upload -->
+                <div id="upload-method-direct" style="display:none;">
+                    <div class="file-upload-area" id="drop-area" onclick="document.getElementById('file-input').click()">
+                        <span class="icon">📁</span>
+                        <div class="text">Drag & drop audio or tap to select</div>
+                        <div class="filename" id="file-name">No file selected</div>
+                        <input type="file" id="file-input" accept=".m4a,.mp3,.webm" onchange="handleFileSelect(this.files[0])">
+                    </div>
+                    <div class="badge-group" id="file-info"></div>
+                    <button class="btn btn-primary" id="btn-upload" onclick="uploadToGitHub()" disabled style="width:100%;margin-top:6px;">
+                        Upload to GitHub
                     </button>
-                    <span style="font-size:9px;color:var(--text-tertiary);white-space:nowrap;">→ GitHub</span>
                 </div>
                 
-                <!-- Drive Info -->
-                <div class="drive-info-box" id="drive-info-box">
-                    📌 File ID: <span class="highlight" id="drive-file-id">---</span>
+                <!-- Drive Upload -->
+                <div id="upload-method-drive">
+                    <div style="margin-top:4px;">
+                        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:3px;">Drive Link</div>
+                        <div class="flex gap-2">
+                            <div class="drive-link-wrapper">
+                                <input type="text" id="smart-drive-link" 
+                                       placeholder="Paste Drive file or folder link..." 
+                                       oninput="onSmartDriveInput()">
+                                <button class="btn-clear-input" id="btn-clear-smart" onclick="clearSmartInput()" style="display:none;">×</button>
+                                <button class="btn-replace" id="btn-replace-link" onclick="replaceDriveLink()" style="display:none;">
+                                    ✕ Replace
+                                </button>
+                            </div>
+                        </div>
+                        <div style="font-size:9px;color:var(--text-tertiary);margin-top:2px;">
+                            💡 Dán link file hoặc folder Google Drive
+                        </div>
+                    </div>
+                    
+                    <div class="folder-area" id="folder-area">
+                        <div class="saved-folder-info" id="saved-folder-info">
+                            <span>📁 Folder: <span class="folder-name" id="saved-folder-id">---</span></span>
+                            <button class="btn-sm" onclick="clearSavedFolder()" style="padding:2px 8px;color:var(--accent-red);border-color:var(--accent-red);">✕ Clear</button>
+                        </div>
+                        <div class="folder-select-area">
+                            <div style="font-size:10px;color:var(--text-secondary);margin-bottom:2px;">Chọn file audio:</div>
+                            <div class="flex gap-2">
+                                <select id="folder-file-select" onchange="onFolderFileSelect()">
+                                    <option value="">-- Chọn file --</option>
+                                </select>
+                                <button class="btn-sm" onclick="refreshFolderFiles()" style="padding:8px 12px;background:var(--accent-blue);color:white;border-color:var(--accent-blue);">
+                                    🔄
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Render Button -->
+                    <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
+                        <button class="render-btn" id="btn-render" onclick="renderFromFile()" style="flex:1;">
+                            🚀 Render từ file
+                        </button>
+                        <span style="font-size:9px;color:var(--text-tertiary);white-space:nowrap;">→ GitHub</span>
+                    </div>
+                    
+                    <!-- Drive Info -->
+                    <div class="drive-info-box" id="drive-info-box">
+                        📌 File ID: <span class="highlight" id="drive-file-id">---</span>
+                    </div>
+                    <div class="badge-group" id="drive-info"></div>
                 </div>
-                <div class="badge-group" id="drive-info"></div>
-            </div>
-            
-            <!-- Progress -->
-            <div class="progress-wrap"><div class="progress-bar" id="pb-upload"></div></div>
-            <div class="progress-info">
-                <span id="pb-upload-text">Select method to start</span>
-                <span class="speed" id="pb-upload-speed">--</span>
+                
+                <!-- Progress -->
+                <div class="progress-wrap"><div class="progress-bar" id="pb-upload"></div></div>
+                <div class="progress-info">
+                    <span id="pb-upload-text">Select method to start</span>
+                    <span class="speed" id="pb-upload-speed">--</span>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- TAB 2: LIBRARY -->
     <div class="tab-content active hideable" id="content-library">
-        <!-- PLAYER LIBRARY - player-section -->
+        <!-- PLAYER LIBRARY - KHÔNG BỊ ẨN -->
         <div class="player-section">
             <div class="card" style="padding:12px 14px;">
                 <span class="player-label">🎬 Library Player</span>
@@ -1211,7 +1221,7 @@
             </div>
         </div>
         
-        <!-- SUBTITLE LIBRARY - subtitle-section (KHÔNG BỊ ẨN) -->
+        <!-- SUBTITLE LIBRARY - KHÔNG BỊ ẨN -->
         <div class="subtitle-section">
             <div class="subtitle-box" id="library-subtitle-box">
                 <span class="label">📝 Library Subtitles</span>
@@ -1219,37 +1229,40 @@
             </div>
         </div>
         
-        <div class="card hideable">
-            <div class="flex-between" style="margin-bottom:8px;">
-                <span class="card-label" style="margin-bottom:0;">Subtitle Library</span>
-                <div class="flex gap-1">
-                    <button class="btn-sm" onclick="renameCurrentVideo()" title="Rename">✏️</button>
-                    <button class="btn-sm" onclick="refreshLibrary()" title="Refresh">↻</button>
+        <!-- Phần còn lại của Library - bị ẩn khi bật hide mode -->
+        <div class="hideable">
+            <div class="card">
+                <div class="flex-between" style="margin-bottom:8px;">
+                    <span class="card-label" style="margin-bottom:0;">Subtitle Library</span>
+                    <div class="flex gap-1">
+                        <button class="btn-sm" onclick="renameCurrentVideo()" title="Rename">✏️</button>
+                        <button class="btn-sm" onclick="refreshLibrary()" title="Refresh">↻</button>
+                    </div>
                 </div>
+                
+                <div class="library-select-wrap">
+                    <select id="library-dropdown" onchange="onLibraryDropdownChange()">
+                        <option value="">-- Select subtitle --</option>
+                    </select>
+                </div>
+                
+                <div class="library-info">
+                    <span class="title" id="selected-title">No subtitle selected</span>
+                    <span class="vid" id="selected-video-id">---</span>
+                </div>
+                
+                <div class="flex gap-1" style="margin-top:8px;flex-wrap:wrap;">
+                    <button class="btn-sm" onclick="copyYouTubeLink()" style="flex:1;min-width:60px;">Copy Link</button>
+                    <button class="btn-sm" onclick="openYouTubeLink()" style="flex:1;min-width:60px;">Open</button>
+                    <button class="btn-sm btn-danger" onclick="deleteSelectedVideo()" style="flex:1;min-width:60px;">Delete</button>
+                </div>
+                
+                <p style="font-size:10px;color:var(--text-secondary);margin-top:6px;text-align:center;" id="library-status">Ready</p>
             </div>
-            
-            <div class="library-select-wrap">
-                <select id="library-dropdown" onchange="onLibraryDropdownChange()">
-                    <option value="">-- Select subtitle --</option>
-                </select>
-            </div>
-            
-            <div class="library-info">
-                <span class="title" id="selected-title">No subtitle selected</span>
-                <span class="vid" id="selected-video-id">---</span>
-            </div>
-            
-            <div class="flex gap-1" style="margin-top:8px;flex-wrap:wrap;">
-                <button class="btn-sm" onclick="copyYouTubeLink()" style="flex:1;min-width:60px;">Copy Link</button>
-                <button class="btn-sm" onclick="openYouTubeLink()" style="flex:1;min-width:60px;">Open</button>
-                <button class="btn-sm btn-danger" onclick="deleteSelectedVideo()" style="flex:1;min-width:60px;">Delete</button>
-            </div>
-            
-            <p style="font-size:10px;color:var(--text-secondary);margin-top:6px;text-align:center;" id="library-status">Ready</p>
         </div>
     </div>
 
-    <!-- CONTROLS SECTION - controls-section (KHÔNG BỊ ẨN) -->
+    <!-- CONTROLS SECTION - KHÔNG BỊ ẨN -->
     <div class="controls-section">
         <!-- TIMELINE -->
         <div class="card" id="timeline-card">
@@ -1301,7 +1314,7 @@
         </div>
     </div>
 
-    <!-- SETTINGS -->
+    <!-- SETTINGS - bị ẩn khi bật hide mode -->
     <div class="settings-group hidden" id="settings-group">
         <div class="card card-solid">
             <span class="card-label">GitHub Settings</span>
@@ -1328,7 +1341,7 @@
         <div class="settings-footer"><span class="version">v1.0</span></div>
     </div>
 
-    <!-- LOG -->
+    <!-- LOG - bị ẩn khi bật hide mode -->
     <div class="card hideable hidden" id="log-card">
         <span class="card-label">Log</span>
         <div id="logBox">Ready</div>
@@ -1337,7 +1350,7 @@
 
 <script>
 // ============================================================
-// TOGGLE HIDE MODE - SỬA LẠI (GIỮ PLAYER, SUBTITLE, CONTROLS)
+// TOGGLE HIDE MODE - GIỮ PLAYER, SUBTITLE, CONTROLS
 // ============================================================
 function toggleHideMode() {
     isHideMode = !isHideMode;
@@ -1366,8 +1379,9 @@ function toggleHideMode() {
 }
 
 // ============================================================
-// STATE (giữ nguyên từ mã gốc)
+// PHẦN JAVASCRIPT CÒN LẠI
 // ============================================================
+
 // === PLAYER LIBRARY ===
 let libraryPlayer, librarySubtitles=[], librarySyncInterval=null, libraryActiveSubIndex=-1;
 let libraryVideoId = null;
