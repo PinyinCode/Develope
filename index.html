@@ -1916,9 +1916,6 @@ function continueRenderWithVideo(videoId, fileName) {
 }
 
 // ============================================================
-// CONFIRM DIALOG
-// ============================================================
-// ============================================================
 // CONFIRM DIALOG - SỬA LẠI HOÀN TOÀN
 // ============================================================
 let confirmResults = [];
@@ -1930,10 +1927,16 @@ function showConfirmDialog(matches, fileName, onConfirm, onSkip) {
     const list = document.getElementById('confirm-list');
     const subtitle = document.getElementById('confirm-subtitle');
     
-    // Lưu callbacks
+    // 👈 LƯU CALLBACKS VÀ KẾT QUẢ
+    confirmResults = matches;
     confirmCallback = onConfirm;
     confirmSkipCallback = onSkip;
     pendingRenderFile = fileName;
+    
+    console.log('📌 showConfirmDialog called');
+    console.log('📌 matches:', matches.length);
+    console.log('📌 confirmCallback:', typeof confirmCallback);
+    console.log('📌 confirmSkipCallback:', typeof confirmSkipCallback);
     
     if (matches.length === 0) {
         subtitle.textContent = `📄 "${fileName}" • Không tìm thấy video nào`;
@@ -1972,16 +1975,21 @@ function showConfirmDialog(matches, fileName, onConfirm, onSkip) {
     }
     
     dialog.classList.add('show');
-    console.log('✅ Dialog shown, callback set');
+    console.log('✅ Dialog shown');
 }
 
 function closeConfirmDialog() {
-    document.getElementById('confirm-dialog').classList.remove('show');
-    // KHÔNG reset callback ở đây
+    const dialog = document.getElementById('confirm-dialog');
+    dialog.classList.remove('show');
+    console.log('✅ Dialog closed');
 }
 
 function playConfirmVideo(index) {
-    if (index < 0 || index >= confirmResults.length) return;
+    console.log('▶️ playConfirmVideo called, index:', index);
+    if (index < 0 || index >= confirmResults.length) {
+        console.error('❌ Index out of range:', index);
+        return;
+    }
     const item = confirmResults[index];
     closeConfirmDialog();
     switchTab('library');
@@ -1993,6 +2001,9 @@ function playConfirmVideo(index) {
 
 function confirmRender() {
     console.log('✅ confirmRender() called');
+    console.log('📌 confirmCallback:', typeof confirmCallback);
+    console.log('📌 confirmResults:', confirmResults.length);
+    
     if (confirmCallback && confirmResults.length > 0) {
         const bestMatch = confirmResults[0];
         closeConfirmDialog();
@@ -2018,7 +2029,6 @@ function skipAndRender() {
         log('⏭️ Người dùng chọn bỏ qua video, render với tên file', 'info');
         confirmSkipCallback();
     } else if (pendingRenderFile) {
-        // 👈 FALLBACK: Nếu callback bị lỗi, gọi trực tiếp performRender
         console.log('⚠️ callback bị lỗi, gọi trực tiếp performRender');
         showToast('⏭️ Bỏ qua video, GitHub sẽ tự tìm kiếm theo tên file', 'info');
         performRender(pendingRenderFile);
