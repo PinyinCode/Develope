@@ -1555,6 +1555,9 @@ function continueRenderWithVideo(videoId, fileName) {
 // ============================================================
 // PERFORM RENDER - CÓ GỬI VIDEO_ID NẾU CÓ
 // ============================================================
+// ============================================================
+// PERFORM RENDER - CÓ GỬI VIDEO_ID NẾU CÓ
+// ============================================================
 async function performRender(fileName) {
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
     const user = targetUser;
@@ -1565,43 +1568,53 @@ async function performRender(fileName) {
     if (selectedFile && selectedFile.isDriveFile && selectedFile.driveFileId) driveFileId = selectedFile.driveFileId;
     if (!driveFileId) { showToast('Drive File ID not found!', 'error'); return; }
     
-    // Xác định video_id: ưu tiên từ link YouTube (pendingVideoId)
+    // 👈 XÁC ĐỊNH VIDEO_ID
     let videoId = pendingVideoId;
+    let hasVideoId = false;
     
-    // Nếu không có link, dùng tên file
-    if (!videoId) {
-        videoId = fileName;
-        log(`🔍 Không có link YouTube, GitHub sẽ tìm kiếm theo tên: "${fileName}"`, 'info');
-        showToast(`🔍 GitHub sẽ tìm kiếm video theo tên file`, 'info');
-    } else {
-        log(`✅ Gửi Video ID từ link: ${videoId} (GitHub KHÔNG tìm kiếm)`, 'id');
+    // 👈 KIỂM TRA VIDEO_ID HỢP LỆ
+    if (videoId && videoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
+        hasVideoId = true;
+        log(`✅ Gửi Video ID từ link: ${videoId}`, 'id');
         showToast(`✅ Dùng Video ID: ${videoId}`, 'success');
+    } else {
+        videoId = '';
+        log(`🔍 Không có link YouTube, GitHub sẽ tự tìm kiếm`, 'info');
+        showToast(`🔍 GitHub sẽ tìm kiếm video theo tên file`, 'info');
     }
     
-    try {
-        const payload = {
-            event_type: 'new_drive_file',
-            client_payload: {
-                file_name: fileName,
-                drive_file_id: driveFileId
-            }
-        };
-        
-        // Nếu có video_id, gửi vào payload
-        if (videoId && videoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
-            payload.client_payload.video_id = videoId;
+    // 👈 TẠO PAYLOAD ĐẦY ĐỦ
+    const payload = {
+        event_type: 'new_drive_file',
+        client_payload: {
+            file_name: fileName,
+            drive_file_id: driveFileId,
+            video_id: videoId,           // 👈 GỬI VIDEO_ID (rỗng nếu không có)
+            has_video_id: hasVideoId,    // 👈 QUAN TRỌNG: true/false
+            search_by_name: !hasVideoId,
+            timestamp: new Date().toISOString()
         }
-        
+    };
+    
+    console.log('📦 Payload:', payload);
+    
+    try {
         const response = await fetch(`https://api.github.com/repos/${user}/${repo}/dispatches`, {
             method: 'POST',
-            headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+            headers: { 
+                'Authorization': `token ${token}`, 
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+            },
             body: JSON.stringify(payload)
         });
         
         if (response.ok) {
-            const msg = videoId ? `✅ Sent: ${fileName} (ID: ${videoId})` : `✅ Sent: ${fileName} (auto-search)`;
+            const msg = hasVideoId ? 
+                `✅ Sent: ${fileName} (ID: ${videoId})` : 
+                `✅ Sent: ${fileName} (auto-search)`;
             showToast(msg, 'success');
-            log(`Triggered workflow: ${fileName} ${videoId ? `(ID: ${videoId})` : '(auto-search)'}`, 'ok');
+            log(`Triggered workflow: ${fileName} ${hasVideoId ? `(ID: ${videoId})` : '(auto-search)'}`, 'ok');
             document.getElementById('library-status').textContent = `Processing ${fileName}...`;
             document.getElementById('drive-info').innerHTML = `<span class="status-badge processing">Sent</span>`;
             setTimeout(() => { switchTab('library'); refreshLibrary(); }, 2000);
@@ -1617,7 +1630,6 @@ async function performRender(fileName) {
         document.getElementById('drive-info').innerHTML = `<span class="status-badge error">Error</span>`;
     }
 }
-
 // ============================================================
 // RENDER FROM FILE
 // ============================================================
@@ -1631,6 +1643,28 @@ async function renderFromFile() {
     
     const fileName = selectedFile.name;
     
+    // 👈 HIỂN THỊ TRẠNG THÁI VIDEO_ID
+    const statusEl = document.getElementById('upload-vid-status');
+    if (pendingVideoId && pendingVideoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
+        statusEl.innerHTML = `
+            ✅ Video ID: <span class="id-found">${pendingVideoId}</span>
+            <span style="color:var(--accent-green);display:block;font-size:9px;margin-top:2px;">
+                ✅ Sẽ gửi ID này lên GitHub (KHÔNG tìm kiếm)
+            </span>
+        `;
+        showToast(`✅ Dùng Video ID từ link: ${pendingVideoId}`, 'success');
+        log(`📌 Render với Video ID từ link: ${pendingVideoId}`, 'id');
+    } else {
+        statusEl.innerHTML = `
+            🔍 <span class="id-search">Sẽ tìm kiếm theo tên file</span>
+            <span style="color:var(--accent-orange);display:block;font-size:9px;margin-top:2px;">
+                🔍 GitHub sẽ TÌM KIẾM video trên YouTube
+            </span>
+        `;
+        showToast(`🔍 GitHub sẽ tự tìm video theo tên file`, 'info');
+        log(`🔍 Không có link, GitHub sẽ tự tìm kiếm`, 'info');
+    }
+    
     // Kiểm tra trùng lặp
     const matches = findMatchingVideos(fileName);
     if (matches.length > 0) {
@@ -1638,18 +1672,8 @@ async function renderFromFile() {
         return;
     }
     
-    // Nếu có link YouTube, hiển thị thông báo
-    if (pendingVideoId) {
-        showToast(`✅ Dùng Video ID từ link: ${pendingVideoId}`, 'success');
-        log(`📌 Render với Video ID từ link: ${pendingVideoId}`, 'id');
-    } else {
-        showToast(`🔍 GitHub sẽ tự tìm video theo tên file`, 'info');
-        log(`🔍 Không có link, GitHub sẽ tự tìm kiếm`, 'info');
-    }
-    
     await performRender(fileName);
 }
-
 // ============================================================
 // EXTRACT VIDEO ID
 // ============================================================
