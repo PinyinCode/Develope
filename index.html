@@ -2106,68 +2106,96 @@ async function performRender(fileName) {
 // RENDER FROM FILE
 // ============================================================
 async function renderFromFile() {
-    if (!selectedFile) { showToast('Select audio file first!', 'warning'); return; }
+    if (!selectedFile) { 
+        showToast('⚠️ Vui lòng chọn file audio trước!', 'warning'); 
+        return; 
+    }
+    
     let driveFileId = currentSmartFileId;
-    if (selectedFile.isDriveFile && selectedFile.driveFileId) driveFileId = selectedFile.driveFileId;
-    if (!driveFileId) { showToast('Select file from Google Drive!', 'warning'); return; }
+    if (selectedFile.isDriveFile && selectedFile.driveFileId) {
+        driveFileId = selectedFile.driveFileId;
+    }
+    
+    if (!driveFileId) { 
+        showToast('⚠️ Không tìm thấy Drive File ID!', 'error'); 
+        return; 
+    }
+    
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    if (!token) { showToast('Enter GitHub Token in Settings!', 'error'); return; }
+    if (!token) { 
+        showToast('⚠️ Nhập GitHub Token trong Settings!', 'error'); 
+        return; 
+    }
     
     const fileName = selectedFile.name;
     
-    const statusEl = document.getElementById('upload-vid-status');
+    // 👈 QUAN TRỌNG: LƯU pendingRenderFile NGAY TỪ ĐẦU
+    pendingRenderFile = fileName;
+    
+    console.log('📌 renderFromFile() called');
+    console.log('📁 fileName:', fileName);
+    console.log('🎯 pendingVideoId:', pendingVideoId);
+    console.log('💾 driveFileId:', driveFileId);
+    
+    // Nếu có link YouTube, dùng ID
     if (pendingVideoId && pendingVideoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
-        statusEl.innerHTML = `✅ Video ID: <span class="id-found">${pendingVideoId}</span><span style="color:var(--accent-green);display:block;font-size:9px;margin-top:2px;">✅ Sẽ gửi ID này lên GitHub (KHÔNG tìm kiếm)</span>`;
         showToast(`✅ Dùng Video ID từ link: ${pendingVideoId}`, 'success');
         log(`📌 Render với Video ID từ link: ${pendingVideoId}`, 'id');
         await performRender(fileName);
         return;
     }
     
+    // Tìm video trong Library (≥70%)
     const matches = findMatchingVideos(fileName);
     if (matches.length > 0) {
         showMatchDialog(matches, fileName, () => performRender(fileName));
         return;
     }
     
+    // Tìm video khớp thấp
     const allMatches = [];
     const cleanName = cleanSearchQuery(fileName);
     for (const item of libraryItems) {
-        let titleToMatch = item.title;
-        if (item.baseName && item.baseName !== item.title) {
-            const titleScore = similarityScore(cleanName, item.title);
-            const baseScore = similarityScore(cleanName, item.baseName);
-            const score = Math.max(titleScore, baseScore);
-            allMatches.push({ ...item, score, matchType: titleScore >= baseScore ? 'title' : 'baseName' });
-        } else {
-            const score = similarityScore(cleanName, item.title);
-            allMatches.push({ ...item, score, matchType: 'title' });
+        const score = similarityScore(cleanName, item.title);
+        if (score > 0.1) {
+            allMatches.push({ ...item, score });
         }
     }
     allMatches.sort((a, b) => b.score - a.score);
     const lowMatches = allMatches.filter(m => m.score > 0.1);
     
     if (lowMatches.length > 0) {
-        showConfirmDialog(lowMatches, fileName,
+        showConfirmDialog(
+            lowMatches, 
+            fileName,
+            // Callback: Render với video
             (bestMatch) => {
+                console.log('✅ User chọn render với video:', bestMatch.title);
                 pendingVideoId = bestMatch.videoId;
                 currentVideoId = bestMatch.videoId;
                 document.getElementById('upload-vid-display').textContent = bestMatch.videoId;
                 document.getElementById('upload-id-hint').style.display = 'block';
-                document.getElementById('upload-vid-status').innerHTML = `✅ Dùng video: <span class="id-found">${bestMatch.title}</span><span style="display:block;font-size:10px;color:var(--text-secondary);margin-top:2px;">🎯 Độ khớp: ${Math.round(bestMatch.score * 100)}% • ID: ${bestMatch.videoId}</span>`;
+                document.getElementById('upload-vid-status').innerHTML = `
+                    ✅ Dùng video: <span class="id-found">${bestMatch.title}</span>
+                    <span style="display:block;font-size:10px;color:var(--text-secondary);margin-top:2px;">
+                        🎯 Độ khớp: ${Math.round(bestMatch.score * 100)}% • ID: ${bestMatch.videoId}
+                    </span>
+                `;
                 performRender(fileName);
             },
-            () => performRender(fileName)
+            // Callback: Bỏ qua
+            () => {
+                console.log('⏭️ User chọn bỏ qua, gọi performRender với file:', fileName);
+                performRender(fileName);
+            }
         );
         return;
     }
     
-    statusEl.innerHTML = `🔍 <span class="id-search">Sẽ tìm kiếm theo tên file</span><span style="color:var(--accent-orange);display:block;font-size:9px;margin-top:2px;">🔍 GitHub sẽ TÌM KIẾM video trên YouTube</span>`;
-    showToast(`📤 Đang gửi yêu cầu xử lý: ${fileName}...`, 'info');
-    log(`📤 Không có video nào, GitHub sẽ tự tìm kiếm: ${fileName}`, 'info');
+    // Không có video nào -> render bình thường
+    console.log('📤 Không có video nào, render bình thường');
     await performRender(fileName);
 }
-
 // ============================================================
 // LOAD LIBRARY
 // ============================================================
