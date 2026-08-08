@@ -127,6 +127,100 @@
         }
         
         /* ============================================================
+           PLAYER CONTAINERS
+           ============================================================ */
+        .player-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            background: #000;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            border: 0.5px solid var(--border-color);
+        }
+        .player-container.hidden { display: none; }
+        .player-container .player-iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .player-label {
+            font-size: 9px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            display: block;
+        }
+        
+        .player-status {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-top: 4px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-input);
+            border: 0.5px solid var(--border-color);
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .player-status .icon { font-size: 14px; }
+        .player-status .highlight { color: var(--accent-teal); font-weight: 500; }
+        .player-status .warning { color: var(--accent-orange); font-weight: 500; }
+        .player-status .error { color: var(--accent-red); font-weight: 500; }
+        .player-status .success { color: var(--accent-green); font-weight: 500; }
+        .player-status .info { color: var(--accent-blue); font-weight: 500; }
+        .player-status .sub { font-size: 9px; color: var(--text-tertiary); }
+        
+        /* ============================================================
+           SUBTITLE BOXES
+           ============================================================ */
+        .subtitle-box {
+            background: var(--bg-card);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 0.5px solid var(--border-color);
+            padding: 18px 16px;
+            border-radius: var(--radius-lg);
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            text-align: center;
+        }
+        .subtitle-box .label {
+            font-size: 8px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+        .subtitle-box .cn { font-size: var(--fs-cn); font-weight: 700; color: var(--text-primary); line-height: 1.3; }
+        .subtitle-box .py { font-size: var(--fs-py); color: var(--text-secondary); letter-spacing: 0.5px; }
+        .subtitle-box .vi {
+            font-size: var(--fs-vi);
+            color: var(--accent-teal);
+            border-top: 0.5px solid var(--border-color);
+            padding-top: 6px;
+            width: 80%;
+        }
+        .subtitle-box .empty {
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        /* ============================================================
            CARDS
            ============================================================ */
         .card {
@@ -359,22 +453,26 @@
         .btn-icon-group .btn-icon { min-width: 32px; height: 32px; font-size: 14px; padding: 4px 6px; }
         .btn-icon-group .btn-sm { padding: 4px 10px; font-size: 10px; }
         
+        /* ============================================================
+           RENDER BUTTON - NỔI BẬT
+           ============================================================ */
         .render-btn {
             background: var(--accent-green);
             border: none;
             color: #fff;
-            padding: 10px 16px;
+            padding: 12px 20px;
             border-radius: var(--radius-sm);
             font-weight: 600;
-            font-size: 13px;
+            font-size: 14px;
             cursor: pointer;
             transition: all 0.2s;
             flex: 1;
             font-family: var(--font);
+            letter-spacing: 0.3px;
         }
-        .render-btn:hover { background: #2db84e; }
+        .render-btn:hover { background: #2db84e; transform: scale(1.01); }
         .render-btn:active { transform: scale(0.97); }
-        .render-btn:disabled { opacity: 0.4; pointer-events: none; }
+        .render-btn:disabled { opacity: 0.4; pointer-events: none; transform: none; }
         
         /* ============================================================
            FILE UPLOAD
@@ -444,58 +542,11 @@
         .status-badge.purple { background: var(--accent-purple-light); color: var(--accent-purple); border-color: var(--accent-purple); }
         .status-badge.hint { background: var(--bg-tertiary); color: var(--text-secondary); }
         .status-badge.id-found { background: var(--accent-green-light); color: var(--accent-green); border-color: var(--accent-green); }
+        .status-badge.matched { background: var(--accent-orange-light); color: var(--accent-orange); border-color: var(--accent-orange); }
+        .status-badge.no-match { background: var(--bg-tertiary); color: var(--text-tertiary); border-color: var(--border-color); }
         
         /* ============================================================
-           PLAYER
-           ============================================================ */
-        .player-wrap {
-            position: relative;
-            width: 100%;
-            padding-bottom: 56.25%;
-            background: #000;
-            border-radius: var(--radius-md);
-            overflow: hidden;
-            border: 0.5px solid var(--border-color);
-        }
-        .player-wrap.hidden { display: none; }
-        #player {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-        
-        /* ============================================================
-           SUBTITLE BOX
-           ============================================================ */
-        #subtitle-box {
-            background: var(--bg-card);
-            backdrop-filter: blur(40px);
-            -webkit-backdrop-filter: blur(40px);
-            border: 0.5px solid var(--border-color);
-            padding: 22px 16px;
-            border-radius: var(--radius-lg);
-            min-height: 90px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 6px;
-            text-align: center;
-        }
-        .cn { font-size: var(--fs-cn); font-weight: 700; color: var(--text-primary); line-height: 1.3; }
-        .py { font-size: var(--fs-py); color: var(--text-secondary); letter-spacing: 0.5px; }
-        .vi {
-            font-size: var(--fs-vi);
-            color: var(--accent-teal);
-            border-top: 0.5px solid var(--border-color);
-            padding-top: 8px;
-            width: 80%;
-        }
-        
-        /* ============================================================
-           TIMELINE
+           TIMELINE (cho Library Player)
            ============================================================ */
         #timeline-card { padding: 8px 14px; }
         #time-slider {
@@ -537,7 +588,7 @@
         }
         
         /* ============================================================
-           CONTROLS
+           CONTROLS (cho Library Player)
            ============================================================ */
         .controls-row {
             display: flex;
@@ -793,7 +844,17 @@
         .match-dialog .dialog-actions .btn-sm { flex: 1; text-align: center; padding: 8px; }
         
         /* ============================================================
-           DRIVE / FOLDER
+           CONFIRM DIALOG
+           ============================================================ */
+        #confirm-dialog {
+            border-color: var(--accent-blue) !important;
+        }
+        #confirm-dialog .title {
+            color: var(--accent-blue) !important;
+        }
+        
+        /* ============================================================
+           DRIVE / FOLDER - GIAO DIỆN ĐÃ SẮP XẾP LẠI
            ============================================================ */
         .drive-link-wrapper {
             position: relative;
@@ -801,14 +862,35 @@
         }
         .drive-link-wrapper input {
             width: 100%;
-            padding-right: 70px;
+            padding: 12px 14px;
+            padding-right: 40px;
+            background: var(--bg-input);
+            border: 0.5px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: var(--font);
+            outline: none;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .drive-link-wrapper input:focus {
+            border-color: var(--accent-blue);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 0 3px var(--accent-blue-light);
+        }
+        .drive-link-wrapper input::placeholder {
+            color: var(--text-tertiary);
+            font-size: 13px;
         }
         .drive-link-wrapper .btn-clear-input {
-            right: 56px;
+            right: 10px;
         }
+        
         .drive-link-wrapper .btn-replace {
             position: absolute;
-            right: 8px;
+            right: 10px;
             top: 50%;
             transform: translateY(-50%);
             background: var(--accent-red);
@@ -816,12 +898,13 @@
             color: #fff;
             font-size: 10px;
             font-weight: 600;
-            padding: 4px 8px;
+            padding: 4px 10px;
             border-radius: 4px;
             cursor: pointer;
             display: none;
             transition: all 0.2s;
             font-family: var(--font);
+            z-index: 2;
         }
         .drive-link-wrapper .btn-replace:hover {
             background: #e0352b;
@@ -842,7 +925,7 @@
         }
         .drive-info-box .highlight { color: var(--accent-blue); font-weight: 500; }
         
-        .folder-area { margin-top: 6px; display: none; }
+        .folder-area { margin-top: 8px; display: none; }
         .folder-area .saved-folder-info {
             background: var(--bg-input);
             border: 0.5px solid var(--border-color);
@@ -855,10 +938,32 @@
             justify-content: space-between;
             flex-wrap: wrap;
             gap: 4px;
+            margin-bottom: 6px;
         }
         .folder-area .saved-folder-info .folder-name { color: var(--text-primary); font-weight: 500; }
-        .folder-area .folder-select-area { margin-top: 6px; }
-        .folder-area .folder-select-area select { flex: 1; padding: 10px 12px; font-size: 13px; }
+        .folder-area .folder-select-area { margin-top: 4px; }
+        .folder-area .folder-select-area select { 
+            flex: 1; 
+            padding: 10px 12px; 
+            font-size: 13px;
+            background: var(--bg-input);
+            border: 0.5px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%238e8e93" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+        .folder-area .folder-select-area select:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px var(--accent-blue-light);
+        }
+        .folder-area .folder-select-area .flex { gap: 6px; }
+        .folder-area .folder-select-area .btn-sm { padding: 8px 12px; }
         
         .upload-id-hint {
             background: var(--accent-blue-light);
@@ -922,13 +1027,26 @@
         .yt-url-hint .id-search { color: var(--accent-orange); font-weight: 600; }
         
         /* ============================================================
+           DRIVE LINK HINT
+           ============================================================ */
+        .drive-hint {
+            font-size: 9px;
+            color: var(--text-tertiary);
+            margin-top: 3px;
+        }
+        .drive-hint .highlight { color: var(--accent-teal); }
+        
+        /* ============================================================
            RESPONSIVE
            ============================================================ */
         @media (max-width: 480px) {
             body { padding: 10px 8px; }
             .container { gap: 10px; }
             .card { padding: 12px 14px; border-radius: var(--radius-md); }
-            #subtitle-box { padding: 16px 12px; min-height: 70px; border-radius: var(--radius-md); }
+            .subtitle-box { padding: 14px 12px; min-height: 60px; }
+            .subtitle-box .cn { font-size: calc(var(--fs-cn) - 4px); }
+            .subtitle-box .py { font-size: calc(var(--fs-py) - 2px); }
+            .subtitle-box .vi { font-size: calc(var(--fs-vi) - 1px); }
             .controls-row .btn-icon { min-width: 28px; height: 28px; font-size: 12px; padding: 3px 5px; }
             .btn { padding: 8px 12px; font-size: 12px; }
             .app-header .logo { font-size: 22px; }
@@ -937,8 +1055,12 @@
             .file-upload-area { padding: 20px 12px; }
             .file-upload-area .icon { font-size: 24px; }
             #time-display { font-size: 9px; min-width: 56px; }
-            .drive-link-wrapper input { padding-right: 60px; }
-            .drive-link-wrapper .btn-replace { font-size: 9px; padding: 3px 6px; }
+            .drive-link-wrapper input { padding: 10px 12px; font-size: 13px; }
+            .drive-link-wrapper .btn-replace { font-size: 9px; padding: 3px 8px; }
+            .player-status { font-size: 9px; padding: 6px 10px; min-height: 30px; }
+            .player-status .sub { font-size: 8px; }
+            .render-btn { font-size: 13px; padding: 10px 16px; }
+            .folder-area .folder-select-area select { font-size: 12px; padding: 8px 10px; }
         }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -962,6 +1084,24 @@
 
     <!-- TAB 1: UPLOAD -->
     <div class="tab-content hideable" id="content-upload">
+        <!-- PLAYER UPLOAD -->
+        <div class="card" style="padding:12px 14px;">
+            <span class="player-label">🎬 Upload Preview</span>
+            <div class="player-container hidden" id="upload-player-wrapper">
+                <div class="player-iframe" id="upload-player"></div>
+            </div>
+            <div class="player-status" id="upload-player-status">
+                <span class="icon">💡</span>
+                <span class="info">Nhập link YouTube để xem trước</span>
+            </div>
+        </div>
+        
+        <!-- SUBTITLE UPLOAD -->
+        <div class="subtitle-box" id="upload-subtitle-box">
+            <span class="label">📝 Upload Subtitles</span>
+            <span class="empty">Chưa có phụ đề</span>
+        </div>
+        
         <div class="card">
             <span class="card-label">Upload Audio</span>
             
@@ -1001,6 +1141,19 @@
                 </div>
             </div>
             
+            <!-- CONFIRM DIALOG -->
+            <div class="match-dialog" id="confirm-dialog">
+                <button class="close-btn" onclick="closeConfirmDialog()">×</button>
+                <div class="title" style="color: var(--accent-blue);">🔍 Không tìm thấy video khớp (≥70%)</div>
+                <div class="subtitle" id="confirm-subtitle">Đang tìm kiếm video phù hợp...</div>
+                <div id="confirm-list"></div>
+                <div class="dialog-actions">
+                    <button class="btn-sm btn-success" onclick="confirmRender()">🚀 Render với video này</button>
+                    <button class="btn-sm" onclick="skipAndRender()" style="background:var(--accent-orange);color:white;border-color:var(--accent-orange);">⏭️ Bỏ qua, render với tên file</button>
+                    <button class="btn-sm" onclick="closeConfirmDialog()">❌ Hủy</button>
+                </div>
+            </div>
+            
             <!-- Method Toggle -->
             <div class="method-toggle">
                 <button class="btn-sm" onclick="switchUploadMethod('direct')" id="method-direct-btn">Direct</button>
@@ -1021,10 +1174,11 @@
                 </button>
             </div>
             
-            <!-- Drive Upload -->
+            <!-- Drive Upload - ĐÃ SẮP XẾP LẠI -->
             <div id="upload-method-drive">
-                <div style="margin-top:4px;">
-                    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:3px;">Drive Link</div>
+                <!-- Drive Link Input -->
+                <div style="margin-bottom:4px;">
+                    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:3px;">🔗 Drive Link</div>
                     <div class="flex gap-2">
                         <div class="drive-link-wrapper">
                             <input type="text" id="smart-drive-link" 
@@ -1035,44 +1189,47 @@
                                 ✕ Replace
                             </button>
                         </div>
-                        <button class="btn btn-primary" id="btn-drive-process" onclick="processSmartDrive()" disabled style="width:90px;font-size:12px;">
-                            Process
-                        </button>
                     </div>
-                    <div style="font-size:9px;color:var(--text-tertiary);margin-top:2px;">
-                        💡 Saved folder will be replaced when pasting new link
+                    <div class="drive-hint">
+                        💡 Dán link file hoặc folder Google Drive
                     </div>
                 </div>
                 
+                <!-- Folder Selection -->
                 <div class="folder-area" id="folder-area">
                     <div class="saved-folder-info" id="saved-folder-info">
                         <span>📁 Folder: <span class="folder-name" id="saved-folder-id">---</span></span>
-                        <button class="btn-sm" onclick="clearSavedFolder()" style="padding:2px 8px;">✕ Clear</button>
+                        <button class="btn-sm" onclick="clearSavedFolder()" style="padding:2px 8px;color:var(--accent-red);border-color:var(--accent-red);">✕ Clear</button>
                     </div>
                     <div class="folder-select-area">
-                        <div style="font-size:10px;color:var(--text-secondary);margin-bottom:2px;">Select audio file:</div>
+                        <div style="font-size:10px;color:var(--text-secondary);margin-bottom:2px;">Chọn file audio:</div>
                         <div class="flex gap-2">
                             <select id="folder-file-select" onchange="onFolderFileSelect()">
-                                <option value="">-- Select file --</option>
+                                <option value="">-- Chọn file --</option>
                             </select>
-                            <button class="btn-sm" onclick="refreshFolderFiles()" style="padding:6px 10px;">↻</button>
+                            <button class="btn-sm" onclick="refreshFolderFiles()" style="padding:8px 12px;background:var(--accent-blue);color:white;border-color:var(--accent-blue);">
+                                🔄
+                            </button>
                         </div>
                     </div>
                 </div>
                 
-                <div style="margin-top:8px; display:flex; gap:6px; align-items:center;">
+                <!-- Render Button -->
+                <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
                     <button class="render-btn" id="btn-render" onclick="renderFromFile()" style="flex:1;">
-                        Render from file
+                        🚀 Render từ file
                     </button>
-                    <span style="font-size:9px;color:var(--text-tertiary);">→ GitHub</span>
+                    <span style="font-size:9px;color:var(--text-tertiary);white-space:nowrap;">→ GitHub</span>
                 </div>
                 
+                <!-- Drive Info -->
                 <div class="drive-info-box" id="drive-info-box">
-                    File ID: <span class="highlight" id="drive-file-id">---</span>
+                    📌 File ID: <span class="highlight" id="drive-file-id">---</span>
                 </div>
                 <div class="badge-group" id="drive-info"></div>
             </div>
             
+            <!-- Progress -->
             <div class="progress-wrap"><div class="progress-bar" id="pb-upload"></div></div>
             <div class="progress-info">
                 <span id="pb-upload-text">Select method to start</span>
@@ -1083,6 +1240,24 @@
 
     <!-- TAB 2: LIBRARY -->
     <div class="tab-content active hideable" id="content-library">
+        <!-- PLAYER LIBRARY -->
+        <div class="card" style="padding:12px 14px;">
+            <span class="player-label">🎬 Library Player</span>
+            <div class="player-container hidden" id="library-player-wrapper">
+                <div class="player-iframe" id="library-player"></div>
+            </div>
+            <div class="player-status" id="library-player-status">
+                <span class="icon">⏳</span>
+                <span>Chọn phụ đề trong Library để phát</span>
+            </div>
+        </div>
+        
+        <!-- SUBTITLE LIBRARY -->
+        <div class="subtitle-box" id="library-subtitle-box">
+            <span class="label">📝 Library Subtitles</span>
+            <span class="empty">Chọn phụ đề để xem</span>
+        </div>
+        
         <div class="card">
             <div class="flex-between" style="margin-bottom:8px;">
                 <span class="card-label" style="margin-bottom:0;">Subtitle Library</span>
@@ -1113,10 +1288,7 @@
         </div>
     </div>
 
-    <!-- PLAYER -->
-    <div class="player-wrap hidden" id="video-wrapper"><div id="player"></div></div>
-
-    <!-- TIMELINE -->
+    <!-- CONTROLS (cho Library Player) -->
     <div class="card" id="timeline-card">
         <div class="flex gap-2" style="align-items:center;">
             <input type="range" id="time-slider" value="0" min="0" max="100" step="0.1" 
@@ -1125,7 +1297,6 @@
         </div>
     </div>
 
-    <!-- CONTROLS -->
     <div class="card">
         <div class="controls-row">
             <div class="btn-icon-group">
@@ -1163,11 +1334,6 @@
                 <span id="val-vi">14</span>
             </div>
         </div>
-    </div>
-
-    <!-- SUBTITLE -->
-    <div id="subtitle-box">
-        <span style="color:var(--text-secondary);font-size:12px;font-weight:500;">Select subtitle from Library</span>
     </div>
 
     <!-- SETTINGS -->
@@ -1208,7 +1374,17 @@
 // ============================================================
 // STATE
 // ============================================================
-let player, subtitles=[], syncInterval=null, activeSubIndex=-1;
+// === PLAYER LIBRARY ===
+let libraryPlayer, librarySubtitles=[], librarySyncInterval=null, libraryActiveSubIndex=-1;
+let libraryVideoId = null;
+let libraryPlayerReady = false;
+
+// === PLAYER UPLOAD ===
+let uploadPlayer = null;
+let uploadPlayerReady = false;
+let uploadSubtitles = [];
+
+// === CHUNG ===
 let currentGistItem=null;
 let isLoopEnabled=false, currentSpeedIndex=2;
 const speeds=[0.5,0.75,1.0,1.25,1.5,2.0];
@@ -1220,15 +1396,11 @@ let pendingVideoId = null;
 let pendingVideoTitle = null;
 let isHideMode = false;
 let isSettingsVisible = false;
-let existingVideoData = null;
 let uploadMethod = 'drive';
 let currentSmartFileId = null;
 let isFolderMode = false;
 let targetUser = 'PinyinCode';
 let targetRepo = 'subtitle-ai';
-let workflowCheckInterval = null;
-let resetTimerInterval = null;
-let resetCountdown = 0;
 let libraryItems = [];
 let selectedLibraryIndex = -1;
 let isDeleting = false;
@@ -1238,22 +1410,9 @@ let pendingRenderFile = null;
 let matchResults = [];
 let matchDialogCallback = null;
 let savedDriveLink = '';
-
-const workflowSteps = [
-    { id: 'checkout', name: 'Checkout code', icon: '📥' },
-    { id: 'debug_hf', name: 'Debug - Check HF_TOKEN', icon: '🔍' },
-    { id: 'download', name: 'Download from Google Drive', icon: '🌐' },
-    { id: 'login', name: 'Login to GitHub Container Registry', icon: '🔑' },
-    { id: 'pull', name: 'Pull AI Docker image', icon: '🐳' },
-    { id: 'process', name: 'Process audio with AI', icon: '🤖' },
-    { id: 'upload', name: 'Upload subtitle to Gist', icon: '📤' },
-    { id: 'delete_drive', name: 'Delete from Google Drive', icon: '🗑️' },
-    { id: 'cleanup', name: 'Cleanup', icon: '🧹' }
-];
-
-let workflowStatus = [];
-let processingQueue = {};
-let processedLinks = {};
+let confirmResults = [];
+let confirmCallback = null;
+let confirmSkipCallback = null;
 
 // ============================================================
 // TOAST
@@ -1273,7 +1432,6 @@ function showToast(message, type = 'info') {
 // ============================================================
 async function fetchVideoInfo(videoId) {
     try {
-        // Sử dụng oEmbed API của YouTube (không cần key)
         const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
         if (response.ok) {
             const data = await response.json();
@@ -1285,7 +1443,6 @@ async function fetchVideoInfo(videoId) {
                 };
             }
         }
-        // Fallback: dùng noembed
         const response2 = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
         if (response2.ok) {
             const data = await response2.json();
@@ -1305,6 +1462,92 @@ async function fetchVideoInfo(videoId) {
 }
 
 // ============================================================
+// UPDATE PLAYER STATUS
+// ============================================================
+function updateUploadPlayerStatus(type, message, extra = '') {
+    const statusEl = document.getElementById('upload-player-status');
+    const icons = { loading: '⏳', playing: '▶️', paused: '⏸', error: '❌', warning: '⚠️', success: '✅', info: '💡', empty: '📭' };
+    const classes = { loading: '', playing: 'highlight', paused: '', error: 'error', warning: 'warning', success: 'success', info: 'info', empty: 'warning' };
+    const icon = icons[type] || '⏳';
+    const cls = classes[type] || '';
+    statusEl.innerHTML = `<span class="icon">${icon}</span><span class="${cls}">${message}</span>${extra ? `<span class="sub">${extra}</span>` : ''}`;
+}
+
+function updateLibraryPlayerStatus(type, message, extra = '') {
+    const statusEl = document.getElementById('library-player-status');
+    const icons = { loading: '⏳', playing: '▶️', paused: '⏸', error: '❌', warning: '⚠️', success: '✅', info: '💡', empty: '📭', no_subtitle: '📝' };
+    const classes = { loading: '', playing: 'highlight', paused: '', error: 'error', warning: 'warning', success: 'success', info: 'info', empty: 'warning', no_subtitle: 'warning' };
+    const icon = icons[type] || '⏳';
+    const cls = classes[type] || '';
+    statusEl.innerHTML = `<span class="icon">${icon}</span><span class="${cls}">${message}</span>${extra ? `<span class="sub">${extra}</span>` : ''}`;
+}
+
+// ============================================================
+// UPDATE SUBTITLE BOXES
+// ============================================================
+function updateUploadSubtitle(lines) {
+    const box = document.getElementById('upload-subtitle-box');
+    if (!lines || lines.length === 0) {
+        box.innerHTML = `<span class="label">📝 Upload Subtitles</span><span class="empty">Chưa có phụ đề</span>`;
+        return;
+    }
+    box.innerHTML = `
+        <span class="label">📝 Upload Subtitles</span>
+        <div class="cn">${lines[0] || ''}</div>
+        <div class="py">${lines[1] || ''}</div>
+        <div class="vi">${lines[2] || ''}</div>
+    `;
+}
+
+function updateLibrarySubtitle(lines) {
+    const box = document.getElementById('library-subtitle-box');
+    if (!lines || lines.length === 0) {
+        box.innerHTML = `<span class="label">📝 Library Subtitles</span><span class="empty">Chọn phụ đề để xem</span>`;
+        return;
+    }
+    box.innerHTML = `
+        <span class="label">📝 Library Subtitles</span>
+        <div class="cn">${lines[0] || ''}</div>
+        <div class="py">${lines[1] || ''}</div>
+        <div class="vi">${lines[2] || ''}</div>
+    `;
+}
+
+// ============================================================
+// LOAD UPLOAD PLAYER
+// ============================================================
+function loadUploadPlayer(videoId) {
+    const container = document.getElementById('upload-player');
+    const wrapper = document.getElementById('upload-player-wrapper');
+    
+    if (uploadPlayer) {
+        try { uploadPlayer.destroy(); } catch(e) {}
+        uploadPlayer = null;
+        uploadPlayerReady = false;
+    }
+    
+    container.innerHTML = '';
+    wrapper.classList.remove('hidden');
+    
+    uploadPlayer = new YT.Player('upload-player', {
+        height: '100%',
+        width: '100%',
+        videoId: videoId,
+        playerVars: { playsinline: 1, autoplay: 1, controls: 1, rel: 0, showinfo: 0, modestbranding: 1 },
+        events: {
+            onReady: () => { 
+                uploadPlayerReady = true; 
+                log(`✅ Upload player ready: ${videoId}`, 'ok');
+            },
+            onError: (e) => {
+                console.error('Upload player error:', e);
+                updateUploadPlayerStatus('error', 'Lỗi phát video', 'Kiểm tra lại link YouTube');
+            }
+        }
+    });
+}
+
+// ============================================================
 // HÀM XỬ LÝ KHI NHẬP URL YOUTUBE
 // ============================================================
 async function onYtUrlInput() {
@@ -1316,74 +1559,83 @@ async function onYtUrlInput() {
     const displayEl = document.getElementById('upload-vid-display');
     const hintEl = document.getElementById('yt-url-hint');
     const hintBox = document.getElementById('upload-id-hint');
+    const playerWrapper = document.getElementById('upload-player-wrapper');
     
     if (val) {
         const vid = extractVideoID(val);
         if (vid) {
-            // HIỂN THỊ TRẠNG THÁI ĐANG TẢI
             hintEl.innerHTML = `⏳ Đang lấy thông tin video...`;
             hintBox.style.display = 'block';
+            updateUploadPlayerStatus('loading', 'Đang tải video...');
+            updateUploadSubtitle([]);
             
-            // LƯU VIDEO_ID NGAY LẬP TỨC - QUAN TRỌNG!
             pendingVideoId = vid;
             currentVideoId = vid;
             displayEl.textContent = vid;
             statusEl.innerHTML = `🔄 Đang lấy thông tin...`;
             
-            // LẤY THÔNG TIN VIDEO
+            loadUploadPlayer(vid);
+            playerWrapper.classList.remove('hidden');
+            
             const videoInfo = await fetchVideoInfo(vid);
             
             if (videoInfo) {
                 pendingVideoTitle = videoInfo.title;
                 const titleDisplay = videoInfo.title.length > 50 ? videoInfo.title.substring(0, 50) + '...' : videoInfo.title;
                 
-                // HIỂN THỊ ĐẦY ĐỦ THÔNG TIN
-                hintEl.innerHTML = `
-                    ✅ <span class="id-found">${titleDisplay}</span>
-                    ${videoInfo.author_name ? ` • ${videoInfo.author_name}` : ''}
-                `;
-                statusEl.innerHTML = `
-                    ✅ Video ID: <span class="id-found">${vid}</span>
-                    <span style="color:var(--accent-green);display:block;font-size:9px;margin-top:2px;">
-                        ✅ GitHub sẽ dùng ID này (KHÔNG tìm kiếm)
-                    </span>
-                `;
+                hintEl.innerHTML = `✅ <span class="id-found">${titleDisplay}</span>${videoInfo.author_name ? ` • ${videoInfo.author_name}` : ''}`;
+                statusEl.innerHTML = `✅ Video ID: <span class="id-found">${vid}</span><span style="color:var(--accent-green);display:block;font-size:9px;margin-top:2px;">✅ GitHub sẽ dùng ID này (KHÔNG tìm kiếm)</span>`;
                 displayEl.textContent = videoInfo.title;
+                
+                const hasSubtitle = findSubtitleInLibrary(vid);
+                updateUploadPlayerStatus('playing', `Đang phát: ${videoInfo.title}`, hasSubtitle ? '✅ Có phụ đề trong Library' : '⚠️ Chưa có phụ đề trong Library');
                 
                 showToast(`✅ Đã lấy video: ${videoInfo.title}`, 'success');
                 log(`📌 Dùng Video ID từ link: ${vid} - "${videoInfo.title}"`, 'id');
             } else {
-                // KHÔNG LẤY ĐƯỢC TÊN, VẪN LƯU ID
                 hintEl.innerHTML = `✅ Video ID: <span class="id-found">${vid}</span>`;
-                statusEl.innerHTML = `
-                    ✅ Video ID: <span class="id-found">${vid}</span>
-                    <span style="color:var(--accent-green);display:block;font-size:9px;margin-top:2px;">
-                        ✅ GitHub sẽ dùng ID này (KHÔNG tìm kiếm)
-                    </span>
-                `;
+                statusEl.innerHTML = `✅ Video ID: <span class="id-found">${vid}</span><span style="color:var(--accent-green);display:block;font-size:9px;margin-top:2px;">✅ GitHub sẽ dùng ID này (KHÔNG tìm kiếm)</span>`;
                 displayEl.textContent = vid;
+                
+                const hasSubtitle = findSubtitleInLibrary(vid);
+                updateUploadPlayerStatus('playing', `Đang phát Video ID: ${vid}`, hasSubtitle ? '✅ Có phụ đề trong Library' : '⚠️ Chưa có phụ đề trong Library');
                 log(`📌 Dùng Video ID từ link: ${vid} (không lấy được tên)`, 'id');
             }
+            
+            // Tìm và hiển thị phụ đề cho Upload Player
+            const subtitleMatch = findMatchingSubtitleForUpload(vid);
+            if (subtitleMatch) {
+                loadUploadSubtitles(subtitleMatch);
+            }
+            
         } else {
             hintEl.innerHTML = '⚠️ Không tìm thấy Video ID trong link';
             hintBox.style.display = 'none';
             pendingVideoId = null;
             statusEl.innerHTML = '❌ Không tìm thấy Video ID';
+            playerWrapper.classList.add('hidden');
+            updateUploadPlayerStatus('error', 'Link YouTube không hợp lệ', 'Không tìm thấy Video ID');
+            updateUploadSubtitle([]);
         }
     } else {
-        // KHÔNG CÓ LINK -> GITHUB SẼ TỰ TÌM KIẾM
         hintEl.innerHTML = '💡 Để trống → GitHub tự tìm kiếm • Nhập link → dùng ID cụ thể';
         hintBox.style.display = 'none';
         pendingVideoId = null;
         pendingVideoTitle = null;
         statusEl.innerHTML = '🔍 GitHub sẽ tự tìm kiếm video theo tên file';
+        playerWrapper.classList.add('hidden');
+        updateUploadPlayerStatus('info', 'Nhập link YouTube để xem trước');
+        updateUploadSubtitle([]);
         log('🔄 Không có link YouTube, GitHub sẽ tự tìm kiếm', 'info');
+        
+        if (uploadPlayer) {
+            try { uploadPlayer.destroy(); } catch(e) {}
+            uploadPlayer = null;
+            uploadPlayerReady = false;
+        }
     }
 }
 
-// ============================================================
-// HÀM CLEAR - XÓA VIDEO_ID
-// ============================================================
 function clearYtUrl() {
     document.getElementById('yt-url-input').value = '';
     document.getElementById('btn-clear-yt-url').style.display = 'none';
@@ -1393,11 +1645,119 @@ function clearYtUrl() {
     pendingVideoId = null;
     pendingVideoTitle = null;
     document.getElementById('upload-vid-status').innerHTML = '🔍 GitHub sẽ tự tìm kiếm video theo tên file';
+    document.getElementById('upload-player-wrapper').classList.add('hidden');
+    updateUploadPlayerStatus('info', 'Nhập link YouTube để xem trước');
+    updateUploadSubtitle([]);
+    
+    if (uploadPlayer) {
+        try { uploadPlayer.destroy(); } catch(e) {}
+        uploadPlayer = null;
+        uploadPlayerReady = false;
+    }
     log('🔄 Đã xóa link YouTube, GitHub sẽ tự tìm kiếm', 'info');
 }
 
 // ============================================================
-// CLEAN SEARCH QUERY
+// TÌM PHỤ ĐỀ CHO UPLOAD PLAYER
+// ============================================================
+function findMatchingSubtitleForUpload(videoId) {
+    if (!videoId) return null;
+    const exactMatch = libraryItems.find(item => item.videoId === videoId);
+    if (exactMatch) return exactMatch;
+    
+    if (pendingVideoTitle) {
+        const cleanTitle = cleanSearchQuery(pendingVideoTitle);
+        let bestMatch = null, bestScore = 0;
+        for (const item of libraryItems) {
+            const score = similarityScore(cleanTitle, item.title);
+            if (score > bestScore && score > 0.5) {
+                bestScore = score;
+                bestMatch = item;
+            }
+        }
+        if (bestMatch) return bestMatch;
+    }
+    return null;
+}
+
+function loadUploadSubtitles(item) {
+    if (!item) {
+        updateUploadSubtitle([]);
+        return;
+    }
+    
+    log(`📝 Tải phụ đề cho Upload: ${item.title}`, 'info');
+    
+    fetch(item.vttUrl)
+        .then(res => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.text();
+        })
+        .then(vttText => {
+            const parsed = parseVTT(vttText);
+            uploadSubtitles = parsed;
+            if (uploadSubtitles.length > 0) {
+                const lines = uploadSubtitles[0].rawLines || [];
+                updateUploadSubtitle(lines);
+                log(`✅ Đã tải ${uploadSubtitles.length} dòng phụ đề cho Upload`, 'ok');
+            } else {
+                updateUploadSubtitle([]);
+            }
+        })
+        .catch(err => {
+            console.error('Lỗi tải phụ đề Upload:', err);
+            updateUploadSubtitle([]);
+        });
+}
+
+// ============================================================
+// TÌM PHỤ ĐỀ TRONG LIBRARY
+// ============================================================
+function findSubtitleInLibrary(videoId) {
+    if (!videoId) return false;
+    return libraryItems.some(item => item.videoId === videoId);
+}
+
+function findAndPlayMatchingInLibrary(videoId) {
+    if (!videoId) {
+        updateLibraryPlayerStatus('empty', 'Chưa có video để tìm phụ đề');
+        updateLibrarySubtitle([]);
+        return;
+    }
+    
+    const exactMatch = libraryItems.find(item => item.videoId === videoId);
+    if (exactMatch) {
+        log(`✅ Tìm thấy phụ đề chính xác: ${exactMatch.title}`, 'ok');
+        showToast(`✅ Tìm thấy phụ đề: ${exactMatch.title}`, 'success');
+        updateLibraryPlayerStatus('success', `Đã tìm thấy phụ đề: ${exactMatch.title}`);
+        const idx = libraryItems.findIndex(item => item.videoId === videoId);
+        if (idx !== -1) selectLibraryItem(idx);
+        return;
+    }
+    
+    if (pendingVideoTitle) {
+        const cleanTitle = cleanSearchQuery(pendingVideoTitle);
+        let bestMatch = null, bestScore = 0;
+        for (const item of libraryItems) {
+            const score = similarityScore(cleanTitle, item.title);
+            if (score > bestScore) { bestScore = score; bestMatch = item; }
+        }
+        if (bestMatch && bestScore > 0.5) {
+            log(`✅ Tìm thấy phụ đề gần đúng: ${bestMatch.title} (${Math.round(bestScore*100)}%)`, 'info');
+            showToast(`🔍 Tìm thấy phụ đề gần đúng: ${bestMatch.title} (${Math.round(bestScore*100)}%)`, 'info');
+            updateLibraryPlayerStatus('info', `Phụ đề gần đúng: ${bestMatch.title}`, `${Math.round(bestScore*100)}% khớp`);
+            const idx = libraryItems.findIndex(i => i.videoId === bestMatch.videoId);
+            if (idx !== -1) selectLibraryItem(idx);
+            return;
+        }
+    }
+    
+    updateLibraryPlayerStatus('no_subtitle', 'Không tìm thấy phụ đề trong Library', 'Bạn có thể thêm phụ đề bằng cách render');
+    updateLibrarySubtitle([]);
+}
+
+// ============================================================
+// CLEAN SEARCH QUERY & SIMILARITY SCORE
 // ============================================================
 function cleanSearchQuery(filename) {
     let name = filename;
@@ -1411,9 +1771,6 @@ function cleanSearchQuery(filename) {
     return name.toLowerCase();
 }
 
-// ============================================================
-// SIMILARITY SCORE
-// ============================================================
 function similarityScore(query, title) {
     const q = query.toLowerCase().replace(/[^a-zA-Z0-9\u00C0-\u024F\u4E00-\u9FFF\s]/g, ' ').trim();
     const t = title.toLowerCase().replace(/[^a-zA-Z0-9\u00C0-\u024F\u4E00-\u9FFF\s]/g, ' ').trim();
@@ -1454,12 +1811,34 @@ function similarityScore(query, title) {
     const substrScore = substrLen / qWords.length;
     const commonWords = qWords.filter(w => tWords.includes(w));
     const wordRatio = commonWords.length / qWords.length;
-    const totalScore = (substrScore * 0.5) + (lcsScore * 0.3) + (wordRatio * 0.2);
-    return Math.min(totalScore, 1.0);
+    return Math.min((substrScore * 0.5) + (lcsScore * 0.3) + (wordRatio * 0.2), 1.0);
 }
 
 // ============================================================
-// FIND MATCHING VIDEOS
+// EXTRACT VIDEO ID
+// ============================================================
+function extractVideoID(url) {
+    if (!url) return null;
+    url = url.trim();
+    if (url.match(/^[a-zA-Z0-9_-]{11}$/)) return url;
+    const patterns = [
+        /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+        /m\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+        /[?&]v=([a-zA-Z0-9_-]{11})/
+    ];
+    for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match) return match[1];
+    }
+    return null;
+}
+
+// ============================================================
+// MATCH DIALOG
 // ============================================================
 function findMatchingVideos(fileName) {
     const cleanName = cleanSearchQuery(fileName);
@@ -1480,28 +1859,15 @@ function findMatchingVideos(fileName) {
     return matches.filter(m => m.score >= 0.7);
 }
 
-// ============================================================
-// MATCH DIALOG
-// ============================================================
 function showMatchDialog(matches, fileName, onContinue) {
     const dialog = document.getElementById('match-dialog');
     const list = document.getElementById('match-list');
-    const subtitle = document.getElementById('match-subtitle');
-    subtitle.textContent = `"${fileName}" · ${matches.length} matches ≥ 70%`;
+    document.getElementById('match-subtitle').textContent = `"${fileName}" · ${matches.length} matches ≥ 70%`;
     let html = '';
     matches.forEach((match, index) => {
         const scorePercent = Math.round(match.score * 100);
         const displayName = match.title.length > 40 ? match.title.substring(0, 40) + '...' : match.title;
-        html += `
-            <div class="match-item">
-                <span class="name" title="${match.title}">${displayName}</span>
-                <span class="score">${scorePercent}%</span>
-                <div class="actions">
-                    <button class="btn-sm" onclick="playMatchVideo(${index})">▶</button>
-                    <button class="btn-sm" onclick="renderMatchVideo(${index})">↻</button>
-                </div>
-            </div>
-        `;
+        html += `<div class="match-item"><span class="name" title="${match.title}">${displayName}</span><span class="score">${scorePercent}%</span><div class="actions"><button class="btn-sm" onclick="playMatchVideo(${index})">▶</button><button class="btn-sm" onclick="renderMatchVideo(${index})">↻</button></div></div>`;
     });
     list.innerHTML = html;
     dialog.classList.add('show');
@@ -1535,10 +1901,7 @@ function renderMatchVideo(index) {
     continueRenderWithVideo(item.videoId, pendingRenderFile);
 }
 
-function continueRender() {
-    closeMatchDialog();
-    if (pendingRenderFile) performRender(pendingRenderFile);
-}
+function continueRender() { closeMatchDialog(); if (pendingRenderFile) performRender(pendingRenderFile); }
 
 function continueRenderWithVideo(videoId, fileName) {
     if (videoId && fileName) {
@@ -1553,10 +1916,73 @@ function continueRenderWithVideo(videoId, fileName) {
 }
 
 // ============================================================
-// PERFORM RENDER - CÓ GỬI VIDEO_ID NẾU CÓ
+// CONFIRM DIALOG
 // ============================================================
+function showConfirmDialog(matches, fileName, onConfirm, onSkip) {
+    const dialog = document.getElementById('confirm-dialog');
+    const list = document.getElementById('confirm-list');
+    const subtitle = document.getElementById('confirm-subtitle');
+    
+    if (matches.length === 0) {
+        subtitle.textContent = `📄 "${fileName}" • Không tìm thấy video nào`;
+        list.innerHTML = `<div class="match-item" style="border-color: var(--accent-orange);"><span class="name" style="color: var(--text-secondary);">⚠️ Không có video nào trong thư viện</span></div><div style="font-size:11px;color:var(--text-secondary);padding:8px;text-align:center;">💡 Bạn có thể:<br>• <strong>Bỏ qua</strong> - GitHub sẽ tự tìm kiếm trên YouTube<br>• <strong>Hủy</strong> - Dừng lại</div>`;
+    } else {
+        subtitle.textContent = `📄 "${fileName}" • Tìm thấy ${matches.length} video (độ khớp thấp)`;
+        let html = '';
+        matches.forEach((match, index) => {
+            const scorePercent = Math.round(match.score * 100);
+            const displayName = match.title.length > 40 ? match.title.substring(0, 40) + '...' : match.title;
+            const isBest = index === 0;
+            html += `<div class="match-item" style="${isBest ? 'border-color: var(--accent-blue);' : ''}"><span class="name" title="${match.title}">${isBest ? '⭐ ' : ''}${displayName}</span><span class="score">${scorePercent}%</span><div class="actions"><button class="btn-sm play-btn" onclick="playConfirmVideo(${index})">▶️</button></div></div>`;
+        });
+        list.innerHTML = html;
+    }
+    
+    dialog.classList.add('show');
+    confirmResults = matches;
+    confirmCallback = onConfirm;
+    confirmSkipCallback = onSkip;
+}
+
+function closeConfirmDialog() {
+    document.getElementById('confirm-dialog').classList.remove('show');
+    confirmResults = [];
+    confirmCallback = null;
+    confirmSkipCallback = null;
+}
+
+function playConfirmVideo(index) {
+    if (index < 0 || index >= confirmResults.length) return;
+    const item = confirmResults[index];
+    closeConfirmDialog();
+    switchTab('library');
+    setTimeout(() => {
+        const idx = libraryItems.findIndex(i => i.gistId === item.gistId);
+        if (idx !== -1) selectLibraryItem(idx);
+    }, 300);
+}
+
+function confirmRender() {
+    if (confirmCallback && confirmResults.length > 0) {
+        const bestMatch = confirmResults[0];
+        closeConfirmDialog();
+        showToast(`✅ Dùng video: ${bestMatch.title} (${Math.round(bestMatch.score * 100)}%)`, 'success');
+        log(`📌 Dùng video có độ khớp ${Math.round(bestMatch.score * 100)}%: ${bestMatch.title}`, 'info');
+        confirmCallback(bestMatch);
+    } else { closeConfirmDialog(); showToast('⚠️ Không có video nào để render', 'warning'); }
+}
+
+function skipAndRender() {
+    if (confirmSkipCallback) {
+        closeConfirmDialog();
+        showToast('⏭️ Bỏ qua video, GitHub sẽ tự tìm kiếm', 'info');
+        log('⏭️ Người dùng chọn bỏ qua video, render với tên file', 'info');
+        confirmSkipCallback();
+    } else { closeConfirmDialog(); }
+}
+
 // ============================================================
-// PERFORM RENDER - CÓ GỬI VIDEO_ID NẾU CÓ
+// PERFORM RENDER
 // ============================================================
 async function performRender(fileName) {
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
@@ -1568,11 +1994,8 @@ async function performRender(fileName) {
     if (selectedFile && selectedFile.isDriveFile && selectedFile.driveFileId) driveFileId = selectedFile.driveFileId;
     if (!driveFileId) { showToast('Drive File ID not found!', 'error'); return; }
     
-    // 👈 XÁC ĐỊNH VIDEO_ID
     let videoId = pendingVideoId;
     let hasVideoId = false;
-    
-    // 👈 KIỂM TRA VIDEO_ID HỢP LỆ
     if (videoId && videoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
         hasVideoId = true;
         log(`✅ Gửi Video ID từ link: ${videoId}`, 'id');
@@ -1583,14 +2006,13 @@ async function performRender(fileName) {
         showToast(`🔍 GitHub sẽ tìm kiếm video theo tên file`, 'info');
     }
     
-    // 👈 TẠO PAYLOAD ĐẦY ĐỦ
     const payload = {
         event_type: 'new_drive_file',
         client_payload: {
             file_name: fileName,
             drive_file_id: driveFileId,
-            video_id: videoId,           // 👈 GỬI VIDEO_ID (rỗng nếu không có)
-            has_video_id: hasVideoId,    // 👈 QUAN TRỌNG: true/false
+            video_id: videoId,
+            has_video_id: hasVideoId,
             search_by_name: !hasVideoId,
             timestamp: new Date().toISOString()
         }
@@ -1601,18 +2023,11 @@ async function performRender(fileName) {
     try {
         const response = await fetch(`https://api.github.com/repos/${user}/${repo}/dispatches`, {
             method: 'POST',
-            headers: { 
-                'Authorization': `token ${token}`, 
-                'Content-Type': 'application/json',
-                'Accept': 'application/vnd.github.v3+json'
-            },
+            headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
             body: JSON.stringify(payload)
         });
-        
         if (response.ok) {
-            const msg = hasVideoId ? 
-                `✅ Sent: ${fileName} (ID: ${videoId})` : 
-                `✅ Sent: ${fileName} (auto-search)`;
+            const msg = hasVideoId ? `✅ Sent: ${fileName} (ID: ${videoId})` : `✅ Sent: ${fileName} (auto-search)`;
             showToast(msg, 'success');
             log(`Triggered workflow: ${fileName} ${hasVideoId ? `(ID: ${videoId})` : '(auto-search)'}`, 'ok');
             document.getElementById('library-status').textContent = `Processing ${fileName}...`;
@@ -1630,6 +2045,7 @@ async function performRender(fileName) {
         document.getElementById('drive-info').innerHTML = `<span class="status-badge error">Error</span>`;
     }
 }
+
 // ============================================================
 // RENDER FROM FILE
 // ============================================================
@@ -1643,87 +2059,57 @@ async function renderFromFile() {
     
     const fileName = selectedFile.name;
     
-    // 👈 HIỂN THỊ TRẠNG THÁI VIDEO_ID
     const statusEl = document.getElementById('upload-vid-status');
     if (pendingVideoId && pendingVideoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
-        statusEl.innerHTML = `
-            ✅ Video ID: <span class="id-found">${pendingVideoId}</span>
-            <span style="color:var(--accent-green);display:block;font-size:9px;margin-top:2px;">
-                ✅ Sẽ gửi ID này lên GitHub (KHÔNG tìm kiếm)
-            </span>
-        `;
+        statusEl.innerHTML = `✅ Video ID: <span class="id-found">${pendingVideoId}</span><span style="color:var(--accent-green);display:block;font-size:9px;margin-top:2px;">✅ Sẽ gửi ID này lên GitHub (KHÔNG tìm kiếm)</span>`;
         showToast(`✅ Dùng Video ID từ link: ${pendingVideoId}`, 'success');
         log(`📌 Render với Video ID từ link: ${pendingVideoId}`, 'id');
-    } else {
-        statusEl.innerHTML = `
-            🔍 <span class="id-search">Sẽ tìm kiếm theo tên file</span>
-            <span style="color:var(--accent-orange);display:block;font-size:9px;margin-top:2px;">
-                🔍 GitHub sẽ TÌM KIẾM video trên YouTube
-            </span>
-        `;
-        showToast(`🔍 GitHub sẽ tự tìm video theo tên file`, 'info');
-        log(`🔍 Không có link, GitHub sẽ tự tìm kiếm`, 'info');
+        await performRender(fileName);
+        return;
     }
     
-    // Kiểm tra trùng lặp
     const matches = findMatchingVideos(fileName);
     if (matches.length > 0) {
         showMatchDialog(matches, fileName, () => performRender(fileName));
         return;
     }
     
-    await performRender(fileName);
-}
-// ============================================================
-// EXTRACT VIDEO ID
-// ============================================================
-function extractVideoID(url) {
-    if (!url) return null;
-    url = url.trim();
-    if (url.match(/^[a-zA-Z0-9_-]{11}$/)) return url;
-    const patterns = [
-        /youtu\.be\/([a-zA-Z0-9_-]{11})/,
-        /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
-        /m\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
-        /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
-        /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/,
-        /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
-        /[?&]v=([a-zA-Z0-9_-]{11})/
-    ];
-    for (const pattern of patterns) {
-        const match = url.match(pattern);
-        if (match) return match[1];
+    const allMatches = [];
+    const cleanName = cleanSearchQuery(fileName);
+    for (const item of libraryItems) {
+        let titleToMatch = item.title;
+        if (item.baseName && item.baseName !== item.title) {
+            const titleScore = similarityScore(cleanName, item.title);
+            const baseScore = similarityScore(cleanName, item.baseName);
+            const score = Math.max(titleScore, baseScore);
+            allMatches.push({ ...item, score, matchType: titleScore >= baseScore ? 'title' : 'baseName' });
+        } else {
+            const score = similarityScore(cleanName, item.title);
+            allMatches.push({ ...item, score, matchType: 'title' });
+        }
     }
-    return null;
-}
-
-function saveProcessingState() {
-    try {
-        localStorage.setItem('pinyin_ai_queue', JSON.stringify(processingQueue));
-        localStorage.setItem('pinyin_ai_processed', JSON.stringify(processedLinks));
-    } catch (e) {}
-}
-
-function loadProcessingState() {
-    try {
-        const queue = localStorage.getItem('pinyin_ai_queue');
-        const processed = localStorage.getItem('pinyin_ai_processed');
-        if (queue) processingQueue = JSON.parse(queue);
-        if (processed) processedLinks = JSON.parse(processed);
-    } catch (e) { processingQueue = {}; processedLinks = {}; }
-}
-
-function resetPlayer() {
-    if (player) { try { player.destroy(); } catch(e) {} player = null; }
-    if (syncInterval) { clearInterval(syncInterval); syncInterval = null; }
-    document.getElementById('video-wrapper').classList.add('hidden');
-    document.getElementById('player').innerHTML = '';
-    subtitles = [];
-    activeSubIndex = -1;
-    currentVideoId = null;
-    document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary);font-size:12px;font-weight:500;">Select subtitle from Library</span>`;
-    updatePlayPauseBtn(false);
-    document.getElementById('status-text').innerHTML = 'Ready';
+    allMatches.sort((a, b) => b.score - a.score);
+    const lowMatches = allMatches.filter(m => m.score > 0.1);
+    
+    if (lowMatches.length > 0) {
+        showConfirmDialog(lowMatches, fileName,
+            (bestMatch) => {
+                pendingVideoId = bestMatch.videoId;
+                currentVideoId = bestMatch.videoId;
+                document.getElementById('upload-vid-display').textContent = bestMatch.videoId;
+                document.getElementById('upload-id-hint').style.display = 'block';
+                document.getElementById('upload-vid-status').innerHTML = `✅ Dùng video: <span class="id-found">${bestMatch.title}</span><span style="display:block;font-size:10px;color:var(--text-secondary);margin-top:2px;">🎯 Độ khớp: ${Math.round(bestMatch.score * 100)}% • ID: ${bestMatch.videoId}</span>`;
+                performRender(fileName);
+            },
+            () => performRender(fileName)
+        );
+        return;
+    }
+    
+    statusEl.innerHTML = `🔍 <span class="id-search">Sẽ tìm kiếm theo tên file</span><span style="color:var(--accent-orange);display:block;font-size:9px;margin-top:2px;">🔍 GitHub sẽ TÌM KIẾM video trên YouTube</span>`;
+    showToast(`📤 Đang gửi yêu cầu xử lý: ${fileName}...`, 'info');
+    log(`📤 Không có video nào, GitHub sẽ tự tìm kiếm: ${fileName}`, 'info');
+    await performRender(fileName);
 }
 
 // ============================================================
@@ -1733,18 +2119,13 @@ async function loadLibrary(force = false) {
     const dropdown = document.getElementById('library-dropdown');
     dropdown.innerHTML = '<option value="">Loading...</option>';
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    if (!token) {
-        dropdown.innerHTML = '<option value="">Enter GitHub Token</option>';
-        return;
-    }
+    if (!token) { dropdown.innerHTML = '<option value="">Enter GitHub Token</option>'; return; }
     try {
         let allGists = [];
         let page = 1;
         let hasMore = true;
         while (hasMore && page <= 10) {
-            const res = await fetch(`https://api.github.com/gists?per_page=100&page=${page}`, {
-                headers: { "Authorization": `token ${token}` }
-            });
+            const res = await fetch(`https://api.github.com/gists?per_page=100&page=${page}`, { headers: { "Authorization": `token ${token}` } });
             if (!res.ok) break;
             const gists = await res.json();
             if (!gists || gists.length === 0) break;
@@ -1808,6 +2189,8 @@ async function loadLibrary(force = false) {
             document.getElementById('library-status').textContent = 'No subtitles found';
             document.getElementById('selected-title').textContent = 'No subtitle';
             document.getElementById('selected-video-id').textContent = '---';
+            updateLibraryPlayerStatus('empty', 'Chưa có phụ đề nào trong thư viện');
+            updateLibrarySubtitle([]);
         } else {
             document.getElementById('library-status').textContent = `${libraryItems.length} subtitles`;
             if (selectedLibraryIndex === -1 && libraryItems.length > 0) selectLibraryItem(0);
@@ -1850,11 +2233,16 @@ function onLibraryDropdownChange() {
         document.getElementById('selected-title').textContent = 'No subtitle selected';
         document.getElementById('selected-video-id').textContent = '---';
         document.getElementById('library-status').textContent = 'Ready';
+        updateLibraryPlayerStatus('info', 'Chọn phụ đề trong Library để phát');
+        updateLibrarySubtitle([]);
         return;
     }
     selectLibraryItem(index);
 }
 
+// ============================================================
+// SELECT LIBRARY ITEM
+// ============================================================
 function selectLibraryItem(index) {
     if (index < 0 || index >= libraryItems.length) {
         showToast('Subtitle not found!', 'warning');
@@ -1862,37 +2250,52 @@ function selectLibraryItem(index) {
     }
     selectedLibraryIndex = index;
     currentGistItem = libraryItems[index];
-    currentVideoId = currentGistItem.videoId;
-    if (!currentVideoId && currentGistItem.youtubeLink) {
+    libraryVideoId = currentGistItem.videoId;
+    if (!libraryVideoId && currentGistItem.youtubeLink) {
         const extracted = extractVideoID(currentGistItem.youtubeLink);
-        if (extracted) { currentVideoId = extracted; currentGistItem.videoId = extracted; }
+        if (extracted) { libraryVideoId = extracted; currentGistItem.videoId = extracted; }
     }
     document.getElementById('library-dropdown').value = index;
     updateLibraryInfo(currentGistItem);
     document.getElementById('library-status').textContent = `Selected: ${currentGistItem.title}`;
-    loadVideoFromGist(currentGistItem, true);
+    updateLibraryPlayerStatus('loading', `Đang tải: ${currentGistItem.title}...`);
+    loadLibraryVideo(currentGistItem, true);
 }
 
 // ============================================================
-// LOAD VIDEO FROM GIST
+// LOAD LIBRARY VIDEO
 // ============================================================
-async function loadVideoFromGist(item, autoplay = true) {
-    if (!item) return;
-    log(`Loading: ${item.title}`, 'info');
-    document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary);font-size:12px;">Loading subtitles...</span>`;
+async function loadLibraryVideo(item, autoplay = true) {
+    if (!item) {
+        updateLibraryPlayerStatus('empty', 'Chưa có phụ đề để phát');
+        updateLibrarySubtitle([]);
+        return;
+    }
+    
+    log(`🎬 Loading library video: ${item.title}`, 'info');
+    updateLibraryPlayerStatus('loading', `Đang tải: ${item.title}...`);
+    
     try {
-        if (syncInterval) { clearInterval(syncInterval); syncInterval = null; }
-        if (player) { try { player.destroy(); } catch(e) {} player = null; document.getElementById('video-wrapper').classList.add('hidden'); }
-        document.getElementById('player').innerHTML = '';
-        subtitles = [];
-        activeSubIndex = -1;
+        if (librarySyncInterval) { clearInterval(librarySyncInterval); librarySyncInterval = null; }
+        if (libraryPlayer) {
+            try { libraryPlayer.destroy(); } catch(e) {}
+            libraryPlayer = null;
+            libraryPlayerReady = false;
+            document.getElementById('library-player-wrapper').classList.add('hidden');
+        }
+        
+        document.getElementById('library-player').innerHTML = '';
+        librarySubtitles = [];
+        libraryActiveSubIndex = -1;
         
         let vttUrl = item.vttUrl;
         if (!vttUrl || !vttUrl.startsWith('http')) {
             showToast('Invalid subtitle URL!', 'warning');
-            document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary);font-size:12px;">Invalid URL</span>`;
+            updateLibraryPlayerStatus('error', 'URL phụ đề không hợp lệ');
+            updateLibrarySubtitle([]);
             return;
         }
+        
         let response = await fetch(vttUrl, { mode: 'cors', headers: { 'Accept': 'text/vtt,text/plain,*/*' } });
         if (!response.ok) {
             const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(vttUrl)}`;
@@ -1902,23 +2305,25 @@ async function loadVideoFromGist(item, autoplay = true) {
         const vttText = await response.text();
         if (!vttText || vttText.trim().length === 0) {
             showToast('Empty subtitle file!', 'warning');
-            document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary);font-size:12px;">Empty file</span>`;
+            updateLibraryPlayerStatus('error', 'File phụ đề rỗng');
+            updateLibrarySubtitle([]);
             return;
         }
+        
         const parsed = parseVTT(vttText);
-        subtitles = parsed;
-        if (subtitles.length > 0) {
-            document.getElementById('subtitle-box').innerHTML = `
-                <div class="cn">${subtitles[0].rawLines[0] || ''}</div>
-                <div class="py">${subtitles[0].rawLines[1] || ''}</div>
-                <div class="vi">${subtitles[0].rawLines[2] || ''}</div>
-            `;
-            showToast(`Loaded ${subtitles.length} lines`, 'success');
+        librarySubtitles = parsed;
+        
+        if (librarySubtitles.length > 0) {
+            const lines = librarySubtitles[0].rawLines || [];
+            updateLibrarySubtitle(lines);
+            showToast(`✅ Loaded ${librarySubtitles.length} lines`, 'success');
         } else {
-            document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary);font-size:12px;">No subtitles found</span>`;
+            updateLibrarySubtitle([]);
             showToast('No subtitles in file', 'warning');
+            updateLibraryPlayerStatus('no_subtitle', 'Không có phụ đề trong file');
             return;
         }
+        
         let videoId = item.videoId;
         if (!videoId && item.youtubeLink) {
             const extracted = extractVideoID(item.youtubeLink);
@@ -1926,43 +2331,63 @@ async function loadVideoFromGist(item, autoplay = true) {
         }
         if (!videoId) {
             showToast('Video ID not found!', 'warning');
-            document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary);font-size:12px;">No Video ID</span>`;
+            updateLibrarySubtitle([]);
+            updateLibraryPlayerStatus('error', 'Không tìm thấy Video ID');
             return;
         }
-        currentVideoId = videoId;
-        loadPlayer(videoId, autoplay);
-        log(`Loaded ${subtitles.length} subtitles`, 'ok');
+        
+        libraryVideoId = videoId;
+        loadLibraryPlayer(videoId, autoplay);
+        log(`✅ Loaded ${librarySubtitles.length} subtitles`, 'ok');
         document.getElementById('library-status').textContent = `Playing: ${item.title}`;
+        updateLibraryPlayerStatus('playing', `Đang phát: ${item.title}`);
+        
     } catch (e) {
-        console.error('Error loading subtitle:', e);
+        console.error('Error loading library video:', e);
         log(`Error: ${e.message}`, 'err');
-        document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary);font-size:12px;">Error: ${e.message}</span>`;
+        updateLibrarySubtitle([]);
+        updateLibraryPlayerStatus('error', `Lỗi: ${e.message}`);
         showToast(`Error: ${e.message}`, 'error');
     }
 }
 
 // ============================================================
-// LOAD PLAYER
+// LOAD LIBRARY PLAYER
 // ============================================================
-function loadPlayer(videoId, autoplay = true) {
-    if (player) { try { player.destroy(); } catch(e) {} player = null; }
-    document.getElementById('player').innerHTML = '';
-    document.getElementById('video-wrapper').classList.remove('hidden');
+function loadLibraryPlayer(videoId, autoplay = true) {
+    if (libraryPlayer) {
+        try { libraryPlayer.destroy(); } catch(e) {}
+        libraryPlayer = null;
+        libraryPlayerReady = false;
+    }
+    
+    document.getElementById('library-player').innerHTML = '';
+    document.getElementById('library-player-wrapper').classList.remove('hidden');
     document.getElementById('status-text').innerHTML = 'Loading...';
-    player = new YT.Player('player', {
+    
+    libraryPlayer = new YT.Player('library-player', {
         height: '100%', width: '100%', videoId: videoId,
         playerVars: { playsinline: 1, autoplay: autoplay ? 1 : 0, controls: 0, rel: 0, showinfo: 0, origin: window.location.origin, modestbranding: 1 },
         events: {
             onReady: (e) => {
-                startSync();
-                if (autoplay) { e.target.playVideo(); updatePlayPauseBtn(true); document.getElementById('status-text').innerHTML = 'Playing'; showToast('Playing video', 'info'); }
-                else { e.target.pauseVideo(); updatePlayPauseBtn(false); document.getElementById('status-text').innerHTML = 'Paused'; }
+                libraryPlayerReady = true;
+                startLibrarySync();
+                if (autoplay) {
+                    e.target.playVideo();
+                    updatePlayPauseBtn(true);
+                    document.getElementById('status-text').innerHTML = 'Playing';
+                    showToast('▶️ Playing video', 'info');
+                } else {
+                    e.target.pauseVideo();
+                    updatePlayPauseBtn(false);
+                    document.getElementById('status-text').innerHTML = 'Paused';
+                }
+                updateLibraryPlayerStatus('playing', 'Đang phát');
             },
-            onStateChange: onPlayerStateChange,
+            onStateChange: onLibraryPlayerStateChange,
             onError: (e) => {
-                console.error('YouTube Error:', e);
-                document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary);font-size:12px;">Video error</span>`;
-                document.getElementById('status-text').innerHTML = 'Error';
+                console.error('Library Player Error:', e);
+                updateLibraryPlayerStatus('error', 'Lỗi phát video');
                 showToast('Video playback error', 'error');
                 if (videoId && confirm('Cannot play video. Open on YouTube?')) {
                     window.open(`https://youtube.com/watch?v=${videoId}`, '_blank');
@@ -1970,79 +2395,65 @@ function loadPlayer(videoId, autoplay = true) {
             }
         }
     });
-    log(`Loading video: ${videoId}`, 'info');
+    log(`🎬 Loading library video: ${videoId}`, 'info');
 }
 
-function onPlayerStateChange(e) {
+function onLibraryPlayerStateChange(e) {
     if (e.data == YT.PlayerState.PLAYING) {
         updatePlayPauseBtn(true);
         document.getElementById('status-text').innerHTML = 'Playing';
+        updateLibraryPlayerStatus('playing', 'Đang phát');
     } else if (e.data == YT.PlayerState.PAUSED) {
         updatePlayPauseBtn(false);
         document.getElementById('status-text').innerHTML = 'Paused';
+        updateLibraryPlayerStatus('paused', 'Tạm dừng');
     } else if (e.data == YT.PlayerState.ENDED) {
         updatePlayPauseBtn(false);
         document.getElementById('status-text').innerHTML = 'Ended';
-        if (isLoopEnabled && player) { player.seekTo(0, true); player.playVideo(); }
+        updateLibraryPlayerStatus('info', 'Kết thúc');
+        if (isLoopEnabled && libraryPlayer) {
+            libraryPlayer.seekTo(0, true);
+            libraryPlayer.playVideo();
+        }
     } else if (e.data == YT.PlayerState.BUFFERING) {
         document.getElementById('status-text').innerHTML = 'Buffering...';
+        updateLibraryPlayerStatus('loading', 'Đang tải...');
     }
 }
 
-function togglePlayPause() {
-    if (!player || !player.getPlayerState) {
-        if (currentVideoId) loadPlayer(currentVideoId, true);
-        else if (currentGistItem) loadVideoFromGist(currentGistItem, true);
-        else if (libraryItems.length > 0) selectLibraryItem(0);
-        else showToast('No video to play!', 'warning');
-        return;
-    }
-    if (player.getPlayerState() === YT.PlayerState.PLAYING) {
-        player.pauseVideo();
-        document.getElementById('status-text').innerHTML = 'Paused';
-        updatePlayPauseBtn(false);
-    } else {
-        player.playVideo();
-        document.getElementById('status-text').innerHTML = 'Playing';
-        updatePlayPauseBtn(true);
-    }
+// ============================================================
+// LIBRARY SYNC
+// ============================================================
+function startLibrarySync() {
+    if (librarySyncInterval) clearInterval(librarySyncInterval);
+    librarySyncInterval = setInterval(librarySyncSub, 200);
 }
 
-function updatePlayPauseBtn(p) {
-    const b = document.getElementById('btn-play-pause');
-    if (b) b.innerHTML = p ? '⏸' : '▶';
-}
-
-function toggleVideoVisibility() {
-    document.getElementById('video-wrapper').classList.toggle('hidden');
-}
-
-function startSync() {
-    if (syncInterval) clearInterval(syncInterval);
-    syncInterval = setInterval(syncSub, 200);
-}
-
-function syncSub() {
+function librarySyncSub() {
     updateTimeline();
-    if (!player?.getCurrentTime || !subtitles.length) return;
-    const t = player.getCurrentTime();
-    const idx = subtitles.findIndex(s => t >= s.start && t <= s.end);
-    if (idx !== -1 && idx !== activeSubIndex) {
-        activeSubIndex = idx;
-        const s = subtitles[idx];
-        document.getElementById('subtitle-box').innerHTML = `
-            <div class="cn">${s.rawLines[0] || ''}</div>
-            <div class="py">${s.rawLines[1] || ''}</div>
-            <div class="vi">${s.rawLines[2] || ''}</div>`;
+    if (!libraryPlayer?.getCurrentTime || !librarySubtitles.length) return;
+    const t = libraryPlayer.getCurrentTime();
+    const idx = librarySubtitles.findIndex(s => t >= s.start && t <= s.end);
+    if (idx !== -1 && idx !== libraryActiveSubIndex) {
+        libraryActiveSubIndex = idx;
+        const s = librarySubtitles[idx];
+        const lines = s.rawLines || [];
+        updateLibrarySubtitle(lines);
     }
 }
 
+// ============================================================
+// TIMELINE
+// ============================================================
 let videoDuration = 0, isSeeking = false;
 function formatTime(seconds) { if (isNaN(seconds)) return '00:00'; let m = Math.floor(seconds / 60), s = Math.floor(seconds % 60); return `${m<10?'0':''}${m}:${s<10?'0':''}${s}`; }
-function onSliderSeek(val) { isSeeking = true; if (player?.getDuration) { videoDuration = player.getDuration(); document.getElementById('time-display').innerText = `${formatTime((val/100)*videoDuration)} / ${formatTime(videoDuration)}`; } }
-function onSliderChange(val) { if (player?.seekTo) player.seekTo((val / 100) * player.getDuration(), true); setTimeout(() => { isSeeking = false; }, 200); }
-function updateTimeline() { if (!player?.getCurrentTime || isSeeking) return; let t = player.getCurrentTime(), d = player.getDuration(); if (d > 0) { videoDuration = d; document.getElementById('time-slider').value = (t / d) * 100; document.getElementById('time-display').innerText = `${formatTime(t)} / ${formatTime(d)}`; } }
+function onSliderSeek(val) { isSeeking = true; if (libraryPlayer?.getDuration) { videoDuration = libraryPlayer.getDuration(); document.getElementById('time-display').innerText = `${formatTime((val/100)*videoDuration)} / ${formatTime(videoDuration)}`; } }
+function onSliderChange(val) { if (libraryPlayer?.seekTo) libraryPlayer.seekTo((val / 100) * libraryPlayer.getDuration(), true); setTimeout(() => { isSeeking = false; }, 200); }
+function updateTimeline() { if (!libraryPlayer?.getCurrentTime || isSeeking) return; let t = libraryPlayer.getCurrentTime(), d = libraryPlayer.getDuration(); if (d > 0) { videoDuration = d; document.getElementById('time-slider').value = (t / d) * 100; document.getElementById('time-display').innerText = `${formatTime(t)} / ${formatTime(d)}`; } }
 
+// ============================================================
+// PARSE VTT
+// ============================================================
 function parseVTT(d) {
     const n = d.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     const b = n.split('\n\n');
@@ -2069,10 +2480,65 @@ function parseTime(t) { t = t.replace(',', '.'); const p = t.split(':'); if (p.l
 // ============================================================
 // CONTROLS
 // ============================================================
+function togglePlayPause() {
+    if (!libraryPlayer || !libraryPlayer.getPlayerState) {
+        if (libraryVideoId) { loadLibraryPlayer(libraryVideoId, true); }
+        else if (currentGistItem) { loadLibraryVideo(currentGistItem, true); }
+        else if (libraryItems.length > 0) { selectLibraryItem(0); }
+        else { showToast('No video to play!', 'warning'); }
+        return;
+    }
+    if (libraryPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+        libraryPlayer.pauseVideo();
+        document.getElementById('status-text').innerHTML = 'Paused';
+        updatePlayPauseBtn(false);
+        updateLibraryPlayerStatus('paused', 'Tạm dừng');
+    } else {
+        libraryPlayer.playVideo();
+        document.getElementById('status-text').innerHTML = 'Playing';
+        updatePlayPauseBtn(true);
+        updateLibraryPlayerStatus('playing', 'Đang phát');
+    }
+}
+
+function updatePlayPauseBtn(p) {
+    const b = document.getElementById('btn-play-pause');
+    if (b) b.innerHTML = p ? '⏸' : '▶';
+}
+
+function toggleVideoVisibility() {
+    document.getElementById('library-player-wrapper').classList.toggle('hidden');
+}
+
+function cyclePlaybackRate() {
+    currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
+    let r = speeds[currentSpeedIndex];
+    document.getElementById('btn-speed').innerHTML = `${r}x`;
+    if (libraryPlayer?.setPlaybackRate) libraryPlayer.setPlaybackRate(r);
+}
+
+function toggleLoop() {
+    isLoopEnabled = !isLoopEnabled;
+    document.getElementById('btn-loop').classList.toggle('active', isLoopEnabled);
+}
+
+function updateFont(t, v) {
+    document.documentElement.style.setProperty(`--fs-${t}`, v + 'px');
+    document.getElementById(`val-${t}`).innerText = v;
+}
+
+function toggleSubSettings() {
+    const p = document.getElementById('sub-settings-panel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+// ============================================================
+// LIBRARY FUNCTIONS
+// ============================================================
 function copyYouTubeLink() {
     let link = '';
     if (currentGistItem && currentGistItem.youtubeLink) link = currentGistItem.youtubeLink;
-    else if (currentVideoId) link = `https://youtube.com/watch?v=${currentVideoId}`;
+    else if (libraryVideoId) link = `https://youtube.com/watch?v=${libraryVideoId}`;
     else { showToast('No video selected!', 'warning'); return; }
     navigator.clipboard.writeText(link).then(() => {
         showToast('Copied!', 'success');
@@ -2091,45 +2557,11 @@ function copyYouTubeLink() {
 function openYouTubeLink() {
     let link = '';
     if (currentGistItem && currentGistItem.youtubeLink) link = currentGistItem.youtubeLink;
-    else if (currentVideoId) link = `https://youtube.com/watch?v=${currentVideoId}`;
+    else if (libraryVideoId) link = `https://youtube.com/watch?v=${libraryVideoId}`;
     else { showToast('No video selected!', 'warning'); return; }
     window.open(link, '_blank');
 }
 
-function switchTab(tab) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById(`content-${tab}`).classList.add('active');
-    document.getElementById(`tab-${tab}`).classList.add('active');
-    if (tab === 'library') refreshLibrary();
-}
-
-function refreshLibrary() { loadLibrary(true); }
-
-function log(m, c = '') {
-    const t = new Date().toLocaleTimeString('vi-VN');
-    const logBox = document.getElementById('logBox');
-    logBox.innerHTML += `<br><span class="log-${c}">[${t}] ${m}</span>`;
-    logBox.scrollTop = logBox.scrollHeight;
-}
-
-function progUpload(p, text = '', speed = '') {
-    document.getElementById('pb-upload').style.width = Math.min(p, 100) + '%';
-    if (text) document.getElementById('pb-upload-text').innerText = text;
-    if (speed) document.getElementById('pb-upload-speed').innerText = speed;
-}
-
-function switchUploadMethod(method) {
-    uploadMethod = method;
-    document.getElementById('upload-method-direct').style.display = method === 'direct' ? 'block' : 'none';
-    document.getElementById('upload-method-drive').style.display = method === 'drive' ? 'block' : 'none';
-    document.getElementById('method-direct-btn').classList.toggle('active', method === 'direct');
-    document.getElementById('method-drive-btn').classList.toggle('active', method === 'drive');
-}
-
-// ============================================================
-// DELETE
-// ============================================================
 async function deleteLibraryItem(index) {
     const item = libraryItems[index];
     if (!item) return;
@@ -2146,16 +2578,19 @@ async function deleteLibraryItem(index) {
         });
         if (deleteRes.ok || deleteRes.status === 404) {
             libraryItems.splice(index, 1);
-            if (selectedLibraryIndex === index) { selectedLibraryIndex = -1; currentGistItem = null; currentVideoId = null; resetPlayer(); }
+            if (selectedLibraryIndex === index) { selectedLibraryIndex = -1; currentGistItem = null; libraryVideoId = null; resetLibraryPlayer(); }
             else if (selectedLibraryIndex > index) selectedLibraryIndex--;
             updateLibraryDropdown();
             if (libraryItems.length === 0) {
                 document.getElementById('selected-title').textContent = 'No subtitle';
                 document.getElementById('selected-video-id').textContent = '---';
+                updateLibraryPlayerStatus('empty', 'Chưa có phụ đề nào trong thư viện');
+                updateLibrarySubtitle([]);
             } else if (selectedLibraryIndex === -1) selectLibraryItem(0);
             showToast(`Deleted: ${item.title}`, 'success');
             log(`Deleted: ${item.title}`, 'ok');
-            document.getElementById('subtitle-box').innerHTML = `<span style="color:var(--text-secondary);font-size:12px;font-weight:500;">Subtitle deleted</span>`;
+            updateLibraryPlayerStatus('info', 'Chọn phụ đề để phát');
+            updateLibrarySubtitle([]);
             document.getElementById('library-status').textContent = `Deleted: ${item.title}`;
         } else {
             const err = await deleteRes.text();
@@ -2177,9 +2612,27 @@ function deleteSelectedVideo() {
     deleteLibraryItem(selectedLibraryIndex);
 }
 
-// ============================================================
-// RENAME
-// ============================================================
+function resetLibraryPlayer() {
+    if (libraryPlayer) {
+        try { libraryPlayer.destroy(); } catch(e) {}
+        libraryPlayer = null;
+        libraryPlayerReady = false;
+    }
+    if (librarySyncInterval) {
+        clearInterval(librarySyncInterval);
+        librarySyncInterval = null;
+    }
+    document.getElementById('library-player-wrapper').classList.add('hidden');
+    document.getElementById('library-player').innerHTML = '';
+    librarySubtitles = [];
+    libraryActiveSubIndex = -1;
+    libraryVideoId = null;
+    updatePlayPauseBtn(false);
+    document.getElementById('status-text').innerHTML = 'Ready';
+    updateLibraryPlayerStatus('info', 'Chọn phụ đề để phát');
+    updateLibrarySubtitle([]);
+}
+
 async function renameCurrentVideo() {
     if (!currentGistItem) { showToast('Select subtitle to rename!', 'warning'); return; }
     if (isRenaming) return;
@@ -2220,44 +2673,44 @@ async function renameCurrentVideo() {
 }
 
 // ============================================================
-// WORKFLOW LOG
+// SWITCH TAB
 // ============================================================
-function initWorkflowLog() {
-    workflowStatus = workflowSteps.map(step => ({ ...step, status: 'pending', time: '' }));
-    renderWorkflowLog();
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(`content-${tab}`).classList.add('active');
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    if (tab === 'library') refreshLibrary();
 }
 
-function renderWorkflowLog() {
-    const log = document.getElementById('workflow-log');
-    if (!log) return;
-    let html = '';
-    workflowStatus.forEach(step => {
-        const statusIcon = step.status === 'running' ? '⟳' : step.status === 'success' ? '✓' : step.status === 'failed' ? '✗' : '○';
-        const timeDisplay = step.time ? `<span class="time">${step.time}</span>` : '';
-        html += `<div class="step ${step.status}"><span class="icon">${step.icon}</span><span class="name">${step.name}</span>${timeDisplay}<span class="status-icon">${statusIcon}</span></div>`;
-    });
-    log.innerHTML = html;
-    log.scrollTop = log.scrollHeight;
-}
-
-function forceResetWorkflow() {
-    workflowStatus = workflowSteps.map(step => ({ ...step, status: 'pending', time: '' }));
-    renderWorkflowLog();
-    progUpload(0, 'Ready');
-    document.getElementById('status-text').innerHTML = 'Ready';
-    const btn = document.getElementById('btn-drive-process');
-    if (btn) { btn.disabled = false; btn.textContent = 'Process'; }
-    document.getElementById('drive-info').innerHTML = '';
-    document.getElementById('drive-info-box').style.display = 'none';
-    if (pendingVideoId) clearVideoProcessing(pendingVideoId);
-    processingQueue = {};
-    saveProcessingState();
-    log('Reset, ready for new job', 'info');
-    showToast('Reset', 'info');
-}
+function refreshLibrary() { loadLibrary(true); }
 
 // ============================================================
-// DRIVE FUNCTIONS
+// LOG & PROGRESS
+// ============================================================
+function log(m, c = '') {
+    const t = new Date().toLocaleTimeString('vi-VN');
+    const logBox = document.getElementById('logBox');
+    logBox.innerHTML += `<br><span class="log-${c}">[${t}] ${m}</span>`;
+    logBox.scrollTop = logBox.scrollHeight;
+}
+
+function progUpload(p, text = '', speed = '') {
+    document.getElementById('pb-upload').style.width = Math.min(p, 100) + '%';
+    if (text) document.getElementById('pb-upload-text').innerText = text;
+    if (speed) document.getElementById('pb-upload-speed').innerText = speed;
+}
+
+function switchUploadMethod(method) {
+    uploadMethod = method;
+    document.getElementById('upload-method-direct').style.display = method === 'direct' ? 'block' : 'none';
+    document.getElementById('upload-method-drive').style.display = method === 'drive' ? 'block' : 'none';
+    document.getElementById('method-direct-btn').classList.toggle('active', method === 'direct');
+    document.getElementById('method-drive-btn').classList.toggle('active', method === 'drive');
+}
+
+// ============================================================
+// DRIVE FUNCTIONS - ĐÃ SẮP XẾP LẠI (BỎ NÚT PROCESS)
 // ============================================================
 function extractDriveFileId(link) {
     if (!link) return null;
@@ -2282,18 +2735,13 @@ function extractDriveFolderId(link) {
 
 function saveDriveLink(link) {
     savedDriveLink = link;
-    try {
-        localStorage.setItem('saved_drive_link', link);
-    } catch(e) {}
+    try { localStorage.setItem('saved_drive_link', link); } catch(e) {}
 }
 
 function loadSavedDriveLink() {
     try {
         const saved = localStorage.getItem('saved_drive_link');
-        if (saved) {
-            savedDriveLink = saved;
-            return saved;
-        }
+        if (saved) { savedDriveLink = saved; return saved; }
     } catch(e) {}
     return null;
 }
@@ -2313,22 +2761,18 @@ function restoreDriveLink() {
 function onSmartDriveInput() {
     const val = document.getElementById('smart-drive-link').value;
     const hasValue = val && val.trim().length > 0;
-    
     document.getElementById('btn-clear-smart').style.display = hasValue ? 'block' : 'none';
-    
     const replaceBtn = document.getElementById('btn-replace-link');
     if (savedDriveLink && savedDriveLink !== val && hasValue) {
         replaceBtn.style.display = 'block';
     } else {
         replaceBtn.style.display = 'none';
     }
-    
     document.getElementById('folder-area').style.display = 'none';
     document.getElementById('drive-info-box').style.display = 'none';
     document.getElementById('drive-info').innerHTML = '';
     currentSmartFileId = null;
     isFolderMode = false;
-    document.getElementById('btn-drive-process').disabled = true;
     
     if (!hasValue) return;
     
@@ -2339,7 +2783,6 @@ function onSmartDriveInput() {
     if (fileId) {
         currentSmartFileId = fileId;
         isFolderMode = false;
-        document.getElementById('btn-drive-process').disabled = false;
         document.getElementById('drive-info-box').style.display = 'block';
         document.getElementById('drive-file-id').textContent = fileId;
         document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">File link detected</span>`;
@@ -2347,7 +2790,6 @@ function onSmartDriveInput() {
         saveDriveLink(val);
     } else if (folderId && hasApiKey) {
         isFolderMode = true;
-        document.getElementById('btn-drive-process').disabled = true;
         localStorage.setItem('drive_folder_id', folderId);
         const folderName = val.match(/\/folders\/([^\/]+)/)?.[1] || folderId;
         localStorage.setItem('drive_folder_name', folderName);
@@ -2358,11 +2800,9 @@ function onSmartDriveInput() {
         loadFilesFromFolder();
         saveDriveLink(val);
     } else if (folderId && !hasApiKey) {
-        document.getElementById('btn-drive-process').disabled = true;
         document.getElementById('drive-info').innerHTML = `<span class="status-badge">Need API Key</span>`;
         log('Add Google API Key for folder browsing', 'warning');
     } else {
-        document.getElementById('btn-drive-process').disabled = true;
         document.getElementById('drive-info').innerHTML = `<span class="status-badge error">Invalid Drive link</span>`;
     }
 }
@@ -2370,15 +2810,11 @@ function onSmartDriveInput() {
 function replaceDriveLink() {
     const currentVal = document.getElementById('smart-drive-link').value;
     if (!currentVal || currentVal.trim().length === 0) return;
-    
     if (!confirm('Replace saved Drive link with the new link?')) return;
-    
     savedDriveLink = '';
     localStorage.removeItem('saved_drive_link');
     saveDriveLink(currentVal);
-    
     document.getElementById('btn-replace-link').style.display = 'none';
-    
     showToast('Drive link replaced!', 'success');
     log(`Replaced Drive link with: ${currentVal}`, 'ok');
 }
@@ -2387,7 +2823,6 @@ function clearSmartInput() {
     document.getElementById('smart-drive-link').value = '';
     document.getElementById('btn-clear-smart').style.display = 'none';
     document.getElementById('btn-replace-link').style.display = 'none';
-    document.getElementById('btn-drive-process').disabled = true;
     document.getElementById('drive-info-box').style.display = 'none';
     document.getElementById('drive-info').innerHTML = '';
     document.getElementById('folder-area').style.display = 'none';
@@ -2419,7 +2854,6 @@ async function loadFilesFromFolder() {
                 opt.textContent = `${file.name} (${sizeMB} MB)`;
                 select.appendChild(opt);
             });
-            document.getElementById('btn-drive-process').disabled = false;
             log(`Loaded ${audioFiles.length} audio files`, 'ok');
         } else {
             select.innerHTML = '<option value="">Error loading</option>';
@@ -2454,7 +2888,6 @@ function clearSavedFolder() {
     document.getElementById('smart-drive-link').value = '';
     document.getElementById('btn-clear-smart').style.display = 'none';
     document.getElementById('btn-replace-link').style.display = 'none';
-    document.getElementById('btn-drive-process').disabled = true;
     document.getElementById('drive-info').innerHTML = '';
     document.getElementById('drive-info-box').style.display = 'none';
     log('Cleared Drive folder and saved link', 'info');
@@ -2465,7 +2898,6 @@ function onFolderFileSelect() {
     const select = document.getElementById('folder-file-select');
     const selected = select.value;
     if (selected) {
-        document.getElementById('btn-drive-process').disabled = false;
         try {
             const fileData = JSON.parse(selected);
             document.getElementById('drive-file-id').textContent = fileData.id;
@@ -2478,9 +2910,26 @@ function onFolderFileSelect() {
             document.getElementById('file-info').innerHTML = `<span class="status-badge drive">Drive file</span><span class="status-badge">${fileData.id}</span>`;
             log(`Selected: ${fileData.name}`, 'info');
             showToast(`Selected: ${fileData.name}`, 'success');
+            
+            // Tự động tìm video trùng tên trong Library và hiển thị phụ đề
+            const fileName = fileData.name;
+            const cleanName = cleanSearchQuery(fileName);
+            let bestMatch = null, bestScore = 0;
+            for (const item of libraryItems) {
+                const score = similarityScore(cleanName, item.title);
+                if (score > bestScore && score > 0.3) {
+                    bestScore = score;
+                    bestMatch = item;
+                }
+            }
+            if (bestMatch && bestScore > 0.3) {
+                log(`✅ Tìm thấy video trùng tên trong Library: ${bestMatch.title} (${Math.round(bestScore*100)}%)`, 'ok');
+                showToast(`🔍 Tìm thấy phụ đề: ${bestMatch.title} (${Math.round(bestScore*100)}%)`, 'info');
+                const idx = libraryItems.findIndex(i => i.videoId === bestMatch.videoId);
+                if (idx !== -1) selectLibraryItem(idx);
+            }
         } catch (e) { console.error('Parse error:', e); }
     } else {
-        document.getElementById('btn-drive-process').disabled = true;
         document.getElementById('drive-info-box').style.display = 'none';
         document.getElementById('drive-info').innerHTML = '';
         currentSmartFileId = null;
@@ -2502,136 +2951,9 @@ function handleFileSelect(file) {
 }
 
 // ============================================================
-// PROCESS SMART DRIVE
+// PROCESS SMART DRIVE - ĐÃ BỎ (KHÔNG CÒN NÚT PROCESS)
 // ============================================================
-async function processSmartDrive() {
-    const vid = pendingVideoId || currentVideoId;
-    if (!vid) { showToast('No Video ID!', 'warning'); return; }
-    if (selectedFile) {
-        const matches = findMatchingVideos(selectedFile.name);
-        if (matches.length > 0) {
-            showMatchDialog(matches, selectedFile.name, () => executeProcessSmartDrive());
-            return;
-        }
-    }
-    await executeProcessSmartDrive();
-}
-
-async function executeProcessSmartDrive() {
-    const vid = pendingVideoId || currentVideoId;
-    if (!vid) { showToast('No Video ID!', 'warning'); return; }
-    const existing = libraryItems.find(item => item.videoId === vid);
-    if (existing) {
-        log(`Video ${vid} exists in library`, 'ok');
-        showToast(`Video ${vid} exists`, 'success');
-        switchTab('library');
-        setTimeout(() => {
-            const idx = libraryItems.findIndex(item => item.videoId === vid);
-            if (idx !== -1) selectLibraryItem(idx);
-        }, 500);
-        return;
-    }
-    if (isVideoProcessing(vid)) { showToast(`Video ${vid} processing`, 'warning'); return; }
-    if (isVideoProcessed(vid)) {
-        log(`Video ${vid} processed`, 'ok');
-        await loadLibrary(true);
-        switchTab('library');
-        setTimeout(() => {
-            const idx = libraryItems.findIndex(item => item.videoId === vid);
-            if (idx !== -1) selectLibraryItem(idx);
-        }, 500);
-        return;
-    }
-    const githubStatus = await checkGitHubProcessingStatus(vid);
-    if (githubStatus && githubStatus.status === 'processing') {
-        log(`Video ${vid} processing on GitHub`, 'warning');
-        showToast(`Video ${vid} processing on GitHub`, 'warning');
-        return;
-    }
-    let fileId = null;
-    let driveLink = '';
-    if (currentSmartFileId && !isFolderMode) {
-        fileId = currentSmartFileId;
-        driveLink = `https://drive.google.com/file/d/${fileId}/view`;
-    } else {
-        const selected = document.getElementById('folder-file-select').value;
-        if (!selected) { showToast('Select file from folder!', 'warning'); return; }
-        try {
-            const fileData = JSON.parse(selected);
-            fileId = fileData.id;
-            driveLink = `https://drive.google.com/file/d/${fileId}/view`;
-        } catch (e) { showToast('File selection error!', 'error'); return; }
-    }
-    if (!fileId) { showToast('Invalid file!', 'error'); return; }
-    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    if (!token) { showToast('Enter GitHub Token!', 'error'); return; }
-    markVideoProcessing(vid);
-    forceResetWorkflow();
-    const btn = document.getElementById('btn-drive-process');
-    const originalText = btn.textContent;
-    btn.textContent = 'Sending...';
-    btn.disabled = true;
-    log(`Processing: ${fileId}`, 'info');
-    progUpload(10, 'Sending to GitHub...');
-    document.getElementById('status-text').innerHTML = 'Processing';
-    document.getElementById('drive-info').innerHTML = `<span class="status-badge processing">Processing...</span>`;
-    try {
-        const response = await fetch(`https://api.github.com/repos/${targetUser}/${targetRepo}/dispatches`, {
-            method: 'POST',
-            headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                event_type: 'process_drive_audio',
-                client_payload: { video_id: vid, drive_file_id: fileId, drive_link: driveLink }
-            })
-        });
-        if (response.ok) {
-            log('Request sent successfully', 'ok');
-            progUpload(100, 'Done!');
-            document.getElementById('status-text').innerHTML = 'Done';
-            document.getElementById('drive-info').innerHTML = `<span class="status-badge done">Sent</span>`;
-            document.getElementById('library-status').innerHTML = `Processing ${vid}...`;
-            showToast(`Sent: ${vid}`, 'success');
-            markVideoProcessed(vid);
-            setTimeout(() => clearVideoProcessing(vid), 300000);
-            setTimeout(() => loadLibrary(true), 30000);
-            setTimeout(() => loadLibrary(true), 180000);
-        } else {
-            const err = await response.json();
-            log(`Failed: ${err.message || response.status}`, 'err');
-            progUpload(0, 'Failed');
-            document.getElementById('drive-info').innerHTML = `<span class="status-badge error">Error</span>`;
-            clearVideoProcessing(vid);
-            showToast(`Error: ${err.message || response.status}`, 'error');
-        }
-    } catch (e) {
-        log(`Error: ${e.message}`, 'err');
-        progUpload(0, 'Error');
-        document.getElementById('drive-info').innerHTML = `<span class="status-badge error">Error</span>`;
-        clearVideoProcessing(vid);
-        showToast(`Error: ${e.message}`, 'error');
-    }
-    btn.textContent = originalText;
-    btn.disabled = false;
-}
-
-function isVideoProcessing(videoId) { return processingQueue[videoId] === true; }
-function isVideoProcessed(videoId) { return processedLinks[videoId] === true; }
-function markVideoProcessing(videoId) { processingQueue[videoId] = true; saveProcessingState(); }
-function markVideoProcessed(videoId) { processingQueue[videoId] = false; processedLinks[videoId] = true; saveProcessingState(); }
-function clearVideoProcessing(videoId) { delete processingQueue[videoId]; saveProcessingState(); }
-
-async function checkGitHubProcessingStatus(videoId) {
-    const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    if (!token) return null;
-    try {
-        const response = await fetch(`https://api.github.com/repos/${targetUser}/${targetRepo}/contents/.processing/${videoId}.lock`, {
-            headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
-        });
-        if (response.ok) return { status: 'processing', message: 'Processing' };
-        else if (response.status === 404) return { status: 'idle', message: 'Ready' };
-        else return null;
-    } catch (e) { console.error('Status check error:', e); return null; }
-}
+// Các hàm processSmartDrive và executeProcessSmartDrive đã được xóa
 
 // ============================================================
 // UI FUNCTIONS
@@ -2669,49 +2991,6 @@ function toggleFullSettings() {
     }
 }
 
-function toggleSubSettings() {
-    const p = document.getElementById('sub-settings-panel');
-    p.style.display = p.style.display === 'none' ? 'block' : 'none';
-}
-
-function updateFont(t, v) {
-    document.documentElement.style.setProperty(`--fs-${t}`, v + 'px');
-    document.getElementById(`val-${t}`).innerText = v;
-}
-
-function cyclePlaybackRate() {
-    currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
-    let r = speeds[currentSpeedIndex];
-    document.getElementById('btn-speed').innerHTML = `${r}x`;
-    if (player?.setPlaybackRate) player.setPlaybackRate(r);
-}
-
-function toggleLoop() {
-    isLoopEnabled = !isLoopEnabled;
-    document.getElementById('btn-loop').classList.toggle('active', isLoopEnabled);
-}
-
-function updateDriveUI(hasApiKey) {
-    const warning = document.getElementById('api-key-warning');
-    if (warning) {
-        if (hasApiKey) {
-            warning.style.display = 'none';
-            const savedFolderId = localStorage.getItem('drive_folder_id');
-            if (savedFolderId) {
-                document.getElementById('folder-area').style.display = 'block';
-                document.getElementById('saved-folder-id').textContent = localStorage.getItem('drive_folder_name') || savedFolderId;
-                loadFilesFromFolder();
-            }
-        } else {
-            warning.style.display = 'block';
-            document.getElementById('folder-area').style.display = 'none';
-        }
-    }
-}
-
-// ============================================================
-// SAVE SETTINGS
-// ============================================================
 function saveSettings() {
     const user = document.getElementById('ghUser').value.trim();
     const repo = document.getElementById('ghRepo').value.trim();
@@ -2733,6 +3012,14 @@ function loadSettings() {
 }
 
 // ============================================================
+// UPLOAD TO GITHUB
+// ============================================================
+async function uploadToGitHub() {
+    showToast('Upload to GitHub', 'info');
+    log('Upload to GitHub', 'info');
+}
+
+// ============================================================
 // ON YOUTUBE IFRAME API READY
 // ============================================================
 function onYouTubeIframeAPIReady() {
@@ -2740,13 +3027,8 @@ function onYouTubeIframeAPIReady() {
     loadProcessingState();
     checkPendingProcessing();
     loadLibrary(false);
-    initWorkflowLog();
     const apiKey = localStorage.google_api_key || '';
-    updateDriveUI(!!apiKey);
-    
-    setTimeout(() => {
-        restoreDriveLink();
-    }, 500);
+    setTimeout(() => { restoreDriveLink(); }, 500);
 }
 
 function checkPendingProcessing() {
@@ -2762,12 +3044,20 @@ function checkPendingProcessing() {
     }
 }
 
-// ============================================================
-// UPLOAD TO GITHUB
-// ============================================================
-async function uploadToGitHub() {
-    showToast('Upload to GitHub', 'info');
-    log('Upload to GitHub', 'info');
+function saveProcessingState() {
+    try {
+        localStorage.setItem('pinyin_ai_queue', JSON.stringify(processingQueue));
+        localStorage.setItem('pinyin_ai_processed', JSON.stringify(processedLinks));
+    } catch (e) {}
+}
+
+function loadProcessingState() {
+    try {
+        const queue = localStorage.getItem('pinyin_ai_queue');
+        const processed = localStorage.getItem('pinyin_ai_processed');
+        if (queue) processingQueue = JSON.parse(queue);
+        if (processed) processedLinks = JSON.parse(processed);
+    } catch (e) { processingQueue = {}; processedLinks = {}; }
 }
 
 // ============================================================
