@@ -127,7 +127,7 @@
         }
         
         /* ============================================================
-           PLAYER CONTAINERS - LUÔN HIỂN THỊ (không dùng hideable)
+           PLAYER CONTAINERS
            ============================================================ */
         .player-container {
             position: relative;
@@ -181,7 +181,7 @@
         .player-status .sub { font-size: 9px; color: var(--text-tertiary); }
         
         /* ============================================================
-           SUBTITLE BOXES - LUÔN HIỂN THỊ (không dùng hideable)
+           SUBTITLE BOXES
            ============================================================ */
         .subtitle-box {
             background: var(--bg-card);
@@ -1010,13 +1010,13 @@
     <!-- TOAST -->
     <div class="toast" id="toast"></div>
     
-    <!-- HEADER - có thể ẩn -->
+    <!-- HEADER -->
     <div class="app-header hideable" id="header">
         <div class="logo">Pinyin AI</div>
         <div class="sub">Subtitle Downloader</div>
     </div>
 
-    <!-- TABS - có thể ẩn -->
+    <!-- TABS -->
     <div class="tab-group hideable" id="tab-group">
         <button class="tab-btn" onclick="switchTab('upload')" id="tab-upload">Upload</button>
         <button class="tab-btn active" onclick="switchTab('library')" id="tab-library">Library</button>
@@ -1024,7 +1024,7 @@
 
     <!-- TAB 1: UPLOAD -->
     <div class="tab-content hideable" id="content-upload">
-        <!-- PLAYER UPLOAD - LUÔN HIỂN THỊ (không có class hideable) -->
+        <!-- PLAYER UPLOAD -->
         <div class="card" style="padding:12px 14px;">
             <span class="player-label">🎬 Upload Preview</span>
             <div class="player-container hidden" id="upload-player-wrapper">
@@ -1036,13 +1036,13 @@
             </div>
         </div>
         
-        <!-- SUBTITLE UPLOAD - LUÔN HIỂN THỊ (không có class hideable) -->
+        <!-- SUBTITLE UPLOAD -->
         <div class="subtitle-box" id="upload-subtitle-box">
             <span class="label">📝 Upload Subtitles</span>
             <span class="empty">Chưa có phụ đề</span>
         </div>
         
-        <div class="card hideable">
+        <div class="card">
             <span class="card-label">Upload Audio</span>
             
             <!-- YouTube URL -->
@@ -1114,7 +1114,7 @@
                 </button>
             </div>
             
-            <!-- Drive Upload -->
+            <!-- Drive Upload - ĐÃ BỎ NÚT PROCESS -->
             <div id="upload-method-drive">
                 <div style="margin-top:4px;">
                     <div style="font-size:11px;color:var(--text-secondary);margin-bottom:3px;">Drive Link</div>
@@ -1178,7 +1178,7 @@
 
     <!-- TAB 2: LIBRARY -->
     <div class="tab-content active hideable" id="content-library">
-        <!-- PLAYER LIBRARY - LUÔN HIỂN THỊ (không có class hideable) -->
+        <!-- PLAYER LIBRARY -->
         <div class="card" style="padding:12px 14px;">
             <span class="player-label">🎬 Library Player</span>
             <div class="player-container hidden" id="library-player-wrapper">
@@ -1190,13 +1190,13 @@
             </div>
         </div>
         
-        <!-- SUBTITLE LIBRARY - LUÔN HIỂN THỊ (không có class hideable) -->
+        <!-- SUBTITLE LIBRARY -->
         <div class="subtitle-box" id="library-subtitle-box">
             <span class="label">📝 Library Subtitles</span>
             <span class="empty">Chọn phụ đề để xem</span>
         </div>
         
-        <div class="card hideable">
+        <div class="card">
             <div class="flex-between" style="margin-bottom:8px;">
                 <span class="card-label" style="margin-bottom:0;">Subtitle Library</span>
                 <div class="flex gap-1">
@@ -1226,7 +1226,7 @@
         </div>
     </div>
 
-    <!-- CONTROLS (cho Library Player) - LUÔN HIỂN THỊ (không có class hideable) -->
+    <!-- CONTROLS (cho Library Player) -->
     <div class="card" id="timeline-card">
         <div class="flex gap-2" style="align-items:center;">
             <input type="range" id="time-slider" value="0" min="0" max="100" step="0.1" 
@@ -1235,7 +1235,7 @@
         </div>
     </div>
 
-    <div class="card hideable">
+    <div class="card">
         <div class="controls-row">
             <div class="btn-icon-group">
                 <button class="btn-icon" id="btn-play-pause" onclick="togglePlayPause()">▶</button>
@@ -1274,7 +1274,7 @@
         </div>
     </div>
 
-    <!-- SETTINGS - có thể ẩn -->
+    <!-- SETTINGS -->
     <div class="settings-group hidden" id="settings-group">
         <div class="card card-solid">
             <span class="card-label">GitHub Settings</span>
@@ -1301,7 +1301,7 @@
         <div class="settings-footer"><span class="version">v1.0</span></div>
     </div>
 
-    <!-- LOG - có thể ẩn -->
+    <!-- LOG -->
     <div class="card hideable hidden" id="log-card">
         <span class="card-label">Log</span>
         <div id="logBox">Ready</div>
@@ -1351,8 +1351,6 @@ let savedDriveLink = '';
 let confirmResults = [];
 let confirmCallback = null;
 let confirmSkipCallback = null;
-let processingQueue = {};
-let processedLinks = {};
 
 // ============================================================
 // TOAST
@@ -1856,7 +1854,7 @@ function continueRenderWithVideo(videoId, fileName) {
 }
 
 // ============================================================
-// CONFIRM DIALOG
+// CONFIRM DIALOG - SỬA LẠI
 // ============================================================
 function showConfirmDialog(matches, fileName, onConfirm, onSkip) {
     const dialog = document.getElementById('confirm-dialog');
@@ -1912,16 +1910,20 @@ function confirmRender() {
 }
 
 // ============================================================
-// SKIP AND RENDER
+// SKIP AND RENDER - QUAN TRỌNG: GỬI LỆNH SANG GITHUB
 // ============================================================
 function skipAndRender() {
     console.log('⏭️ skipAndRender() called');
     console.log('📌 pendingRenderFile:', pendingRenderFile);
     
+    // Đóng dialog
     closeConfirmDialog();
+    
+    // Hiển thị thông báo
     showToast('⏭️ Bỏ qua video, GitHub sẽ tự tìm kiếm theo tên file', 'info');
     log('⏭️ Người dùng chọn bỏ qua video, render với tên file', 'info');
     
+    // 👈 QUAN TRỌNG: GỌI performRender VỚI pendingRenderFile
     if (pendingRenderFile) {
         console.log('📤 Gọi performRender với file:', pendingRenderFile);
         performRender(pendingRenderFile);
@@ -1932,7 +1934,7 @@ function skipAndRender() {
 }
 
 // ============================================================
-// PERFORM RENDER
+// PERFORM RENDER - GỬI LỆNH SANG GITHUB
 // ============================================================
 async function performRender(fileName) {
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
@@ -1965,6 +1967,7 @@ async function performRender(fileName) {
     let videoId = pendingVideoId;
     let hasVideoId = false;
     
+    // Kiểm tra video_id hợp lệ
     if (videoId && videoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
         hasVideoId = true;
         log(`✅ Gửi Video ID từ link: ${videoId}`, 'id');
@@ -1975,6 +1978,7 @@ async function performRender(fileName) {
         showToast(`🔍 GitHub sẽ tìm kiếm video theo tên file`, 'info');
     }
     
+    // Tạo payload
     const payload = {
         event_type: 'new_drive_file',
         client_payload: {
@@ -2053,6 +2057,8 @@ async function renderFromFile() {
     }
     
     const fileName = selectedFile.name;
+    
+    // Lưu pendingRenderFile
     pendingRenderFile = fileName;
     
     console.log('📌 renderFromFile() called');
@@ -2060,6 +2066,7 @@ async function renderFromFile() {
     console.log('🎯 pendingVideoId:', pendingVideoId);
     console.log('💾 driveFileId:', driveFileId);
     
+    // Nếu có link YouTube, dùng ID
     if (pendingVideoId && pendingVideoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
         showToast(`✅ Dùng Video ID từ link: ${pendingVideoId}`, 'success');
         log(`📌 Render với Video ID từ link: ${pendingVideoId}`, 'id');
@@ -2067,12 +2074,14 @@ async function renderFromFile() {
         return;
     }
     
+    // Tìm video trong Library (≥70%)
     const matches = findMatchingVideos(fileName);
     if (matches.length > 0) {
         showMatchDialog(matches, fileName, () => performRender(fileName));
         return;
     }
     
+    // Tìm video khớp thấp
     const allMatches = [];
     const cleanName = cleanSearchQuery(fileName);
     for (const item of libraryItems) {
@@ -2088,6 +2097,7 @@ async function renderFromFile() {
         showConfirmDialog(
             lowMatches, 
             fileName,
+            // Callback: Render với video
             (bestMatch) => {
                 console.log('✅ User chọn render với video:', bestMatch.title);
                 pendingVideoId = bestMatch.videoId;
@@ -2102,6 +2112,7 @@ async function renderFromFile() {
                 `;
                 performRender(fileName);
             },
+            // Callback: Bỏ qua
             () => {
                 console.log('⏭️ User chọn bỏ qua, gọi performRender với file:', fileName);
                 performRender(fileName);
@@ -2110,6 +2121,7 @@ async function renderFromFile() {
         return;
     }
     
+    // Không có video nào -> render bình thường
     console.log('📤 Không có video nào, render bình thường');
     await performRender(fileName);
 }
@@ -2712,7 +2724,7 @@ function switchUploadMethod(method) {
 }
 
 // ============================================================
-// DRIVE FUNCTIONS
+// DRIVE FUNCTIONS (giữ nguyên)
 // ============================================================
 function extractDriveFileId(link) {
     if (!link) return null;
@@ -2913,6 +2925,7 @@ function onFolderFileSelect() {
             log(`Selected: ${fileData.name}`, 'info');
             showToast(`Selected: ${fileData.name}`, 'success');
             
+            // Tự động tìm video trùng tên trong Library và hiển thị phụ đề
             const fileName = fileData.name;
             const cleanName = cleanSearchQuery(fileName);
             let bestMatch = null, bestScore = 0;
@@ -3054,13 +3067,6 @@ function loadProcessingState() {
         if (queue) processingQueue = JSON.parse(queue);
         if (processed) processedLinks = JSON.parse(processed);
     } catch (e) { processingQueue = {}; processedLinks = {}; }
-}
-
-function clearVideoProcessing(videoId) {
-    if (processingQueue[videoId]) {
-        delete processingQueue[videoId];
-        saveProcessingState();
-    }
 }
 
 // ============================================================
