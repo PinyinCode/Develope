@@ -86,6 +86,13 @@
         .hideable.hidden { display: none !important; }
         .settings-group.hidden { display: none !important; }
         
+        /* ============================================================
+           LUÔN HIỂN THỊ - KHÔNG BỊ ẢNH HƯỞNG BỞI NÚT MẮT
+           ============================================================ */
+        .always-visible {
+            /* Class này để đánh dấu, không bị ẩn bởi toggleHideMode */
+        }
+        
         .flex { display: flex; }
         .flex-center { display: flex; align-items: center; justify-content: center; }
         .flex-between { display: flex; align-items: center; justify-content: space-between; }
@@ -1010,38 +1017,42 @@
     <!-- TOAST -->
     <div class="toast" id="toast"></div>
     
-    <!-- HEADER -->
+    <!-- HEADER - có thể ẩn -->
     <div class="app-header hideable" id="header">
         <div class="logo">Pinyin AI</div>
         <div class="sub">Subtitle Downloader</div>
     </div>
 
-    <!-- TABS -->
+    <!-- TABS - có thể ẩn -->
     <div class="tab-group hideable" id="tab-group">
         <button class="tab-btn" onclick="switchTab('upload')" id="tab-upload">Upload</button>
         <button class="tab-btn active" onclick="switchTab('library')" id="tab-library">Library</button>
     </div>
 
-    <!-- TAB 1: UPLOAD -->
+    <!-- ========================================================== -->
+    <!-- PHẦN LUÔN HIỂN THỊ - KHÔNG BỊ ẨN BỞI NÚT MẮT              -->
+    <!-- ========================================================== -->
+    
+    <!-- PLAYER UPLOAD - LUÔN HIỂN THỊ -->
+    <div class="card always-visible" style="padding:12px 14px;">
+        <span class="player-label">🎬 Upload Preview</span>
+        <div class="player-container hidden" id="upload-player-wrapper">
+            <div class="player-iframe" id="upload-player"></div>
+        </div>
+        <div class="player-status" id="upload-player-status">
+            <span class="icon">💡</span>
+            <span class="info">Nhập link YouTube để xem trước</span>
+        </div>
+    </div>
+    
+    <!-- SUBTITLE UPLOAD - LUÔN HIỂN THỊ -->
+    <div class="subtitle-box always-visible" id="upload-subtitle-box">
+        <span class="label">📝 Upload Subtitles</span>
+        <span class="empty">Chưa có phụ đề</span>
+    </div>
+
+    <!-- TAB 1: UPLOAD (có thể ẩn) -->
     <div class="tab-content hideable" id="content-upload">
-        <!-- PLAYER UPLOAD -->
-        <div class="card" style="padding:12px 14px;">
-            <span class="player-label">🎬 Upload Preview</span>
-            <div class="player-container hidden" id="upload-player-wrapper">
-                <div class="player-iframe" id="upload-player"></div>
-            </div>
-            <div class="player-status" id="upload-player-status">
-                <span class="icon">💡</span>
-                <span class="info">Nhập link YouTube để xem trước</span>
-            </div>
-        </div>
-        
-        <!-- SUBTITLE UPLOAD -->
-        <div class="subtitle-box" id="upload-subtitle-box">
-            <span class="label">📝 Upload Subtitles</span>
-            <span class="empty">Chưa có phụ đề</span>
-        </div>
-        
         <div class="card">
             <span class="card-label">Upload Audio</span>
             
@@ -1114,7 +1125,7 @@
                 </button>
             </div>
             
-            <!-- Drive Upload - ĐÃ BỎ NÚT PROCESS -->
+            <!-- Drive Upload -->
             <div id="upload-method-drive">
                 <div style="margin-top:4px;">
                     <div style="font-size:11px;color:var(--text-secondary);margin-bottom:3px;">Drive Link</div>
@@ -1176,26 +1187,28 @@
         </div>
     </div>
 
-    <!-- TAB 2: LIBRARY -->
+    <!-- ========================================================== -->
+    <!-- PLAYER LIBRARY - LUÔN HIỂN THỊ                              -->
+    <!-- ========================================================== -->
+    <div class="card always-visible" style="padding:12px 14px;">
+        <span class="player-label">🎬 Library Player</span>
+        <div class="player-container hidden" id="library-player-wrapper">
+            <div class="player-iframe" id="library-player"></div>
+        </div>
+        <div class="player-status" id="library-player-status">
+            <span class="icon">⏳</span>
+            <span>Chọn phụ đề trong Library để phát</span>
+        </div>
+    </div>
+    
+    <!-- SUBTITLE LIBRARY - LUÔN HIỂN THỊ -->
+    <div class="subtitle-box always-visible" id="library-subtitle-box">
+        <span class="label">📝 Library Subtitles</span>
+        <span class="empty">Chọn phụ đề để xem</span>
+    </div>
+
+    <!-- TAB 2: LIBRARY (có thể ẩn) -->
     <div class="tab-content active hideable" id="content-library">
-        <!-- PLAYER LIBRARY -->
-        <div class="card" style="padding:12px 14px;">
-            <span class="player-label">🎬 Library Player</span>
-            <div class="player-container hidden" id="library-player-wrapper">
-                <div class="player-iframe" id="library-player"></div>
-            </div>
-            <div class="player-status" id="library-player-status">
-                <span class="icon">⏳</span>
-                <span>Chọn phụ đề trong Library để phát</span>
-            </div>
-        </div>
-        
-        <!-- SUBTITLE LIBRARY -->
-        <div class="subtitle-box" id="library-subtitle-box">
-            <span class="label">📝 Library Subtitles</span>
-            <span class="empty">Chọn phụ đề để xem</span>
-        </div>
-        
         <div class="card">
             <div class="flex-between" style="margin-bottom:8px;">
                 <span class="card-label" style="margin-bottom:0;">Subtitle Library</span>
@@ -1226,8 +1239,8 @@
         </div>
     </div>
 
-    <!-- CONTROLS (cho Library Player) -->
-    <div class="card" id="timeline-card">
+    <!-- TIMELINE - LUÔN HIỂN THỊ -->
+    <div class="card always-visible" id="timeline-card">
         <div class="flex gap-2" style="align-items:center;">
             <input type="range" id="time-slider" value="0" min="0" max="100" step="0.1" 
                    oninput="onSliderSeek(this.value)" onchange="onSliderChange(this.value)">
@@ -1235,7 +1248,8 @@
         </div>
     </div>
 
-    <div class="card">
+    <!-- CONTROLS - có thể ẩn -->
+    <div class="card hideable">
         <div class="controls-row">
             <div class="btn-icon-group">
                 <button class="btn-icon" id="btn-play-pause" onclick="togglePlayPause()">▶</button>
@@ -1274,7 +1288,7 @@
         </div>
     </div>
 
-    <!-- SETTINGS -->
+    <!-- SETTINGS - có thể ẩn -->
     <div class="settings-group hidden" id="settings-group">
         <div class="card card-solid">
             <span class="card-label">GitHub Settings</span>
@@ -1301,7 +1315,7 @@
         <div class="settings-footer"><span class="version">v1.0</span></div>
     </div>
 
-    <!-- LOG -->
+    <!-- LOG - có thể ẩn -->
     <div class="card hideable hidden" id="log-card">
         <span class="card-label">Log</span>
         <div id="logBox">Ready</div>
@@ -1351,6 +1365,8 @@ let savedDriveLink = '';
 let confirmResults = [];
 let confirmCallback = null;
 let confirmSkipCallback = null;
+let processingQueue = {};
+let processedLinks = {};
 
 // ============================================================
 // TOAST
@@ -1854,7 +1870,7 @@ function continueRenderWithVideo(videoId, fileName) {
 }
 
 // ============================================================
-// CONFIRM DIALOG - SỬA LẠI
+// CONFIRM DIALOG
 // ============================================================
 function showConfirmDialog(matches, fileName, onConfirm, onSkip) {
     const dialog = document.getElementById('confirm-dialog');
@@ -1910,20 +1926,16 @@ function confirmRender() {
 }
 
 // ============================================================
-// SKIP AND RENDER - QUAN TRỌNG: GỬI LỆNH SANG GITHUB
+// SKIP AND RENDER
 // ============================================================
 function skipAndRender() {
     console.log('⏭️ skipAndRender() called');
     console.log('📌 pendingRenderFile:', pendingRenderFile);
     
-    // Đóng dialog
     closeConfirmDialog();
-    
-    // Hiển thị thông báo
     showToast('⏭️ Bỏ qua video, GitHub sẽ tự tìm kiếm theo tên file', 'info');
     log('⏭️ Người dùng chọn bỏ qua video, render với tên file', 'info');
     
-    // 👈 QUAN TRỌNG: GỌI performRender VỚI pendingRenderFile
     if (pendingRenderFile) {
         console.log('📤 Gọi performRender với file:', pendingRenderFile);
         performRender(pendingRenderFile);
@@ -1934,7 +1946,7 @@ function skipAndRender() {
 }
 
 // ============================================================
-// PERFORM RENDER - GỬI LỆNH SANG GITHUB
+// PERFORM RENDER
 // ============================================================
 async function performRender(fileName) {
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
@@ -1967,7 +1979,6 @@ async function performRender(fileName) {
     let videoId = pendingVideoId;
     let hasVideoId = false;
     
-    // Kiểm tra video_id hợp lệ
     if (videoId && videoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
         hasVideoId = true;
         log(`✅ Gửi Video ID từ link: ${videoId}`, 'id');
@@ -1978,7 +1989,6 @@ async function performRender(fileName) {
         showToast(`🔍 GitHub sẽ tìm kiếm video theo tên file`, 'info');
     }
     
-    // Tạo payload
     const payload = {
         event_type: 'new_drive_file',
         client_payload: {
@@ -2057,8 +2067,6 @@ async function renderFromFile() {
     }
     
     const fileName = selectedFile.name;
-    
-    // Lưu pendingRenderFile
     pendingRenderFile = fileName;
     
     console.log('📌 renderFromFile() called');
@@ -2066,7 +2074,6 @@ async function renderFromFile() {
     console.log('🎯 pendingVideoId:', pendingVideoId);
     console.log('💾 driveFileId:', driveFileId);
     
-    // Nếu có link YouTube, dùng ID
     if (pendingVideoId && pendingVideoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
         showToast(`✅ Dùng Video ID từ link: ${pendingVideoId}`, 'success');
         log(`📌 Render với Video ID từ link: ${pendingVideoId}`, 'id');
@@ -2074,14 +2081,12 @@ async function renderFromFile() {
         return;
     }
     
-    // Tìm video trong Library (≥70%)
     const matches = findMatchingVideos(fileName);
     if (matches.length > 0) {
         showMatchDialog(matches, fileName, () => performRender(fileName));
         return;
     }
     
-    // Tìm video khớp thấp
     const allMatches = [];
     const cleanName = cleanSearchQuery(fileName);
     for (const item of libraryItems) {
@@ -2097,7 +2102,6 @@ async function renderFromFile() {
         showConfirmDialog(
             lowMatches, 
             fileName,
-            // Callback: Render với video
             (bestMatch) => {
                 console.log('✅ User chọn render với video:', bestMatch.title);
                 pendingVideoId = bestMatch.videoId;
@@ -2112,7 +2116,6 @@ async function renderFromFile() {
                 `;
                 performRender(fileName);
             },
-            // Callback: Bỏ qua
             () => {
                 console.log('⏭️ User chọn bỏ qua, gọi performRender với file:', fileName);
                 performRender(fileName);
@@ -2121,7 +2124,6 @@ async function renderFromFile() {
         return;
     }
     
-    // Không có video nào -> render bình thường
     console.log('📤 Không có video nào, render bình thường');
     await performRender(fileName);
 }
@@ -2724,7 +2726,7 @@ function switchUploadMethod(method) {
 }
 
 // ============================================================
-// DRIVE FUNCTIONS (giữ nguyên)
+// DRIVE FUNCTIONS
 // ============================================================
 function extractDriveFileId(link) {
     if (!link) return null;
@@ -2925,7 +2927,6 @@ function onFolderFileSelect() {
             log(`Selected: ${fileData.name}`, 'info');
             showToast(`Selected: ${fileData.name}`, 'success');
             
-            // Tự động tìm video trùng tên trong Library và hiển thị phụ đề
             const fileName = fileData.name;
             const cleanName = cleanSearchQuery(fileName);
             let bestMatch = null, bestScore = 0;
@@ -2970,15 +2971,16 @@ function handleFileSelect(file) {
 function toggleHideMode() {
     isHideMode = !isHideMode;
     const btn = document.getElementById('btn-toggle-hide');
+    // Chỉ ẩn các phần tử có class 'hideable'
     const hideables = document.querySelectorAll('.hideable');
     if (isHideMode) {
         hideables.forEach(el => el.classList.add('hidden'));
         btn.innerHTML = '👁';
-        log('Hidden extra elements', 'info');
+        log('Ẩn các thành phần phụ (video & phụ đề vẫn hiển thị)', 'info');
     } else {
         hideables.forEach(el => el.classList.remove('hidden'));
         btn.innerHTML = '👁';
-        log('Show all elements', 'info');
+        log('Hiện tất cả thành phần', 'info');
     }
 }
 
@@ -3067,6 +3069,13 @@ function loadProcessingState() {
         if (queue) processingQueue = JSON.parse(queue);
         if (processed) processedLinks = JSON.parse(processed);
     } catch (e) { processingQueue = {}; processedLinks = {}; }
+}
+
+function clearVideoProcessing(videoId) {
+    if (processingQueue[videoId]) {
+        delete processingQueue[videoId];
+        saveProcessingState();
+    }
 }
 
 // ============================================================
