@@ -86,13 +86,6 @@
         .hideable.hidden { display: none !important; }
         .settings-group.hidden { display: none !important; }
         
-        /* ============================================================
-           LUÔN HIỂN THỊ - KHÔNG BỊ ẢNH HƯỞNG BỞI NÚT MẮT
-           ============================================================ */
-        .always-visible {
-            /* Class này để đánh dấu, không bị ẩn bởi toggleHideMode */
-        }
-        
         .flex { display: flex; }
         .flex-center { display: flex; align-items: center; justify-content: center; }
         .flex-between { display: flex; align-items: center; justify-content: space-between; }
@@ -591,7 +584,7 @@
         }
         
         /* ============================================================
-           CONTROLS (cho Library Player)
+           CONTROLS - LUÔN HIỂN THỊ (chứa nút mắt)
            ============================================================ */
         .controls-row {
             display: flex;
@@ -1033,8 +1026,8 @@
     <!-- PHẦN LUÔN HIỂN THỊ - KHÔNG BỊ ẨN BỞI NÚT MẮT              -->
     <!-- ========================================================== -->
     
-    <!-- PLAYER UPLOAD - LUÔN HIỂN THỊ -->
-    <div class="card always-visible" style="padding:12px 14px;">
+    <!-- PLAYER UPLOAD - LUÔN HIỂN THỊ (chỉ hiện khi ở tab Upload) -->
+    <div class="card always-visible" id="upload-player-card" style="padding:12px 14px; display: none;">
         <span class="player-label">🎬 Upload Preview</span>
         <div class="player-container hidden" id="upload-player-wrapper">
             <div class="player-iframe" id="upload-player"></div>
@@ -1045,8 +1038,8 @@
         </div>
     </div>
     
-    <!-- SUBTITLE UPLOAD - LUÔN HIỂN THỊ -->
-    <div class="subtitle-box always-visible" id="upload-subtitle-box">
+    <!-- SUBTITLE UPLOAD - LUÔN HIỂN THỊ (chỉ hiện khi ở tab Upload) -->
+    <div class="subtitle-box always-visible" id="upload-subtitle-box" style="display: none;">
         <span class="label">📝 Upload Subtitles</span>
         <span class="empty">Chưa có phụ đề</span>
     </div>
@@ -1239,7 +1232,9 @@
         </div>
     </div>
 
-    <!-- TIMELINE - LUÔN HIỂN THỊ -->
+    <!-- ========================================================== -->
+    <!-- TIMELINE - LUÔN HIỂN THỊ                                    -->
+    <!-- ========================================================== -->
     <div class="card always-visible" id="timeline-card">
         <div class="flex gap-2" style="align-items:center;">
             <input type="range" id="time-slider" value="0" min="0" max="100" step="0.1" 
@@ -1248,8 +1243,10 @@
         </div>
     </div>
 
-    <!-- CONTROLS - có thể ẩn -->
-    <div class="card hideable">
+    <!-- ========================================================== -->
+    <!-- CONTROLS - LUÔN HIỂN THỊ (chứa nút mắt)                     -->
+    <!-- ========================================================== -->
+    <div class="card always-visible">
         <div class="controls-row">
             <div class="btn-icon-group">
                 <button class="btn-icon" id="btn-play-pause" onclick="togglePlayPause()">▶</button>
@@ -1468,11 +1465,37 @@ function updateLibrarySubtitle(lines) {
 }
 
 // ============================================================
+// SWITCH TAB - HIỂN/ẨN UPLOAD PLAYER
+// ============================================================
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(`content-${tab}`).classList.add('active');
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    
+    // Hiển thị/ẩn Upload Player và Upload Subtitle theo tab
+    const uploadPlayerCard = document.getElementById('upload-player-card');
+    const uploadSubtitleBox = document.getElementById('upload-subtitle-box');
+    if (tab === 'upload') {
+        uploadPlayerCard.style.display = 'block';
+        uploadSubtitleBox.style.display = 'flex';
+    } else {
+        uploadPlayerCard.style.display = 'none';
+        uploadSubtitleBox.style.display = 'none';
+    }
+    
+    if (tab === 'library') refreshLibrary();
+}
+
+// ============================================================
 // LOAD UPLOAD PLAYER
 // ============================================================
 function loadUploadPlayer(videoId) {
     const container = document.getElementById('upload-player');
     const wrapper = document.getElementById('upload-player-wrapper');
+    
+    // Hiển thị card upload player
+    document.getElementById('upload-player-card').style.display = 'block';
     
     if (uploadPlayer) {
         try { uploadPlayer.destroy(); } catch(e) {}
@@ -2688,17 +2711,6 @@ async function renameCurrentVideo() {
     isRenaming = false;
 }
 
-// ============================================================
-// SWITCH TAB
-// ============================================================
-function switchTab(tab) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById(`content-${tab}`).classList.add('active');
-    document.getElementById(`tab-${tab}`).classList.add('active');
-    if (tab === 'library') refreshLibrary();
-}
-
 function refreshLibrary() { loadLibrary(true); }
 
 // ============================================================
@@ -2966,21 +2978,30 @@ function handleFileSelect(file) {
 }
 
 // ============================================================
+// UPLOAD TO GITHUB
+// ============================================================
+async function uploadToGitHub() {
+    showToast('Upload to GitHub', 'info');
+    log('Upload to GitHub', 'info');
+}
+
+// ============================================================
 // UI FUNCTIONS
 // ============================================================
 function toggleHideMode() {
     isHideMode = !isHideMode;
     const btn = document.getElementById('btn-toggle-hide');
     // Chỉ ẩn các phần tử có class 'hideable'
+    // Các phần tử có class 'always-visible' (player, subtitle, controls, timeline) không bị ẩn
     const hideables = document.querySelectorAll('.hideable');
     if (isHideMode) {
         hideables.forEach(el => el.classList.add('hidden'));
         btn.innerHTML = '👁';
-        log('Ẩn các thành phần phụ (video & phụ đề vẫn hiển thị)', 'info');
+        log('🔒 Ẩn thành phần phụ (video, phụ đề, controls vẫn hiển thị)', 'info');
     } else {
         hideables.forEach(el => el.classList.remove('hidden'));
         btn.innerHTML = '👁';
-        log('Hiện tất cả thành phần', 'info');
+        log('🔓 Hiện tất cả thành phần', 'info');
     }
 }
 
@@ -3020,14 +3041,6 @@ function loadSettings() {
     const apiKey = localStorage.google_api_key || '';
     if (token) document.getElementById('ghToken').value = token;
     if (apiKey) document.getElementById('googleApiKey').value = apiKey;
-}
-
-// ============================================================
-// UPLOAD TO GITHUB
-// ============================================================
-async function uploadToGitHub() {
-    showToast('Upload to GitHub', 'info');
-    log('Upload to GitHub', 'info');
 }
 
 // ============================================================
@@ -3084,6 +3097,9 @@ function clearVideoProcessing(videoId) {
 window.addEventListener('load', function() {
     loadProcessingState();
     checkPendingProcessing();
+    // Mặc định hiển thị tab Library
+    document.getElementById('upload-player-card').style.display = 'none';
+    document.getElementById('upload-subtitle-box').style.display = 'none';
     setTimeout(() => loadLibrary(true), 1000);
 });
 
