@@ -3,14 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🎵 YouTube Audio Player - Phát nền mọi trình duyệt</title>
+    <title>🎵 YouTube Audio Downloader</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
             background: #000000;
@@ -20,67 +15,45 @@
             justify-content: center;
             align-items: center;
             padding: 16px;
-            -webkit-tap-highlight-color: transparent;
         }
-
         .container {
             width: 100%;
             max-width: 480px;
             background: #1c1c1e;
             border-radius: 20px;
-            padding: 20px 18px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            padding: 24px 20px;
             border: 0.5px solid rgba(255, 255, 255, 0.08);
         }
-
-        .header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 18px;
-        }
-
-        .header .logo { font-size: 28px; }
-        .header h1 { font-size: 18px; font-weight: 600; color: #fff; }
+        .header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .header .logo { font-size: 32px; }
+        .header h1 { font-size: 20px; font-weight: 600; color: #fff; }
         .header .badge {
             margin-left: auto;
-            font-size: 10px;
-            color: #34c759;
-            background: rgba(52, 199, 89, 0.15);
+            font-size: 11px;
+            color: #ff3b30;
+            background: rgba(255, 59, 48, 0.15);
             padding: 4px 12px;
             border-radius: 12px;
-            border: 0.5px solid rgba(52, 199, 89, 0.15);
+            border: 0.5px solid rgba(255, 59, 48, 0.15);
         }
 
-        .input-area {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-
+        .input-area { display: flex; gap: 10px; margin-bottom: 12px; }
         .input-area input {
             flex: 1;
-            padding: 12px 14px;
+            padding: 14px 16px;
             background: rgba(255, 255, 255, 0.06);
             border: 0.5px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
-            color: #ffffff;
+            color: #fff;
             font-size: 14px;
             outline: none;
-            transition: all 0.2s;
             font-family: inherit;
-            -webkit-appearance: none;
         }
-
         .input-area input::placeholder { color: #636366; }
-        .input-area input:focus {
-            border-color: #0a84ff;
-            background: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
-        }
+        .input-area input:focus { border-color: #0a84ff; }
 
         .input-area .btn-add {
-            padding: 12px 18px;
+            padding: 14px 20px;
             background: #0a84ff;
             border: none;
             border-radius: 12px;
@@ -88,284 +61,48 @@
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
             font-family: inherit;
-            touch-action: manipulation;
+            white-space: nowrap;
         }
+        .input-area .btn-add:active { transform: scale(0.95); }
 
-        .input-area .btn-add:active { transform: scale(0.95); background: #007aff; }
-
-        .input-hint {
-            font-size: 11px;
-            color: #636366;
-            margin-bottom: 14px;
-            line-height: 1.5;
-            padding: 0 4px;
+        .info-box {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 12px 0;
+            border: 0.5px solid rgba(255, 255, 255, 0.06);
+            display: none;
         }
-        .input-hint .highlight { color: #0a84ff; }
-
-        .playlist-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            padding: 0 4px;
-        }
-
-        .playlist-header .title {
+        .info-box.show { display: block; }
+        .info-box .title { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+        .info-box .sub { font-size: 13px; color: #8e8e93; }
+        .info-box .actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+        .info-box .btn-download {
+            padding: 10px 16px;
+            background: #34c759;
+            border: none;
+            border-radius: 10px;
+            color: #fff;
             font-size: 13px;
             font-weight: 600;
-            color: #8e8e93;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .playlist-header .count {
-            font-size: 12px;
-            color: #636366;
-        }
-
-        .playlist {
-            max-height: 280px;
-            overflow-y: auto;
-            margin-bottom: 14px;
-            padding-right: 4px;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .playlist::-webkit-scrollbar { width: 3px; }
-        .playlist::-webkit-scrollbar-track { background: transparent; }
-        .playlist::-webkit-scrollbar-thumb { background: #2c2c2e; border-radius: 2px; }
-
-        .playlist-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            background: rgba(255, 255, 255, 0.04);
-            border-radius: 12px;
-            margin-bottom: 6px;
-            border: 0.5px solid rgba(255, 255, 255, 0.04);
-            transition: all 0.2s;
             cursor: pointer;
-            touch-action: manipulation;
-        }
-
-        .playlist-item:active { transform: scale(0.98); background: rgba(255, 255, 255, 0.08); }
-        .playlist-item.active { background: rgba(10, 132, 255, 0.15); border-color: rgba(10, 132, 255, 0.3); }
-
-        .playlist-item .index {
-            font-size: 12px;
-            color: #636366;
-            min-width: 24px;
-            text-align: center;
-            font-weight: 500;
-        }
-
-        .playlist-item .info { flex: 1; min-width: 0; }
-        .playlist-item .info .title {
-            font-size: 13px;
-            font-weight: 500;
-            color: #ffffff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .playlist-item .info .sub {
-            font-size: 11px;
-            color: #636366;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .playlist-item .status { font-size: 14px; min-width: 20px; text-align: center; }
-
-        .playlist-item .btn-remove {
-            background: none;
-            border: none;
-            color: #636366;
-            font-size: 16px;
-            cursor: pointer;
-            padding: 4px 6px;
-            border-radius: 6px;
-            transition: all 0.2s;
             font-family: inherit;
-            line-height: 1;
-            touch-action: manipulation;
-        }
-
-        .playlist-item .btn-remove:active { color: #ff3b30; transform: scale(0.9); }
-
-        .empty-playlist {
-            text-align: center;
-            color: #636366;
-            font-size: 13px;
-            padding: 30px 0;
-            line-height: 1.8;
-        }
-
-        .empty-playlist .icon { font-size: 40px; display: block; margin-bottom: 8px; }
-
-        .controls {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 8px;
-            background: rgba(255, 255, 255, 0.04);
-            border-radius: 14px;
-            border: 0.5px solid rgba(255, 255, 255, 0.06);
-        }
-
-        .controls .btn-play {
-            min-width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: #ffffff;
-            border: none;
-            color: #000000;
-            font-size: 22px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: inherit;
-            flex-shrink: 0;
-            touch-action: manipulation;
-        }
-
-        .controls .btn-play:active { transform: scale(0.92); }
-        .controls .btn-play.paused { background: #2c2c2e; color: #ffffff; }
-
-        .controls .info { flex: 1; min-width: 0; }
-        .controls .info .current-title {
-            font-size: 14px;
-            font-weight: 500;
-            color: #ffffff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .controls .info .current-sub { font-size: 11px; color: #636366; }
-
-        .controls .btn-group {
-            display: flex;
-            gap: 4px;
-            flex-shrink: 0;
-        }
-
-        .controls .btn-group button {
-            background: none;
-            border: 0.5px solid rgba(255, 255, 255, 0.06);
-            color: #8e8e93;
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-            background: rgba(255, 255, 255, 0.03);
-            touch-action: manipulation;
-        }
-
-        .controls .btn-group button:active { transform: scale(0.92); background: rgba(255, 255, 255, 0.08); }
-        .controls .btn-group button.active {
-            background: rgba(10, 132, 255, 0.15);
-            border-color: rgba(10, 132, 255, 0.3);
-            color: #0a84ff;
-        }
-
-        .controls .btn-group button.btn-bg {
-            color: #34c759;
-            border-color: rgba(52, 199, 89, 0.2);
-        }
-
-        .controls .btn-group button.btn-bg.active {
-            background: rgba(52, 199, 89, 0.15);
-            border-color: rgba(52, 199, 89, 0.3);
-            color: #34c759;
-        }
-
-        .progress-area {
-            margin-top: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .progress-area input[type="range"] {
             flex: 1;
-            height: 3px;
-            -webkit-appearance: none;
-            appearance: none;
-            background: #2c2c2e;
-            border-radius: 2px;
-            outline: none;
-            accent-color: #0a84ff;
-            cursor: pointer;
-            touch-action: none;
-        }
-
-        .progress-area input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background: #0a84ff;
-            cursor: pointer;
-            border: 2px solid #000000;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-        }
-
-        .progress-area input[type="range"]::-moz-range-thumb {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background: #0a84ff;
-            cursor: pointer;
-            border: 2px solid #000000;
-        }
-
-        .progress-area .time {
-            font-size: 11px;
-            color: #636366;
-            min-width: 44px;
+            min-width: 100px;
             text-align: center;
-            font-variant-numeric: tabular-nums;
-            font-weight: 500;
+            text-decoration: none;
         }
+        .info-box .btn-download:active { transform: scale(0.95); }
+        .info-box .btn-download.secondary { background: #ff9500; }
 
-        .bg-indicator {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 10px;
-            color: #34c759;
-            background: rgba(52, 199, 89, 0.1);
-            padding: 4px 12px;
-            border-radius: 12px;
-            border: 0.5px solid rgba(52, 199, 89, 0.15);
-            margin-top: 8px;
-            justify-content: center;
+        .hint {
+            font-size: 12px;
+            color: #636366;
+            line-height: 1.6;
+            padding: 0 4px;
         }
-
-        .bg-indicator .dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #34c759;
-            animation: pulse-dot 1.5s ease-in-out infinite;
-        }
-
-        @keyframes pulse-dot {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(0.7); }
-        }
+        .hint .highlight { color: #ff9500; }
 
         .toast {
             position: fixed;
@@ -374,12 +111,11 @@
             transform: translateX(-50%) translateY(20px);
             background: #1c1c1e;
             backdrop-filter: blur(40px);
-            -webkit-backdrop-filter: blur(40px);
             border: 0.5px solid rgba(255, 255, 255, 0.08);
             border-radius: 12px;
-            padding: 10px 20px;
-            font-size: 13px;
-            color: #ffffff;
+            padding: 12px 24px;
+            font-size: 14px;
+            color: #fff;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
             z-index: 1000;
             opacity: 0;
@@ -388,33 +124,24 @@
             max-width: 90%;
             text-align: center;
         }
-
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        /* Audio element ẩn */
-        #bg-audio {
-            display: none;
-        }
-
-        .loading-spinner {
+        .loading {
             display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.1);
             border-top-color: #0a84ff;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
         }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         @media (max-width: 400px) {
-            .container { padding: 16px 14px; border-radius: 16px; }
+            .container { padding: 16px 14px; }
             .input-area .btn-add { padding: 12px 14px; font-size: 13px; }
-            .controls .btn-play { min-width: 42px; height: 42px; font-size: 18px; }
-            .playlist { max-height: 200px; }
         }
     </style>
 </head>
@@ -422,122 +149,59 @@
 
 <div class="container">
     <div class="header">
-        <span class="logo">🎵</span>
+        <span class="logo">📥</span>
         <h1>YouTube Audio</h1>
-        <span class="badge">🎧 Nền</span>
+        <span class="badge">Tải về</span>
     </div>
 
     <div class="input-area">
-        <input type="text" id="url-input" placeholder="URL hoặc Video ID..." spellcheck="false" autocomplete="off">
-        <button class="btn-add" onclick="addVideo()">Thêm</button>
-    </div>
-    <div class="input-hint">
-        💡 Hỗ trợ: URL YouTube, Video ID, <span class="highlight">Playlist</span>
-        <span style="float:right;">🎧 Phát nền mọi trình duyệt</span>
+        <input type="text" id="url-input" placeholder="URL hoặc Video ID..." spellcheck="false">
+        <button class="btn-add" onclick="getAudio()">Lấy audio</button>
     </div>
 
-    <div class="playlist-header">
-        <span class="title">📋 Danh sách</span>
-        <span class="count" id="playlist-count">0 video</span>
+    <div class="hint">
+        💡 Nhập URL YouTube → Lấy link audio → Tải về máy<br>
+        <span class="highlight">Sau đó bạn có thể nghe offline bất cứ lúc nào!</span>
     </div>
 
-    <div class="playlist" id="playlist">
-        <div class="empty-playlist">
-            <span class="icon">🎧</span>
-            Chưa có video nào<br>
-            <span style="font-size:12px;">Thêm URL YouTube để bắt đầu</span>
+    <div class="info-box" id="info-box">
+        <div class="title" id="video-title">Đang tải...</div>
+        <div class="sub" id="video-author">YouTube</div>
+        <div class="actions">
+            <a class="btn-download" id="download-btn" target="_blank">⬇️ Tải audio</a>
+            <button class="btn-download secondary" onclick="copyLink()">📋 Copy link</button>
         </div>
     </div>
 
-    <div class="bg-indicator">
-        <span class="dot"></span>
-        🎧 Đang phát nền - có thể thu nhỏ tab, khóa màn hình vẫn nghe
-    </div>
-
-    <div class="controls">
-        <button class="btn-play paused" id="btn-play" onclick="togglePlay()">▶</button>
-
-        <div class="info">
-            <div class="current-title" id="current-title">Chưa có video</div>
-            <div class="current-sub" id="current-sub">Thêm video để phát</div>
+    <div style="margin-top: 16px; padding: 16px; background: rgba(255, 59, 48, 0.05); border-radius: 12px; border: 0.5px solid rgba(255, 59, 48, 0.1);">
+        <div style="font-size: 12px; color: #ff3b30; font-weight: 500; margin-bottom: 4px;">⚠️ Lưu ý:</div>
+        <div style="font-size: 12px; color: #8e8e93; line-height: 1.6;">
+            • Audio được lấy từ YouTube thông qua dịch vụ bên thứ 3<br>
+            • Có thể mất vài giây để lấy link<br>
+            • Tải về và nghe offline bằng trình phát nhạc của bạn
         </div>
-
-        <div class="btn-group">
-            <button onclick="toggleLoop()" id="btn-loop" title="Lặp lại">🔁</button>
-            <button onclick="toggleShuffle()" id="btn-shuffle" title="Phát ngẫu nhiên">🔀</button>
-        </div>
-    </div>
-
-    <div class="progress-area">
-        <span class="time" id="current-time">00:00</span>
-        <input type="range" id="progress-slider" value="0" min="0" max="100" step="0.1"
-               oninput="onSeek(this.value)" onchange="onSeekEnd(this.value)">
-        <span class="time" id="total-time">00:00</span>
     </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<!-- Audio element ẩn để phát nền -->
-<audio id="bg-audio"></audio>
-
 <script>
-    // ============================================================
-    // 🎵 YOUTUBE AUDIO PLAYER - DÙNG HTML5 AUDIO
-    // ============================================================
-    // Cách hoạt động: Lấy audio stream từ YouTube thông qua API
-    // Sau đó phát bằng HTML5 Audio element
-    // => Phát nền trên MỌI TRÌNH DUYỆT (Cốc Cốc, Chrome, Safari, Firefox)
-
-    // ============================================================
-    // STATE
-    // ============================================================
-    let audio = null;
-    let playlist = [];
-    let currentIndex = -1;
-    let isPlaying = false;
-    let isLoop = false;
-    let isShuffle = false;
-    let isSeeking = false;
-    let syncInterval = null;
-    let isLoading = false;
+    let currentVideoId = null;
+    let currentTitle = '';
     let currentAudioUrl = null;
 
-    // ============================================================
-    // STORAGE
-    // ============================================================
-    function savePlaylist() {
-        try { localStorage.setItem('audio_player_playlist', JSON.stringify(playlist)); } catch(e) {}
-    }
-
-    function loadPlaylist() {
-        try {
-            const data = localStorage.getItem('audio_player_playlist');
-            if (data) { playlist = JSON.parse(data); return true; }
-        } catch(e) {}
-        return false;
-    }
-
-    // ============================================================
-    // TOAST
-    // ============================================================
-    let toastTimeout = null;
-
-    function showToast(msg, duration = 2000) {
+    function showToast(msg, duration = 2500) {
         const el = document.getElementById('toast');
         el.textContent = msg;
         el.classList.add('show');
-        clearTimeout(toastTimeout);
-        toastTimeout = setTimeout(() => el.classList.remove('show'), duration);
+        clearTimeout(el._timeout);
+        el._timeout = setTimeout(() => el.classList.remove('show'), duration);
     }
 
-    // ============================================================
-    // EXTRACT VIDEO ID
-    // ============================================================
     function extractVideoId(input) {
         input = input.trim();
         if (!input) return null;
-        if (input.match(/^[a-zA-Z0-9_-]{11}$/)) return { type: 'video', id: input };
+        if (input.match(/^[a-zA-Z0-9_-]{11}$/)) return input;
 
         const patterns = [
             /youtu\.be\/([a-zA-Z0-9_-]{11})/,
@@ -546,55 +210,63 @@
             /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
             /[?&]v=([a-zA-Z0-9_-]{11})/
         ];
-
         for (const p of patterns) {
             const m = input.match(p);
-            if (m) return { type: 'video', id: m[1] };
+            if (m) return m[1];
         }
         return null;
     }
 
-    // ============================================================
-    // FETCH VIDEO INFO
-    // ============================================================
-    async function fetchVideoInfo(videoId) {
+    async function getVideoInfo(videoId) {
         try {
             const r = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
             if (r.ok) {
                 const d = await r.json();
-                return { title: d.title || videoId, author: d.author_name || '' };
+                return { title: d.title || videoId, author: d.author_name || 'YouTube' };
             }
         } catch(e) {}
-        return { title: videoId, author: '' };
+        return { title: videoId, author: 'YouTube' };
     }
 
-    // ============================================================
-    // 🎵 LẤY AUDIO URL TỪ YOUTUBE
-    // ============================================================
-    async function getAudioUrl(videoId) {
-        // Sử dụng nhiều nguồn để lấy audio
+    async function getAudio() {
+        const input = document.getElementById('url-input');
+        const val = input.value.trim();
+        if (!val) { showToast('⚠️ Nhập URL hoặc Video ID'); return; }
+
+        const videoId = extractVideoId(val);
+        if (!videoId) { showToast('❌ Không tìm thấy Video ID'); return; }
+
+        currentVideoId = videoId;
+
+        const info = await getVideoInfo(videoId);
+        currentTitle = info.title;
+
+        const box = document.getElementById('info-box');
+        document.getElementById('video-title').innerHTML = `<span class="loading"></span> Đang lấy audio...`;
+        document.getElementById('video-author').textContent = info.author;
+        document.getElementById('download-btn').style.display = 'none';
+        box.classList.add('show');
+
+        showToast('⏳ Đang lấy audio...', 3000);
+
+        // Thử các nguồn khác nhau
         const sources = [
-            // 1. Invidious API (miễn phí, không cần key)
+            // 1. Invidious
             async () => {
                 const instances = [
                     'https://invidious.io/api/v1/videos/',
-                    'https://yewtu.be/api/v1/videos/',
-                    'https://invidious.snopyta.org/api/v1/videos/'
+                    'https://yewtu.be/api/v1/videos/'
                 ];
                 for (const instance of instances) {
                     try {
-                        const response = await fetch(`${instance}${videoId}?fields=formatStreams`);
-                        if (response.ok) {
-                            const data = await response.json();
-                            if (data && data.formatStreams) {
-                                // Ưu tiên audio chất lượng cao
-                                const audioStreams = data.formatStreams.filter(
-                                    s => s.type && s.type.startsWith('audio/')
-                                );
-                                // Sắp xếp theo chất lượng
-                                audioStreams.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
-                                if (audioStreams.length > 0 && audioStreams[0].url) {
-                                    return audioStreams[0].url;
+                        const r = await fetch(`${instance}${videoId}?fields=formatStreams`);
+                        if (r.ok) {
+                            const d = await r.json();
+                            if (d && d.formatStreams) {
+                                const audio = d.formatStreams.filter(s => s.type && s.type.startsWith('audio/'));
+                                audio.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+                                if (audio.length > 0 && audio[0].url) {
+                                    return audio[0].url;
                                 }
                             }
                         }
@@ -602,27 +274,14 @@
                 }
                 return null;
             },
-            // 2. YouTube Music API (thông qua proxy)
+            // 2. yt-dlp proxy
             async () => {
                 try {
-                    const response = await fetch(`https://api.vevioz.com/api/button/mp3/${videoId}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data && data.download && data.download.url) {
-                            return data.download.url;
-                        }
-                    }
-                } catch(e) {}
-                return null;
-            },
-            // 3. Fallback: sử dụng yt-dlp web service
-            async () => {
-                try {
-                    const response = await fetch(`https://yt-api.com/api/audio/${videoId}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data && data.url) {
-                            return data.url;
+                    const r = await fetch(`https://api.vevioz.com/api/button/mp3/${videoId}`);
+                    if (r.ok) {
+                        const d = await r.json();
+                        if (d && d.download && d.download.url) {
+                            return d.download.url;
                         }
                     }
                 } catch(e) {}
@@ -630,442 +289,52 @@
             }
         ];
 
+        let audioUrl = null;
         for (const source of sources) {
             try {
-                const url = await source();
-                if (url) return url;
+                audioUrl = await source();
+                if (audioUrl) break;
             } catch(e) {}
         }
 
-        return null;
-    }
-
-    // ============================================================
-    // ADD VIDEO
-    // ============================================================
-    async function addVideo() {
-        const input = document.getElementById('url-input');
-        const val = input.value.trim();
-        if (!val) { showToast('⚠️ Nhập URL hoặc Video ID', 2000); return; }
-
-        const result = extractVideoId(val);
-        if (!result) { showToast('❌ Không tìm thấy Video ID', 2000); return; }
-
-        if (playlist.some(item => item.id === result.id)) {
-            showToast('⚠️ Video đã có', 2000);
-            input.value = '';
-            return;
-        }
-
-        const info = await fetchVideoInfo(result.id);
-        playlist.push({ id: result.id, title: info.title, author: info.author });
-        renderPlaylist();
-        savePlaylist();
-        input.value = '';
-
-        if (currentIndex === -1) {
-            currentIndex = playlist.length - 1;
-            loadAudio(currentIndex);
-        } else {
-            showToast(`✅ ${info.title}`, 2000);
-        }
-    }
-
-    // ============================================================
-    // RENDER PLAYLIST
-    // ============================================================
-    function renderPlaylist() {
-        const container = document.getElementById('playlist');
-        const count = document.getElementById('playlist-count');
-
-        if (playlist.length === 0) {
-            container.innerHTML = `
-                <div class="empty-playlist">
-                    <span class="icon">🎧</span>
-                    Chưa có video nào<br>
-                    <span style="font-size:12px;">Thêm URL YouTube để bắt đầu</span>
-                </div>
-            `;
-            count.textContent = '0 video';
-            return;
-        }
-
-        count.textContent = `${playlist.length} video`;
-        let html = '';
-        playlist.forEach((item, index) => {
-            const active = index === currentIndex;
-            const playing = active && isPlaying;
-            html += `
-                <div class="playlist-item ${active ? 'active' : ''}" onclick="playVideo(${index})">
-                    <span class="index">${index + 1}</span>
-                    <div class="info">
-                        <div class="title">${escapeHtml(item.title || item.id)}</div>
-                        <div class="sub">${escapeHtml(item.author || 'YouTube')}</div>
-                    </div>
-                    <span class="status">${playing ? '▶️' : ''}</span>
-                    <button class="btn-remove" onclick="event.stopPropagation(); removeVideo(${index})">✕</button>
-                </div>
-            `;
-        });
-        container.innerHTML = html;
-    }
-
-    function escapeHtml(text) {
-        const d = document.createElement('div');
-        d.textContent = text;
-        return d.innerHTML;
-    }
-
-    // ============================================================
-    // PLAY VIDEO - DÙNG AUDIO ELEMENT
-    // ============================================================
-    function playVideo(index) {
-        if (index < 0 || index >= playlist.length) return;
-        if (index === currentIndex && isPlaying) {
-            togglePlay();
-            return;
-        }
-        currentIndex = index;
-        loadAudio(index);
-    }
-
-    async function loadAudio(index) {
-        if (index < 0 || index >= playlist.length) return;
-        if (isLoading) return;
-
-        const video = playlist[index];
-        document.getElementById('current-title').textContent = video.title || video.id;
-        document.getElementById('current-sub').textContent = video.author || 'YouTube';
-
-        isLoading = true;
-        showToast(`⏳ Đang tải: ${video.title || video.id}`, 2000);
-
-        // Tạo audio element nếu chưa có
-        if (!audio) {
-            audio = document.getElementById('bg-audio');
-            if (!audio) {
-                audio = document.createElement('audio');
-                audio.id = 'bg-audio';
-                document.body.appendChild(audio);
-            }
-        }
-
-        // Lấy audio URL
-        const audioUrl = await getAudioUrl(video.id);
-
         if (!audioUrl) {
-            isLoading = false;
-            showToast('❌ Không thể lấy audio, thử video khác', 3000);
-            setTimeout(nextVideo, 2000);
+            document.getElementById('video-title').textContent = '❌ Không thể lấy audio';
+            showToast('❌ Không thể lấy audio, thử lại sau', 3000);
             return;
         }
 
         currentAudioUrl = audioUrl;
-        audio.src = audioUrl;
-        audio.crossOrigin = 'anonymous';
+        document.getElementById('video-title').textContent = `✅ ${info.title}`;
+        document.getElementById('video-author').textContent = info.author;
+        document.getElementById('download-btn').style.display = 'block';
+        document.getElementById('download-btn').href = audioUrl;
+        document.getElementById('download-btn').download = `${info.title}.mp3`;
 
-        // Xóa các event listener cũ
-        audio.onloadedmetadata = null;
-        audio.onplay = null;
-        audio.onpause = null;
-        audio.onended = null;
-        audio.onerror = null;
-        audio.ontimeupdate = null;
-
-        // Event: metadata loaded
-        audio.onloadedmetadata = function() {
-            document.getElementById('total-time').textContent = formatTime(audio.duration);
-            audio.play();
-            isPlaying = true;
-            updatePlayButton();
-            isLoading = false;
-            startSync();
-            showToast(`▶️ ${video.title || video.id}`, 1500);
-        };
-
-        // Event: play
-        audio.onplay = function() {
-            isPlaying = true;
-            updatePlayButton();
-        };
-
-        // Event: pause
-        audio.onpause = function() {
-            isPlaying = false;
-            updatePlayButton();
-        };
-
-        // Event: ended
-        audio.onended = function() {
-            isPlaying = false;
-            updatePlayButton();
-            nextVideo();
-        };
-
-        // Event: error
-        audio.onerror = function(e) {
-            console.error('Audio error:', e);
-            isLoading = false;
-            showToast('❌ Lỗi phát audio', 2000);
-            setTimeout(nextVideo, 3000);
-        };
-
-        // Event: time update
-        audio.ontimeupdate = function() {
-            if (!isSeeking) {
-                updateProgress();
-            }
-        };
-
-        // Bắt đầu phát
-        try {
-            await audio.play();
-            isPlaying = true;
-            updatePlayButton();
-            renderPlaylist();
-            showToast(`▶️ ${video.title || video.id}`, 1500);
-        } catch(e) {
-            console.error('Play error:', e);
-            isLoading = false;
-            showToast('❌ Lỗi phát audio: ' + e.message, 3000);
-            isPlaying = false;
-            updatePlayButton();
-        }
+        showToast('✅ Đã lấy audio thành công!', 2000);
     }
 
-    // ============================================================
-    // CONTROLS
-    // ============================================================
-    function togglePlay() {
-        if (playlist.length === 0) {
-            showToast('⚠️ Thêm video trước khi phát', 2000);
+    function copyLink() {
+        if (!currentAudioUrl) {
+            showToast('⚠️ Chưa có audio để copy');
             return;
         }
-
-        if (!audio) {
-            if (currentIndex === -1) currentIndex = 0;
-            loadAudio(currentIndex);
-            return;
-        }
-
-        if (isLoading) {
-            showToast('⏳ Đang tải...', 1500);
-            return;
-        }
-
-        if (isPlaying) {
-            audio.pause();
-            isPlaying = false;
-        } else {
-            audio.play();
-            isPlaying = true;
-        }
-        updatePlayButton();
+        navigator.clipboard.writeText(currentAudioUrl).then(() => {
+            showToast('📋 Đã copy link audio', 2000);
+        }).catch(() => {
+            // Fallback
+            const textarea = document.createElement('textarea');
+            textarea.value = currentAudioUrl;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast('📋 Đã copy link audio', 2000);
+        });
     }
-
-    function updatePlayButton() {
-        const btn = document.getElementById('btn-play');
-        if (isPlaying) {
-            btn.innerHTML = '⏸';
-            btn.className = 'btn-play';
-        } else {
-            btn.innerHTML = '▶';
-            btn.className = 'btn-play paused';
-        }
-    }
-
-    function nextVideo() {
-        if (playlist.length === 0) return;
-
-        if (isLoop && audio) {
-            audio.currentTime = 0;
-            audio.play();
-            isPlaying = true;
-            updatePlayButton();
-            return;
-        }
-
-        let next;
-        if (isShuffle) {
-            do {
-                next = Math.floor(Math.random() * playlist.length);
-            } while (next === currentIndex && playlist.length > 1);
-        } else {
-            next = (currentIndex + 1) % playlist.length;
-        }
-
-        currentIndex = next;
-        loadAudio(currentIndex);
-    }
-
-    function toggleLoop() {
-        isLoop = !isLoop;
-        document.getElementById('btn-loop').classList.toggle('active', isLoop);
-        showToast(isLoop ? '🔁 Lặp: BẬT' : '🔁 Lặp: TẮT', 1000);
-        localStorage.setItem('audio_loop', isLoop);
-    }
-
-    function toggleShuffle() {
-        isShuffle = !isShuffle;
-        document.getElementById('btn-shuffle').classList.toggle('active', isShuffle);
-        showToast(isShuffle ? '🔀 Ngẫu nhiên: BẬT' : '🔀 Ngẫu nhiên: TẮT', 1000);
-        localStorage.setItem('audio_shuffle', isShuffle);
-    }
-
-    function removeVideo(index) {
-        if (playlist.length === 0) return;
-        const removed = playlist[index];
-        playlist.splice(index, 1);
-
-        if (currentIndex === index) {
-            if (audio) {
-                audio.pause();
-                audio.src = '';
-                isPlaying = false;
-                updatePlayButton();
-            }
-            if (playlist.length > 0) {
-                currentIndex = Math.min(index, playlist.length - 1);
-                loadAudio(currentIndex);
-            } else {
-                currentIndex = -1;
-                document.getElementById('current-title').textContent = 'Chưa có video';
-                document.getElementById('current-sub').textContent = 'Thêm video để phát';
-                document.getElementById('current-time').textContent = '00:00';
-                document.getElementById('total-time').textContent = '00:00';
-                document.getElementById('progress-slider').value = 0;
-            }
-        } else if (currentIndex > index) {
-            currentIndex--;
-        }
-
-        renderPlaylist();
-        savePlaylist();
-        showToast(`🗑️ ${removed.title || removed.id}`, 1500);
-    }
-
-    // ============================================================
-    // PROGRESS
-    // ============================================================
-    function startSync() {
-        if (syncInterval) clearInterval(syncInterval);
-        syncInterval = setInterval(updateProgress, 200);
-    }
-
-    function updateProgress() {
-        if (!audio || isSeeking) return;
-        try {
-            const current = audio.currentTime;
-            const total = audio.duration;
-            if (total > 0 && current >= 0) {
-                document.getElementById('current-time').textContent = formatTime(current);
-                document.getElementById('total-time').textContent = formatTime(total);
-                document.getElementById('progress-slider').value = (current / total) * 100;
-            }
-        } catch(e) {}
-    }
-
-    function onSeek(value) {
-        isSeeking = true;
-        if (audio) {
-            const total = audio.duration;
-            if (total > 0) {
-                const time = (value / 100) * total;
-                document.getElementById('current-time').textContent = formatTime(time);
-            }
-        }
-    }
-
-    function onSeekEnd(value) {
-        if (audio) {
-            const total = audio.duration;
-            if (total > 0) {
-                audio.currentTime = (value / 100) * total;
-            }
-        }
-        setTimeout(() => { isSeeking = false; }, 300);
-    }
-
-    function formatTime(seconds) {
-        if (isNaN(seconds) || seconds < 0) return '00:00';
-        const m = Math.floor(seconds / 60);
-        const s = Math.floor(seconds % 60);
-        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    }
-
-    // ============================================================
-    // KEYBOARD SHORTCUTS
-    // ============================================================
-    document.addEventListener('keydown', function(e) {
-        if (e.target.tagName === 'INPUT') return;
-        if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
-        if (e.key === 'n' || e.key === 'N') nextVideo();
-        if (e.key === 'l' || e.key === 'L') toggleLoop();
-        if (e.key === 's' || e.key === 'S') toggleShuffle();
-    });
 
     document.getElementById('url-input').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') { e.preventDefault(); addVideo(); }
+        if (e.key === 'Enter') getAudio();
     });
-
-    // ============================================================
-    // PHÁT NỀN - QUAN TRỌNG
-    // ============================================================
-    // Audio element tự động phát nền trên mọi trình duyệt
-    // Không cần xử lý visibility change
-
-    // Xử lý khi chuyển tab (chỉ để đảm bảo)
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            // Tab bị ẩn - audio vẫn chạy, không cần làm gì
-        } else {
-            // Tab hiển thị lại
-            if (isPlaying && audio && audio.paused) {
-                audio.play().catch(() => {});
-            }
-        }
-    });
-
-    // ============================================================
-    // INIT
-    // ============================================================
-    function init() {
-        // Tạo audio element
-        audio = document.getElementById('bg-audio');
-        if (!audio) {
-            audio = document.createElement('audio');
-            audio.id = 'bg-audio';
-            document.body.appendChild(audio);
-        }
-
-        if (loadPlaylist()) {
-            renderPlaylist();
-            if (playlist.length > 0) {
-                currentIndex = 0;
-                setTimeout(() => {
-                    loadAudio(0);
-                }, 500);
-            }
-        }
-
-        if (localStorage.getItem('audio_loop') === 'true') {
-            isLoop = true;
-            document.getElementById('btn-loop').classList.add('active');
-        }
-
-        if (localStorage.getItem('audio_shuffle') === 'true') {
-            isShuffle = true;
-            document.getElementById('btn-shuffle').classList.add('active');
-        }
-    }
-
-    // Khởi tạo khi trang load
-    document.addEventListener('DOMContentLoaded', init);
-
-    console.log('🎵 YouTube Audio Player loaded');
-    console.log('🎧 Phát nền trên MỌI TRÌNH DUYỆT - Thu nhỏ tab vẫn nghe!');
-    console.log('📌 Thêm video, bấm Play, thu nhỏ tab để thử');
-    console.log('📌 Nếu không nghe được, kiểm tra kết nối mạng');
 </script>
 
 </body>
