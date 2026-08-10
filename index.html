@@ -444,9 +444,46 @@
         }
         .btn-icon:disabled { opacity: 0.4; pointer-events: none; }
         
+        /* ============================================================
+           NÚT PLAY/PAUSE - LỚN HƠN, DỄ BẤM HƠN
+           ============================================================ */
+        .btn-play-big {
+            min-width: 56px !important;
+            height: 56px !important;
+            font-size: 28px !important;
+            border-radius: 50% !important;
+            background: var(--accent-blue) !important;
+            color: #fff !important;
+            border: none !important;
+            box-shadow: 0 4px 20px rgba(10, 132, 255, 0.4) !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            font-family: var(--font) !important;
+            padding: 0 !important;
+            margin: 0 4px !important;
+        }
+        .btn-play-big:hover {
+            transform: scale(1.05) !important;
+            box-shadow: 0 6px 28px rgba(10, 132, 255, 0.6) !important;
+        }
+        .btn-play-big:active {
+            transform: scale(0.92) !important;
+            opacity: 0.8 !important;
+        }
+        .btn-play-big.paused {
+            background: var(--accent-green) !important;
+            box-shadow: 0 4px 20px rgba(52, 199, 89, 0.4) !important;
+        }
+        .btn-play-big.paused:hover {
+            box-shadow: 0 6px 28px rgba(52, 199, 89, 0.6) !important;
+        }
+        
         .btn-icon-group {
             display: flex;
-            gap: 4px;
+            gap: 6px;
             align-items: center;
             flex-wrap: wrap;
         }
@@ -1001,6 +1038,13 @@
             .drive-link-wrapper .btn-replace { font-size: 9px; padding: 3px 6px; }
             .player-status { font-size: 9px; padding: 6px 10px; min-height: 30px; }
             .player-status .sub { font-size: 8px; }
+            
+            /* Nút Play/Pause vẫn to trên mobile */
+            .btn-play-big {
+                min-width: 48px !important;
+                height: 48px !important;
+                font-size: 24px !important;
+            }
         }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -1249,10 +1293,11 @@
     <div class="card always-visible">
         <div class="controls-row">
             <div class="btn-icon-group">
-                <button class="btn-icon" id="btn-play-pause" onclick="togglePlayPause()">▶</button>
-                <button class="btn-icon" onclick="toggleVideoVisibility()">⊞</button>
+                <!-- NÚT PLAY/PAUSE - LỚN HƠN, DỄ BẤM HƠN -->
+                <button class="btn-play-big" id="btn-play-pause" onclick="togglePlayPause()">▶</button>
+                <button class="btn-icon" onclick="toggleVideoVisibility()" title="Toggle video">⊞</button>
                 <button class="btn-sm" onclick="cyclePlaybackRate()" id="btn-speed" style="min-width:36px;font-size:10px;">1.0x</button>
-                <button class="btn-icon" id="btn-loop" onclick="toggleLoop()">↺</button>
+                <button class="btn-icon" id="btn-loop" onclick="toggleLoop()" title="Loop">↺</button>
             </div>
             
             <span class="spacer"></span>
@@ -2542,7 +2587,10 @@ function togglePlayPause() {
 
 function updatePlayPauseBtn(p) {
     const b = document.getElementById('btn-play-pause');
-    if (b) b.innerHTML = p ? '⏸' : '▶';
+    if (b) {
+        b.innerHTML = p ? '⏸' : '▶';
+        b.className = 'btn-play-big' + (p ? '' : ' paused');
+    }
 }
 
 function toggleVideoVisibility() {
