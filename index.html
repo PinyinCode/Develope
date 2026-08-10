@@ -445,17 +445,17 @@
         .btn-icon:disabled { opacity: 0.4; pointer-events: none; }
         
         /* ============================================================
-           NÚT PLAY/PAUSE - LỚN HƠN, DỄ BẤM HƠN
+           NÚT PLAY/PAUSE - TRẮNG ĐEN, TO, DỄ BẤM
            ============================================================ */
         .btn-play-big {
             min-width: 56px !important;
             height: 56px !important;
             font-size: 28px !important;
             border-radius: 50% !important;
-            background: var(--accent-blue) !important;
-            color: #fff !important;
+            background: #ffffff !important;
+            color: #000000 !important;
             border: none !important;
-            box-shadow: 0 4px 20px rgba(10, 132, 255, 0.4) !important;
+            box-shadow: 0 2px 12px rgba(255, 255, 255, 0.15) !important;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
             display: inline-flex !important;
             align-items: center !important;
@@ -467,18 +467,19 @@
         }
         .btn-play-big:hover {
             transform: scale(1.05) !important;
-            box-shadow: 0 6px 28px rgba(10, 132, 255, 0.6) !important;
+            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.25) !important;
         }
         .btn-play-big:active {
             transform: scale(0.92) !important;
-            opacity: 0.8 !important;
+            opacity: 0.7 !important;
         }
         .btn-play-big.paused {
-            background: var(--accent-green) !important;
-            box-shadow: 0 4px 20px rgba(52, 199, 89, 0.4) !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            box-shadow: 0 2px 12px rgba(255, 255, 255, 0.15) !important;
         }
         .btn-play-big.paused:hover {
-            box-shadow: 0 6px 28px rgba(52, 199, 89, 0.6) !important;
+            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.25) !important;
         }
         
         .btn-icon-group {
@@ -630,13 +631,10 @@
             align-items: center;
         }
         .controls-row .spacer { flex: 1; }
+        
+        /* ẨN ô trạng thái "đang phát", "tạm dừng" */
         .controls-row .status-text {
-            font-size: 10px;
-            color: var(--text-secondary);
-            margin-left: 4px;
-            font-weight: 500;
-            min-width: 50px;
-            text-align: right;
+            display: none !important;
         }
         
         /* ============================================================
@@ -1293,7 +1291,7 @@
     <div class="card always-visible">
         <div class="controls-row">
             <div class="btn-icon-group">
-                <!-- NÚT PLAY/PAUSE - LỚN HƠN, DỄ BẤM HƠN -->
+                <!-- NÚT PLAY/PAUSE - TRẮNG ĐEN, TO -->
                 <button class="btn-play-big" id="btn-play-pause" onclick="togglePlayPause()">▶</button>
                 <button class="btn-icon" onclick="toggleVideoVisibility()" title="Toggle video">⊞</button>
                 <button class="btn-sm" onclick="cyclePlaybackRate()" id="btn-speed" style="min-width:36px;font-size:10px;">1.0x</button>
@@ -1308,6 +1306,7 @@
                 <button class="btn-icon" id="btn-toggle-hide" onclick="toggleHideMode()" title="Hide/Show">👁</button>
             </div>
             
+            <!-- Ô trạng thái đã bị ẨN bằng CSS -->
             <span class="status-text" id="status-text">Ready</span>
         </div>
         
@@ -2447,7 +2446,7 @@ function loadLibraryPlayer(videoId, autoplay = true) {
     
     document.getElementById('library-player').innerHTML = '';
     document.getElementById('library-player-wrapper').classList.remove('hidden');
-    document.getElementById('status-text').innerHTML = 'Loading...';
+    // Không cần cập nhật status-text vì đã ẩn
     
     libraryPlayer = new YT.Player('library-player', {
         height: '100%', width: '100%', videoId: videoId,
@@ -2459,12 +2458,10 @@ function loadLibraryPlayer(videoId, autoplay = true) {
                 if (autoplay) {
                     e.target.playVideo();
                     updatePlayPauseBtn(true);
-                    document.getElementById('status-text').innerHTML = 'Playing';
                     showToast('▶️ Playing video', 'info');
                 } else {
                     e.target.pauseVideo();
                     updatePlayPauseBtn(false);
-                    document.getElementById('status-text').innerHTML = 'Paused';
                 }
                 updateLibraryPlayerStatus('playing', 'Đang phát');
             },
@@ -2485,22 +2482,18 @@ function loadLibraryPlayer(videoId, autoplay = true) {
 function onLibraryPlayerStateChange(e) {
     if (e.data == YT.PlayerState.PLAYING) {
         updatePlayPauseBtn(true);
-        document.getElementById('status-text').innerHTML = 'Playing';
         updateLibraryPlayerStatus('playing', 'Đang phát');
     } else if (e.data == YT.PlayerState.PAUSED) {
         updatePlayPauseBtn(false);
-        document.getElementById('status-text').innerHTML = 'Paused';
         updateLibraryPlayerStatus('paused', 'Tạm dừng');
     } else if (e.data == YT.PlayerState.ENDED) {
         updatePlayPauseBtn(false);
-        document.getElementById('status-text').innerHTML = 'Ended';
         updateLibraryPlayerStatus('info', 'Kết thúc');
         if (isLoopEnabled && libraryPlayer) {
             libraryPlayer.seekTo(0, true);
             libraryPlayer.playVideo();
         }
     } else if (e.data == YT.PlayerState.BUFFERING) {
-        document.getElementById('status-text').innerHTML = 'Buffering...';
         updateLibraryPlayerStatus('loading', 'Đang tải...');
     }
 }
@@ -2574,12 +2567,10 @@ function togglePlayPause() {
     }
     if (libraryPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
         libraryPlayer.pauseVideo();
-        document.getElementById('status-text').innerHTML = 'Paused';
         updatePlayPauseBtn(false);
         updateLibraryPlayerStatus('paused', 'Tạm dừng');
     } else {
         libraryPlayer.playVideo();
-        document.getElementById('status-text').innerHTML = 'Playing';
         updatePlayPauseBtn(true);
         updateLibraryPlayerStatus('playing', 'Đang phát');
     }
@@ -2589,7 +2580,7 @@ function updatePlayPauseBtn(p) {
     const b = document.getElementById('btn-play-pause');
     if (b) {
         b.innerHTML = p ? '⏸' : '▶';
-        b.className = 'btn-play-big' + (p ? '' : ' paused');
+        // Không cần đổi class paused nữa vì đã dùng trắng đen
     }
 }
 
@@ -2715,7 +2706,6 @@ function resetLibraryPlayer() {
     libraryActiveSubIndex = -1;
     libraryVideoId = null;
     updatePlayPauseBtn(false);
-    document.getElementById('status-text').innerHTML = 'Ready';
     updateLibraryPlayerStatus('info', 'Chọn phụ đề để phát');
     updateLibrarySubtitle([]);
 }
