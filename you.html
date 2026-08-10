@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>YouTube Background Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+            background: #000000;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background: #1c1c1e;
+            border-radius: 20px;
+            padding: 20px 18px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            border: 0.5px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .header .logo {
+            font-size: 28px;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffffff;
+            letter-spacing: -0.3px;
+        }
+
+        .header .badge {
+            margin-left: auto;
+            font-size: 10px;
+            color: #8e8e93;
+            background: #2c2c2e;
+            padding: 4px 12px;
+            border-radius: 12px;
+            border: 0.5px solid rgba(255, 255, 255, 0.06);
+        }
+
+        /* ===== INPUT AREA ===== */
+        .input-area {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 0.5px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s;
+            font-family: inherit;
+            -webkit-appearance: none;
+        }
+
+        .input-area input::placeholder {
+            color: #636366;
+        }
+
+        .input-area input:focus {
+            border-color: #0a84ff;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+        }
+
+        .input-area .btn-add {
+            padding: 12px 18px;
+            background: #0a84ff;
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-family: inherit;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .input-area .btn-add:active {
+            transform: scale(0.95);
+            background: #007aff;
+        }
+
+        .input-hint {
+            font-size: 11px;
+            color: #636366;
+            margin-bottom: 14px;
+            line-height: 1.5;
+            padding: 0 4px;
+        }
+
+        .input-hint .highlight {
+            color: #0a84ff;
+        }
+
+        /* ===== PLAYLIST ===== */
+        .playlist-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 0 4px;
+        }
+
+        .playlist-header .title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #8e8e93;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .playlist-header .count {
+            font-size: 12px;
+            color: #636366;
+        }
+
+        .playlist {
+            max-height: 280px;
+            overflow-y: auto;
+            margin-bottom: 14px;
+            padding-right: 4px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .playlist::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .playlist::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .playlist::-webkit-scrollbar-thumb {
+            background: #2c2c2e;
+            border-radius: 2px;
+        }
+
+        .playlist-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            margin-bottom: 6px;
+            border: 0.5px solid rgba(255, 255, 255, 0.04);
+            transition: all 0.2s;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .playlist-item:active {
+            transform: scale(0.98);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .playlist-item.active {
+            background: rgba(10, 132, 255, 0.15);
+            border-color: rgba(10, 132, 255, 0.3);
+        }
+
+        .playlist-item .index {
+            font-size: 12px;
+            color: #636366;
+            min-width: 24px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .playlist-item .info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .playlist-item .info .title {
+            font-size: 13px;
+            font-weight: 500;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .playlist-item .info .sub {
+            font-size: 11px;
+            color: #636366;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .playlist-item .status {
+            font-size: 14px;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .playlist-item .btn-remove {
+            background: none;
+            border: none;
+            color: #636366;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-family: inherit;
+            line-height: 1;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .playlist-item .btn-remove:active {
+            color: #ff3b30;
+            transform: scale(0.9);
+        }
+
+        .empty-playlist {
+            text-align: center;
+            color: #636366;
+            font-size: 13px;
+            padding: 30px 0;
+            line-height: 1.8;
+        }
+
+        .empty-playlist .icon {
+            font-size: 40px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        /* ===== CONTROLS ===== */
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 8px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 14px;
+            border: 0.5px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .controls .btn-play {
+            min-width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: none;
+            color: #000000;
+            font-size: 22px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: inherit;
+            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .controls .btn-play:active {
+            transform: scale(0.92);
+        }
+
+        .controls .btn-play.paused {
+            background: #2c2c2e;
+            color: #ffffff;
+        }
+
+        .controls .info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .controls .info .current-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .controls .info .current-sub {
+            font-size: 11px;
+            color: #636366;
+        }
+
+        .controls .btn-group {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .controls .btn-group button {
+            background: none;
+            border: 0.5px solid rgba(255, 255, 255, 0.06);
+            color: #8e8e93;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            background: rgba(255, 255, 255, 0.03);
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .controls .btn-group button:active {
+            transform: scale(0.92);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .controls .btn-group button.active {
+            background: rgba(10, 132, 255, 0.15);
+            border-color: rgba(10, 132, 255, 0.3);
+            color: #0a84ff;
+        }
+
+        /* ===== PROGRESS ===== */
+        .progress-area {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .progress-area input[type="range"] {
+            flex: 1;
+            height: 3px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #2c2c2e;
+            border-radius: 2px;
+            outline: none;
+            accent-color: #0a84ff;
+            cursor: pointer;
+            touch-action: none;
+        }
+
+        .progress-area input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #0a84ff;
+            cursor: pointer;
+            border: 2px solid #000000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .progress-area input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #0a84ff;
+            cursor: pointer;
+            border: 2px solid #000000;
+        }
+
+        .progress-area .time {
+            font-size: 11px;
+            color: #636366;
+            min-width: 44px;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+            font-weight: 500;
+        }
+
+        /* ===== BACKGROUND MODE INDICATOR ===== */
+        .bg-indicator {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            color: #0a84ff;
+            background: rgba(10, 132, 255, 0.1);
+            padding: 4px 12px;
+            border-radius: 12px;
+            border: 0.5px solid rgba(10, 132, 255, 0.15);
+            margin-top: 8px;
+            justify-content: center;
+        }
+
+        .bg-indicator .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #0a84ff;
+            animation: pulse-dot 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.7); }
+        }
+
+        .bg-indicator.show {
+            display: flex;
+        }
+
+        /* ===== IOS SPECIFIC ===== */
+        @supports (-webkit-touch-callout: none) {
+            .container {
+                padding-bottom: 30px;
+            }
+
+            .btn-play, .btn-add, .btn-remove, .playlist-item {
+                -webkit-touch-callout: none;
+            }
+
+            /* iOS 15+ safe area */
+            .container {
+                padding-left: env(safe-area-inset-left);
+                padding-right: env(safe-area-inset-right);
+            }
+        }
+
+        /* ===== TOAST ===== */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #1c1c1e;
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 0.5px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-size: 13px;
+            color: #ffffff;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 400px) {
+            .container {
+                padding: 16px 14px;
+                border-radius: 16px;
+            }
+
+            .input-area .btn-add {
+                padding: 12px 14px;
+                font-size: 13px;
+            }
+
+            .controls .btn-play {
+                min-width: 42px;
+                height: 42px;
+                font-size: 18px;
+            }
+
+            .controls .info .current-title {
+                font-size: 13px;
+            }
+
+            .playlist-item {
+                padding: 8px 10px;
+            }
+
+            .playlist {
+                max-height: 200px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .controls .btn-group button {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+
+            .controls .btn-play {
+                min-width: 38px;
+                height: 38px;
+                font-size: 16px;
+            }
+        }
+
+        /* Landscape phone */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .playlist {
+                max-height: 120px;
+            }
+
+            .container {
+                padding: 12px 14px;
+            }
+
+            .header {
+                margin-bottom: 10px;
+            }
+
+            .controls {
+                padding: 8px 6px;
+            }
+
+            .playlist-item {
+                padding: 6px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <span class="logo">🎵</span>
+        <h1>Background Player</h1>
+        <span class="badge">iOS</span>
+    </div>
+
+    <!-- Input -->
+    <div class="input-area">
+        <input type="text" id="url-input" placeholder="URL hoặc Video ID..." spellcheck="false" autocomplete="off">
+        <button class="btn-add" onclick="addVideo()">Thêm</button>
+    </div>
+    <div class="input-hint">
+        💡 Hỗ trợ: URL YouTube, Video ID, <span class="highlight">Playlist</span>
+        <span style="float:right;">🔊 Chạy nền iOS</span>
+    </div>
+
+    <!-- Playlist Header -->
+    <div class="playlist-header">
+        <span class="title">📋 Danh sách</span>
+        <span class="count" id="playlist-count">0 video</span>
+    </div>
+
+    <!-- Playlist -->
+    <div class="playlist" id="playlist">
+        <div class="empty-playlist">
+            <span class="icon">🎧</span>
+            Chưa có video nào<br>
+            <span style="font-size:12px;">Thêm URL YouTube để bắt đầu</span>
+        </div>
+    </div>
+
+    <!-- Background Mode Indicator -->
+    <div class="bg-indicator" id="bg-indicator">
+        <span class="dot"></span>
+        🎧 Phát nền (chạy khi chuyển tab)
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+        <button class="btn-play paused" id="btn-play" onclick="togglePlay()">▶</button>
+
+        <div class="info">
+            <div class="current-title" id="current-title">Chưa có video</div>
+            <div class="current-sub" id="current-sub">Thêm video để phát</div>
+        </div>
+
+        <div class="btn-group">
+            <button onclick="toggleLoop()" id="btn-loop" title="Lặp lại">🔁</button>
+            <button onclick="toggleShuffle()" id="btn-shuffle" title="Phát ngẫu nhiên">🔀</button>
+            <button onclick="toggleBackgroundMode()" id="btn-bg" title="Chế độ nền" class="active">🎧</button>
+        </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-area">
+        <span class="time" id="current-time">00:00</span>
+        <input type="range" id="progress-slider" value="0" min="0" max="100" step="0.1"
+               oninput="onSeek(this.value)" onchange="onSeekEnd(this.value)">
+        <span class="time" id="total-time">00:00</span>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- YouTube IFrame API -->
+<script src="https://www.youtube.com/iframe_api"></script>
+
+<script>
+    // ============================================================
+    // STATE
+    // ============================================================
+    let player = null;
+    let playerReady = false;
+    let playlist = [];
+    let currentIndex = -1;
+    let isPlaying = false;
+    let isLoop = false;
+    let isShuffle = false;
+    let isBackgroundMode = true; // Mặc định bật chế độ nền
+    let isSeeking = false;
+    let syncInterval = null;
+
+    // ============================================================
+    // IOS BACKGROUND PLAYBACK
+    // ============================================================
+    // iOS yêu cầu video phải được kích hoạt bởi tương tác người dùng
+    // Chúng ta đã làm điều này thông qua nút Play
+
+    // Ngăn iOS tự động tạm dừng khi chuyển tab
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            // Khi chuyển tab, nếu đang phát và ở chế độ nền, giữ phát
+            if (isBackgroundMode && isPlaying && playerReady && player) {
+                // iOS sẽ tự động tạm dừng, chúng ta cần bắt sự kiện và phát lại
+                // Sử dụng AudioContext để giữ âm thanh sống
+                keepAudioAlive();
+            }
+        }
+    });
+
+    // AudioContext để giữ âm thanh sống trên iOS
+    let audioContext = null;
+
+    function keepAudioAlive() {
+        try {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            // Tạo một buffer nhỏ để giữ audio context active
+            if (audioContext.state === 'running') {
+                const buffer = audioContext.createBuffer(1, 1, 22050);
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioContext.destination);
+                source.start();
+            }
+        } catch (e) {
+            // Bỏ qua lỗi
+        }
+    }
+
+    // Khởi tạo AudioContext khi người dùng tương tác
+    function initAudioContext() {
+        try {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        } catch (e) {}
+    }
+
+    // ============================================================
+    // STORAGE
+    // ============================================================
+    function savePlaylist() {
+        try {
+            localStorage.setItem('bg_player_playlist', JSON.stringify(playlist));
+        } catch (e) {}
+    }
+
+    function loadPlaylist() {
+        try {
+            const data = localStorage.getItem('bg_player_playlist');
+            if (data) {
+                playlist = JSON.parse(data);
+                return true;
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    // ============================================================
+    // TOAST
+    // ============================================================
+    let toastTimeout = null;
+
+    function showToast(message, duration = 2000) {
+        const el = document.getElementById('toast');
+        el.textContent = message;
+        el.classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+            el.classList.remove('show');
+        }, duration);
+    }
+
+    // ============================================================
+    // EXTRACT VIDEO ID
+    // ============================================================
+    function extractVideoId(input) {
+        input = input.trim();
+        if (!input) return null;
+
+        if (input.match(/^[a-zA-Z0-9_-]{11}$/)) {
+            return { type: 'video', id: input };
+        }
+
+        const playlistMatch = input.match(/[&?]list=([a-zA-Z0-9_-]+)/);
+        if (playlistMatch) {
+            return { type: 'playlist', id: playlistMatch[1] };
+        }
+
+        const patterns = [
+            /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+            /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+            /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+            /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/,
+            /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+            /[?&]v=([a-zA-Z0-9_-]{11})/
+        ];
+
+        for (const pattern of patterns) {
+            const match = input.match(pattern);
+            if (match) {
+                return { type: 'video', id: match[1] };
+            }
+        }
+
+        return null;
+    }
+
+    // ============================================================
+    // FETCH VIDEO INFO
+    // ============================================================
+    async function fetchVideoInfo(videoId) {
+        try {
+            const response = await fetch(
+                `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
+            );
+            if (response.ok) {
+                const data = await response.json();
+                return {
+                    title: data.title || videoId,
+                    author: data.author_name || '',
+                    thumbnail: data.thumbnail_url || ''
+                };
+            }
+        } catch (e) {}
+
+        try {
+            const response = await fetch(
+                `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`
+            );
+            if (response.ok) {
+                const data = await response.json();
+                return {
+                    title: data.title || videoId,
+                    author: data.author_name || '',
+                    thumbnail: data.thumbnail_url || ''
+                };
+            }
+        } catch (e) {}
+
+        return { title: videoId, author: '', thumbnail: '' };
+    }
+
+    // ============================================================
+    // ADD VIDEO
+    // ============================================================
+    async function addVideo() {
+        const input = document.getElementById('url-input');
+        const value = input.value.trim();
+
+        if (!value) {
+            showToast('⚠️ Vui lòng nhập URL hoặc Video ID', 2000);
+            return;
+        }
+
+        const result = extractVideoId(value);
+
+        if (!result) {
+            showToast('❌ Không tìm thấy Video ID', 2000);
+            return;
+        }
+
+        if (result.type === 'playlist') {
+            showToast('📥 Đang tải playlist...', 3000);
+            // Với playlist, người dùng cần tự thêm từng video
+            showToast('⚠️ Vui lòng nhập từng video trong playlist', 3000);
+            input.value = '';
+            return;
+        }
+
+        const videoId = result.id;
+
+        if (playlist.some(item => item.id === videoId)) {
+            showToast('⚠️ Video đã có trong danh sách', 2000);
+            input.value = '';
+            return;
+        }
+
+        const info = await fetchVideoInfo(videoId);
+
+        playlist.push({
+            id: videoId,
+            title: info.title,
+            author: info.author
+        });
+
+        renderPlaylist();
+        savePlaylist();
+        input.value = '';
+
+        if (currentIndex === -1) {
+            currentIndex = playlist.length - 1;
+            loadVideo(currentIndex);
+        }
+
+        showToast(`✅ Đã thêm: ${info.title}`, 2000);
+    }
+
+    // ============================================================
+    // RENDER PLAYLIST
+    // ============================================================
+    function renderPlaylist() {
+        const container = document.getElementById('playlist');
+        const count = document.getElementById('playlist-count');
+
+        if (playlist.length === 0) {
+            container.innerHTML = `
+                <div class="empty-playlist">
+                    <span class="icon">🎧</span>
+                    Chưa có video nào<br>
+                    <span style="font-size:12px;">Thêm URL YouTube để bắt đầu</span>
+                </div>
+            `;
+            count.textContent = '0 video';
+            return;
+        }
+
+        count.textContent = `${playlist.length} video`;
+
+        let html = '';
+        playlist.forEach((item, index) => {
+            const isActive = index === currentIndex;
+            const isPlayingNow = isActive && isPlaying;
+            html += `
+                <div class="playlist-item ${isActive ? 'active' : ''}" onclick="playVideo(${index})">
+                    <span class="index">${index + 1}</span>
+                    <div class="info">
+                        <div class="title">${escapeHtml(item.title || item.id)}</div>
+                        <div class="sub">${escapeHtml(item.author || 'YouTube')}</div>
+                    </div>
+                    <span class="status">${isPlayingNow ? '▶️' : ''}</span>
+                    <button class="btn-remove" onclick="event.stopPropagation(); removeVideo(${index})">✕</button>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ============================================================
+    // PLAY VIDEO
+    // ============================================================
+    function playVideo(index) {
+        if (index < 0 || index >= playlist.length) return;
+
+        // Kích hoạt audio context (iOS)
+        initAudioContext();
+
+        if (index === currentIndex && playerReady) {
+            togglePlay();
+            return;
+        }
+
+        currentIndex = index;
+        loadVideo(index);
+    }
+
+    function loadVideo(index) {
+        if (index < 0 || index >= playlist.length) return;
+
+        const video = playlist[index];
+        const titleEl = document.getElementById('current-title');
+        const subEl = document.getElementById('current-sub');
+
+        titleEl.textContent = video.title || video.id;
+        subEl.textContent = video.author || 'YouTube';
+
+        if (playerReady && player) {
+            player.loadVideoById(video.id);
+            player.playVideo();
+            isPlaying = true;
+            updatePlayButton();
+        } else {
+            createPlayer(video.id);
+        }
+
+        renderPlaylist();
+        showToast(`▶️ ${video.title || video.id}`, 1500);
+    }
+
+    // ============================================================
+    // CREATE PLAYER
+    // ============================================================
+    function createPlayer(videoId) {
+        if (player) {
+            try { player.destroy(); } catch (e) {}
+            player = null;
+            playerReady = false;
+        }
+
+        const existing = document.querySelector('#bg-player');
+        if (existing) existing.remove();
+
+        const div = document.createElement('div');
+        div.id = 'bg-player';
+        div.style.position = 'fixed';
+        div.style.top = '-9999px';
+        div.style.left = '-9999px';
+        div.style.width = '1px';
+        div.style.height = '1px';
+        div.style.opacity = '0';
+        div.style.pointerEvents = 'none';
+        document.body.appendChild(div);
+
+        player = new YT.Player('bg-player', {
+            height: '1',
+            width: '1',
+            videoId: videoId,
+            playerVars: {
+                playsinline: 1,
+                autoplay: 1,
+                controls: 0,
+                rel: 0,
+                showinfo: 0,
+                modestbranding: 1,
+                origin: window.location.origin
+            },
+            events: {
+                onReady: onPlayerReady,
+                onStateChange: onPlayerStateChange,
+                onError: onPlayerError
+            }
+        });
+    }
+
+    function onPlayerReady(event) {
+        playerReady = true;
+        isPlaying = true;
+        updatePlayButton();
+        startSync();
+
+        const video = playlist[currentIndex];
+        if (video) {
+            document.getElementById('current-title').textContent = video.title || video.id;
+            document.getElementById('current-sub').textContent = video.author || 'YouTube';
+        }
+
+        // iOS: kích hoạt audio context
+        initAudioContext();
+
+        setTimeout(updateProgress, 500);
+        showToast('▶️ Đang phát', 1000);
+    }
+
+    function onPlayerStateChange(event) {
+        const state = event.data;
+
+        if (state === YT.PlayerState.PLAYING) {
+            isPlaying = true;
+            updatePlayButton();
+            updateProgress();
+            // iOS: giữ audio context active
+            keepAudioAlive();
+        } else if (state === YT.PlayerState.PAUSED) {
+            isPlaying = false;
+            updatePlayButton();
+        } else if (state === YT.PlayerState.ENDED) {
+            isPlaying = false;
+            updatePlayButton();
+            nextVideo();
+        } else if (state === YT.PlayerState.BUFFERING) {
+            // Đang tải
+        }
+    }
+
+    function onPlayerError(event) {
+        console.error('Player error:', event);
+        showToast('❌ Lỗi phát video', 2000);
+        setTimeout(() => nextVideo(), 3000);
+    }
+
+    // ============================================================
+    // CONTROLS
+    // ============================================================
+    function togglePlay() {
+        // iOS: kích hoạt audio context
+        initAudioContext();
+
+        if (!playerReady || !player) {
+            if (playlist.length > 0) {
+                if (currentIndex === -1) currentIndex = 0;
+                loadVideo(currentIndex);
+            } else {
+                showToast('⚠️ Chưa có video trong danh sách', 2000);
+            }
+            return;
+        }
+
+        if (isPlaying) {
+            player.pauseVideo();
+            isPlaying = false;
+        } else {
+            player.playVideo();
+            isPlaying = true;
+            // iOS: giữ audio context active
+            keepAudioAlive();
+        }
+        updatePlayButton();
+    }
+
+    function updatePlayButton() {
+        const btn = document.getElementById('btn-play');
+        if (isPlaying) {
+            btn.innerHTML = '⏸';
+            btn.className = 'btn-play';
+        } else {
+            btn.innerHTML = '▶';
+            btn.className = 'btn-play paused';
+        }
+    }
+
+    function nextVideo() {
+        if (playlist.length === 0) return;
+
+        if (isLoop) {
+            if (playerReady && player) {
+                player.seekTo(0, true);
+                player.playVideo();
+                isPlaying = true;
+                updatePlayButton();
+                return;
+            }
+        }
+
+        let nextIndex;
+        if (isShuffle) {
+            do {
+                nextIndex = Math.floor(Math.random() * playlist.length);
+            } while (nextIndex === currentIndex && playlist.length > 1);
+        } else {
+            nextIndex = (currentIndex + 1) % playlist.length;
+        }
+
+        currentIndex = nextIndex;
+        loadVideo(currentIndex);
+    }
+
+    function toggleLoop() {
+        isLoop = !isLoop;
+        document.getElementById('btn-loop').classList.toggle('active', isLoop);
+        showToast(isLoop ? '🔁 Lặp: BẬT' : '🔁 Lặp: TẮT', 1000);
+        localStorage.setItem('bg_player_loop', isLoop);
+    }
+
+    function toggleShuffle() {
+        isShuffle = !isShuffle;
+        document.getElementById('btn-shuffle').classList.toggle('active', isShuffle);
+        showToast(isShuffle ? '🔀 Ngẫu nhiên: BẬT' : '🔀 Ngẫu nhiên: TẮT', 1000);
+        localStorage.setItem('bg_player_shuffle', isShuffle);
+    }
+
+    function toggleBackgroundMode() {
+        isBackgroundMode = !isBackgroundMode;
+        const btn = document.getElementById('btn-bg');
+        const indicator = document.getElementById('bg-indicator');
+
+        if (isBackgroundMode) {
+            btn.classList.add('active');
+            indicator.classList.add('show');
+            showToast('🎧 Chế độ nền: BẬT', 1500);
+        } else {
+            btn.classList.remove('active');
+            indicator.classList.remove('show');
+            showToast('🎧 Chế độ nền: TẮT', 1500);
+        }
+        localStorage.setItem('bg_player_background', isBackgroundMode);
+    }
+
+    function removeVideo(index) {
+        if (playlist.length === 0) return;
+
+        const removed = playlist[index];
+        playlist.splice(index, 1);
+
+        if (currentIndex === index) {
+            if (playerReady && player) {
+                player.stopVideo();
+                isPlaying = false;
+                updatePlayButton();
+            }
+            if (playlist.length > 0) {
+                currentIndex = Math.min(index, playlist.length - 1);
+                loadVideo(currentIndex);
+            } else {
+                currentIndex = -1;
+                document.getElementById('current-title').textContent = 'Chưa có video';
+                document.getElementById('current-sub').textContent = 'Thêm video để phát';
+                document.getElementById('current-time').textContent = '00:00';
+                document.getElementById('total-time').textContent = '00:00';
+                document.getElementById('progress-slider').value = 0;
+            }
+        } else if (currentIndex > index) {
+            currentIndex--;
+        }
+
+        renderPlaylist();
+        savePlaylist();
+        showToast(`🗑️ Đã xóa: ${removed.title || removed.id}`, 1500);
+    }
+
+    // ============================================================
+    // PROGRESS
+    // ============================================================
+    function startSync() {
+        if (syncInterval) clearInterval(syncInterval);
+        syncInterval = setInterval(updateProgress, 200);
+    }
+
+    function updateProgress() {
+        if (!playerReady || !player || isSeeking) return;
+
+        try {
+            const current = player.getCurrentTime();
+            const total = player.getDuration();
+
+            if (total > 0 && current >= 0) {
+                document.getElementById('current-time').textContent = formatTime(current);
+                document.getElementById('total-time').textContent = formatTime(total);
+                document.getElementById('progress-slider').value = (current / total) * 100;
+            }
+        } catch (e) {}
+    }
+
+    function onSeek(value) {
+        isSeeking = true;
+        if (playerReady && player) {
+            const total = player.getDuration();
+            if (total > 0) {
+                const time = (value / 100) * total;
+                document.getElementById('current-time').textContent = formatTime(time);
+            }
+        }
+    }
+
+    function onSeekEnd(value) {
+        if (playerReady && player) {
+            const total = player.getDuration();
+            if (total > 0) {
+                const time = (value / 100) * total;
+                player.seekTo(time, true);
+            }
+        }
+        setTimeout(() => { isSeeking = false; }, 300);
+    }
+
+    function formatTime(seconds) {
+        if (isNaN(seconds) || seconds < 0) return '00:00';
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    // ============================================================
+    // KEYBOARD SHORTCUTS
+    // ============================================================
+    document.addEventListener('keydown', function(e) {
+        if (e.target.tagName === 'INPUT') return;
+        if (e.code === 'Space') {
+            e.preventDefault();
+            togglePlay();
+        }
+        if (e.key === 'n' || e.key === 'N') {
+            nextVideo();
+        }
+        if (e.key === 'l' || e.key === 'L') {
+            toggleLoop();
+        }
+        if (e.key === 's' || e.key === 'S') {
+            toggleShuffle();
+        }
+    });
+
+    // ============================================================
+    // ENTER KEY
+    // ============================================================
+    document.getElementById('url-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addVideo();
+        }
+    });
+
+    // ============================================================
+    // TOUCH EVENTS (iOS)
+    // ============================================================
+    // Kích hoạt audio context khi người dùng chạm vào bất kỳ đâu
+    document.addEventListener('touchstart', function() {
+        initAudioContext();
+    }, { once: true });
+
+    document.addEventListener('click', function() {
+        initAudioContext();
+    }, { once: true });
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    function init() {
+        if (loadPlaylist()) {
+            renderPlaylist();
+            if (playlist.length > 0) {
+                currentIndex = 0;
+                setTimeout(() => {
+                    loadVideo(0);
+                }, 500);
+            }
+        }
+
+        const savedLoop = localStorage.getItem('bg_player_loop');
+        if (savedLoop === 'true') {
+            isLoop = true;
+            document.getElementById('btn-loop').classList.add('active');
+        }
+
+        const savedShuffle = localStorage.getItem('bg_player_shuffle');
+        if (savedShuffle === 'true') {
+            isShuffle = true;
+            document.getElementById('btn-shuffle').classList.add('active');
+        }
+
+        const savedBg = localStorage.getItem('bg_player_background');
+        if (savedBg === 'false') {
+            isBackgroundMode = false;
+            document.getElementById('btn-bg').classList.remove('active');
+            document.getElementById('bg-indicator').classList.remove('show');
+        } else {
+            // Mặc định bật
+            isBackgroundMode = true;
+            document.getElementById('btn-bg').classList.add('active');
+            document.getElementById('bg-indicator').classList.add('show');
+        }
+    }
+
+    // ============================================================
+    // YOUTUBE IFrame API READY
+    // ============================================================
+    function onYouTubeIframeAPIReady() {
+        init();
+        // iOS: kích hoạt audio context khi API sẵn sàng
+        setTimeout(initAudioContext, 1000);
+    }
+
+    // Fallback nếu API không load
+    setTimeout(() => {
+        if (typeof YT === 'undefined' || !YT.Player) {
+            showToast('⏳ Đang tải YouTube...', 3000);
+            // Thử reload API
+            const script = document.createElement('script');
+            script.src = 'https://www.youtube.com/iframe_api';
+            document.head.appendChild(script);
+        }
+    }, 5000);
+
+    // iOS: khởi tạo audio context khi trang load
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(initAudioContext, 2000);
+    });
+</script>
+
+</body>
+</html>
