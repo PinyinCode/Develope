@@ -156,29 +156,10 @@
             display: block;
         }
         
+        /* ẨN ô trạng thái "đang phát", "tạm dừng" */
         .player-status {
-            font-size: 10px;
-            color: var(--text-secondary);
-            text-align: center;
-            margin-top: 4px;
-            padding: 8px 12px;
-            border-radius: var(--radius-sm);
-            background: var(--bg-input);
-            border: 0.5px solid var(--border-color);
-            min-height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            flex-wrap: wrap;
+            display: none !important;
         }
-        .player-status .icon { font-size: 14px; }
-        .player-status .highlight { color: var(--accent-teal); font-weight: 500; }
-        .player-status .warning { color: var(--accent-orange); font-weight: 500; }
-        .player-status .error { color: var(--accent-red); font-weight: 500; }
-        .player-status .success { color: var(--accent-green); font-weight: 500; }
-        .player-status .info { color: var(--accent-blue); font-weight: 500; }
-        .player-status .sub { font-size: 9px; color: var(--text-tertiary); }
         
         /* ============================================================
            SUBTITLE BOXES
@@ -445,12 +426,12 @@
         .btn-icon:disabled { opacity: 0.4; pointer-events: none; }
         
         /* ============================================================
-           NÚT PLAY/PAUSE - TRẮNG ĐEN, TO, DỄ BẤM
+           NÚT PLAY/PAUSE - TO, DỄ BẤM
            ============================================================ */
         .btn-play-big {
-            min-width: 56px !important;
-            height: 56px !important;
-            font-size: 28px !important;
+            min-width: 48px !important;
+            height: 48px !important;
+            font-size: 24px !important;
             border-radius: 50% !important;
             background: #ffffff !important;
             color: #000000 !important;
@@ -472,14 +453,6 @@
         .btn-play-big:active {
             transform: scale(0.92) !important;
             opacity: 0.7 !important;
-        }
-        .btn-play-big.paused {
-            background: #ffffff !important;
-            color: #000000 !important;
-            box-shadow: 0 2px 12px rgba(255, 255, 255, 0.15) !important;
-        }
-        .btn-play-big.paused:hover {
-            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.25) !important;
         }
         
         .btn-icon-group {
@@ -622,7 +595,7 @@
         }
         
         /* ============================================================
-           CONTROLS - LUÔN HIỂN THỊ (chứa nút mắt)
+           CONTROLS - LUÔN HIỂN THỊ, NẰM TRÊN SUBTITLE LIBRARY
            ============================================================ */
         .controls-row {
             display: flex;
@@ -631,11 +604,6 @@
             align-items: center;
         }
         .controls-row .spacer { flex: 1; }
-        
-        /* ẨN ô trạng thái "đang phát", "tạm dừng" */
-        .controls-row .status-text {
-            display: none !important;
-        }
         
         /* ============================================================
            LIBRARY
@@ -1034,14 +1002,11 @@
             #time-display { font-size: 9px; min-width: 56px; }
             .drive-link-wrapper input { padding-right: 60px; }
             .drive-link-wrapper .btn-replace { font-size: 9px; padding: 3px 6px; }
-            .player-status { font-size: 9px; padding: 6px 10px; min-height: 30px; }
-            .player-status .sub { font-size: 8px; }
             
-            /* Nút Play/Pause vẫn to trên mobile */
             .btn-play-big {
-                min-width: 48px !important;
-                height: 48px !important;
-                font-size: 24px !important;
+                min-width: 44px !important;
+                height: 44px !important;
+                font-size: 20px !important;
             }
         }
     </style>
@@ -1230,10 +1195,8 @@
         <div class="player-container hidden" id="library-player-wrapper">
             <div class="player-iframe" id="library-player"></div>
         </div>
-        <div class="player-status" id="library-player-status">
-            <span class="icon">⏳</span>
-            <span>Chọn phụ đề trong Library để phát</span>
-        </div>
+        <!-- player-status đã bị ẨN bằng CSS -->
+        <div class="player-status" id="library-player-status"></div>
     </div>
     
     <!-- SUBTITLE LIBRARY - LUÔN HIỂN THỊ -->
@@ -1242,7 +1205,58 @@
         <span class="empty">Chọn phụ đề để xem</span>
     </div>
 
-    <!-- TAB 2: LIBRARY (có thể ẩn) -->
+    <!-- ========================================================== -->
+    <!-- CONTROLS - LUÔN HIỂN THỊ, ĐẶT NGAY SAU SUBTITLE              -->
+    <!-- ========================================================== -->
+    <div class="card always-visible">
+        <div class="controls-row">
+            <div class="btn-icon-group">
+                <button class="btn-play-big" id="btn-play-pause" onclick="togglePlayPause()">▶</button>
+                <button class="btn-icon" onclick="toggleVideoVisibility()" title="Toggle video">⊞</button>
+                <button class="btn-sm" onclick="cyclePlaybackRate()" id="btn-speed" style="min-width:36px;font-size:10px;">1.0x</button>
+                <button class="btn-icon" id="btn-loop" onclick="toggleLoop()" title="Loop">↺</button>
+            </div>
+            
+            <span class="spacer"></span>
+            
+            <div class="btn-icon-group">
+                <button class="btn-icon" onclick="toggleSubSettings()" title="Font size">Aa</button>
+                <button class="btn-icon" id="btn-toggle-settings" onclick="toggleFullSettings()" title="Settings">⚙</button>
+                <button class="btn-icon" id="btn-toggle-hide" onclick="toggleHideMode()" title="Hide/Show">👁</button>
+            </div>
+        </div>
+        
+        <div id="sub-settings-panel" style="display:none;">
+            <div class="setting-row">
+                <label>Chinese</label>
+                <input type="range" min="14" max="36" value="20" oninput="updateFont('cn',this.value)">
+                <span id="val-cn">20</span>
+            </div>
+            <div class="setting-row">
+                <label>Pinyin</label>
+                <input type="range" min="12" max="28" value="16" oninput="updateFont('py',this.value)">
+                <span id="val-py">16</span>
+            </div>
+            <div class="setting-row">
+                <label>Vietnamese</label>
+                <input type="range" min="10" max="24" value="14" oninput="updateFont('vi',this.value)">
+                <span id="val-vi">14</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================== -->
+    <!-- TIMELINE - ĐẶT SAU CONTROLS                                 -->
+    <!-- ========================================================== -->
+    <div class="card always-visible" id="timeline-card">
+        <div class="flex gap-2" style="align-items:center;">
+            <input type="range" id="time-slider" value="0" min="0" max="100" step="0.1" 
+                   oninput="onSliderSeek(this.value)" onchange="onSliderChange(this.value)">
+            <span id="time-display">00:00 / 00:00</span>
+        </div>
+    </div>
+
+    <!-- TAB 2: LIBRARY (có thể ẩn) - ĐẶT SAU TIMELINE -->
     <div class="tab-content active hideable" id="content-library">
         <div class="card">
             <div class="flex-between" style="margin-bottom:8px;">
@@ -1271,61 +1285,6 @@
             </div>
             
             <p style="font-size:10px;color:var(--text-secondary);margin-top:6px;text-align:center;" id="library-status">Ready</p>
-        </div>
-    </div>
-
-    <!-- ========================================================== -->
-    <!-- TIMELINE - LUÔN HIỂN THỊ                                    -->
-    <!-- ========================================================== -->
-    <div class="card always-visible" id="timeline-card">
-        <div class="flex gap-2" style="align-items:center;">
-            <input type="range" id="time-slider" value="0" min="0" max="100" step="0.1" 
-                   oninput="onSliderSeek(this.value)" onchange="onSliderChange(this.value)">
-            <span id="time-display">00:00 / 00:00</span>
-        </div>
-    </div>
-
-    <!-- ========================================================== -->
-    <!-- CONTROLS - LUÔN HIỂN THỊ (chứa nút mắt)                     -->
-    <!-- ========================================================== -->
-    <div class="card always-visible">
-        <div class="controls-row">
-            <div class="btn-icon-group">
-                <!-- NÚT PLAY/PAUSE - TRẮNG ĐEN, TO -->
-                <button class="btn-play-big" id="btn-play-pause" onclick="togglePlayPause()">▶</button>
-                <button class="btn-icon" onclick="toggleVideoVisibility()" title="Toggle video">⊞</button>
-                <button class="btn-sm" onclick="cyclePlaybackRate()" id="btn-speed" style="min-width:36px;font-size:10px;">1.0x</button>
-                <button class="btn-icon" id="btn-loop" onclick="toggleLoop()" title="Loop">↺</button>
-            </div>
-            
-            <span class="spacer"></span>
-            
-            <div class="btn-icon-group">
-                <button class="btn-icon" onclick="toggleSubSettings()" title="Font size">Aa</button>
-                <button class="btn-icon" id="btn-toggle-settings" onclick="toggleFullSettings()" title="Settings">⚙</button>
-                <button class="btn-icon" id="btn-toggle-hide" onclick="toggleHideMode()" title="Hide/Show">👁</button>
-            </div>
-            
-            <!-- Ô trạng thái đã bị ẨN bằng CSS -->
-            <span class="status-text" id="status-text">Ready</span>
-        </div>
-        
-        <div id="sub-settings-panel" style="display:none;">
-            <div class="setting-row">
-                <label>Chinese</label>
-                <input type="range" min="14" max="36" value="20" oninput="updateFont('cn',this.value)">
-                <span id="val-cn">20</span>
-            </div>
-            <div class="setting-row">
-                <label>Pinyin</label>
-                <input type="range" min="12" max="28" value="16" oninput="updateFont('py',this.value)">
-                <span id="val-py">16</span>
-            </div>
-            <div class="setting-row">
-                <label>Vietnamese</label>
-                <input type="range" min="10" max="24" value="14" oninput="updateFont('vi',this.value)">
-                <span id="val-vi">14</span>
-            </div>
         </div>
     </div>
 
@@ -1457,24 +1416,14 @@ async function fetchVideoInfo(videoId) {
 }
 
 // ============================================================
-// UPDATE PLAYER STATUS
+// UPDATE PLAYER STATUS (ĐÃ ẨN, NHƯNG VẪN GIỮ HÀM ĐỂ KHÔNG LỖI)
 // ============================================================
 function updateUploadPlayerStatus(type, message, extra = '') {
-    const statusEl = document.getElementById('upload-player-status');
-    const icons = { loading: '⏳', playing: '▶️', paused: '⏸', error: '❌', warning: '⚠️', success: '✅', info: '💡', empty: '📭' };
-    const classes = { loading: '', playing: 'highlight', paused: '', error: 'error', warning: 'warning', success: 'success', info: 'info', empty: 'warning' };
-    const icon = icons[type] || '⏳';
-    const cls = classes[type] || '';
-    statusEl.innerHTML = `<span class="icon">${icon}</span><span class="${cls}">${message}</span>${extra ? `<span class="sub">${extra}</span>` : ''}`;
+    // Đã ẩn nên không cần làm gì
 }
 
 function updateLibraryPlayerStatus(type, message, extra = '') {
-    const statusEl = document.getElementById('library-player-status');
-    const icons = { loading: '⏳', playing: '▶️', paused: '⏸', error: '❌', warning: '⚠️', success: '✅', info: '💡', empty: '📭', no_subtitle: '📝' };
-    const classes = { loading: '', playing: 'highlight', paused: '', error: 'error', warning: 'warning', success: 'success', info: 'info', empty: 'warning', no_subtitle: 'warning' };
-    const icon = icons[type] || '⏳';
-    const cls = classes[type] || '';
-    statusEl.innerHTML = `<span class="icon">${icon}</span><span class="${cls}">${message}</span>${extra ? `<span class="sub">${extra}</span>` : ''}`;
+    // Đã ẩn nên không cần làm gì
 }
 
 // ============================================================
@@ -1517,7 +1466,6 @@ function switchTab(tab) {
     document.getElementById(`content-${tab}`).classList.add('active');
     document.getElementById(`tab-${tab}`).classList.add('active');
     
-    // Hiển thị/ẩn Upload Player và Upload Subtitle theo tab
     const uploadPlayerCard = document.getElementById('upload-player-card');
     const uploadSubtitleBox = document.getElementById('upload-subtitle-box');
     if (tab === 'upload') {
@@ -1538,7 +1486,6 @@ function loadUploadPlayer(videoId) {
     const container = document.getElementById('upload-player');
     const wrapper = document.getElementById('upload-player-wrapper');
     
-    // Hiển thị card upload player
     document.getElementById('upload-player-card').style.display = 'block';
     
     if (uploadPlayer) {
@@ -1562,7 +1509,6 @@ function loadUploadPlayer(videoId) {
             },
             onError: (e) => {
                 console.error('Upload player error:', e);
-                updateUploadPlayerStatus('error', 'Lỗi phát video', 'Kiểm tra lại link YouTube');
             }
         }
     });
@@ -1587,7 +1533,6 @@ async function onYtUrlInput() {
         if (vid) {
             hintEl.innerHTML = `⏳ Đang lấy thông tin video...`;
             hintBox.style.display = 'block';
-            updateUploadPlayerStatus('loading', 'Đang tải video...');
             updateUploadSubtitle([]);
             
             pendingVideoId = vid;
@@ -1608,9 +1553,6 @@ async function onYtUrlInput() {
                 statusEl.innerHTML = `✅ Video ID: <span class="id-found">${vid}</span><span style="color:var(--accent-green);display:block;font-size:9px;margin-top:2px;">✅ GitHub sẽ dùng ID này (KHÔNG tìm kiếm)</span>`;
                 displayEl.textContent = videoInfo.title;
                 
-                const hasSubtitle = findSubtitleInLibrary(vid);
-                updateUploadPlayerStatus('playing', `Đang phát: ${videoInfo.title}`, hasSubtitle ? '✅ Có phụ đề trong Library' : '⚠️ Chưa có phụ đề trong Library');
-                
                 showToast(`✅ Đã lấy video: ${videoInfo.title}`, 'success');
                 log(`📌 Dùng Video ID từ link: ${vid} - "${videoInfo.title}"`, 'id');
             } else {
@@ -1618,12 +1560,9 @@ async function onYtUrlInput() {
                 statusEl.innerHTML = `✅ Video ID: <span class="id-found">${vid}</span><span style="color:var(--accent-green);display:block;font-size:9px;margin-top:2px;">✅ GitHub sẽ dùng ID này (KHÔNG tìm kiếm)</span>`;
                 displayEl.textContent = vid;
                 
-                const hasSubtitle = findSubtitleInLibrary(vid);
-                updateUploadPlayerStatus('playing', `Đang phát Video ID: ${vid}`, hasSubtitle ? '✅ Có phụ đề trong Library' : '⚠️ Chưa có phụ đề trong Library');
                 log(`📌 Dùng Video ID từ link: ${vid} (không lấy được tên)`, 'id');
             }
             
-            // Tìm và hiển thị phụ đề cho Upload Player
             const subtitleMatch = findMatchingSubtitleForUpload(vid);
             if (subtitleMatch) {
                 loadUploadSubtitles(subtitleMatch);
@@ -1635,7 +1574,6 @@ async function onYtUrlInput() {
             pendingVideoId = null;
             statusEl.innerHTML = '❌ Không tìm thấy Video ID';
             playerWrapper.classList.add('hidden');
-            updateUploadPlayerStatus('error', 'Link YouTube không hợp lệ', 'Không tìm thấy Video ID');
             updateUploadSubtitle([]);
         }
     } else {
@@ -1645,7 +1583,6 @@ async function onYtUrlInput() {
         pendingVideoTitle = null;
         statusEl.innerHTML = '🔍 GitHub sẽ tự tìm kiếm video theo tên file';
         playerWrapper.classList.add('hidden');
-        updateUploadPlayerStatus('info', 'Nhập link YouTube để xem trước');
         updateUploadSubtitle([]);
         log('🔄 Không có link YouTube, GitHub sẽ tự tìm kiếm', 'info');
         
@@ -1667,7 +1604,6 @@ function clearYtUrl() {
     pendingVideoTitle = null;
     document.getElementById('upload-vid-status').innerHTML = '🔍 GitHub sẽ tự tìm kiếm video theo tên file';
     document.getElementById('upload-player-wrapper').classList.add('hidden');
-    updateUploadPlayerStatus('info', 'Nhập link YouTube để xem trước');
     updateUploadSubtitle([]);
     
     if (uploadPlayer) {
@@ -1741,7 +1677,6 @@ function findSubtitleInLibrary(videoId) {
 
 function findAndPlayMatchingInLibrary(videoId) {
     if (!videoId) {
-        updateLibraryPlayerStatus('empty', 'Chưa có video để tìm phụ đề');
         updateLibrarySubtitle([]);
         return;
     }
@@ -1750,7 +1685,6 @@ function findAndPlayMatchingInLibrary(videoId) {
     if (exactMatch) {
         log(`✅ Tìm thấy phụ đề chính xác: ${exactMatch.title}`, 'ok');
         showToast(`✅ Tìm thấy phụ đề: ${exactMatch.title}`, 'success');
-        updateLibraryPlayerStatus('success', `Đã tìm thấy phụ đề: ${exactMatch.title}`);
         const idx = libraryItems.findIndex(item => item.videoId === videoId);
         if (idx !== -1) selectLibraryItem(idx);
         return;
@@ -1766,14 +1700,12 @@ function findAndPlayMatchingInLibrary(videoId) {
         if (bestMatch && bestScore > 0.5) {
             log(`✅ Tìm thấy phụ đề gần đúng: ${bestMatch.title} (${Math.round(bestScore*100)}%)`, 'info');
             showToast(`🔍 Tìm thấy phụ đề gần đúng: ${bestMatch.title} (${Math.round(bestScore*100)}%)`, 'info');
-            updateLibraryPlayerStatus('info', `Phụ đề gần đúng: ${bestMatch.title}`, `${Math.round(bestScore*100)}% khớp`);
             const idx = libraryItems.findIndex(i => i.videoId === bestMatch.videoId);
             if (idx !== -1) selectLibraryItem(idx);
             return;
         }
     }
     
-    updateLibraryPlayerStatus('no_subtitle', 'Không tìm thấy phụ đề trong Library', 'Bạn có thể thêm phụ đề bằng cách render');
     updateLibrarySubtitle([]);
 }
 
@@ -2272,7 +2204,6 @@ async function loadLibrary(force = false) {
             document.getElementById('library-status').textContent = 'No subtitles found';
             document.getElementById('selected-title').textContent = 'No subtitle';
             document.getElementById('selected-video-id').textContent = '---';
-            updateLibraryPlayerStatus('empty', 'Chưa có phụ đề nào trong thư viện');
             updateLibrarySubtitle([]);
         } else {
             document.getElementById('library-status').textContent = `${libraryItems.length} subtitles`;
@@ -2316,7 +2247,6 @@ function onLibraryDropdownChange() {
         document.getElementById('selected-title').textContent = 'No subtitle selected';
         document.getElementById('selected-video-id').textContent = '---';
         document.getElementById('library-status').textContent = 'Ready';
-        updateLibraryPlayerStatus('info', 'Chọn phụ đề trong Library để phát');
         updateLibrarySubtitle([]);
         return;
     }
@@ -2341,7 +2271,6 @@ function selectLibraryItem(index) {
     document.getElementById('library-dropdown').value = index;
     updateLibraryInfo(currentGistItem);
     document.getElementById('library-status').textContent = `Selected: ${currentGistItem.title}`;
-    updateLibraryPlayerStatus('loading', `Đang tải: ${currentGistItem.title}...`);
     loadLibraryVideo(currentGistItem, true);
 }
 
@@ -2350,13 +2279,11 @@ function selectLibraryItem(index) {
 // ============================================================
 async function loadLibraryVideo(item, autoplay = true) {
     if (!item) {
-        updateLibraryPlayerStatus('empty', 'Chưa có phụ đề để phát');
         updateLibrarySubtitle([]);
         return;
     }
     
     log(`🎬 Loading library video: ${item.title}`, 'info');
-    updateLibraryPlayerStatus('loading', `Đang tải: ${item.title}...`);
     
     try {
         if (librarySyncInterval) { clearInterval(librarySyncInterval); librarySyncInterval = null; }
@@ -2374,7 +2301,6 @@ async function loadLibraryVideo(item, autoplay = true) {
         let vttUrl = item.vttUrl;
         if (!vttUrl || !vttUrl.startsWith('http')) {
             showToast('Invalid subtitle URL!', 'warning');
-            updateLibraryPlayerStatus('error', 'URL phụ đề không hợp lệ');
             updateLibrarySubtitle([]);
             return;
         }
@@ -2388,7 +2314,6 @@ async function loadLibraryVideo(item, autoplay = true) {
         const vttText = await response.text();
         if (!vttText || vttText.trim().length === 0) {
             showToast('Empty subtitle file!', 'warning');
-            updateLibraryPlayerStatus('error', 'File phụ đề rỗng');
             updateLibrarySubtitle([]);
             return;
         }
@@ -2403,7 +2328,6 @@ async function loadLibraryVideo(item, autoplay = true) {
         } else {
             updateLibrarySubtitle([]);
             showToast('No subtitles in file', 'warning');
-            updateLibraryPlayerStatus('no_subtitle', 'Không có phụ đề trong file');
             return;
         }
         
@@ -2415,7 +2339,6 @@ async function loadLibraryVideo(item, autoplay = true) {
         if (!videoId) {
             showToast('Video ID not found!', 'warning');
             updateLibrarySubtitle([]);
-            updateLibraryPlayerStatus('error', 'Không tìm thấy Video ID');
             return;
         }
         
@@ -2423,13 +2346,11 @@ async function loadLibraryVideo(item, autoplay = true) {
         loadLibraryPlayer(videoId, autoplay);
         log(`✅ Loaded ${librarySubtitles.length} subtitles`, 'ok');
         document.getElementById('library-status').textContent = `Playing: ${item.title}`;
-        updateLibraryPlayerStatus('playing', `Đang phát: ${item.title}`);
         
     } catch (e) {
         console.error('Error loading library video:', e);
         log(`Error: ${e.message}`, 'err');
         updateLibrarySubtitle([]);
-        updateLibraryPlayerStatus('error', `Lỗi: ${e.message}`);
         showToast(`Error: ${e.message}`, 'error');
     }
 }
@@ -2446,7 +2367,6 @@ function loadLibraryPlayer(videoId, autoplay = true) {
     
     document.getElementById('library-player').innerHTML = '';
     document.getElementById('library-player-wrapper').classList.remove('hidden');
-    // Không cần cập nhật status-text vì đã ẩn
     
     libraryPlayer = new YT.Player('library-player', {
         height: '100%', width: '100%', videoId: videoId,
@@ -2463,12 +2383,10 @@ function loadLibraryPlayer(videoId, autoplay = true) {
                     e.target.pauseVideo();
                     updatePlayPauseBtn(false);
                 }
-                updateLibraryPlayerStatus('playing', 'Đang phát');
             },
             onStateChange: onLibraryPlayerStateChange,
             onError: (e) => {
                 console.error('Library Player Error:', e);
-                updateLibraryPlayerStatus('error', 'Lỗi phát video');
                 showToast('Video playback error', 'error');
                 if (videoId && confirm('Cannot play video. Open on YouTube?')) {
                     window.open(`https://youtube.com/watch?v=${videoId}`, '_blank');
@@ -2482,19 +2400,14 @@ function loadLibraryPlayer(videoId, autoplay = true) {
 function onLibraryPlayerStateChange(e) {
     if (e.data == YT.PlayerState.PLAYING) {
         updatePlayPauseBtn(true);
-        updateLibraryPlayerStatus('playing', 'Đang phát');
     } else if (e.data == YT.PlayerState.PAUSED) {
         updatePlayPauseBtn(false);
-        updateLibraryPlayerStatus('paused', 'Tạm dừng');
     } else if (e.data == YT.PlayerState.ENDED) {
         updatePlayPauseBtn(false);
-        updateLibraryPlayerStatus('info', 'Kết thúc');
         if (isLoopEnabled && libraryPlayer) {
             libraryPlayer.seekTo(0, true);
             libraryPlayer.playVideo();
         }
-    } else if (e.data == YT.PlayerState.BUFFERING) {
-        updateLibraryPlayerStatus('loading', 'Đang tải...');
     }
 }
 
@@ -2568,11 +2481,9 @@ function togglePlayPause() {
     if (libraryPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
         libraryPlayer.pauseVideo();
         updatePlayPauseBtn(false);
-        updateLibraryPlayerStatus('paused', 'Tạm dừng');
     } else {
         libraryPlayer.playVideo();
         updatePlayPauseBtn(true);
-        updateLibraryPlayerStatus('playing', 'Đang phát');
     }
 }
 
@@ -2580,7 +2491,6 @@ function updatePlayPauseBtn(p) {
     const b = document.getElementById('btn-play-pause');
     if (b) {
         b.innerHTML = p ? '⏸' : '▶';
-        // Không cần đổi class paused nữa vì đã dùng trắng đen
     }
 }
 
@@ -2662,12 +2572,10 @@ async function deleteLibraryItem(index) {
             if (libraryItems.length === 0) {
                 document.getElementById('selected-title').textContent = 'No subtitle';
                 document.getElementById('selected-video-id').textContent = '---';
-                updateLibraryPlayerStatus('empty', 'Chưa có phụ đề nào trong thư viện');
                 updateLibrarySubtitle([]);
             } else if (selectedLibraryIndex === -1) selectLibraryItem(0);
             showToast(`Deleted: ${item.title}`, 'success');
             log(`Deleted: ${item.title}`, 'ok');
-            updateLibraryPlayerStatus('info', 'Chọn phụ đề để phát');
             updateLibrarySubtitle([]);
             document.getElementById('library-status').textContent = `Deleted: ${item.title}`;
         } else {
@@ -2706,7 +2614,6 @@ function resetLibraryPlayer() {
     libraryActiveSubIndex = -1;
     libraryVideoId = null;
     updatePlayPauseBtn(false);
-    updateLibraryPlayerStatus('info', 'Chọn phụ đề để phát');
     updateLibrarySubtitle([]);
 }
 
@@ -3029,8 +2936,6 @@ async function uploadToGitHub() {
 function toggleHideMode() {
     isHideMode = !isHideMode;
     const btn = document.getElementById('btn-toggle-hide');
-    // Chỉ ẩn các phần tử có class 'hideable'
-    // Các phần tử có class 'always-visible' (player, subtitle, controls, timeline) không bị ẩn
     const hideables = document.querySelectorAll('.hideable');
     if (isHideMode) {
         hideables.forEach(el => el.classList.add('hidden'));
@@ -3135,7 +3040,6 @@ function clearVideoProcessing(videoId) {
 window.addEventListener('load', function() {
     loadProcessingState();
     checkPendingProcessing();
-    // Mặc định hiển thị tab Library
     document.getElementById('upload-player-card').style.display = 'none';
     document.getElementById('upload-subtitle-box').style.display = 'none';
     setTimeout(() => loadLibrary(true), 1000);
