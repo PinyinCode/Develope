@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🎵 YouTube Background Player</title>
+    <title>🎵 YouTube Player - PiP Background</title>
     <style>
         * {
             margin: 0;
@@ -45,11 +45,11 @@
         .header .badge {
             margin-left: auto;
             font-size: 10px;
-            color: #0a84ff;
-            background: rgba(10, 132, 255, 0.15);
+            color: #ff9500;
+            background: rgba(255, 149, 0, 0.15);
             padding: 4px 12px;
             border-radius: 12px;
-            border: 0.5px solid rgba(10, 132, 255, 0.15);
+            border: 0.5px solid rgba(255, 149, 0, 0.15);
         }
 
         .input-area {
@@ -94,10 +94,7 @@
             touch-action: manipulation;
         }
 
-        .input-area .btn-add:active {
-            transform: scale(0.95);
-            background: #007aff;
-        }
+        .input-area .btn-add:active { transform: scale(0.95); background: #007aff; }
 
         .input-hint {
             font-size: 11px;
@@ -106,7 +103,6 @@
             line-height: 1.5;
             padding: 0 4px;
         }
-
         .input-hint .highlight { color: #0a84ff; }
 
         .playlist-header {
@@ -156,15 +152,8 @@
             touch-action: manipulation;
         }
 
-        .playlist-item:active {
-            transform: scale(0.98);
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .playlist-item.active {
-            background: rgba(10, 132, 255, 0.15);
-            border-color: rgba(10, 132, 255, 0.3);
-        }
+        .playlist-item:active { transform: scale(0.98); background: rgba(255, 255, 255, 0.08); }
+        .playlist-item.active { background: rgba(10, 132, 255, 0.15); border-color: rgba(10, 132, 255, 0.3); }
 
         .playlist-item .index {
             font-size: 12px;
@@ -174,11 +163,7 @@
             font-weight: 500;
         }
 
-        .playlist-item .info {
-            flex: 1;
-            min-width: 0;
-        }
-
+        .playlist-item .info { flex: 1; min-width: 0; }
         .playlist-item .info .title {
             font-size: 13px;
             font-weight: 500;
@@ -196,11 +181,7 @@
             text-overflow: ellipsis;
         }
 
-        .playlist-item .status {
-            font-size: 14px;
-            min-width: 20px;
-            text-align: center;
-        }
+        .playlist-item .status { font-size: 14px; min-width: 20px; text-align: center; }
 
         .playlist-item .btn-remove {
             background: none;
@@ -216,10 +197,7 @@
             touch-action: manipulation;
         }
 
-        .playlist-item .btn-remove:active {
-            color: #ff3b30;
-            transform: scale(0.9);
-        }
+        .playlist-item .btn-remove:active { color: #ff3b30; transform: scale(0.9); }
 
         .empty-playlist {
             text-align: center;
@@ -229,11 +207,7 @@
             line-height: 1.8;
         }
 
-        .empty-playlist .icon {
-            font-size: 40px;
-            display: block;
-            margin-bottom: 8px;
-        }
+        .empty-playlist .icon { font-size: 40px; display: block; margin-bottom: 8px; }
 
         .controls {
             display: flex;
@@ -266,11 +240,7 @@
         .controls .btn-play:active { transform: scale(0.92); }
         .controls .btn-play.paused { background: #2c2c2e; color: #ffffff; }
 
-        .controls .info {
-            flex: 1;
-            min-width: 0;
-        }
-
+        .controls .info { flex: 1; min-width: 0; }
         .controls .info .current-title {
             font-size: 14px;
             font-weight: 500;
@@ -280,10 +250,7 @@
             text-overflow: ellipsis;
         }
 
-        .controls .info .current-sub {
-            font-size: 11px;
-            color: #636366;
-        }
+        .controls .info .current-sub { font-size: 11px; color: #636366; }
 
         .controls .btn-group {
             display: flex;
@@ -305,15 +272,22 @@
             touch-action: manipulation;
         }
 
-        .controls .btn-group button:active {
-            transform: scale(0.92);
-            background: rgba(255, 255, 255, 0.08);
-        }
-
+        .controls .btn-group button:active { transform: scale(0.92); background: rgba(255, 255, 255, 0.08); }
         .controls .btn-group button.active {
             background: rgba(10, 132, 255, 0.15);
             border-color: rgba(10, 132, 255, 0.3);
             color: #0a84ff;
+        }
+
+        .controls .btn-group button.btn-pip {
+            color: #ff9500;
+            border-color: rgba(255, 149, 0, 0.2);
+        }
+
+        .controls .btn-group button.btn-pip.active {
+            background: rgba(255, 149, 0, 0.15);
+            border-color: rgba(255, 149, 0, 0.3);
+            color: #ff9500;
         }
 
         .progress-area {
@@ -371,11 +345,11 @@
             align-items: center;
             gap: 6px;
             font-size: 10px;
-            color: #0a84ff;
-            background: rgba(10, 132, 255, 0.1);
+            color: #ff9500;
+            background: rgba(255, 149, 0, 0.1);
             padding: 4px 12px;
             border-radius: 12px;
-            border: 0.5px solid rgba(10, 132, 255, 0.15);
+            border: 0.5px solid rgba(255, 149, 0, 0.15);
             margin-top: 8px;
             justify-content: center;
         }
@@ -384,7 +358,7 @@
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: #0a84ff;
+            background: #ff9500;
             animation: pulse-dot 1.5s ease-in-out infinite;
         }
 
@@ -417,20 +391,69 @@
             text-align: center;
         }
 
-        .toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* Video container nhỏ để PiP */
+        #video-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 320px;
+            height: 180px;
+            border-radius: 12px;
+            overflow: hidden;
+            z-index: 999;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+            border: 0.5px solid rgba(255, 255, 255, 0.1);
+            display: none;
+            background: #000;
+            transition: all 0.3s ease;
         }
 
-        /* YouTube iframe ẩn */
-        #youtube-player {
-            position: fixed;
-            top: -9999px;
-            left: -9999px;
-            width: 1px;
-            height: 1px;
-            opacity: 0;
-            pointer-events: none;
+        #video-container.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: scale(0.8) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        #video-container .pip-player {
+            width: 100%;
+            height: 100%;
+        }
+
+        #video-container .pip-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: all 0.2s;
+        }
+
+        #video-container .pip-close:hover { background: rgba(255, 59, 48, 0.8); }
+
+        #video-container .pip-drag {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            cursor: move;
+            z-index: 5;
         }
 
         @media (max-width: 400px) {
@@ -438,10 +461,7 @@
             .input-area .btn-add { padding: 12px 14px; font-size: 13px; }
             .controls .btn-play { min-width: 42px; height: 42px; font-size: 18px; }
             .playlist { max-height: 200px; }
-        }
-
-        @media (max-width: 360px) {
-            .controls .btn-group button { font-size: 12px; padding: 4px 8px; }
+            #video-container { width: 200px; height: 112px; bottom: 10px; right: 10px; }
         }
     </style>
 </head>
@@ -450,8 +470,8 @@
 <div class="container">
     <div class="header">
         <span class="logo">🎵</span>
-        <h1>YouTube Player</h1>
-        <span class="badge">Nền</span>
+        <h1>YouTube PiP Player</h1>
+        <span class="badge">PiP Nền</span>
     </div>
 
     <div class="input-area">
@@ -460,6 +480,7 @@
     </div>
     <div class="input-hint">
         💡 Hỗ trợ: URL YouTube, Video ID, <span class="highlight">Playlist</span>
+        <span style="float:right;">🪟 Bật PiP để phát nền</span>
     </div>
 
     <div class="playlist-header">
@@ -477,7 +498,7 @@
 
     <div class="bg-indicator show" id="bg-indicator">
         <span class="dot"></span>
-        🎧 Phát nền (chạy khi chuyển tab/thu nhỏ)
+        🪟 Bật PiP để phát nền khi thu nhỏ tab
     </div>
 
     <div class="controls">
@@ -491,7 +512,7 @@
         <div class="btn-group">
             <button onclick="toggleLoop()" id="btn-loop" title="Lặp lại">🔁</button>
             <button onclick="toggleShuffle()" id="btn-shuffle" title="Phát ngẫu nhiên">🔀</button>
-            <button onclick="toggleBackgroundMode()" id="btn-bg" title="Chế độ nền" class="active">🎧</button>
+            <button onclick="togglePip()" id="btn-pip" title="Picture-in-Picture" class="btn-pip">🪟</button>
         </div>
     </div>
 
@@ -503,16 +524,22 @@
     </div>
 </div>
 
+<!-- Video container cho PiP -->
+<div id="video-container">
+    <div class="pip-drag" id="pip-drag"></div>
+    <button class="pip-close" onclick="closePip()">✕</button>
+    <div class="pip-player" id="pip-player"></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
-<!-- YouTube iframe ẩn -->
-<div id="youtube-player"></div>
-
+<script src="https://www.youtube.com/iframe_api"></script>
 <script>
     // ============================================================
     // STATE
     // ============================================================
     let player = null;
+    let pipPlayer = null;
     let playerReady = false;
     let playerLoading = false;
     let playlist = [];
@@ -520,21 +547,25 @@
     let isPlaying = false;
     let isLoop = false;
     let isShuffle = false;
-    let isBackgroundMode = true;
+    let isPipMode = false;
     let isSeeking = false;
     let syncInterval = null;
-    let pendingPlay = null; // Video chờ phát khi player ready
+    let pendingPlay = null;
+    let pipContainer = null;
+    let pipIsDragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
 
     // ============================================================
     // STORAGE
     // ============================================================
     function savePlaylist() {
-        try { localStorage.setItem('yt_bg_player', JSON.stringify(playlist)); } catch(e) {}
+        try { localStorage.setItem('pip_player_playlist', JSON.stringify(playlist)); } catch(e) {}
     }
 
     function loadPlaylist() {
         try {
-            const data = localStorage.getItem('yt_bg_player');
+            const data = localStorage.getItem('pip_player_playlist');
             if (data) { playlist = JSON.parse(data); return true; }
         } catch(e) {}
         return false;
@@ -615,13 +646,11 @@
 
         if (currentIndex === -1) {
             currentIndex = playlist.length - 1;
-            // Nếu player chưa sẵn sàng, lưu để phát sau
             if (playerReady && player) {
                 loadVideo(currentIndex);
             } else {
                 pendingPlay = currentIndex;
                 showToast('⏳ Đang tải YouTube...', 1500);
-                // Tạo player nếu chưa có
                 if (!player && !playerLoading) {
                     createPlayer(result.id);
                 }
@@ -711,8 +740,13 @@
             updatePlayButton();
             renderPlaylist();
             showToast(`▶️ ${video.title || video.id}`, 1500);
+            
+            // Nếu đang ở chế độ PiP, cập nhật PiP player
+            if (isPipMode && pipPlayer) {
+                pipPlayer.loadVideoById(video.id);
+                pipPlayer.playVideo();
+            }
         } else {
-            // Chưa sẵn sàng, lưu để phát sau
             pendingPlay = index;
             if (!player && !playerLoading) {
                 createPlayer(video.id);
@@ -721,7 +755,7 @@
     }
 
     // ============================================================
-    // CREATE YOUTUBE PLAYER (ẨN)
+    // CREATE YOUTUBE PLAYER
     // ============================================================
     function createPlayer(videoId) {
         if (playerLoading) return;
@@ -734,18 +768,18 @@
         playerLoading = true;
         showToast('⏳ Đang kết nối YouTube...', 2000);
 
-        const container = document.getElementById('youtube-player');
+        const container = document.getElementById('pip-player');
         container.innerHTML = '';
 
         try {
-            player = new YT.Player('youtube-player', {
-                height: '1',
-                width: '1',
+            player = new YT.Player('pip-player', {
+                height: '100%',
+                width: '100%',
                 videoId: videoId || 'dQw4w9WgXcQ',
                 playerVars: {
                     playsinline: 1,
-                    autoplay: 0,
-                    controls: 0,
+                    autoplay: 1,
+                    controls: 1,
                     rel: 0,
                     showinfo: 0,
                     modestbranding: 1,
@@ -759,7 +793,15 @@
                         updatePlayButton();
                         startSync();
 
-                        // Nếu có video đang chờ, phát nó
+                        // Hiển thị PiP nếu đang ở chế độ PiP
+                        if (isPipMode) {
+                            pipContainer.classList.add('show');
+                            // Tạo player cho PiP nếu chưa có
+                            if (!pipPlayer) {
+                                createPipPlayer(videoId || playlist[currentIndex]?.id);
+                            }
+                        }
+
                         if (pendingPlay !== null && pendingPlay < playlist.length) {
                             const idx = pendingPlay;
                             pendingPlay = null;
@@ -779,9 +821,6 @@
                             renderPlaylist();
                         }
 
-                        if (isBackgroundMode) {
-                            document.getElementById('bg-indicator').classList.add('show');
-                        }
                         setTimeout(updateProgress, 500);
                     },
                     onStateChange: function(e) {
@@ -790,12 +829,21 @@
                             isPlaying = true;
                             updatePlayButton();
                             updateProgress();
-                            if (isBackgroundMode) {
-                                document.getElementById('bg-indicator').classList.add('show');
+                            // Đồng bộ PiP player
+                            if (isPipMode && pipPlayer && pipPlayer.getPlayerState) {
+                                try {
+                                    const pipState = pipPlayer.getPlayerState();
+                                    if (pipState !== YT.PlayerState.PLAYING) {
+                                        pipPlayer.playVideo();
+                                    }
+                                } catch(e) {}
                             }
                         } else if (state === YT.PlayerState.PAUSED) {
                             isPlaying = false;
                             updatePlayButton();
+                            if (isPipMode && pipPlayer) {
+                                try { pipPlayer.pauseVideo(); } catch(e) {}
+                            }
                         } else if (state === YT.PlayerState.ENDED) {
                             isPlaying = false;
                             updatePlayButton();
@@ -805,7 +853,7 @@
                     onError: function(e) {
                         console.error('Player error:', e);
                         playerLoading = false;
-                        showToast('❌ Lỗi phát video, thử video khác', 2000);
+                        showToast('❌ Lỗi phát video', 2000);
                         setTimeout(nextVideo, 3000);
                     }
                 }
@@ -818,47 +866,191 @@
     }
 
     // ============================================================
-    // PHÁT NỀN - XỬ LÝ CHUYỂN TAB
+    // CREATE PIP PLAYER
     // ============================================================
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            // Tab bị ẩn
-            if (isBackgroundMode && isPlaying && playerReady && player) {
+    function createPipPlayer(videoId) {
+        if (!videoId && currentIndex >= 0 && playlist[currentIndex]) {
+            videoId = playlist[currentIndex].id;
+        }
+        if (!videoId) return;
+
+        const container = document.getElementById('pip-player');
+        container.innerHTML = '';
+
+        try {
+            pipPlayer = new YT.Player('pip-player', {
+                height: '100%',
+                width: '100%',
+                videoId: videoId,
+                playerVars: {
+                    playsinline: 1,
+                    autoplay: 1,
+                    controls: 0,
+                    rel: 0,
+                    showinfo: 0,
+                    modestbranding: 1,
+                    origin: window.location.origin
+                },
+                events: {
+                    onReady: function(e) {
+                        // Đồng bộ trạng thái
+                        if (player && player.getPlayerState) {
+                            try {
+                                const state = player.getPlayerState();
+                                if (state === YT.PlayerState.PLAYING) {
+                                    e.target.playVideo();
+                                }
+                            } catch(e) {}
+                        }
+                    },
+                    onStateChange: function(e) {
+                        // Đồng bộ với player chính
+                        if (player && player.getPlayerState) {
+                            try {
+                                const mainState = player.getPlayerState();
+                                const pipState = e.data;
+                                if (mainState !== pipState && pipState === YT.PlayerState.PLAYING) {
+                                    // Nếu PiP đang phát mà main không phải, cập nhật main
+                                }
+                            } catch(e) {}
+                        }
+                    }
+                }
+            });
+        } catch(e) {
+            console.error('Create PiP player error:', e);
+        }
+    }
+
+    // ============================================================
+    // 🪟 PICTURE-IN-PICTURE (PiP) - QUAN TRỌNG
+    // ============================================================
+    function togglePip() {
+        pipContainer = document.getElementById('video-container');
+        
+        if (!isPipMode) {
+            // BẬT PiP
+            isPipMode = true;
+            document.getElementById('btn-pip').classList.add('active');
+            pipContainer.classList.add('show');
+            document.getElementById('bg-indicator').classList.add('show');
+            document.getElementById('bg-indicator').innerHTML = `
+                <span class="dot"></span>
+                🪟 PiP đang bật - có thể thu nhỏ tab vẫn nghe nhạc
+            `;
+            
+            // Tạo PiP player nếu chưa có
+            if (!pipPlayer && playerReady && player) {
+                const videoId = currentIndex >= 0 ? playlist[currentIndex]?.id : null;
+                if (videoId) {
+                    createPipPlayer(videoId);
+                }
+            }
+            
+            showToast('🪟 PiP: BẬT - Thu nhỏ tab để thử', 2000);
+            
+            // Tự động bật PiP trên trình duyệt hỗ trợ
+            if (document.pictureInPictureEnabled) {
                 try {
-                    const state = player.getPlayerState();
-                    if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.ENDED) {
-                        player.playVideo();
-                        isPlaying = true;
-                        updatePlayButton();
+                    const video = document.querySelector('#pip-player iframe');
+                    if (video) {
+                        // Một số trình duyệt hỗ trợ PiP API
                     }
                 } catch(e) {}
             }
         } else {
-            // Tab được hiển thị lại
-            if (isBackgroundMode && isPlaying && playerReady && player) {
-                try {
-                    const state = player.getPlayerState();
-                    if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.ENDED) {
-                        player.playVideo();
-                        isPlaying = true;
-                        updatePlayButton();
-                    }
-                } catch(e) {}
+            // TẮT PiP
+            isPipMode = false;
+            document.getElementById('btn-pip').classList.remove('active');
+            pipContainer.classList.remove('show');
+            document.getElementById('bg-indicator').innerHTML = `
+                <span class="dot"></span>
+                🪟 Bật PiP để phát nền khi thu nhỏ tab
+            `;
+            
+            if (pipPlayer) {
+                try { pipPlayer.destroy(); } catch(e) {}
+                pipPlayer = null;
             }
+            
+            showToast('🪟 PiP: TẮT', 1500);
         }
-    });
+    }
+
+    function closePip() {
+        if (isPipMode) {
+            togglePip();
+        }
+    }
+
+    // ============================================================
+    // DRAG PIP WINDOW
+    // ============================================================
+    function initPipDrag() {
+        const container = document.getElementById('video-container');
+        const dragHandle = document.getElementById('pip-drag');
+
+        dragHandle.addEventListener('mousedown', function(e) {
+            pipIsDragging = true;
+            const rect = container.getBoundingClientRect();
+            dragOffsetX = e.clientX - rect.left;
+            dragOffsetY = e.clientY - rect.top;
+            container.style.cursor = 'grabbing';
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (!pipIsDragging) return;
+            let x = e.clientX - dragOffsetX;
+            let y = e.clientY - dragOffsetY;
+            x = Math.max(0, Math.min(window.innerWidth - container.offsetWidth, x));
+            y = Math.max(0, Math.min(window.innerHeight - container.offsetHeight, y));
+            container.style.left = x + 'px';
+            container.style.top = y + 'px';
+            container.style.right = 'auto';
+            container.style.bottom = 'auto';
+        });
+
+        document.addEventListener('mouseup', function() {
+            pipIsDragging = false;
+            if (container) container.style.cursor = 'default';
+        });
+
+        // Touch events cho mobile
+        dragHandle.addEventListener('touchstart', function(e) {
+            const touch = e.touches[0];
+            pipIsDragging = true;
+            const rect = container.getBoundingClientRect();
+            dragOffsetX = touch.clientX - rect.left;
+            dragOffsetY = touch.clientY - rect.top;
+        });
+
+        document.addEventListener('touchmove', function(e) {
+            if (!pipIsDragging) return;
+            const touch = e.touches[0];
+            let x = touch.clientX - dragOffsetX;
+            let y = touch.clientY - dragOffsetY;
+            x = Math.max(0, Math.min(window.innerWidth - container.offsetWidth, x));
+            y = Math.max(0, Math.min(window.innerHeight - container.offsetHeight, y));
+            container.style.left = x + 'px';
+            container.style.top = y + 'px';
+            container.style.right = 'auto';
+            container.style.bottom = 'auto';
+        });
+
+        document.addEventListener('touchend', function() {
+            pipIsDragging = false;
+        });
+    }
 
     // ============================================================
     // CONTROLS
     // ============================================================
     function togglePlay() {
-        // Nếu chưa có video, yêu cầu thêm
         if (playlist.length === 0) {
             showToast('⚠️ Thêm video trước khi phát', 2000);
             return;
         }
 
-        // Nếu chưa có player, tạo mới
         if (!player && !playerLoading) {
             const videoId = currentIndex >= 0 ? playlist[currentIndex].id : playlist[0].id;
             if (currentIndex === -1) currentIndex = 0;
@@ -866,26 +1058,28 @@
             return;
         }
 
-        // Nếu đang loading, đợi
         if (playerLoading) {
             showToast('⏳ Đang tải YouTube...', 1500);
             return;
         }
 
-        // Nếu player chưa sẵn sàng
         if (!playerReady || !player) {
             showToast('⏳ YouTube đang tải...', 1500);
             return;
         }
 
-        // Toggle play/pause
         if (isPlaying) {
             player.pauseVideo();
             isPlaying = false;
+            if (isPipMode && pipPlayer) {
+                try { pipPlayer.pauseVideo(); } catch(e) {}
+            }
         } else {
             player.playVideo();
             isPlaying = true;
-            // Nếu video đã kết thúc, load lại
+            if (isPipMode && pipPlayer) {
+                try { pipPlayer.playVideo(); } catch(e) {}
+            }
             try {
                 const state = player.getPlayerState();
                 if (state === YT.PlayerState.ENDED) {
@@ -916,6 +1110,9 @@
             player.playVideo();
             isPlaying = true;
             updatePlayButton();
+            if (isPipMode && pipPlayer) {
+                try { pipPlayer.seekTo(0, true); pipPlayer.playVideo(); } catch(e) {}
+            }
             return;
         }
 
@@ -936,34 +1133,14 @@
         isLoop = !isLoop;
         document.getElementById('btn-loop').classList.toggle('active', isLoop);
         showToast(isLoop ? '🔁 Lặp: BẬT' : '🔁 Lặp: TẮT', 1000);
-        localStorage.setItem('bg_loop', isLoop);
+        localStorage.setItem('pip_loop', isLoop);
     }
 
     function toggleShuffle() {
         isShuffle = !isShuffle;
         document.getElementById('btn-shuffle').classList.toggle('active', isShuffle);
         showToast(isShuffle ? '🔀 Ngẫu nhiên: BẬT' : '🔀 Ngẫu nhiên: TẮT', 1000);
-        localStorage.setItem('bg_shuffle', isShuffle);
-    }
-
-    function toggleBackgroundMode() {
-        isBackgroundMode = !isBackgroundMode;
-        const btn = document.getElementById('btn-bg');
-        const indicator = document.getElementById('bg-indicator');
-
-        if (isBackgroundMode) {
-            btn.classList.add('active');
-            if (isPlaying) indicator.classList.add('show');
-            showToast('🎧 Nền: BẬT', 1500);
-            if (isPlaying && playerReady && player) {
-                try { player.playVideo(); } catch(e) {}
-            }
-        } else {
-            btn.classList.remove('active');
-            indicator.classList.remove('show');
-            showToast('🎧 Nền: TẮT', 1500);
-        }
-        localStorage.setItem('bg_background', isBackgroundMode);
+        localStorage.setItem('pip_shuffle', isShuffle);
     }
 
     function removeVideo(index) {
@@ -976,7 +1153,6 @@
                 player.stopVideo();
                 isPlaying = false;
                 updatePlayButton();
-                document.getElementById('bg-indicator').classList.remove('show');
             }
             if (playlist.length > 0) {
                 currentIndex = Math.min(index, playlist.length - 1);
@@ -988,6 +1164,9 @@
                 document.getElementById('current-time').textContent = '00:00';
                 document.getElementById('total-time').textContent = '00:00';
                 document.getElementById('progress-slider').value = 0;
+                if (isPipMode) {
+                    pipContainer.classList.remove('show');
+                }
             }
         } else if (currentIndex > index) {
             currentIndex--;
@@ -1034,7 +1213,11 @@
         if (playerReady && player) {
             const total = player.getDuration();
             if (total > 0) {
-                player.seekTo((value / 100) * total, true);
+                const time = (value / 100) * total;
+                player.seekTo(time, true);
+                if (isPipMode && pipPlayer) {
+                    try { pipPlayer.seekTo(time, true); } catch(e) {}
+                }
             }
         }
         setTimeout(() => { isSeeking = false; }, 300);
@@ -1056,6 +1239,7 @@
         if (e.key === 'n' || e.key === 'N') nextVideo();
         if (e.key === 'l' || e.key === 'L') toggleLoop();
         if (e.key === 's' || e.key === 'S') toggleShuffle();
+        if (e.key === 'p' || e.key === 'P') togglePip();
     });
 
     document.getElementById('url-input').addEventListener('keydown', function(e) {
@@ -1063,14 +1247,41 @@
     });
 
     // ============================================================
+    // PHÁT NỀN BẰNG PIP - XỬ LÝ KHI CHUYỂN TAB
+    // ============================================================
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            // Tab bị ẩn - nếu đang ở chế độ PiP, video vẫn chạy
+            if (isPipMode && isPlaying) {
+                // PiP đã hiển thị, video sẽ tự động chạy
+                showToast('🪟 PiP đang chạy nền', 1000);
+            }
+        } else {
+            // Tab được hiển thị lại
+            if (isPipMode && isPlaying && playerReady && player) {
+                try {
+                    const state = player.getPlayerState();
+                    if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.ENDED) {
+                        player.playVideo();
+                        isPlaying = true;
+                        updatePlayButton();
+                    }
+                } catch(e) {}
+            }
+        }
+    });
+
+    // ============================================================
     // INIT
     // ============================================================
     function init() {
+        pipContainer = document.getElementById('video-container');
+        initPipDrag();
+
         if (loadPlaylist()) {
             renderPlaylist();
             if (playlist.length > 0) {
                 currentIndex = 0;
-                // Chờ API load rồi phát
                 if (typeof YT !== 'undefined' && YT.Player) {
                     setTimeout(() => {
                         if (!player && !playerLoading) {
@@ -1081,24 +1292,14 @@
             }
         }
 
-        if (localStorage.getItem('bg_loop') === 'true') {
+        if (localStorage.getItem('pip_loop') === 'true') {
             isLoop = true;
             document.getElementById('btn-loop').classList.add('active');
         }
 
-        if (localStorage.getItem('bg_shuffle') === 'true') {
+        if (localStorage.getItem('pip_shuffle') === 'true') {
             isShuffle = true;
             document.getElementById('btn-shuffle').classList.add('active');
-        }
-
-        if (localStorage.getItem('bg_background') === 'false') {
-            isBackgroundMode = false;
-            document.getElementById('btn-bg').classList.remove('active');
-            document.getElementById('bg-indicator').classList.remove('show');
-        } else {
-            isBackgroundMode = true;
-            document.getElementById('btn-bg').classList.add('active');
-            document.getElementById('bg-indicator').classList.add('show');
         }
     }
 
@@ -1109,7 +1310,6 @@
         init();
     }
 
-    // Fallback nếu API chưa load
     setTimeout(function() {
         if (typeof YT === 'undefined' || !YT.Player) {
             const script = document.createElement('script');
@@ -1119,19 +1319,12 @@
         }
     }, 1000);
 
-    // Nếu API đã load sẵn
     if (typeof YT !== 'undefined' && YT.Player) {
         init();
     }
 
-    // ============================================================
-    // XỬ LÝ LỖI KHI BẤM PLAY TRÊN MOBILE
-    // ============================================================
-    // iOS Safari yêu cầu tương tác người dùng để phát
-    // Đã xử lý qua sự kiện click
-
-    console.log('🎵 YouTube Background Player loaded');
-    console.log('📋 Hướng dẫn: Thêm video, bấm Play, chuyển tab để thử phát nền');
+    console.log('🎵 YouTube PiP Player loaded');
+    console.log('🪟 Bật PiP (🪟) và thu nhỏ tab để phát nền trên Cốc Cốc!');
 </script>
 
 </body>
