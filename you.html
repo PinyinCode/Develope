@@ -40,17 +40,8 @@
             margin-bottom: 18px;
         }
 
-        .header .logo {
-            font-size: 28px;
-        }
-
-        .header h1 {
-            font-size: 18px;
-            font-weight: 600;
-            color: #ffffff;
-            letter-spacing: -0.3px;
-        }
-
+        .header .logo { font-size: 28px; }
+        .header h1 { font-size: 18px; font-weight: 600; color: #fff; }
         .header .badge {
             margin-left: auto;
             font-size: 10px;
@@ -81,10 +72,7 @@
             -webkit-appearance: none;
         }
 
-        .input-area input::placeholder {
-            color: #636366;
-        }
-
+        .input-area input::placeholder { color: #636366; }
         .input-area input:focus {
             border-color: #0a84ff;
             background: rgba(255, 255, 255, 0.08);
@@ -119,9 +107,7 @@
             padding: 0 4px;
         }
 
-        .input-hint .highlight {
-            color: #0a84ff;
-        }
+        .input-hint .highlight { color: #0a84ff; }
 
         .playlist-header {
             display: flex;
@@ -152,16 +138,9 @@
             -webkit-overflow-scrolling: touch;
         }
 
-        .playlist::-webkit-scrollbar {
-            width: 3px;
-        }
-        .playlist::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .playlist::-webkit-scrollbar-thumb {
-            background: #2c2c2e;
-            border-radius: 2px;
-        }
+        .playlist::-webkit-scrollbar { width: 3px; }
+        .playlist::-webkit-scrollbar-track { background: transparent; }
+        .playlist::-webkit-scrollbar-thumb { background: #2c2c2e; border-radius: 2px; }
 
         .playlist-item {
             display: flex;
@@ -284,14 +263,8 @@
             touch-action: manipulation;
         }
 
-        .controls .btn-play:active {
-            transform: scale(0.92);
-        }
-
-        .controls .btn-play.paused {
-            background: #2c2c2e;
-            color: #ffffff;
-        }
+        .controls .btn-play:active { transform: scale(0.92); }
+        .controls .btn-play.paused { background: #2c2c2e; color: #ffffff; }
 
         .controls .info {
             flex: 1;
@@ -420,9 +393,7 @@
             50% { opacity: 0.4; transform: scale(0.7); }
         }
 
-        .bg-indicator.show {
-            display: flex;
-        }
+        .bg-indicator.show { display: flex; }
 
         .toast {
             position: fixed;
@@ -463,29 +434,14 @@
         }
 
         @media (max-width: 400px) {
-            .container {
-                padding: 16px 14px;
-                border-radius: 16px;
-            }
-            .input-area .btn-add {
-                padding: 12px 14px;
-                font-size: 13px;
-            }
-            .controls .btn-play {
-                min-width: 42px;
-                height: 42px;
-                font-size: 18px;
-            }
-            .playlist {
-                max-height: 200px;
-            }
+            .container { padding: 16px 14px; border-radius: 16px; }
+            .input-area .btn-add { padding: 12px 14px; font-size: 13px; }
+            .controls .btn-play { min-width: 42px; height: 42px; font-size: 18px; }
+            .playlist { max-height: 200px; }
         }
 
         @media (max-width: 360px) {
-            .controls .btn-group button {
-                font-size: 12px;
-                padding: 4px 8px;
-            }
+            .controls .btn-group button { font-size: 12px; padding: 4px 8px; }
         }
     </style>
 </head>
@@ -552,13 +508,13 @@
 <!-- YouTube iframe ẩn -->
 <div id="youtube-player"></div>
 
-<script src="https://www.youtube.com/iframe_api"></script>
 <script>
     // ============================================================
     // STATE
     // ============================================================
     let player = null;
     let playerReady = false;
+    let playerLoading = false;
     let playlist = [];
     let currentIndex = -1;
     let isPlaying = false;
@@ -567,24 +523,20 @@
     let isBackgroundMode = true;
     let isSeeking = false;
     let syncInterval = null;
+    let pendingPlay = null; // Video chờ phát khi player ready
 
     // ============================================================
     // STORAGE
     // ============================================================
     function savePlaylist() {
-        try {
-            localStorage.setItem('yt_bg_player', JSON.stringify(playlist));
-        } catch (e) {}
+        try { localStorage.setItem('yt_bg_player', JSON.stringify(playlist)); } catch(e) {}
     }
 
     function loadPlaylist() {
         try {
             const data = localStorage.getItem('yt_bg_player');
-            if (data) {
-                playlist = JSON.parse(data);
-                return true;
-            }
-        } catch (e) {}
+            if (data) { playlist = JSON.parse(data); return true; }
+        } catch(e) {}
         return false;
     }
 
@@ -634,7 +586,7 @@
                 const d = await r.json();
                 return { title: d.title || videoId, author: d.author_name || '' };
             }
-        } catch (e) {}
+        } catch(e) {}
         return { title: videoId, author: '' };
     }
 
@@ -663,9 +615,20 @@
 
         if (currentIndex === -1) {
             currentIndex = playlist.length - 1;
-            loadVideo(currentIndex);
+            // Nếu player chưa sẵn sàng, lưu để phát sau
+            if (playerReady && player) {
+                loadVideo(currentIndex);
+            } else {
+                pendingPlay = currentIndex;
+                showToast('⏳ Đang tải YouTube...', 1500);
+                // Tạo player nếu chưa có
+                if (!player && !playerLoading) {
+                    createPlayer(result.id);
+                }
+            }
+        } else {
+            showToast(`✅ ${info.title}`, 2000);
         }
-        showToast(`✅ ${info.title}`, 2000);
     }
 
     // ============================================================
@@ -714,7 +677,7 @@
     }
 
     // ============================================================
-    // PLAY VIDEO - DÙNG YOUTUBE IFRAME
+    // PLAY VIDEO
     // ============================================================
     function playVideo(index) {
         if (index < 0 || index >= playlist.length) return;
@@ -723,7 +686,15 @@
             return;
         }
         currentIndex = index;
-        loadVideo(index);
+        if (playerReady && player) {
+            loadVideo(index);
+        } else {
+            pendingPlay = index;
+            showToast('⏳ Đang tải YouTube...', 1500);
+            if (!player && !playerLoading) {
+                createPlayer(playlist[index].id);
+            }
+        }
     }
 
     function loadVideo(index) {
@@ -738,108 +709,121 @@
             player.playVideo();
             isPlaying = true;
             updatePlayButton();
+            renderPlaylist();
+            showToast(`▶️ ${video.title || video.id}`, 1500);
         } else {
-            createPlayer(video.id);
+            // Chưa sẵn sàng, lưu để phát sau
+            pendingPlay = index;
+            if (!player && !playerLoading) {
+                createPlayer(video.id);
+            }
         }
-
-        renderPlaylist();
-        showToast(`▶️ ${video.title || video.id}`, 1500);
     }
 
     // ============================================================
     // CREATE YOUTUBE PLAYER (ẨN)
     // ============================================================
     function createPlayer(videoId) {
+        if (playerLoading) return;
         if (player) {
             try { player.destroy(); } catch(e) {}
             player = null;
             playerReady = false;
         }
 
+        playerLoading = true;
+        showToast('⏳ Đang kết nối YouTube...', 2000);
+
         const container = document.getElementById('youtube-player');
         container.innerHTML = '';
 
-        player = new YT.Player('youtube-player', {
-            height: '1',
-            width: '1',
-            videoId: videoId,
-            playerVars: {
-                playsinline: 1,
-                autoplay: 1,
-                controls: 0,
-                rel: 0,
-                showinfo: 0,
-                modestbranding: 1,
-                origin: window.location.origin
-            },
-            events: {
-                onReady: onPlayerReady,
-                onStateChange: onPlayerStateChange,
-                onError: onPlayerError
-            }
-        });
-    }
+        try {
+            player = new YT.Player('youtube-player', {
+                height: '1',
+                width: '1',
+                videoId: videoId || 'dQw4w9WgXcQ',
+                playerVars: {
+                    playsinline: 1,
+                    autoplay: 0,
+                    controls: 0,
+                    rel: 0,
+                    showinfo: 0,
+                    modestbranding: 1,
+                    origin: window.location.origin
+                },
+                events: {
+                    onReady: function(e) {
+                        playerLoading = false;
+                        playerReady = true;
+                        isPlaying = true;
+                        updatePlayButton();
+                        startSync();
 
-    function onPlayerReady(e) {
-        playerReady = true;
-        isPlaying = true;
-        updatePlayButton();
-        startSync();
+                        // Nếu có video đang chờ, phát nó
+                        if (pendingPlay !== null && pendingPlay < playlist.length) {
+                            const idx = pendingPlay;
+                            pendingPlay = null;
+                            const video = playlist[idx];
+                            player.loadVideoById(video.id);
+                            player.playVideo();
+                            document.getElementById('current-title').textContent = video.title || video.id;
+                            document.getElementById('current-sub').textContent = video.author || 'YouTube';
+                            renderPlaylist();
+                            showToast(`▶️ ${video.title || video.id}`, 1500);
+                        } else if (playlist.length > 0 && currentIndex >= 0) {
+                            const video = playlist[currentIndex];
+                            player.loadVideoById(video.id);
+                            player.playVideo();
+                            document.getElementById('current-title').textContent = video.title || video.id;
+                            document.getElementById('current-sub').textContent = video.author || 'YouTube';
+                            renderPlaylist();
+                        }
 
-        const video = playlist[currentIndex];
-        if (video) {
-            document.getElementById('current-title').textContent = video.title || video.id;
-            document.getElementById('current-sub').textContent = video.author || 'YouTube';
+                        if (isBackgroundMode) {
+                            document.getElementById('bg-indicator').classList.add('show');
+                        }
+                        setTimeout(updateProgress, 500);
+                    },
+                    onStateChange: function(e) {
+                        const state = e.data;
+                        if (state === YT.PlayerState.PLAYING) {
+                            isPlaying = true;
+                            updatePlayButton();
+                            updateProgress();
+                            if (isBackgroundMode) {
+                                document.getElementById('bg-indicator').classList.add('show');
+                            }
+                        } else if (state === YT.PlayerState.PAUSED) {
+                            isPlaying = false;
+                            updatePlayButton();
+                        } else if (state === YT.PlayerState.ENDED) {
+                            isPlaying = false;
+                            updatePlayButton();
+                            setTimeout(nextVideo, 500);
+                        }
+                    },
+                    onError: function(e) {
+                        console.error('Player error:', e);
+                        playerLoading = false;
+                        showToast('❌ Lỗi phát video, thử video khác', 2000);
+                        setTimeout(nextVideo, 3000);
+                    }
+                }
+            });
+        } catch(e) {
+            console.error('Create player error:', e);
+            playerLoading = false;
+            showToast('❌ Lỗi tạo player', 2000);
         }
-
-        // Hiển thị indicator nền
-        if (isBackgroundMode) {
-            document.getElementById('bg-indicator').classList.add('show');
-        }
-
-        setTimeout(updateProgress, 500);
-        showToast('▶️ Đang phát', 1000);
-    }
-
-    function onPlayerStateChange(e) {
-        const state = e.data;
-
-        if (state === YT.PlayerState.PLAYING) {
-            isPlaying = true;
-            updatePlayButton();
-            updateProgress();
-            if (isBackgroundMode) {
-                document.getElementById('bg-indicator').classList.add('show');
-            }
-        } else if (state === YT.PlayerState.PAUSED) {
-            isPlaying = false;
-            updatePlayButton();
-        } else if (state === YT.PlayerState.ENDED) {
-            isPlaying = false;
-            updatePlayButton();
-            // Phát video tiếp theo
-            setTimeout(nextVideo, 500);
-        } else if (state === YT.PlayerState.BUFFERING) {
-            // Đang tải
-        }
-    }
-
-    function onPlayerError(e) {
-        console.error('Player error:', e);
-        showToast('❌ Lỗi phát video', 2000);
-        setTimeout(nextVideo, 3000);
     }
 
     // ============================================================
-    // 🎯 XỬ LÝ PHÁT NỀN - QUAN TRỌNG
+    // PHÁT NỀN - XỬ LÝ CHUYỂN TAB
     // ============================================================
-    // Khi chuyển tab hoặc thu nhỏ trình duyệt
     document.addEventListener('visibilitychange', function() {
         if (document.hidden) {
-            // Tab bị ẩn (chuyển tab hoặc thu nhỏ)
+            // Tab bị ẩn
             if (isBackgroundMode && isPlaying && playerReady && player) {
-                // YouTube iframe sẽ tự động tiếp tục phát
-                // Nhưng để an toàn, chúng ta kiểm tra và phát lại nếu cần
                 try {
                     const state = player.getPlayerState();
                     if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.ENDED) {
@@ -868,22 +852,47 @@
     // CONTROLS
     // ============================================================
     function togglePlay() {
-        if (!playerReady || !player) {
-            if (playlist.length > 0) {
-                if (currentIndex === -1) currentIndex = 0;
-                loadVideo(currentIndex);
-            } else {
-                showToast('⚠️ Chưa có video', 2000);
-            }
+        // Nếu chưa có video, yêu cầu thêm
+        if (playlist.length === 0) {
+            showToast('⚠️ Thêm video trước khi phát', 2000);
             return;
         }
 
+        // Nếu chưa có player, tạo mới
+        if (!player && !playerLoading) {
+            const videoId = currentIndex >= 0 ? playlist[currentIndex].id : playlist[0].id;
+            if (currentIndex === -1) currentIndex = 0;
+            createPlayer(videoId);
+            return;
+        }
+
+        // Nếu đang loading, đợi
+        if (playerLoading) {
+            showToast('⏳ Đang tải YouTube...', 1500);
+            return;
+        }
+
+        // Nếu player chưa sẵn sàng
+        if (!playerReady || !player) {
+            showToast('⏳ YouTube đang tải...', 1500);
+            return;
+        }
+
+        // Toggle play/pause
         if (isPlaying) {
             player.pauseVideo();
             isPlaying = false;
         } else {
             player.playVideo();
             isPlaying = true;
+            // Nếu video đã kết thúc, load lại
+            try {
+                const state = player.getPlayerState();
+                if (state === YT.PlayerState.ENDED) {
+                    player.seekTo(0, true);
+                    player.playVideo();
+                }
+            } catch(e) {}
         }
         updatePlayButton();
     }
@@ -946,7 +955,6 @@
             btn.classList.add('active');
             if (isPlaying) indicator.classList.add('show');
             showToast('🎧 Nền: BẬT', 1500);
-            // Nếu đang phát, đảm bảo tiếp tục
             if (isPlaying && playerReady && player) {
                 try { player.playVideo(); } catch(e) {}
             }
@@ -1062,7 +1070,14 @@
             renderPlaylist();
             if (playlist.length > 0) {
                 currentIndex = 0;
-                setTimeout(() => { loadVideo(0); }, 500);
+                // Chờ API load rồi phát
+                if (typeof YT !== 'undefined' && YT.Player) {
+                    setTimeout(() => {
+                        if (!player && !playerLoading) {
+                            createPlayer(playlist[0].id);
+                        }
+                    }, 500);
+                }
             }
         }
 
@@ -1094,19 +1109,29 @@
         init();
     }
 
-    // Fallback
-    setTimeout(() => {
+    // Fallback nếu API chưa load
+    setTimeout(function() {
         if (typeof YT === 'undefined' || !YT.Player) {
             const script = document.createElement('script');
             script.src = 'https://www.youtube.com/iframe_api';
             document.head.appendChild(script);
+            showToast('⏳ Đang tải YouTube...', 2000);
         }
-    }, 3000);
+    }, 1000);
 
-    // Khởi tạo nếu API đã load
+    // Nếu API đã load sẵn
     if (typeof YT !== 'undefined' && YT.Player) {
         init();
     }
+
+    // ============================================================
+    // XỬ LÝ LỖI KHI BẤM PLAY TRÊN MOBILE
+    // ============================================================
+    // iOS Safari yêu cầu tương tác người dùng để phát
+    // Đã xử lý qua sự kiện click
+
+    console.log('🎵 YouTube Background Player loaded');
+    console.log('📋 Hướng dẫn: Thêm video, bấm Play, chuyển tab để thử phát nền');
 </script>
 
 </body>
