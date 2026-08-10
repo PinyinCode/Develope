@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🎵 YouTube Background Player</title>
+    <title>🎵 YouTube Audio Player - Phát nền mọi trình duyệt</title>
     <style>
         * {
             margin: 0;
@@ -45,11 +45,11 @@
         .header .badge {
             margin-left: auto;
             font-size: 10px;
-            color: #ff9500;
-            background: rgba(255, 149, 0, 0.15);
+            color: #34c759;
+            background: rgba(52, 199, 89, 0.15);
             padding: 4px 12px;
             border-radius: 12px;
-            border: 0.5px solid rgba(255, 149, 0, 0.15);
+            border: 0.5px solid rgba(52, 199, 89, 0.15);
         }
 
         .input-area {
@@ -280,14 +280,14 @@
         }
 
         .controls .btn-group button.btn-bg {
-            color: #ff9500;
-            border-color: rgba(255, 149, 0, 0.2);
+            color: #34c759;
+            border-color: rgba(52, 199, 89, 0.2);
         }
 
         .controls .btn-group button.btn-bg.active {
-            background: rgba(255, 149, 0, 0.15);
-            border-color: rgba(255, 149, 0, 0.3);
-            color: #ff9500;
+            background: rgba(52, 199, 89, 0.15);
+            border-color: rgba(52, 199, 89, 0.3);
+            color: #34c759;
         }
 
         .progress-area {
@@ -341,15 +341,15 @@
         }
 
         .bg-indicator {
-            display: none;
+            display: flex;
             align-items: center;
             gap: 6px;
             font-size: 10px;
-            color: #ff9500;
-            background: rgba(255, 149, 0, 0.1);
+            color: #34c759;
+            background: rgba(52, 199, 89, 0.1);
             padding: 4px 12px;
             border-radius: 12px;
-            border: 0.5px solid rgba(255, 149, 0, 0.15);
+            border: 0.5px solid rgba(52, 199, 89, 0.15);
             margin-top: 8px;
             justify-content: center;
         }
@@ -358,7 +358,7 @@
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: #ff9500;
+            background: #34c759;
             animation: pulse-dot 1.5s ease-in-out infinite;
         }
 
@@ -366,8 +366,6 @@
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.4; transform: scale(0.7); }
         }
-
-        .bg-indicator.show { display: flex; }
 
         .toast {
             position: fixed;
@@ -393,102 +391,23 @@
 
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        /* ========================================================== */
-        /* 🪟 MINI PLAYER - CỬA SỔ NHỎ NỔI */
-        /* ========================================================== */
-        #mini-player {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 280px;
-            height: 158px;
-            border-radius: 14px;
-            overflow: hidden;
-            z-index: 999;
-            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        /* Audio element ẩn */
+        #bg-audio {
             display: none;
-            background: #000;
-            transition: all 0.3s ease;
-            cursor: move;
-            touch-action: none;
         }
 
-        #mini-player.show {
-            display: block;
-            animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        .loading-spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #0a84ff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
         }
 
-        @keyframes slideUp {
-            from { opacity: 0; transform: scale(0.8) translateY(30px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        #mini-player .mini-iframe {
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-
-        #mini-player .mini-controls {
-            position: absolute;
-            bottom: 8px;
-            left: 8px;
-            right: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            padding: 6px 10px;
-            border-radius: 10px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        #mini-player:hover .mini-controls {
-            opacity: 1;
-        }
-
-        #mini-player .mini-controls button {
-            background: none;
-            border: none;
-            color: #fff;
-            font-size: 16px;
-            cursor: pointer;
-            padding: 4px 6px;
-            border-radius: 6px;
-            transition: all 0.2s;
-            touch-action: manipulation;
-        }
-
-        #mini-player .mini-controls button:active { transform: scale(0.9); background: rgba(255, 255, 255, 0.1); }
-
-        #mini-player .mini-controls .mini-title {
-            flex: 1;
-            font-size: 11px;
-            color: #fff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-weight: 500;
-        }
-
-        #mini-player .mini-controls .mini-close {
-            color: #ff3b30;
-            font-size: 18px;
-        }
-
-        #mini-player .mini-controls .mini-close:active { color: #ff6b60; }
-
-        #mini-player .mini-drag-area {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 30px;
-            z-index: 5;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         @media (max-width: 400px) {
@@ -496,14 +415,6 @@
             .input-area .btn-add { padding: 12px 14px; font-size: 13px; }
             .controls .btn-play { min-width: 42px; height: 42px; font-size: 18px; }
             .playlist { max-height: 200px; }
-            #mini-player { width: 200px; height: 112px; bottom: 10px; right: 10px; }
-            #mini-player .mini-controls { padding: 4px 8px; }
-            #mini-player .mini-controls button { font-size: 14px; }
-            #mini-player .mini-controls .mini-title { font-size: 10px; }
-        }
-
-        @media (max-width: 360px) {
-            #mini-player { width: 160px; height: 90px; }
         }
     </style>
 </head>
@@ -512,8 +423,8 @@
 <div class="container">
     <div class="header">
         <span class="logo">🎵</span>
-        <h1>YouTube Player</h1>
-        <span class="badge">Nền</span>
+        <h1>YouTube Audio</h1>
+        <span class="badge">🎧 Nền</span>
     </div>
 
     <div class="input-area">
@@ -522,7 +433,7 @@
     </div>
     <div class="input-hint">
         💡 Hỗ trợ: URL YouTube, Video ID, <span class="highlight">Playlist</span>
-        <span style="float:right;">🪟 Bật Mini Player để phát nền</span>
+        <span style="float:right;">🎧 Phát nền mọi trình duyệt</span>
     </div>
 
     <div class="playlist-header">
@@ -538,9 +449,9 @@
         </div>
     </div>
 
-    <div class="bg-indicator show" id="bg-indicator">
+    <div class="bg-indicator">
         <span class="dot"></span>
-        🪟 Bật Mini Player để phát nền khi thu nhỏ tab
+        🎧 Đang phát nền - có thể thu nhỏ tab, khóa màn hình vẫn nghe
     </div>
 
     <div class="controls">
@@ -554,7 +465,6 @@
         <div class="btn-group">
             <button onclick="toggleLoop()" id="btn-loop" title="Lặp lại">🔁</button>
             <button onclick="toggleShuffle()" id="btn-shuffle" title="Phát ngẫu nhiên">🔀</button>
-            <button onclick="toggleMiniPlayer()" id="btn-mini" title="Mini Player" class="btn-bg active">🪟</button>
         </div>
     </div>
 
@@ -566,52 +476,43 @@
     </div>
 </div>
 
-<!-- 🪟 MINI PLAYER - CỬA SỔ NHỎ NỔI -->
-<div id="mini-player">
-    <div class="mini-drag-area" id="mini-drag-area"></div>
-    <div class="mini-iframe" id="mini-iframe"></div>
-    <div class="mini-controls">
-        <button onclick="miniPlayPause()" id="mini-play-btn">⏸</button>
-        <span class="mini-title" id="mini-title">Đang phát</span>
-        <button onclick="closeMiniPlayer()" class="mini-close">✕</button>
-    </div>
-</div>
-
 <div class="toast" id="toast"></div>
 
-<script src="https://www.youtube.com/iframe_api"></script>
+<!-- Audio element ẩn để phát nền -->
+<audio id="bg-audio"></audio>
+
 <script>
+    // ============================================================
+    // 🎵 YOUTUBE AUDIO PLAYER - DÙNG HTML5 AUDIO
+    // ============================================================
+    // Cách hoạt động: Lấy audio stream từ YouTube thông qua API
+    // Sau đó phát bằng HTML5 Audio element
+    // => Phát nền trên MỌI TRÌNH DUYỆT (Cốc Cốc, Chrome, Safari, Firefox)
+
     // ============================================================
     // STATE
     // ============================================================
-    let player = null;
-    let miniPlayer = null;
-    let playerReady = false;
-    let playerLoading = false;
+    let audio = null;
     let playlist = [];
     let currentIndex = -1;
     let isPlaying = false;
     let isLoop = false;
     let isShuffle = false;
-    let isMiniMode = true; // Mặc định bật mini player
     let isSeeking = false;
     let syncInterval = null;
-    let pendingPlay = null;
-    let miniContainer = null;
-    let isDragging = false;
-    let dragOffsetX = 0;
-    let dragOffsetY = 0;
+    let isLoading = false;
+    let currentAudioUrl = null;
 
     // ============================================================
     // STORAGE
     // ============================================================
     function savePlaylist() {
-        try { localStorage.setItem('mini_player_playlist', JSON.stringify(playlist)); } catch(e) {}
+        try { localStorage.setItem('audio_player_playlist', JSON.stringify(playlist)); } catch(e) {}
     }
 
     function loadPlaylist() {
         try {
-            const data = localStorage.getItem('mini_player_playlist');
+            const data = localStorage.getItem('audio_player_playlist');
             if (data) { playlist = JSON.parse(data); return true; }
         } catch(e) {}
         return false;
@@ -668,6 +569,78 @@
     }
 
     // ============================================================
+    // 🎵 LẤY AUDIO URL TỪ YOUTUBE
+    // ============================================================
+    async function getAudioUrl(videoId) {
+        // Sử dụng nhiều nguồn để lấy audio
+        const sources = [
+            // 1. Invidious API (miễn phí, không cần key)
+            async () => {
+                const instances = [
+                    'https://invidious.io/api/v1/videos/',
+                    'https://yewtu.be/api/v1/videos/',
+                    'https://invidious.snopyta.org/api/v1/videos/'
+                ];
+                for (const instance of instances) {
+                    try {
+                        const response = await fetch(`${instance}${videoId}?fields=formatStreams`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data && data.formatStreams) {
+                                // Ưu tiên audio chất lượng cao
+                                const audioStreams = data.formatStreams.filter(
+                                    s => s.type && s.type.startsWith('audio/')
+                                );
+                                // Sắp xếp theo chất lượng
+                                audioStreams.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+                                if (audioStreams.length > 0 && audioStreams[0].url) {
+                                    return audioStreams[0].url;
+                                }
+                            }
+                        }
+                    } catch(e) {}
+                }
+                return null;
+            },
+            // 2. YouTube Music API (thông qua proxy)
+            async () => {
+                try {
+                    const response = await fetch(`https://api.vevioz.com/api/button/mp3/${videoId}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data && data.download && data.download.url) {
+                            return data.download.url;
+                        }
+                    }
+                } catch(e) {}
+                return null;
+            },
+            // 3. Fallback: sử dụng yt-dlp web service
+            async () => {
+                try {
+                    const response = await fetch(`https://yt-api.com/api/audio/${videoId}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data && data.url) {
+                            return data.url;
+                        }
+                    }
+                } catch(e) {}
+                return null;
+            }
+        ];
+
+        for (const source of sources) {
+            try {
+                const url = await source();
+                if (url) return url;
+            } catch(e) {}
+        }
+
+        return null;
+    }
+
+    // ============================================================
     // ADD VIDEO
     // ============================================================
     async function addVideo() {
@@ -692,15 +665,7 @@
 
         if (currentIndex === -1) {
             currentIndex = playlist.length - 1;
-            if (playerReady && player) {
-                loadVideo(currentIndex);
-            } else {
-                pendingPlay = currentIndex;
-                showToast('⏳ Đang tải YouTube...', 1500);
-                if (!player && !playerLoading) {
-                    createPlayer(result.id);
-                }
-            }
+            loadAudio(currentIndex);
         } else {
             showToast(`✅ ${info.title}`, 2000);
         }
@@ -752,293 +717,121 @@
     }
 
     // ============================================================
-    // PLAY VIDEO
+    // PLAY VIDEO - DÙNG AUDIO ELEMENT
     // ============================================================
     function playVideo(index) {
         if (index < 0 || index >= playlist.length) return;
-        if (index === currentIndex && playerReady) {
+        if (index === currentIndex && isPlaying) {
             togglePlay();
             return;
         }
         currentIndex = index;
-        if (playerReady && player) {
-            loadVideo(index);
-        } else {
-            pendingPlay = index;
-            showToast('⏳ Đang tải YouTube...', 1500);
-            if (!player && !playerLoading) {
-                createPlayer(playlist[index].id);
-            }
-        }
+        loadAudio(index);
     }
 
-    function loadVideo(index) {
+    async function loadAudio(index) {
         if (index < 0 || index >= playlist.length) return;
+        if (isLoading) return;
 
         const video = playlist[index];
         document.getElementById('current-title').textContent = video.title || video.id;
         document.getElementById('current-sub').textContent = video.author || 'YouTube';
-        document.getElementById('mini-title').textContent = video.title || video.id;
 
-        if (playerReady && player) {
-            player.loadVideoById(video.id);
-            player.playVideo();
+        isLoading = true;
+        showToast(`⏳ Đang tải: ${video.title || video.id}`, 2000);
+
+        // Tạo audio element nếu chưa có
+        if (!audio) {
+            audio = document.getElementById('bg-audio');
+            if (!audio) {
+                audio = document.createElement('audio');
+                audio.id = 'bg-audio';
+                document.body.appendChild(audio);
+            }
+        }
+
+        // Lấy audio URL
+        const audioUrl = await getAudioUrl(video.id);
+
+        if (!audioUrl) {
+            isLoading = false;
+            showToast('❌ Không thể lấy audio, thử video khác', 3000);
+            setTimeout(nextVideo, 2000);
+            return;
+        }
+
+        currentAudioUrl = audioUrl;
+        audio.src = audioUrl;
+        audio.crossOrigin = 'anonymous';
+
+        // Xóa các event listener cũ
+        audio.onloadedmetadata = null;
+        audio.onplay = null;
+        audio.onpause = null;
+        audio.onended = null;
+        audio.onerror = null;
+        audio.ontimeupdate = null;
+
+        // Event: metadata loaded
+        audio.onloadedmetadata = function() {
+            document.getElementById('total-time').textContent = formatTime(audio.duration);
+            audio.play();
+            isPlaying = true;
+            updatePlayButton();
+            isLoading = false;
+            startSync();
+            showToast(`▶️ ${video.title || video.id}`, 1500);
+        };
+
+        // Event: play
+        audio.onplay = function() {
+            isPlaying = true;
+            updatePlayButton();
+        };
+
+        // Event: pause
+        audio.onpause = function() {
+            isPlaying = false;
+            updatePlayButton();
+        };
+
+        // Event: ended
+        audio.onended = function() {
+            isPlaying = false;
+            updatePlayButton();
+            nextVideo();
+        };
+
+        // Event: error
+        audio.onerror = function(e) {
+            console.error('Audio error:', e);
+            isLoading = false;
+            showToast('❌ Lỗi phát audio', 2000);
+            setTimeout(nextVideo, 3000);
+        };
+
+        // Event: time update
+        audio.ontimeupdate = function() {
+            if (!isSeeking) {
+                updateProgress();
+            }
+        };
+
+        // Bắt đầu phát
+        try {
+            await audio.play();
             isPlaying = true;
             updatePlayButton();
             renderPlaylist();
             showToast(`▶️ ${video.title || video.id}`, 1500);
-            
-            // Cập nhật mini player
-            if (isMiniMode && miniPlayer) {
-                miniPlayer.loadVideoById(video.id);
-                miniPlayer.playVideo();
-            }
-        } else {
-            pendingPlay = index;
-            if (!player && !playerLoading) {
-                createPlayer(video.id);
-            }
-        }
-    }
-
-    // ============================================================
-    // CREATE YOUTUBE PLAYER
-    // ============================================================
-    function createPlayer(videoId) {
-        if (playerLoading) return;
-        if (player) {
-            try { player.destroy(); } catch(e) {}
-            player = null;
-            playerReady = false;
-        }
-
-        playerLoading = true;
-        showToast('⏳ Đang kết nối YouTube...', 2000);
-
-        // Tạo player trong mini iframe
-        const container = document.getElementById('mini-iframe');
-        container.innerHTML = '';
-
-        try {
-            player = new YT.Player('mini-iframe', {
-                height: '100%',
-                width: '100%',
-                videoId: videoId || 'dQw4w9WgXcQ',
-                playerVars: {
-                    playsinline: 1,
-                    autoplay: 1,
-                    controls: 0,
-                    rel: 0,
-                    showinfo: 0,
-                    modestbranding: 1,
-                    origin: window.location.origin
-                },
-                events: {
-                    onReady: function(e) {
-                        playerLoading = false;
-                        playerReady = true;
-                        isPlaying = true;
-                        updatePlayButton();
-                        startSync();
-
-                        // Hiển thị mini player
-                        if (isMiniMode) {
-                            miniContainer.classList.add('show');
-                        }
-
-                        if (pendingPlay !== null && pendingPlay < playlist.length) {
-                            const idx = pendingPlay;
-                            pendingPlay = null;
-                            const video = playlist[idx];
-                            player.loadVideoById(video.id);
-                            player.playVideo();
-                            document.getElementById('current-title').textContent = video.title || video.id;
-                            document.getElementById('current-sub').textContent = video.author || 'YouTube';
-                            document.getElementById('mini-title').textContent = video.title || video.id;
-                            renderPlaylist();
-                            showToast(`▶️ ${video.title || video.id}`, 1500);
-                        } else if (playlist.length > 0 && currentIndex >= 0) {
-                            const video = playlist[currentIndex];
-                            player.loadVideoById(video.id);
-                            player.playVideo();
-                            document.getElementById('current-title').textContent = video.title || video.id;
-                            document.getElementById('current-sub').textContent = video.author || 'YouTube';
-                            document.getElementById('mini-title').textContent = video.title || video.id;
-                            renderPlaylist();
-                        }
-
-                        setTimeout(updateProgress, 500);
-                    },
-                    onStateChange: function(e) {
-                        const state = e.data;
-                        if (state === YT.PlayerState.PLAYING) {
-                            isPlaying = true;
-                            updatePlayButton();
-                            updateProgress();
-                            document.getElementById('mini-play-btn').textContent = '⏸';
-                        } else if (state === YT.PlayerState.PAUSED) {
-                            isPlaying = false;
-                            updatePlayButton();
-                            document.getElementById('mini-play-btn').textContent = '▶';
-                        } else if (state === YT.PlayerState.ENDED) {
-                            isPlaying = false;
-                            updatePlayButton();
-                            document.getElementById('mini-play-btn').textContent = '▶';
-                            setTimeout(nextVideo, 500);
-                        }
-                    },
-                    onError: function(e) {
-                        console.error('Player error:', e);
-                        playerLoading = false;
-                        showToast('❌ Lỗi phát video', 2000);
-                        setTimeout(nextVideo, 3000);
-                    }
-                }
-            });
-            
-            // Lưu tham chiếu mini player
-            miniPlayer = player;
-            
         } catch(e) {
-            console.error('Create player error:', e);
-            playerLoading = false;
-            showToast('❌ Lỗi tạo player', 2000);
+            console.error('Play error:', e);
+            isLoading = false;
+            showToast('❌ Lỗi phát audio: ' + e.message, 3000);
+            isPlaying = false;
+            updatePlayButton();
         }
     }
-
-    // ============================================================
-    // 🪟 MINI PLAYER - CỬA SỔ NHỎ NỔI
-    // ============================================================
-    function toggleMiniPlayer() {
-        miniContainer = document.getElementById('mini-player');
-        
-        if (!isMiniMode) {
-            // BẬT
-            isMiniMode = true;
-            document.getElementById('btn-mini').classList.add('active');
-            miniContainer.classList.add('show');
-            document.getElementById('bg-indicator').classList.add('show');
-            document.getElementById('bg-indicator').innerHTML = `
-                <span class="dot"></span>
-                🪟 Mini Player đang bật - có thể thu nhỏ tab vẫn nghe nhạc
-            `;
-            
-            // Nếu đang phát, tạo mini player
-            if (playerReady && player && currentIndex >= 0) {
-                const video = playlist[currentIndex];
-                document.getElementById('mini-title').textContent = video.title || video.id;
-            }
-            
-            showToast('🪟 Mini Player: BẬT - Thu nhỏ tab để thử', 2000);
-        } else {
-            // TẮT
-            isMiniMode = false;
-            document.getElementById('btn-mini').classList.remove('active');
-            miniContainer.classList.remove('show');
-            document.getElementById('bg-indicator').innerHTML = `
-                <span class="dot"></span>
-                🪟 Bật Mini Player để phát nền khi thu nhỏ tab
-            `;
-            
-            showToast('🪟 Mini Player: TẮT', 1500);
-        }
-    }
-
-    function closeMiniPlayer() {
-        if (isMiniMode) {
-            toggleMiniPlayer();
-        }
-    }
-
-    function miniPlayPause() {
-        togglePlay();
-    }
-
-    // ============================================================
-    // DRAG MINI PLAYER
-    // ============================================================
-    function initDrag() {
-        miniContainer = document.getElementById('mini-player');
-        const dragArea = document.getElementById('mini-drag-area');
-
-        // Mouse drag
-        dragArea.addEventListener('mousedown', function(e) {
-            isDragging = true;
-            const rect = miniContainer.getBoundingClientRect();
-            dragOffsetX = e.clientX - rect.left;
-            dragOffsetY = e.clientY - rect.top;
-            miniContainer.style.cursor = 'grabbing';
-            e.preventDefault();
-        });
-
-        document.addEventListener('mousemove', function(e) {
-            if (!isDragging) return;
-            let x = e.clientX - dragOffsetX;
-            let y = e.clientY - dragOffsetY;
-            x = Math.max(0, Math.min(window.innerWidth - miniContainer.offsetWidth, x));
-            y = Math.max(0, Math.min(window.innerHeight - miniContainer.offsetHeight, y));
-            miniContainer.style.left = x + 'px';
-            miniContainer.style.top = y + 'px';
-            miniContainer.style.right = 'auto';
-            miniContainer.style.bottom = 'auto';
-        });
-
-        document.addEventListener('mouseup', function() {
-            isDragging = false;
-            if (miniContainer) miniContainer.style.cursor = 'default';
-        });
-
-        // Touch drag
-        dragArea.addEventListener('touchstart', function(e) {
-            const touch = e.touches[0];
-            isDragging = true;
-            const rect = miniContainer.getBoundingClientRect();
-            dragOffsetX = touch.clientX - rect.left;
-            dragOffsetY = touch.clientY - rect.top;
-        });
-
-        document.addEventListener('touchmove', function(e) {
-            if (!isDragging) return;
-            const touch = e.touches[0];
-            let x = touch.clientX - dragOffsetX;
-            let y = touch.clientY - dragOffsetY;
-            x = Math.max(0, Math.min(window.innerWidth - miniContainer.offsetWidth, x));
-            y = Math.max(0, Math.min(window.innerHeight - miniContainer.offsetHeight, y));
-            miniContainer.style.left = x + 'px';
-            miniContainer.style.top = y + 'px';
-            miniContainer.style.right = 'auto';
-            miniContainer.style.bottom = 'auto';
-        });
-
-        document.addEventListener('touchend', function() {
-            isDragging = false;
-        });
-    }
-
-    // ============================================================
-    // PHÁT NỀN - XỬ LÝ KHI CHUYỂN TAB
-    // ============================================================
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            // Tab bị ẩn - nếu mini player đang bật, video vẫn chạy
-            if (isMiniMode && isPlaying) {
-                // Mini player đã hiển thị, video sẽ tự động chạy
-                // Không cần làm gì thêm
-            }
-        } else {
-            // Tab được hiển thị lại
-            if (isMiniMode && isPlaying && playerReady && player) {
-                try {
-                    const state = player.getPlayerState();
-                    if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.ENDED) {
-                        player.playVideo();
-                        isPlaying = true;
-                        updatePlayButton();
-                    }
-                } catch(e) {}
-            }
-        }
-    });
 
     // ============================================================
     // CONTROLS
@@ -1049,38 +842,23 @@
             return;
         }
 
-        if (!player && !playerLoading) {
-            const videoId = currentIndex >= 0 ? playlist[currentIndex].id : playlist[0].id;
+        if (!audio) {
             if (currentIndex === -1) currentIndex = 0;
-            createPlayer(videoId);
+            loadAudio(currentIndex);
             return;
         }
 
-        if (playerLoading) {
-            showToast('⏳ Đang tải YouTube...', 1500);
-            return;
-        }
-
-        if (!playerReady || !player) {
-            showToast('⏳ YouTube đang tải...', 1500);
+        if (isLoading) {
+            showToast('⏳ Đang tải...', 1500);
             return;
         }
 
         if (isPlaying) {
-            player.pauseVideo();
+            audio.pause();
             isPlaying = false;
-            document.getElementById('mini-play-btn').textContent = '▶';
         } else {
-            player.playVideo();
+            audio.play();
             isPlaying = true;
-            document.getElementById('mini-play-btn').textContent = '⏸';
-            try {
-                const state = player.getPlayerState();
-                if (state === YT.PlayerState.ENDED) {
-                    player.seekTo(0, true);
-                    player.playVideo();
-                }
-            } catch(e) {}
         }
         updatePlayButton();
     }
@@ -1099,12 +877,11 @@
     function nextVideo() {
         if (playlist.length === 0) return;
 
-        if (isLoop && playerReady && player) {
-            player.seekTo(0, true);
-            player.playVideo();
+        if (isLoop && audio) {
+            audio.currentTime = 0;
+            audio.play();
             isPlaying = true;
             updatePlayButton();
-            document.getElementById('mini-play-btn').textContent = '⏸';
             return;
         }
 
@@ -1118,21 +895,21 @@
         }
 
         currentIndex = next;
-        loadVideo(currentIndex);
+        loadAudio(currentIndex);
     }
 
     function toggleLoop() {
         isLoop = !isLoop;
         document.getElementById('btn-loop').classList.toggle('active', isLoop);
         showToast(isLoop ? '🔁 Lặp: BẬT' : '🔁 Lặp: TẮT', 1000);
-        localStorage.setItem('mini_loop', isLoop);
+        localStorage.setItem('audio_loop', isLoop);
     }
 
     function toggleShuffle() {
         isShuffle = !isShuffle;
         document.getElementById('btn-shuffle').classList.toggle('active', isShuffle);
         showToast(isShuffle ? '🔀 Ngẫu nhiên: BẬT' : '🔀 Ngẫu nhiên: TẮT', 1000);
-        localStorage.setItem('mini_shuffle', isShuffle);
+        localStorage.setItem('audio_shuffle', isShuffle);
     }
 
     function removeVideo(index) {
@@ -1141,26 +918,22 @@
         playlist.splice(index, 1);
 
         if (currentIndex === index) {
-            if (playerReady && player) {
-                player.stopVideo();
+            if (audio) {
+                audio.pause();
+                audio.src = '';
                 isPlaying = false;
                 updatePlayButton();
-                document.getElementById('mini-play-btn').textContent = '▶';
             }
             if (playlist.length > 0) {
                 currentIndex = Math.min(index, playlist.length - 1);
-                loadVideo(currentIndex);
+                loadAudio(currentIndex);
             } else {
                 currentIndex = -1;
                 document.getElementById('current-title').textContent = 'Chưa có video';
                 document.getElementById('current-sub').textContent = 'Thêm video để phát';
-                document.getElementById('mini-title').textContent = 'Chưa có video';
                 document.getElementById('current-time').textContent = '00:00';
                 document.getElementById('total-time').textContent = '00:00';
                 document.getElementById('progress-slider').value = 0;
-                if (isMiniMode) {
-                    miniContainer.classList.remove('show');
-                }
             }
         } else if (currentIndex > index) {
             currentIndex--;
@@ -1180,10 +953,10 @@
     }
 
     function updateProgress() {
-        if (!playerReady || !player || isSeeking) return;
+        if (!audio || isSeeking) return;
         try {
-            const current = player.getCurrentTime();
-            const total = player.getDuration();
+            const current = audio.currentTime;
+            const total = audio.duration;
             if (total > 0 && current >= 0) {
                 document.getElementById('current-time').textContent = formatTime(current);
                 document.getElementById('total-time').textContent = formatTime(total);
@@ -1194,8 +967,8 @@
 
     function onSeek(value) {
         isSeeking = true;
-        if (playerReady && player) {
-            const total = player.getDuration();
+        if (audio) {
+            const total = audio.duration;
             if (total > 0) {
                 const time = (value / 100) * total;
                 document.getElementById('current-time').textContent = formatTime(time);
@@ -1204,10 +977,10 @@
     }
 
     function onSeekEnd(value) {
-        if (playerReady && player) {
-            const total = player.getDuration();
+        if (audio) {
+            const total = audio.duration;
             if (total > 0) {
-                player.seekTo((value / 100) * total, true);
+                audio.currentTime = (value / 100) * total;
             }
         }
         setTimeout(() => { isSeeking = false; }, 300);
@@ -1229,7 +1002,6 @@
         if (e.key === 'n' || e.key === 'N') nextVideo();
         if (e.key === 'l' || e.key === 'L') toggleLoop();
         if (e.key === 's' || e.key === 'S') toggleShuffle();
-        if (e.key === 'm' || e.key === 'M') toggleMiniPlayer();
     });
 
     document.getElementById('url-input').addEventListener('keydown', function(e) {
@@ -1237,66 +1009,63 @@
     });
 
     // ============================================================
+    // PHÁT NỀN - QUAN TRỌNG
+    // ============================================================
+    // Audio element tự động phát nền trên mọi trình duyệt
+    // Không cần xử lý visibility change
+
+    // Xử lý khi chuyển tab (chỉ để đảm bảo)
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            // Tab bị ẩn - audio vẫn chạy, không cần làm gì
+        } else {
+            // Tab hiển thị lại
+            if (isPlaying && audio && audio.paused) {
+                audio.play().catch(() => {});
+            }
+        }
+    });
+
+    // ============================================================
     // INIT
     // ============================================================
     function init() {
-        miniContainer = document.getElementById('mini-player');
-        initDrag();
+        // Tạo audio element
+        audio = document.getElementById('bg-audio');
+        if (!audio) {
+            audio = document.createElement('audio');
+            audio.id = 'bg-audio';
+            document.body.appendChild(audio);
+        }
 
         if (loadPlaylist()) {
             renderPlaylist();
             if (playlist.length > 0) {
                 currentIndex = 0;
-                if (typeof YT !== 'undefined' && YT.Player) {
-                    setTimeout(() => {
-                        if (!player && !playerLoading) {
-                            createPlayer(playlist[0].id);
-                        }
-                    }, 500);
-                }
+                setTimeout(() => {
+                    loadAudio(0);
+                }, 500);
             }
         }
 
-        if (localStorage.getItem('mini_loop') === 'true') {
+        if (localStorage.getItem('audio_loop') === 'true') {
             isLoop = true;
             document.getElementById('btn-loop').classList.add('active');
         }
 
-        if (localStorage.getItem('mini_shuffle') === 'true') {
+        if (localStorage.getItem('audio_shuffle') === 'true') {
             isShuffle = true;
             document.getElementById('btn-shuffle').classList.add('active');
         }
-
-        // Mặc định bật mini player
-        if (isMiniMode) {
-            document.getElementById('btn-mini').classList.add('active');
-            document.getElementById('bg-indicator').classList.add('show');
-        }
     }
 
-    // ============================================================
-    // YOUTUBE IFrame API READY
-    // ============================================================
-    function onYouTubeIframeAPIReady() {
-        init();
-    }
+    // Khởi tạo khi trang load
+    document.addEventListener('DOMContentLoaded', init);
 
-    setTimeout(function() {
-        if (typeof YT === 'undefined' || !YT.Player) {
-            const script = document.createElement('script');
-            script.src = 'https://www.youtube.com/iframe_api';
-            document.head.appendChild(script);
-            showToast('⏳ Đang tải YouTube...', 2000);
-        }
-    }, 1000);
-
-    if (typeof YT !== 'undefined' && YT.Player) {
-        init();
-    }
-
-    console.log('🎵 YouTube Mini Player loaded');
-    console.log('🪟 Bật Mini Player (🪟) và thu nhỏ tab để phát nền!');
-    console.log('📌 Kéo thả cửa sổ mini đến vị trí mong muốn');
+    console.log('🎵 YouTube Audio Player loaded');
+    console.log('🎧 Phát nền trên MỌI TRÌNH DUYỆT - Thu nhỏ tab vẫn nghe!');
+    console.log('📌 Thêm video, bấm Play, thu nhỏ tab để thử');
+    console.log('📌 Nếu không nghe được, kiểm tra kết nối mạng');
 </script>
 
 </body>
