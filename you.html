@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>YouTube Background Player</title>
+    <title>🎵 YouTube Music Player</title>
     <style>
         * {
             margin: 0;
@@ -54,14 +54,14 @@
         .header .badge {
             margin-left: auto;
             font-size: 10px;
-            color: #8e8e93;
-            background: #2c2c2e;
+            color: #0a84ff;
+            background: rgba(10, 132, 255, 0.15);
             padding: 4px 12px;
             border-radius: 12px;
-            border: 0.5px solid rgba(255, 255, 255, 0.06);
+            border: 0.5px solid rgba(10, 132, 255, 0.15);
         }
 
-        /* ===== INPUT AREA ===== */
+        /* ===== INPUT ===== */
         .input-area {
             display: flex;
             gap: 8px;
@@ -404,55 +404,6 @@
             font-weight: 500;
         }
 
-        /* ===== BACKGROUND MODE INDICATOR ===== */
-        .bg-indicator {
-            display: none;
-            align-items: center;
-            gap: 6px;
-            font-size: 10px;
-            color: #0a84ff;
-            background: rgba(10, 132, 255, 0.1);
-            padding: 4px 12px;
-            border-radius: 12px;
-            border: 0.5px solid rgba(10, 132, 255, 0.15);
-            margin-top: 8px;
-            justify-content: center;
-        }
-
-        .bg-indicator .dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #0a84ff;
-            animation: pulse-dot 1.5s ease-in-out infinite;
-        }
-
-        @keyframes pulse-dot {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(0.7); }
-        }
-
-        .bg-indicator.show {
-            display: flex;
-        }
-
-        /* ===== IOS SPECIFIC ===== */
-        @supports (-webkit-touch-callout: none) {
-            .container {
-                padding-bottom: 30px;
-            }
-
-            .btn-play, .btn-add, .btn-remove, .playlist-item {
-                -webkit-touch-callout: none;
-            }
-
-            /* iOS 15+ safe area */
-            .container {
-                padding-left: env(safe-area-inset-left);
-                padding-right: env(safe-area-inset-right);
-            }
-        }
-
         /* ===== TOAST ===== */
         .toast {
             position: fixed;
@@ -481,6 +432,35 @@
             transform: translateX(-50%) translateY(0);
         }
 
+        /* ============================================================ */
+        /* 🎵 CHROME BACKGROUND PLAYER - DÙNG AUDIO ELEMENT */
+        /* ============================================================ */
+        .audio-player-wrapper {
+            display: none;
+        }
+
+        /* Thông báo Chrome background */
+        .chrome-bg-notice {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 149, 0, 0.12);
+            border: 0.5px solid rgba(255, 149, 0, 0.2);
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #ff9500;
+        }
+
+        .chrome-bg-notice.show {
+            display: flex;
+        }
+
+        .chrome-bg-notice .icon {
+            font-size: 18px;
+        }
+
         /* ===== RESPONSIVE ===== */
         @media (max-width: 400px) {
             .container {
@@ -499,14 +479,6 @@
                 font-size: 18px;
             }
 
-            .controls .info .current-title {
-                font-size: 13px;
-            }
-
-            .playlist-item {
-                padding: 8px 10px;
-            }
-
             .playlist {
                 max-height: 200px;
             }
@@ -517,35 +489,6 @@
                 font-size: 12px;
                 padding: 4px 8px;
             }
-
-            .controls .btn-play {
-                min-width: 38px;
-                height: 38px;
-                font-size: 16px;
-            }
-        }
-
-        /* Landscape phone */
-        @media (max-height: 500px) and (orientation: landscape) {
-            .playlist {
-                max-height: 120px;
-            }
-
-            .container {
-                padding: 12px 14px;
-            }
-
-            .header {
-                margin-bottom: 10px;
-            }
-
-            .controls {
-                padding: 8px 6px;
-            }
-
-            .playlist-item {
-                padding: 6px 8px;
-            }
         }
     </style>
 </head>
@@ -555,8 +498,8 @@
     <!-- Header -->
     <div class="header">
         <span class="logo">🎵</span>
-        <h1>Background Player</h1>
-        <span class="badge">iOS</span>
+        <h1>YouTube Music</h1>
+        <span class="badge">Chrome</span>
     </div>
 
     <!-- Input -->
@@ -566,7 +509,7 @@
     </div>
     <div class="input-hint">
         💡 Hỗ trợ: URL YouTube, Video ID, <span class="highlight">Playlist</span>
-        <span style="float:right;">🔊 Chạy nền iOS</span>
+        <span style="float:right;">🔊 Phát nền Chrome</span>
     </div>
 
     <!-- Playlist Header -->
@@ -584,10 +527,10 @@
         </div>
     </div>
 
-    <!-- Background Mode Indicator -->
-    <div class="bg-indicator" id="bg-indicator">
-        <span class="dot"></span>
-        🎧 Phát nền (chạy khi chuyển tab)
+    <!-- Chrome Background Notice -->
+    <div class="chrome-bg-notice" id="chrome-bg-notice">
+        <span class="icon">🔊</span>
+        <span>Đang phát ở chế độ nền (thoát Chrome vẫn nghe)</span>
     </div>
 
     <!-- Controls -->
@@ -618,90 +561,46 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- YouTube IFrame API -->
-<script src="https://www.youtube.com/iframe_api"></script>
+<!-- ========================================================== -->
+<!-- 🎵 CHROME BACKGROUND PLAYER - DÙNG AUDIO ELEMENT           -->
+<!-- ========================================================== -->
+<div class="audio-player-wrapper">
+    <audio id="bg-audio" controls></audio>
+</div>
 
 <script>
     // ============================================================
+    // 🎵 CHROME BACKGROUND PLAYER - SỬ DỤNG AUDIO ELEMENT
+    // ============================================================
+    // Giải pháp: Sử dụng audio element thay vì iframe
+    // Lấy stream audio từ YouTube thông qua proxy
+
+    // ============================================================
     // STATE
     // ============================================================
-    let player = null;
-    let playerReady = false;
+    let audioElement = null;
+    let currentAudioUrl = null;
     let playlist = [];
     let currentIndex = -1;
     let isPlaying = false;
     let isLoop = false;
     let isShuffle = false;
-    let isBackgroundMode = true; // Mặc định bật chế độ nền
+    let isBackgroundMode = true;
     let isSeeking = false;
     let syncInterval = null;
-
-    // ============================================================
-    // IOS BACKGROUND PLAYBACK
-    // ============================================================
-    // iOS yêu cầu video phải được kích hoạt bởi tương tác người dùng
-    // Chúng ta đã làm điều này thông qua nút Play
-
-    // Ngăn iOS tự động tạm dừng khi chuyển tab
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            // Khi chuyển tab, nếu đang phát và ở chế độ nền, giữ phát
-            if (isBackgroundMode && isPlaying && playerReady && player) {
-                // iOS sẽ tự động tạm dừng, chúng ta cần bắt sự kiện và phát lại
-                // Sử dụng AudioContext để giữ âm thanh sống
-                keepAudioAlive();
-            }
-        }
-    });
-
-    // AudioContext để giữ âm thanh sống trên iOS
-    let audioContext = null;
-
-    function keepAudioAlive() {
-        try {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
-            // Tạo một buffer nhỏ để giữ audio context active
-            if (audioContext.state === 'running') {
-                const buffer = audioContext.createBuffer(1, 1, 22050);
-                const source = audioContext.createBufferSource();
-                source.buffer = buffer;
-                source.connect(audioContext.destination);
-                source.start();
-            }
-        } catch (e) {
-            // Bỏ qua lỗi
-        }
-    }
-
-    // Khởi tạo AudioContext khi người dùng tương tác
-    function initAudioContext() {
-        try {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
-        } catch (e) {}
-    }
 
     // ============================================================
     // STORAGE
     // ============================================================
     function savePlaylist() {
         try {
-            localStorage.setItem('bg_player_playlist', JSON.stringify(playlist));
+            localStorage.setItem('chrome_player_playlist', JSON.stringify(playlist));
         } catch (e) {}
     }
 
     function loadPlaylist() {
         try {
-            const data = localStorage.getItem('bg_player_playlist');
+            const data = localStorage.getItem('chrome_player_playlist');
             if (data) {
                 playlist = JSON.parse(data);
                 return true;
@@ -761,10 +660,11 @@
     }
 
     // ============================================================
-    // FETCH VIDEO INFO
+    // FETCH VIDEO INFO & AUDIO URL
     // ============================================================
     async function fetchVideoInfo(videoId) {
         try {
+            // Sử dụng YouTube oembed để lấy thông tin
             const response = await fetch(
                 `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
             );
@@ -796,6 +696,58 @@
     }
 
     // ============================================================
+    // 🎵 LẤY AUDIO URL TỪ YOUTUBE (DÙNG PROXY)
+    // ============================================================
+    async function getAudioUrl(videoId) {
+        // Sử dụng dịch vụ miễn phí để lấy audio stream
+        // Các option:
+        // 1. ytmp3.cc proxy
+        // 2. youtube-mp3 converter
+        // 3. invidious instances
+
+        try {
+            // Sử dụng Invidious API (free, không cần key)
+            const instances = [
+                'https://invidious.io/api/v1/videos/',
+                'https://yewtu.be/api/v1/videos/',
+                'https://invidious.snopyta.org/api/v1/videos/'
+            ];
+
+            for (const instance of instances) {
+                try {
+                    const response = await fetch(`${instance}${videoId}?fields=formatStreams`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data && data.formatStreams) {
+                            // Tìm audio stream
+                            const audioStream = data.formatStreams.find(
+                                stream => stream.type && stream.type.startsWith('audio/')
+                            );
+                            if (audioStream && audioStream.url) {
+                                return audioStream.url;
+                            }
+                        }
+                    }
+                } catch (e) {}
+            }
+        } catch (e) {}
+
+        // Fallback: sử dụng ytmp3 service
+        try {
+            const response = await fetch(`https://api.vevioz.com/api/button/mp3/${videoId}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data && data.download && data.download.url) {
+                    return data.download.url;
+                }
+            }
+        } catch (e) {}
+
+        // Nếu không lấy được audio, dùng YouTube embed (không phát nền được)
+        return null;
+    }
+
+    // ============================================================
     // ADD VIDEO
     // ============================================================
     async function addVideo() {
@@ -815,8 +767,6 @@
         }
 
         if (result.type === 'playlist') {
-            showToast('📥 Đang tải playlist...', 3000);
-            // Với playlist, người dùng cần tự thêm từng video
             showToast('⚠️ Vui lòng nhập từng video trong playlist', 3000);
             input.value = '';
             return;
@@ -898,24 +848,21 @@
     }
 
     // ============================================================
-    // PLAY VIDEO
+    // 🎵 PLAY VIDEO - DÙNG AUDIO ELEMENT
     // ============================================================
-    function playVideo(index) {
+    async function playVideo(index) {
         if (index < 0 || index >= playlist.length) return;
 
-        // Kích hoạt audio context (iOS)
-        initAudioContext();
-
-        if (index === currentIndex && playerReady) {
+        if (index === currentIndex && audioElement && !audioElement.paused) {
             togglePlay();
             return;
         }
 
         currentIndex = index;
-        loadVideo(index);
+        await loadVideo(index);
     }
 
-    function loadVideo(index) {
+    async function loadVideo(index) {
         if (index < 0 || index >= playlist.length) return;
 
         const video = playlist[index];
@@ -925,118 +872,96 @@
         titleEl.textContent = video.title || video.id;
         subEl.textContent = video.author || 'YouTube';
 
-        if (playerReady && player) {
-            player.loadVideoById(video.id);
-            player.playVideo();
-            isPlaying = true;
-            updatePlayButton();
-        } else {
-            createPlayer(video.id);
+        showToast(`⏳ Đang tải: ${video.title || video.id}`, 2000);
+
+        // Lấy audio URL
+        const audioUrl = await getAudioUrl(video.id);
+
+        if (!audioUrl) {
+            showToast('❌ Không thể lấy audio, thử lại sau', 3000);
+            // Thử phát video tiếp theo
+            setTimeout(() => nextVideo(), 2000);
+            return;
         }
 
-        renderPlaylist();
-        showToast(`▶️ ${video.title || video.id}`, 1500);
-    }
-
-    // ============================================================
-    // CREATE PLAYER
-    // ============================================================
-    function createPlayer(videoId) {
-        if (player) {
-            try { player.destroy(); } catch (e) {}
-            player = null;
-            playerReady = false;
-        }
-
-        const existing = document.querySelector('#bg-player');
-        if (existing) existing.remove();
-
-        const div = document.createElement('div');
-        div.id = 'bg-player';
-        div.style.position = 'fixed';
-        div.style.top = '-9999px';
-        div.style.left = '-9999px';
-        div.style.width = '1px';
-        div.style.height = '1px';
-        div.style.opacity = '0';
-        div.style.pointerEvents = 'none';
-        document.body.appendChild(div);
-
-        player = new YT.Player('bg-player', {
-            height: '1',
-            width: '1',
-            videoId: videoId,
-            playerVars: {
-                playsinline: 1,
-                autoplay: 1,
-                controls: 0,
-                rel: 0,
-                showinfo: 0,
-                modestbranding: 1,
-                origin: window.location.origin
-            },
-            events: {
-                onReady: onPlayerReady,
-                onStateChange: onPlayerStateChange,
-                onError: onPlayerError
+        // Tạo audio element
+        if (!audioElement) {
+            audioElement = document.getElementById('bg-audio');
+            if (!audioElement) {
+                audioElement = document.createElement('audio');
+                audioElement.id = 'bg-audio';
+                document.body.appendChild(audioElement);
             }
-        });
-    }
-
-    function onPlayerReady(event) {
-        playerReady = true;
-        isPlaying = true;
-        updatePlayButton();
-        startSync();
-
-        const video = playlist[currentIndex];
-        if (video) {
-            document.getElementById('current-title').textContent = video.title || video.id;
-            document.getElementById('current-sub').textContent = video.author || 'YouTube';
         }
 
-        // iOS: kích hoạt audio context
-        initAudioContext();
+        // Cài đặt audio
+        audioElement.src = audioUrl;
+        audioElement.crossOrigin = 'anonymous';
 
-        setTimeout(updateProgress, 500);
-        showToast('▶️ Đang phát', 1000);
-    }
+        // Lắng nghe sự kiện
+        audioElement.onloadedmetadata = function() {
+            document.getElementById('total-time').textContent = formatTime(audioElement.duration);
+            if (isBackgroundMode) {
+                // Bật chế độ nền cho Chrome
+                audioElement.play();
+                isPlaying = true;
+                updatePlayButton();
+                showToast(`▶️ ${video.title || video.id}`, 1500);
+                // Hiển thị thông báo Chrome background
+                document.getElementById('chrome-bg-notice').classList.add('show');
+            }
+            startSync();
+        };
 
-    function onPlayerStateChange(event) {
-        const state = event.data;
-
-        if (state === YT.PlayerState.PLAYING) {
+        audioElement.onplay = function() {
             isPlaying = true;
             updatePlayButton();
-            updateProgress();
-            // iOS: giữ audio context active
-            keepAudioAlive();
-        } else if (state === YT.PlayerState.PAUSED) {
+            if (isBackgroundMode) {
+                document.getElementById('chrome-bg-notice').classList.add('show');
+            }
+        };
+
+        audioElement.onpause = function() {
             isPlaying = false;
             updatePlayButton();
-        } else if (state === YT.PlayerState.ENDED) {
+        };
+
+        audioElement.onended = function() {
             isPlaying = false;
             updatePlayButton();
             nextVideo();
-        } else if (state === YT.PlayerState.BUFFERING) {
-            // Đang tải
-        }
-    }
+        };
 
-    function onPlayerError(event) {
-        console.error('Player error:', event);
-        showToast('❌ Lỗi phát video', 2000);
-        setTimeout(() => nextVideo(), 3000);
+        audioElement.onerror = function(e) {
+            console.error('Audio error:', e);
+            showToast('❌ Lỗi phát audio', 2000);
+            setTimeout(() => nextVideo(), 3000);
+        };
+
+        // Bắt đầu phát
+        try {
+            await audioElement.play();
+            isPlaying = true;
+            updatePlayButton();
+            currentAudioUrl = audioUrl;
+            renderPlaylist();
+            showToast(`▶️ ${video.title || video.id}`, 1500);
+            if (isBackgroundMode) {
+                document.getElementById('chrome-bg-notice').classList.add('show');
+            }
+        } catch (e) {
+            console.error('Play error:', e);
+            showToast('❌ Lỗi phát audio: ' + e.message, 3000);
+            isPlaying = false;
+            updatePlayButton();
+        }
     }
 
     // ============================================================
     // CONTROLS
     // ============================================================
     function togglePlay() {
-        // iOS: kích hoạt audio context
-        initAudioContext();
-
-        if (!playerReady || !player) {
+        if (!audioElement) {
             if (playlist.length > 0) {
                 if (currentIndex === -1) currentIndex = 0;
                 loadVideo(currentIndex);
@@ -1047,13 +972,11 @@
         }
 
         if (isPlaying) {
-            player.pauseVideo();
+            audioElement.pause();
             isPlaying = false;
         } else {
-            player.playVideo();
+            audioElement.play();
             isPlaying = true;
-            // iOS: giữ audio context active
-            keepAudioAlive();
         }
         updatePlayButton();
     }
@@ -1072,14 +995,12 @@
     function nextVideo() {
         if (playlist.length === 0) return;
 
-        if (isLoop) {
-            if (playerReady && player) {
-                player.seekTo(0, true);
-                player.playVideo();
-                isPlaying = true;
-                updatePlayButton();
-                return;
-            }
+        if (isLoop && audioElement) {
+            audioElement.currentTime = 0;
+            audioElement.play();
+            isPlaying = true;
+            updatePlayButton();
+            return;
         }
 
         let nextIndex;
@@ -1099,31 +1020,37 @@
         isLoop = !isLoop;
         document.getElementById('btn-loop').classList.toggle('active', isLoop);
         showToast(isLoop ? '🔁 Lặp: BẬT' : '🔁 Lặp: TẮT', 1000);
-        localStorage.setItem('bg_player_loop', isLoop);
+        localStorage.setItem('chrome_player_loop', isLoop);
     }
 
     function toggleShuffle() {
         isShuffle = !isShuffle;
         document.getElementById('btn-shuffle').classList.toggle('active', isShuffle);
         showToast(isShuffle ? '🔀 Ngẫu nhiên: BẬT' : '🔀 Ngẫu nhiên: TẮT', 1000);
-        localStorage.setItem('bg_player_shuffle', isShuffle);
+        localStorage.setItem('chrome_player_shuffle', isShuffle);
     }
 
     function toggleBackgroundMode() {
         isBackgroundMode = !isBackgroundMode;
         const btn = document.getElementById('btn-bg');
-        const indicator = document.getElementById('bg-indicator');
+        const notice = document.getElementById('chrome-bg-notice');
 
         if (isBackgroundMode) {
             btn.classList.add('active');
-            indicator.classList.add('show');
+            if (isPlaying) {
+                notice.classList.add('show');
+            }
             showToast('🎧 Chế độ nền: BẬT', 1500);
+            // Nếu đang phát, tiếp tục phát
+            if (audioElement && isPlaying) {
+                audioElement.play();
+            }
         } else {
             btn.classList.remove('active');
-            indicator.classList.remove('show');
+            notice.classList.remove('show');
             showToast('🎧 Chế độ nền: TẮT', 1500);
         }
-        localStorage.setItem('bg_player_background', isBackgroundMode);
+        localStorage.setItem('chrome_player_background', isBackgroundMode);
     }
 
     function removeVideo(index) {
@@ -1133,10 +1060,12 @@
         playlist.splice(index, 1);
 
         if (currentIndex === index) {
-            if (playerReady && player) {
-                player.stopVideo();
+            if (audioElement) {
+                audioElement.pause();
+                audioElement.src = '';
                 isPlaying = false;
                 updatePlayButton();
+                document.getElementById('chrome-bg-notice').classList.remove('show');
             }
             if (playlist.length > 0) {
                 currentIndex = Math.min(index, playlist.length - 1);
@@ -1167,11 +1096,11 @@
     }
 
     function updateProgress() {
-        if (!playerReady || !player || isSeeking) return;
+        if (!audioElement || isSeeking) return;
 
         try {
-            const current = player.getCurrentTime();
-            const total = player.getDuration();
+            const current = audioElement.currentTime;
+            const total = audioElement.duration;
 
             if (total > 0 && current >= 0) {
                 document.getElementById('current-time').textContent = formatTime(current);
@@ -1183,8 +1112,8 @@
 
     function onSeek(value) {
         isSeeking = true;
-        if (playerReady && player) {
-            const total = player.getDuration();
+        if (audioElement) {
+            const total = audioElement.duration;
             if (total > 0) {
                 const time = (value / 100) * total;
                 document.getElementById('current-time').textContent = formatTime(time);
@@ -1193,11 +1122,11 @@
     }
 
     function onSeekEnd(value) {
-        if (playerReady && player) {
-            const total = player.getDuration();
+        if (audioElement) {
+            const total = audioElement.duration;
             if (total > 0) {
                 const time = (value / 100) * total;
-                player.seekTo(time, true);
+                audioElement.currentTime = time;
             }
         }
         setTimeout(() => { isSeeking = false; }, 300);
@@ -1241,16 +1170,10 @@
     });
 
     // ============================================================
-    // TOUCH EVENTS (iOS)
+    // CHROME BACKGROUND - KEEP ALIVE
     // ============================================================
-    // Kích hoạt audio context khi người dùng chạm vào bất kỳ đâu
-    document.addEventListener('touchstart', function() {
-        initAudioContext();
-    }, { once: true });
-
-    document.addEventListener('click', function() {
-        initAudioContext();
-    }, { once: true });
+    // Khi chuyển tab, Chrome vẫn giữ audio element chạy
+    // Không cần làm gì thêm, audio element tự động phát nền
 
     // ============================================================
     // INIT
@@ -1266,54 +1189,60 @@
             }
         }
 
-        const savedLoop = localStorage.getItem('bg_player_loop');
+        const savedLoop = localStorage.getItem('chrome_player_loop');
         if (savedLoop === 'true') {
             isLoop = true;
             document.getElementById('btn-loop').classList.add('active');
         }
 
-        const savedShuffle = localStorage.getItem('bg_player_shuffle');
+        const savedShuffle = localStorage.getItem('chrome_player_shuffle');
         if (savedShuffle === 'true') {
             isShuffle = true;
             document.getElementById('btn-shuffle').classList.add('active');
         }
 
-        const savedBg = localStorage.getItem('bg_player_background');
+        const savedBg = localStorage.getItem('chrome_player_background');
         if (savedBg === 'false') {
             isBackgroundMode = false;
             document.getElementById('btn-bg').classList.remove('active');
-            document.getElementById('bg-indicator').classList.remove('show');
+            document.getElementById('chrome-bg-notice').classList.remove('show');
         } else {
-            // Mặc định bật
             isBackgroundMode = true;
             document.getElementById('btn-bg').classList.add('active');
-            document.getElementById('bg-indicator').classList.add('show');
+        }
+
+        // Tạo audio element
+        if (!audioElement) {
+            audioElement = document.getElementById('bg-audio');
+            if (!audioElement) {
+                audioElement = document.createElement('audio');
+                audioElement.id = 'bg-audio';
+                audioElement.style.display = 'none';
+                document.body.appendChild(audioElement);
+            }
         }
     }
 
-    // ============================================================
-    // YOUTUBE IFrame API READY
-    // ============================================================
-    function onYouTubeIframeAPIReady() {
-        init();
-        // iOS: kích hoạt audio context khi API sẵn sàng
-        setTimeout(initAudioContext, 1000);
-    }
+    // Khởi tạo khi trang load
+    document.addEventListener('DOMContentLoaded', init);
 
-    // Fallback nếu API không load
-    setTimeout(() => {
-        if (typeof YT === 'undefined' || !YT.Player) {
-            showToast('⏳ Đang tải YouTube...', 3000);
-            // Thử reload API
-            const script = document.createElement('script');
-            script.src = 'https://www.youtube.com/iframe_api';
-            document.head.appendChild(script);
+    // ============================================================
+    // XỬ LÝ CHROME BACKGROUND
+    // ============================================================
+    // Chrome trên mobile: audio element vẫn phát khi chuyển tab
+    // Chỉ cần đảm bảo audio element tồn tại và đang phát
+
+    // Nếu bị tạm dừng, tự động phát lại
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden && isBackgroundMode && isPlaying && audioElement) {
+            // Chrome sẽ tiếp tục phát, không cần làm gì
+            // Nếu bị tạm dừng, phát lại
+            setTimeout(() => {
+                if (audioElement && audioElement.paused && isPlaying && isBackgroundMode) {
+                    audioElement.play().catch(() => {});
+                }
+            }, 500);
         }
-    }, 5000);
-
-    // iOS: khởi tạo audio context khi trang load
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(initAudioContext, 2000);
     });
 </script>
 
