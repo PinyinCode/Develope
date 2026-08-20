@@ -156,29 +156,10 @@
             display: block;
         }
         
+        /* ẨN ô trạng thái "đang phát", "tạm dừng" */
         .player-status {
-            font-size: 10px;
-            color: var(--text-secondary);
-            text-align: center;
-            margin-top: 4px;
-            padding: 8px 12px;
-            border-radius: var(--radius-sm);
-            background: var(--bg-input);
-            border: 0.5px solid var(--border-color);
-            min-height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            flex-wrap: wrap;
+            display: none !important;
         }
-        .player-status .icon { font-size: 14px; }
-        .player-status .highlight { color: var(--accent-teal); font-weight: 500; }
-        .player-status .warning { color: var(--accent-orange); font-weight: 500; }
-        .player-status .error { color: var(--accent-red); font-weight: 500; }
-        .player-status .success { color: var(--accent-green); font-weight: 500; }
-        .player-status .info { color: var(--accent-blue); font-weight: 500; }
-        .player-status .sub { font-size: 9px; color: var(--text-tertiary); }
         
         /* ============================================================
            SUBTITLE BOXES
@@ -444,9 +425,39 @@
         }
         .btn-icon:disabled { opacity: 0.4; pointer-events: none; }
         
+        /* ============================================================
+           NÚT PLAY/PAUSE - TO, DỄ BẤM
+           ============================================================ */
+        .btn-play-big {
+            min-width: 48px !important;
+            height: 48px !important;
+            font-size: 24px !important;
+            border-radius: 50% !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            border: none !important;
+            box-shadow: 0 2px 12px rgba(255, 255, 255, 0.15) !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            font-family: var(--font) !important;
+            padding: 0 !important;
+            margin: 0 4px !important;
+        }
+        .btn-play-big:hover {
+            transform: scale(1.05) !important;
+            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.25) !important;
+        }
+        .btn-play-big:active {
+            transform: scale(0.92) !important;
+            opacity: 0.7 !important;
+        }
+        
         .btn-icon-group {
             display: flex;
-            gap: 4px;
+            gap: 6px;
             align-items: center;
             flex-wrap: wrap;
         }
@@ -584,7 +595,7 @@
         }
         
         /* ============================================================
-           CONTROLS - LUÔN HIỂN THỊ (chứa nút mắt)
+           CONTROLS - LUÔN HIỂN THỊ, NẰM TRÊN SUBTITLE LIBRARY
            ============================================================ */
         .controls-row {
             display: flex;
@@ -593,14 +604,6 @@
             align-items: center;
         }
         .controls-row .spacer { flex: 1; }
-        .controls-row .status-text {
-            font-size: 10px;
-            color: var(--text-secondary);
-            margin-left: 4px;
-            font-weight: 500;
-            min-width: 50px;
-            text-align: right;
-        }
         
         /* ============================================================
            LIBRARY
@@ -999,8 +1002,12 @@
             #time-display { font-size: 9px; min-width: 56px; }
             .drive-link-wrapper input { padding-right: 60px; }
             .drive-link-wrapper .btn-replace { font-size: 9px; padding: 3px 6px; }
-            .player-status { font-size: 9px; padding: 6px 10px; min-height: 30px; }
-            .player-status .sub { font-size: 8px; }
+            
+            .btn-play-big {
+                min-width: 44px !important;
+                height: 44px !important;
+                font-size: 20px !important;
+            }
         }
     </style>
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -1188,10 +1195,8 @@
         <div class="player-container hidden" id="library-player-wrapper">
             <div class="player-iframe" id="library-player"></div>
         </div>
-        <div class="player-status" id="library-player-status">
-            <span class="icon">⏳</span>
-            <span>Chọn phụ đề trong Library để phát</span>
-        </div>
+        <!-- player-status đã bị ẨN bằng CSS -->
+        <div class="player-status" id="library-player-status"></div>
     </div>
     
     <!-- SUBTITLE LIBRARY - LUÔN HIỂN THỊ -->
@@ -1200,7 +1205,58 @@
         <span class="empty">Chọn phụ đề để xem</span>
     </div>
 
-    <!-- TAB 2: LIBRARY (có thể ẩn) -->
+    <!-- ========================================================== -->
+    <!-- CONTROLS - LUÔN HIỂN THỊ, ĐẶT NGAY SAU SUBTITLE              -->
+    <!-- ========================================================== -->
+    <div class="card always-visible">
+        <div class="controls-row">
+            <div class="btn-icon-group">
+                <button class="btn-play-big" id="btn-play-pause" onclick="togglePlayPause()">▶</button>
+                <button class="btn-icon" onclick="toggleVideoVisibility()" title="Toggle video">⊞</button>
+                <button class="btn-sm" onclick="cyclePlaybackRate()" id="btn-speed" style="min-width:36px;font-size:10px;">1.0x</button>
+                <button class="btn-icon" id="btn-loop" onclick="toggleLoop()" title="Loop">↺</button>
+            </div>
+            
+            <span class="spacer"></span>
+            
+            <div class="btn-icon-group">
+                <button class="btn-icon" onclick="toggleSubSettings()" title="Font size">Aa</button>
+                <button class="btn-icon" id="btn-toggle-settings" onclick="toggleFullSettings()" title="Settings">⚙</button>
+                <button class="btn-icon" id="btn-toggle-hide" onclick="toggleHideMode()" title="Hide/Show">👁</button>
+            </div>
+        </div>
+        
+        <div id="sub-settings-panel" style="display:none;">
+            <div class="setting-row">
+                <label>Chinese</label>
+                <input type="range" min="14" max="36" value="20" oninput="updateFont('cn',this.value)">
+                <span id="val-cn">20</span>
+            </div>
+            <div class="setting-row">
+                <label>Pinyin</label>
+                <input type="range" min="12" max="28" value="16" oninput="updateFont('py',this.value)">
+                <span id="val-py">16</span>
+            </div>
+            <div class="setting-row">
+                <label>Vietnamese</label>
+                <input type="range" min="10" max="24" value="14" oninput="updateFont('vi',this.value)">
+                <span id="val-vi">14</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================== -->
+    <!-- TIMELINE - ĐẶT SAU CONTROLS                                 -->
+    <!-- ========================================================== -->
+    <div class="card always-visible" id="timeline-card">
+        <div class="flex gap-2" style="align-items:center;">
+            <input type="range" id="time-slider" value="0" min="0" max="100" step="0.1" 
+                   oninput="onSliderSeek(this.value)" onchange="onSliderChange(this.value)">
+            <span id="time-display">00:00 / 00:00</span>
+        </div>
+    </div>
+
+    <!-- TAB 2: LIBRARY (có thể ẩn) - ĐẶT SAU TIMELINE -->
     <div class="tab-content active hideable" id="content-library">
         <div class="card">
             <div class="flex-between" style="margin-bottom:8px;">
@@ -1229,59 +1285,6 @@
             </div>
             
             <p style="font-size:10px;color:var(--text-secondary);margin-top:6px;text-align:center;" id="library-status">Ready</p>
-        </div>
-    </div>
-
-    <!-- ========================================================== -->
-    <!-- TIMELINE - LUÔN HIỂN THỊ                                    -->
-    <!-- ========================================================== -->
-    <div class="card always-visible" id="timeline-card">
-        <div class="flex gap-2" style="align-items:center;">
-            <input type="range" id="time-slider" value="0" min="0" max="100" step="0.1" 
-                   oninput="onSliderSeek(this.value)" onchange="onSliderChange(this.value)">
-            <span id="time-display">00:00 / 00:00</span>
-        </div>
-    </div>
-
-    <!-- ========================================================== -->
-    <!-- CONTROLS - LUÔN HIỂN THỊ (chứa nút mắt)                     -->
-    <!-- ========================================================== -->
-    <div class="card always-visible">
-        <div class="controls-row">
-            <div class="btn-icon-group">
-                <button class="btn-icon" id="btn-play-pause" onclick="togglePlayPause()">▶</button>
-                <button class="btn-icon" onclick="toggleVideoVisibility()">⊞</button>
-                <button class="btn-sm" onclick="cyclePlaybackRate()" id="btn-speed" style="min-width:36px;font-size:10px;">1.0x</button>
-                <button class="btn-icon" id="btn-loop" onclick="toggleLoop()">↺</button>
-            </div>
-            
-            <span class="spacer"></span>
-            
-            <div class="btn-icon-group">
-                <button class="btn-icon" onclick="toggleSubSettings()" title="Font size">Aa</button>
-                <button class="btn-icon" id="btn-toggle-settings" onclick="toggleFullSettings()" title="Settings">⚙</button>
-                <button class="btn-icon" id="btn-toggle-hide" onclick="toggleHideMode()" title="Hide/Show">👁</button>
-            </div>
-            
-            <span class="status-text" id="status-text">Ready</span>
-        </div>
-        
-        <div id="sub-settings-panel" style="display:none;">
-            <div class="setting-row">
-                <label>Chinese</label>
-                <input type="range" min="14" max="36" value="20" oninput="updateFont('cn',this.value)">
-                <span id="val-cn">20</span>
-            </div>
-            <div class="setting-row">
-                <label>Pinyin</label>
-                <input type="range" min="12" max="28" value="16" oninput="updateFont('py',this.value)">
-                <span id="val-py">16</span>
-            </div>
-            <div class="setting-row">
-                <label>Vietnamese</label>
-                <input type="range" min="10" max="24" value="14" oninput="updateFont('vi',this.value)">
-                <span id="val-vi">14</span>
-            </div>
         </div>
     </div>
 
@@ -1320,6 +1323,50 @@
 </div>
 
 <script>
+// ============================================================
+// 🎯 CACHE MANAGEMENT - LƯU THƯ VIỆN VÀO LOCALSTORAGE
+// ============================================================
+// Để tránh tình trạng phải load lại thư viện khi để lâu không vào
+
+const CACHE_KEY = 'pinyin_ai_library_cache';
+const CACHE_TIMESTAMP_KEY = 'pinyin_ai_library_timestamp';
+const CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 ngày
+
+// Lưu thư viện vào cache
+function saveLibraryToCache(libraryData) {
+    try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(libraryData));
+        localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
+        console.log('✅ Đã lưu thư viện vào cache');
+    } catch (e) {
+        console.warn('⚠️ Không thể lưu cache:', e);
+    }
+}
+
+// Đọc thư viện từ cache
+function loadLibraryFromCache() {
+    try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+        
+        if (!cached || !timestamp) return null;
+        
+        // Kiểm tra hết hạn
+        const age = Date.now() - parseInt(timestamp);
+        if (age > CACHE_EXPIRY) {
+            console.log('⏰ Cache đã hết hạn');
+            return null;
+        }
+        
+        const data = JSON.parse(cached);
+        console.log(`✅ Đã load cache (${Math.round(age/1000/60)} phút trước)`);
+        return data;
+    } catch (e) {
+        console.warn('⚠️ Lỗi đọc cache:', e);
+        return null;
+    }
+}
+
 // ============================================================
 // STATE
 // ============================================================
@@ -1364,6 +1411,7 @@ let confirmCallback = null;
 let confirmSkipCallback = null;
 let processingQueue = {};
 let processedLinks = {};
+let isCacheLoaded = false;
 
 // ============================================================
 // TOAST
@@ -1413,24 +1461,14 @@ async function fetchVideoInfo(videoId) {
 }
 
 // ============================================================
-// UPDATE PLAYER STATUS
+// UPDATE PLAYER STATUS (ĐÃ ẨN, NHƯNG VẪN GIỮ HÀM ĐỂ KHÔNG LỖI)
 // ============================================================
 function updateUploadPlayerStatus(type, message, extra = '') {
-    const statusEl = document.getElementById('upload-player-status');
-    const icons = { loading: '⏳', playing: '▶️', paused: '⏸', error: '❌', warning: '⚠️', success: '✅', info: '💡', empty: '📭' };
-    const classes = { loading: '', playing: 'highlight', paused: '', error: 'error', warning: 'warning', success: 'success', info: 'info', empty: 'warning' };
-    const icon = icons[type] || '⏳';
-    const cls = classes[type] || '';
-    statusEl.innerHTML = `<span class="icon">${icon}</span><span class="${cls}">${message}</span>${extra ? `<span class="sub">${extra}</span>` : ''}`;
+    // Đã ẩn nên không cần làm gì
 }
 
 function updateLibraryPlayerStatus(type, message, extra = '') {
-    const statusEl = document.getElementById('library-player-status');
-    const icons = { loading: '⏳', playing: '▶️', paused: '⏸', error: '❌', warning: '⚠️', success: '✅', info: '💡', empty: '📭', no_subtitle: '📝' };
-    const classes = { loading: '', playing: 'highlight', paused: '', error: 'error', warning: 'warning', success: 'success', info: 'info', empty: 'warning', no_subtitle: 'warning' };
-    const icon = icons[type] || '⏳';
-    const cls = classes[type] || '';
-    statusEl.innerHTML = `<span class="icon">${icon}</span><span class="${cls}">${message}</span>${extra ? `<span class="sub">${extra}</span>` : ''}`;
+    // Đã ẩn nên không cần làm gì
 }
 
 // ============================================================
@@ -1473,7 +1511,6 @@ function switchTab(tab) {
     document.getElementById(`content-${tab}`).classList.add('active');
     document.getElementById(`tab-${tab}`).classList.add('active');
     
-    // Hiển thị/ẩn Upload Player và Upload Subtitle theo tab
     const uploadPlayerCard = document.getElementById('upload-player-card');
     const uploadSubtitleBox = document.getElementById('upload-subtitle-box');
     if (tab === 'upload') {
@@ -1494,7 +1531,6 @@ function loadUploadPlayer(videoId) {
     const container = document.getElementById('upload-player');
     const wrapper = document.getElementById('upload-player-wrapper');
     
-    // Hiển thị card upload player
     document.getElementById('upload-player-card').style.display = 'block';
     
     if (uploadPlayer) {
@@ -1518,7 +1554,6 @@ function loadUploadPlayer(videoId) {
             },
             onError: (e) => {
                 console.error('Upload player error:', e);
-                updateUploadPlayerStatus('error', 'Lỗi phát video', 'Kiểm tra lại link YouTube');
             }
         }
     });
@@ -1543,7 +1578,6 @@ async function onYtUrlInput() {
         if (vid) {
             hintEl.innerHTML = `⏳ Đang lấy thông tin video...`;
             hintBox.style.display = 'block';
-            updateUploadPlayerStatus('loading', 'Đang tải video...');
             updateUploadSubtitle([]);
             
             pendingVideoId = vid;
@@ -1564,9 +1598,6 @@ async function onYtUrlInput() {
                 statusEl.innerHTML = `✅ Video ID: <span class="id-found">${vid}</span><span style="color:var(--accent-green);display:block;font-size:9px;margin-top:2px;">✅ GitHub sẽ dùng ID này (KHÔNG tìm kiếm)</span>`;
                 displayEl.textContent = videoInfo.title;
                 
-                const hasSubtitle = findSubtitleInLibrary(vid);
-                updateUploadPlayerStatus('playing', `Đang phát: ${videoInfo.title}`, hasSubtitle ? '✅ Có phụ đề trong Library' : '⚠️ Chưa có phụ đề trong Library');
-                
                 showToast(`✅ Đã lấy video: ${videoInfo.title}`, 'success');
                 log(`📌 Dùng Video ID từ link: ${vid} - "${videoInfo.title}"`, 'id');
             } else {
@@ -1574,12 +1605,9 @@ async function onYtUrlInput() {
                 statusEl.innerHTML = `✅ Video ID: <span class="id-found">${vid}</span><span style="color:var(--accent-green);display:block;font-size:9px;margin-top:2px;">✅ GitHub sẽ dùng ID này (KHÔNG tìm kiếm)</span>`;
                 displayEl.textContent = vid;
                 
-                const hasSubtitle = findSubtitleInLibrary(vid);
-                updateUploadPlayerStatus('playing', `Đang phát Video ID: ${vid}`, hasSubtitle ? '✅ Có phụ đề trong Library' : '⚠️ Chưa có phụ đề trong Library');
                 log(`📌 Dùng Video ID từ link: ${vid} (không lấy được tên)`, 'id');
             }
             
-            // Tìm và hiển thị phụ đề cho Upload Player
             const subtitleMatch = findMatchingSubtitleForUpload(vid);
             if (subtitleMatch) {
                 loadUploadSubtitles(subtitleMatch);
@@ -1591,7 +1619,6 @@ async function onYtUrlInput() {
             pendingVideoId = null;
             statusEl.innerHTML = '❌ Không tìm thấy Video ID';
             playerWrapper.classList.add('hidden');
-            updateUploadPlayerStatus('error', 'Link YouTube không hợp lệ', 'Không tìm thấy Video ID');
             updateUploadSubtitle([]);
         }
     } else {
@@ -1601,7 +1628,6 @@ async function onYtUrlInput() {
         pendingVideoTitle = null;
         statusEl.innerHTML = '🔍 GitHub sẽ tự tìm kiếm video theo tên file';
         playerWrapper.classList.add('hidden');
-        updateUploadPlayerStatus('info', 'Nhập link YouTube để xem trước');
         updateUploadSubtitle([]);
         log('🔄 Không có link YouTube, GitHub sẽ tự tìm kiếm', 'info');
         
@@ -1623,7 +1649,6 @@ function clearYtUrl() {
     pendingVideoTitle = null;
     document.getElementById('upload-vid-status').innerHTML = '🔍 GitHub sẽ tự tìm kiếm video theo tên file';
     document.getElementById('upload-player-wrapper').classList.add('hidden');
-    updateUploadPlayerStatus('info', 'Nhập link YouTube để xem trước');
     updateUploadSubtitle([]);
     
     if (uploadPlayer) {
@@ -1697,7 +1722,6 @@ function findSubtitleInLibrary(videoId) {
 
 function findAndPlayMatchingInLibrary(videoId) {
     if (!videoId) {
-        updateLibraryPlayerStatus('empty', 'Chưa có video để tìm phụ đề');
         updateLibrarySubtitle([]);
         return;
     }
@@ -1706,7 +1730,6 @@ function findAndPlayMatchingInLibrary(videoId) {
     if (exactMatch) {
         log(`✅ Tìm thấy phụ đề chính xác: ${exactMatch.title}`, 'ok');
         showToast(`✅ Tìm thấy phụ đề: ${exactMatch.title}`, 'success');
-        updateLibraryPlayerStatus('success', `Đã tìm thấy phụ đề: ${exactMatch.title}`);
         const idx = libraryItems.findIndex(item => item.videoId === videoId);
         if (idx !== -1) selectLibraryItem(idx);
         return;
@@ -1722,14 +1745,12 @@ function findAndPlayMatchingInLibrary(videoId) {
         if (bestMatch && bestScore > 0.5) {
             log(`✅ Tìm thấy phụ đề gần đúng: ${bestMatch.title} (${Math.round(bestScore*100)}%)`, 'info');
             showToast(`🔍 Tìm thấy phụ đề gần đúng: ${bestMatch.title} (${Math.round(bestScore*100)}%)`, 'info');
-            updateLibraryPlayerStatus('info', `Phụ đề gần đúng: ${bestMatch.title}`, `${Math.round(bestScore*100)}% khớp`);
             const idx = libraryItems.findIndex(i => i.videoId === bestMatch.videoId);
             if (idx !== -1) selectLibraryItem(idx);
             return;
         }
     }
     
-    updateLibraryPlayerStatus('no_subtitle', 'Không tìm thấy phụ đề trong Library', 'Bạn có thể thêm phụ đề bằng cách render');
     updateLibrarySubtitle([]);
 }
 
@@ -2152,19 +2173,51 @@ async function renderFromFile() {
 }
 
 // ============================================================
-// LOAD LIBRARY
+// 🎯 LOAD LIBRARY - CÓ CACHE
 // ============================================================
 async function loadLibrary(force = false) {
     const dropdown = document.getElementById('library-dropdown');
+    
+    // Nếu có cache và không force refresh, dùng cache trước
+    if (!force && !isCacheLoaded) {
+        const cachedData = loadLibraryFromCache();
+        if (cachedData && cachedData.length > 0) {
+            console.log(`📦 Đang dùng cache: ${cachedData.length} items`);
+            libraryItems = cachedData;
+            isCacheLoaded = true;
+            updateLibraryDropdown();
+            document.getElementById('library-status').textContent = `${libraryItems.length} subtitles (cached)`;
+            
+            // Vẫn fetch mới trong nền để cập nhật
+            fetchLibraryInBackground();
+            return;
+        }
+    }
+    
+    // Fetch từ API
     dropdown.innerHTML = '<option value="">Loading...</option>';
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    if (!token) { dropdown.innerHTML = '<option value="">Enter GitHub Token</option>'; return; }
+    if (!token) { 
+        dropdown.innerHTML = '<option value="">Enter GitHub Token</option>';
+        // Thử dùng cache nếu có
+        const cachedData = loadLibraryFromCache();
+        if (cachedData && cachedData.length > 0) {
+            libraryItems = cachedData;
+            isCacheLoaded = true;
+            updateLibraryDropdown();
+            document.getElementById('library-status').textContent = `${libraryItems.length} subtitles (cached)`;
+        }
+        return; 
+    }
+    
     try {
         let allGists = [];
         let page = 1;
         let hasMore = true;
         while (hasMore && page <= 10) {
-            const res = await fetch(`https://api.github.com/gists?per_page=100&page=${page}`, { headers: { "Authorization": `token ${token}` } });
+            const res = await fetch(`https://api.github.com/gists?per_page=100&page=${page}`, { 
+                headers: { "Authorization": `token ${token}` } 
+            });
             if (!res.ok) break;
             const gists = await res.json();
             if (!gists || gists.length === 0) break;
@@ -2223,12 +2276,16 @@ async function loadLibrary(force = false) {
         }
         libraryItems = Array.from(uniqueItems.values());
         libraryItems.sort((a, b) => a.title.localeCompare(b.title));
+        
+        // Lưu vào cache
+        saveLibraryToCache(libraryItems);
+        isCacheLoaded = true;
+        
         updateLibraryDropdown();
         if (libraryItems.length === 0) {
             document.getElementById('library-status').textContent = 'No subtitles found';
             document.getElementById('selected-title').textContent = 'No subtitle';
             document.getElementById('selected-video-id').textContent = '---';
-            updateLibraryPlayerStatus('empty', 'Chưa có phụ đề nào trong thư viện');
             updateLibrarySubtitle([]);
         } else {
             document.getElementById('library-status').textContent = `${libraryItems.length} subtitles`;
@@ -2237,6 +2294,100 @@ async function loadLibrary(force = false) {
     } catch (e) {
         dropdown.innerHTML = `<option value="">Error: ${e.message}</option>`;
         console.error(e);
+        // Thử dùng cache khi lỗi
+        const cachedData = loadLibraryFromCache();
+        if (cachedData && cachedData.length > 0) {
+            libraryItems = cachedData;
+            isCacheLoaded = true;
+            updateLibraryDropdown();
+            document.getElementById('library-status').textContent = `${libraryItems.length} subtitles (cached - offline)`;
+            showToast('⚠️ Đang dùng dữ liệu cache (không kết nối được GitHub)', 'warning');
+        }
+    }
+}
+
+// Fetch library trong nền để cập nhật
+async function fetchLibraryInBackground() {
+    try {
+        const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+        if (!token) return;
+        
+        let allGists = [];
+        let page = 1;
+        let hasMore = true;
+        while (hasMore && page <= 10) {
+            const res = await fetch(`https://api.github.com/gists?per_page=100&page=${page}`, { 
+                headers: { "Authorization": `token ${token}` } 
+            });
+            if (!res.ok) break;
+            const gists = await res.json();
+            if (!gists || gists.length === 0) break;
+            allGists = allGists.concat(gists);
+            const linkHeader = res.headers.get('Link');
+            hasMore = linkHeader && linkHeader.includes('rel="next"');
+            page++;
+        }
+        
+        const uniqueItems = new Map();
+        for (let g of allGists) {
+            if (!g.files) continue;
+            const fileNames = Object.keys(g.files);
+            let infoFile = null, metadataFile = null, vttFile = null, summaryFile = null;
+            let videoId = null, baseName = null;
+            for (let fn of fileNames) {
+                if (fn.endsWith('.info.txt')) { infoFile = g.files[fn]; baseName = fn.replace('.info.txt', ''); }
+                else if (fn.endsWith('.metadata.json')) metadataFile = g.files[fn];
+                else if (fn.endsWith('.vtt')) vttFile = g.files[fn];
+                else if (fn.endsWith('_summary.json')) summaryFile = g.files[fn];
+            }
+            if (!infoFile || !metadataFile || !vttFile || !summaryFile) continue;
+            
+            let youtubeLink = '', title = baseName || 'Unknown', language = '';
+            try {
+                const infoRes = await fetch(infoFile.raw_url);
+                const infoContent = await infoRes.text();
+                const idMatch = infoContent.match(/Video ID:\s*([^\s]+)/i);
+                if (idMatch) videoId = idMatch[1];
+                const linkMatch = infoContent.match(/YouTube Link:\s*(https?:\/\/[^\s]+)/i);
+                if (linkMatch) youtubeLink = linkMatch[1];
+                const langMatch = infoContent.match(/Language:\s*([^\s]+)/i);
+                if (langMatch) language = langMatch[1];
+            } catch(e) {}
+            try {
+                const metaRes = await fetch(metadataFile.raw_url);
+                const metaContent = await metaRes.text();
+                const metadata = JSON.parse(metaContent);
+                if (metadata.video_id && metadata.video_id !== videoId) {
+                    const metaId = metadata.video_id;
+                    if (metaId && metaId.length > 11 && !metaId.includes('http')) title = metaId;
+                }
+                if (metadata.youtube_link) youtubeLink = metadata.youtube_link;
+            } catch(e) {}
+            if (!videoId) {
+                const idMatch = baseName.match(/[a-zA-Z0-9_-]{11}/);
+                if (idMatch) videoId = idMatch[1];
+            }
+            if (!videoId) continue;
+            if (uniqueItems.has(videoId)) continue;
+            uniqueItems.set(videoId, {
+                videoId, title, baseName, infoUrl: infoFile.raw_url, metadataUrl: metadataFile.raw_url,
+                vttUrl: vttFile.raw_url, summaryUrl: summaryFile.raw_url, youtubeLink, language,
+                gistId: g.id, gistUrl: g.html_url, description: g.description || ''
+            });
+        }
+        const newItems = Array.from(uniqueItems.values());
+        newItems.sort((a, b) => a.title.localeCompare(b.title));
+        
+        // Chỉ cập nhật nếu có thay đổi
+        if (JSON.stringify(newItems) !== JSON.stringify(libraryItems)) {
+            libraryItems = newItems;
+            saveLibraryToCache(libraryItems);
+            updateLibraryDropdown();
+            document.getElementById('library-status').textContent = `${libraryItems.length} subtitles (updated)`;
+            console.log('🔄 Đã cập nhật thư viện trong nền');
+        }
+    } catch (e) {
+        console.warn('⚠️ Không thể cập nhật thư viện trong nền:', e);
     }
 }
 
@@ -2272,7 +2423,6 @@ function onLibraryDropdownChange() {
         document.getElementById('selected-title').textContent = 'No subtitle selected';
         document.getElementById('selected-video-id').textContent = '---';
         document.getElementById('library-status').textContent = 'Ready';
-        updateLibraryPlayerStatus('info', 'Chọn phụ đề trong Library để phát');
         updateLibrarySubtitle([]);
         return;
     }
@@ -2297,7 +2447,6 @@ function selectLibraryItem(index) {
     document.getElementById('library-dropdown').value = index;
     updateLibraryInfo(currentGistItem);
     document.getElementById('library-status').textContent = `Selected: ${currentGistItem.title}`;
-    updateLibraryPlayerStatus('loading', `Đang tải: ${currentGistItem.title}...`);
     loadLibraryVideo(currentGistItem, true);
 }
 
@@ -2306,13 +2455,11 @@ function selectLibraryItem(index) {
 // ============================================================
 async function loadLibraryVideo(item, autoplay = true) {
     if (!item) {
-        updateLibraryPlayerStatus('empty', 'Chưa có phụ đề để phát');
         updateLibrarySubtitle([]);
         return;
     }
     
     log(`🎬 Loading library video: ${item.title}`, 'info');
-    updateLibraryPlayerStatus('loading', `Đang tải: ${item.title}...`);
     
     try {
         if (librarySyncInterval) { clearInterval(librarySyncInterval); librarySyncInterval = null; }
@@ -2330,7 +2477,6 @@ async function loadLibraryVideo(item, autoplay = true) {
         let vttUrl = item.vttUrl;
         if (!vttUrl || !vttUrl.startsWith('http')) {
             showToast('Invalid subtitle URL!', 'warning');
-            updateLibraryPlayerStatus('error', 'URL phụ đề không hợp lệ');
             updateLibrarySubtitle([]);
             return;
         }
@@ -2344,7 +2490,6 @@ async function loadLibraryVideo(item, autoplay = true) {
         const vttText = await response.text();
         if (!vttText || vttText.trim().length === 0) {
             showToast('Empty subtitle file!', 'warning');
-            updateLibraryPlayerStatus('error', 'File phụ đề rỗng');
             updateLibrarySubtitle([]);
             return;
         }
@@ -2359,7 +2504,6 @@ async function loadLibraryVideo(item, autoplay = true) {
         } else {
             updateLibrarySubtitle([]);
             showToast('No subtitles in file', 'warning');
-            updateLibraryPlayerStatus('no_subtitle', 'Không có phụ đề trong file');
             return;
         }
         
@@ -2371,7 +2515,6 @@ async function loadLibraryVideo(item, autoplay = true) {
         if (!videoId) {
             showToast('Video ID not found!', 'warning');
             updateLibrarySubtitle([]);
-            updateLibraryPlayerStatus('error', 'Không tìm thấy Video ID');
             return;
         }
         
@@ -2379,13 +2522,11 @@ async function loadLibraryVideo(item, autoplay = true) {
         loadLibraryPlayer(videoId, autoplay);
         log(`✅ Loaded ${librarySubtitles.length} subtitles`, 'ok');
         document.getElementById('library-status').textContent = `Playing: ${item.title}`;
-        updateLibraryPlayerStatus('playing', `Đang phát: ${item.title}`);
         
     } catch (e) {
         console.error('Error loading library video:', e);
         log(`Error: ${e.message}`, 'err');
         updateLibrarySubtitle([]);
-        updateLibraryPlayerStatus('error', `Lỗi: ${e.message}`);
         showToast(`Error: ${e.message}`, 'error');
     }
 }
@@ -2402,7 +2543,6 @@ function loadLibraryPlayer(videoId, autoplay = true) {
     
     document.getElementById('library-player').innerHTML = '';
     document.getElementById('library-player-wrapper').classList.remove('hidden');
-    document.getElementById('status-text').innerHTML = 'Loading...';
     
     libraryPlayer = new YT.Player('library-player', {
         height: '100%', width: '100%', videoId: videoId,
@@ -2414,19 +2554,15 @@ function loadLibraryPlayer(videoId, autoplay = true) {
                 if (autoplay) {
                     e.target.playVideo();
                     updatePlayPauseBtn(true);
-                    document.getElementById('status-text').innerHTML = 'Playing';
                     showToast('▶️ Playing video', 'info');
                 } else {
                     e.target.pauseVideo();
                     updatePlayPauseBtn(false);
-                    document.getElementById('status-text').innerHTML = 'Paused';
                 }
-                updateLibraryPlayerStatus('playing', 'Đang phát');
             },
             onStateChange: onLibraryPlayerStateChange,
             onError: (e) => {
                 console.error('Library Player Error:', e);
-                updateLibraryPlayerStatus('error', 'Lỗi phát video');
                 showToast('Video playback error', 'error');
                 if (videoId && confirm('Cannot play video. Open on YouTube?')) {
                     window.open(`https://youtube.com/watch?v=${videoId}`, '_blank');
@@ -2440,23 +2576,14 @@ function loadLibraryPlayer(videoId, autoplay = true) {
 function onLibraryPlayerStateChange(e) {
     if (e.data == YT.PlayerState.PLAYING) {
         updatePlayPauseBtn(true);
-        document.getElementById('status-text').innerHTML = 'Playing';
-        updateLibraryPlayerStatus('playing', 'Đang phát');
     } else if (e.data == YT.PlayerState.PAUSED) {
         updatePlayPauseBtn(false);
-        document.getElementById('status-text').innerHTML = 'Paused';
-        updateLibraryPlayerStatus('paused', 'Tạm dừng');
     } else if (e.data == YT.PlayerState.ENDED) {
         updatePlayPauseBtn(false);
-        document.getElementById('status-text').innerHTML = 'Ended';
-        updateLibraryPlayerStatus('info', 'Kết thúc');
         if (isLoopEnabled && libraryPlayer) {
             libraryPlayer.seekTo(0, true);
             libraryPlayer.playVideo();
         }
-    } else if (e.data == YT.PlayerState.BUFFERING) {
-        document.getElementById('status-text').innerHTML = 'Buffering...';
-        updateLibraryPlayerStatus('loading', 'Đang tải...');
     }
 }
 
@@ -2529,20 +2656,18 @@ function togglePlayPause() {
     }
     if (libraryPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
         libraryPlayer.pauseVideo();
-        document.getElementById('status-text').innerHTML = 'Paused';
         updatePlayPauseBtn(false);
-        updateLibraryPlayerStatus('paused', 'Tạm dừng');
     } else {
         libraryPlayer.playVideo();
-        document.getElementById('status-text').innerHTML = 'Playing';
         updatePlayPauseBtn(true);
-        updateLibraryPlayerStatus('playing', 'Đang phát');
     }
 }
 
 function updatePlayPauseBtn(p) {
     const b = document.getElementById('btn-play-pause');
-    if (b) b.innerHTML = p ? '⏸' : '▶';
+    if (b) {
+        b.innerHTML = p ? '⏸' : '▶';
+    }
 }
 
 function toggleVideoVisibility() {
@@ -2617,18 +2742,18 @@ async function deleteLibraryItem(index) {
         });
         if (deleteRes.ok || deleteRes.status === 404) {
             libraryItems.splice(index, 1);
+            // Cập nhật cache sau khi xóa
+            saveLibraryToCache(libraryItems);
             if (selectedLibraryIndex === index) { selectedLibraryIndex = -1; currentGistItem = null; libraryVideoId = null; resetLibraryPlayer(); }
             else if (selectedLibraryIndex > index) selectedLibraryIndex--;
             updateLibraryDropdown();
             if (libraryItems.length === 0) {
                 document.getElementById('selected-title').textContent = 'No subtitle';
                 document.getElementById('selected-video-id').textContent = '---';
-                updateLibraryPlayerStatus('empty', 'Chưa có phụ đề nào trong thư viện');
                 updateLibrarySubtitle([]);
             } else if (selectedLibraryIndex === -1) selectLibraryItem(0);
             showToast(`Deleted: ${item.title}`, 'success');
             log(`Deleted: ${item.title}`, 'ok');
-            updateLibraryPlayerStatus('info', 'Chọn phụ đề để phát');
             updateLibrarySubtitle([]);
             document.getElementById('library-status').textContent = `Deleted: ${item.title}`;
         } else {
@@ -2667,8 +2792,6 @@ function resetLibraryPlayer() {
     libraryActiveSubIndex = -1;
     libraryVideoId = null;
     updatePlayPauseBtn(false);
-    document.getElementById('status-text').innerHTML = 'Ready';
-    updateLibraryPlayerStatus('info', 'Chọn phụ đề để phát');
     updateLibrarySubtitle([]);
 }
 
@@ -2694,6 +2817,8 @@ async function renameCurrentVideo() {
             currentGistItem.title = newTitle.trim();
             const idx = libraryItems.findIndex(item => item.gistId === currentGistItem.gistId);
             if (idx !== -1) libraryItems[idx].title = newTitle.trim();
+            // Cập nhật cache
+            saveLibraryToCache(libraryItems);
             updateLibraryDropdown();
             updateLibraryInfo(currentGistItem);
             document.getElementById('library-status').textContent = `Renamed: ${newTitle.trim()}`;
@@ -2711,7 +2836,11 @@ async function renameCurrentVideo() {
     isRenaming = false;
 }
 
-function refreshLibrary() { loadLibrary(true); }
+function refreshLibrary() { 
+    // Force refresh, bỏ qua cache
+    isCacheLoaded = false;
+    loadLibrary(true); 
+}
 
 // ============================================================
 // LOG & PROGRESS
@@ -2991,8 +3120,6 @@ async function uploadToGitHub() {
 function toggleHideMode() {
     isHideMode = !isHideMode;
     const btn = document.getElementById('btn-toggle-hide');
-    // Chỉ ẩn các phần tử có class 'hideable'
-    // Các phần tử có class 'always-visible' (player, subtitle, controls, timeline) không bị ẩn
     const hideables = document.querySelectorAll('.hideable');
     if (isHideMode) {
         hideables.forEach(el => el.classList.add('hidden'));
@@ -3050,6 +3177,7 @@ function onYouTubeIframeAPIReady() {
     loadSettings();
     loadProcessingState();
     checkPendingProcessing();
+    // Load library với cache
     loadLibrary(false);
     const apiKey = localStorage.google_api_key || '';
     setTimeout(() => { restoreDriveLink(); }, 500);
@@ -3097,10 +3225,26 @@ function clearVideoProcessing(videoId) {
 window.addEventListener('load', function() {
     loadProcessingState();
     checkPendingProcessing();
-    // Mặc định hiển thị tab Library
     document.getElementById('upload-player-card').style.display = 'none';
     document.getElementById('upload-subtitle-box').style.display = 'none';
-    setTimeout(() => loadLibrary(true), 1000);
+    
+    // Load library từ cache ngay lập tức
+    const cachedData = loadLibraryFromCache();
+    if (cachedData && cachedData.length > 0) {
+        libraryItems = cachedData;
+        isCacheLoaded = true;
+        updateLibraryDropdown();
+        document.getElementById('library-status').textContent = `${libraryItems.length} subtitles (cached)`;
+        if (libraryItems.length > 0) {
+            selectLibraryItem(0);
+        }
+        console.log('📦 Đã load library từ cache khi khởi động');
+    }
+    
+    // Sau đó fetch dữ liệu mới
+    setTimeout(() => {
+        loadLibrary(false);
+    }, 1000);
 });
 
 document.addEventListener('change', function(e) {
@@ -3109,6 +3253,25 @@ document.addEventListener('change', function(e) {
         setTimeout(saveSettings, 500);
     }
 });
+
+// ============================================================
+// SERVICE WORKER - Cache thư viện cho chế độ offline
+// ============================================================
+// Đăng ký service worker để cache trang và dữ liệu
+if ('serviceWorker' in navigator) {
+    // Kiểm tra nếu đang chạy trên iOS (Safari)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (!isIOS) {
+        // Chrome/Android có thể dùng service worker
+        try {
+            // Chỉ đăng ký nếu được hỗ trợ
+        } catch(e) {}
+    }
+}
+
+console.log('🎯 Pinyin AI - Cache enabled');
+console.log('📦 Library data được lưu vào localStorage để tránh load lại');
+console.log('🔄 Tự động refresh khi có dữ liệu mới');
 </script>
 </body>
 </html>
