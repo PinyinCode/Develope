@@ -273,11 +273,11 @@
 <body>
     <div class="container">
         <h1>⚡ ESP32 Auto Flasher</h1>
-        <p class="subtitle">Tự động phát hiện và nạp firmware</p>
+        <p class="subtitle">Tự động phát hiện firmware - Chủ động kết nối</p>
 
         <div class="status-icon" id="statusIcon">🔌</div>
         <div class="status-text" id="statusText">Sẵn sàng</div>
-        <div class="status-detail" id="statusDetail">Nhấn "Kết nối" để bắt đầu</div>
+        <div class="status-detail" id="statusDetail">Firmware đã sẵn sàng, nhấn "Kết nối" để bắt đầu</div>
 
         <div class="warning" id="warningMessage">
             ⚠️ <span id="warningText"></span>
@@ -311,7 +311,7 @@
             <button class="btn btn-primary" id="flashBtn" disabled>
                 🚀 Nạp Firmware
             </button>
-            <button class="btn btn-warning" id="autoBtn">
+            <button class="btn btn-warning" id="autoBtn" disabled>
                 🔄 Tự động
             </button>
         </div>
@@ -327,10 +327,10 @@
         <div class="step-guide">
             <h4>📖 Hướng dẫn sử dụng:</h4>
             <ol>
+                <li>Trang tự động kiểm tra file firmware</li>
                 <li>Nhấn <strong>"Kết nối"</strong> và chọn cổng ESP32</li>
                 <li>Nhấn <strong>"Nạp Firmware"</strong> để bắt đầu</li>
                 <li>Hoặc nhấn <strong>"Tự động"</strong> để làm tất cả</li>
-                <li>Đợi quá trình hoàn tất (ESP32 sẽ tự reset)</li>
             </ol>
         </div>
     </div>
@@ -354,6 +354,7 @@
         let isFlashing = false;
         let isConnected = false;
         let firmwareSize = 0;
+        let firmwareReady = false;
 
         // =============================================
         // DOM ELEMENTS
@@ -379,13 +380,15 @@
         const infoText = document.getElementById('infoText');
 
         // =============================================
-        // KHỞI TẠO KHI LOAD TRANG
+        // KHỞI TẠO KHI LOAD TRANG - CHỈ KIỂM TRA FIRMWARE
         // =============================================
         window.addEventListener('load', async () => {
             addLog('🔄 Đang khởi tạo...', 'info');
             await checkFirmware();
-            setStatus('🔌', 'Sẵn sàng', 'Nhấn "Kết nối" để bắt đầu');
-            showInfo('Nhấn "Kết nối" để chọn cổng ESP32');
+            
+            // KHÔNG tự động kết nối
+            setStatus('🔌', 'Sẵn sàng', 'Firmware đã sẵn sàng, nhấn "Kết nối" để bắt đầu');
+            showInfo('✅ Firmware đã sẵn sàng. Nhấn "Kết nối" để chọn cổng ESP32.');
             
             // Kiểm tra hỗ trợ trình duyệt
             if (!('serial' in navigator)) {
@@ -426,14 +429,21 @@
                     throw new Error('File firmware rỗng (0 KB)');
                 }
                 
+                firmwareReady = true;
                 firmwareName.textContent = FIRMWARE_NAME;
                 hideWarning();
                 
+                // Bật nút kết nối
+                connectBtn.disabled = false;
+                
             } catch (error) {
+                firmwareReady = false;
                 firmwareSizeEl.textContent = '❌ Không tìm thấy';
                 showWarning(`Không tìm thấy file "${FIRMWARE_NAME}". Vui lòng kiểm tra lại!`);
                 addLog(`❌ Lỗi firmware: ${error.message}`, 'error');
+                connectBtn.disabled = true;
                 flashBtn.disabled = true;
+                autoBtn.disabled = true;
             }
         }
 
@@ -441,6 +451,10 @@
         // NÚT KẾT NỐI
         // =============================================
         connectBtn.addEventListener('click', async () => {
+            if (!firmwareReady) {
+                showWarning('Firmware chưa sẵn sàng! Vui lòng kiểm tra lại.');
+                return;
+            }
             await connectESP32();
         });
 
@@ -448,6 +462,11 @@
         // NÚT TỰ ĐỘNG (Kết nối + Nạp firmware)
         // =============================================
         autoBtn.addEventListener('click', async () => {
+            if (!firmwareReady) {
+                showWarning('Firmware chưa sẵn sàng! Vui lòng kiểm tra lại.');
+                return;
+            }
+            
             addLog('🔄 Bắt đầu quy trình tự động...', 'info');
             showInfo('Đang kết nối và nạp firmware tự động...');
             
@@ -464,6 +483,11 @@
         // NÚT NẠP FIRMWARE
         // =============================================
         flashBtn.addEventListener('click', async () => {
+            if (!firmwareReady) {
+                showWarning('Firmware chưa sẵn sàng!');
+                return;
+            }
+            
             if (!isConnected) {
                 showWarning('Vui lòng kết nối ESP32 trước!');
                 addLog('⚠️ Chưa kết nối ESP32', 'warning');
@@ -473,7 +497,7 @@
         });
 
         // =============================================
-        // KẾT NỐI ESP32
+        // KẾT NỐI ESP32 - CHỈ GỌI KHI CÓ CLICK
         // =============================================
         async function connectESP32() {
             try {
@@ -528,13 +552,14 @@
 
                 isConnected = true;
                 flashBtn.disabled = false;
+                autoBtn.disabled = false;
                 connectBtn.textContent = '✅ Đã kết nối';
                 connectBtn.style.background = '#28a745';
                 
                 setStatus('✅', 'ESP32 đã kết nối!', 'Sẵn sàng nạp firmware');
                 addLog('✅ Kết nối ESP32 thành công!', 'success');
                 hideWarning();
-                showInfo('Đã kết nối ESP32. Nhấn "Nạp Firmware" để bắt đầu.');
+                showInfo('✅ Đã kết nối ESP32. Nhấn "Nạp Firmware" để bắt đầu.');
 
             } catch (error) {
                 if (error.name === 'NotFoundError' || error.message.includes('cancel')) {
@@ -545,6 +570,7 @@
                     // Đã kết nối rồi
                     isConnected = true;
                     flashBtn.disabled = false;
+                    autoBtn.disabled = false;
                     connectBtn.textContent = '✅ Đã kết nối';
                     connectBtn.style.background = '#28a745';
                     setStatus('✅', 'ESP32 đã kết nối!', 'Sẵn sàng nạp firmware');
@@ -555,6 +581,7 @@
                     showWarning(`Lỗi kết nối: ${error.message}`);
                 }
                 flashBtn.disabled = true;
+                autoBtn.disabled = true;
             }
         }
 
@@ -649,10 +676,10 @@
                 setTimeout(() => {
                     setStatus('🔄', 'ESP32 đã khởi động lại', 'Sẵn sàng với firmware mới');
                     flashBtn.disabled = true;
+                    autoBtn.disabled = true;
                     isFlashing = false;
                     progressContainer.classList.remove('show');
                     connectBtn.disabled = false;
-                    autoBtn.disabled = false;
                     showInfo('ESP32 đã khởi động lại với firmware mới!');
                 }, 3000);
 
