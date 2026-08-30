@@ -295,8 +295,7 @@
     <script>
         const FIRMWARE_NAME = 'xiaozhi.bin';
         const FIRMWARE_URL = FIRMWARE_NAME;
-        // Địa chỉ nạp phân vùng app tiêu chuẩn cho ESP32 (0x10000 hoặc 0x40000 tùy thuộc file bin của bạn)
-        const FLASH_OFFSET = 0x10000; 
+        const FLASH_OFFSET = 0x10000; // Địa chỉ ghi app mặc định
 
         let port = null;
         let transport = null;
@@ -332,6 +331,14 @@
                 connectBtn.disabled = true;
                 return;
             }
+
+            // Lắng nghe sự kiện ngắt kết nối cổng Serial đột ngột (rút cáp)
+            navigator.serial.addEventListener('disconnect', (event) => {
+                if (port && event.target === port) {
+                    handleDisconnect('Thiết bị đã bị ngắt kết nối đột ngột!');
+                }
+            });
+
             await checkFirmware();
         });
 
@@ -374,7 +381,7 @@
                 
                 espLoader = new window.ESPLoader({
                     transport: transport,
-                    baudrate: 921600, // Tốc độ nạp cao
+                    baudrate: 921600,
                     romBaudrate: 115200,
                     logger: {
                         log: (msg) => addLog(msg, 'info'),
@@ -382,6 +389,13 @@
                         error: (msg) => addLog(msg, 'error')
                     }
                 });
+
+                // Kích hoạt tín hiệu phần cứng phụ trợ vào chế độ bootloader
+                await transport.setRTS(true);
+                await transport.setDTR(false);
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await transport.setDTR(true);
+                await transport.setRTS(false);
 
                 addLog('🔌 Đang bắt tay với bootloader của ESP32...', 'info');
                 const chipName = await espLoader.main();
@@ -429,7 +443,6 @@
             addLog('🚀 Bắt đầu quá trình nạp flash...', 'info');
 
             try {
-                // Chuyển đổi file arrayBuffer thành chuỗi hex/base64 chuẩn cho esptool
                 const fileObj = {
                     data: new Uint8Array(firmwareBinary),
                     address: FLASH_OFFSET
@@ -451,16 +464,14 @@
                 showInfo('Nạp firmware thành công! Thiết bị sẽ tự khởi động lại.');
                 updateProgress(100);
 
-                // Reset cứng phần cứng sau khi nạp xong
+                // Gửi lệnh reset cứng qua chân RTS để thoát chế độ bootloader
                 await transport.setRTS(true);
                 await new Promise(resolve => setTimeout(resolve, 100));
                 await transport.setRTS(false);
 
                 setTimeout(() => {
-                    isFlashing = false;
-                    progressContainer.classList.remove('show');
-                    connectBtn.disabled = false;
-                    setStatus('🔄', 'Hoàn tất', 'Sẵn sàng');
+                    handleDisconnect();
+                    setStatus('🔄', 'Hoàn tất', 'Sẵn sàng với firmware mới');
                 }, 3000);
 
             } catch (error) {
@@ -472,6 +483,28 @@
                 setStatus('❌', 'Lỗi nạp firmware', error.message);
                 addLog(`❌ Lỗi nạp flash: ${error.message}`, 'error');
                 showWarning(`Lỗi: ${error.message}`);
+            }
+        }
+
+        function handleDisconnect(reason = '') {
+            isConnected = false;
+            isFlashing = false;
+            port = null;
+            transport = null;
+            espLoader = null;
+
+            connectBtn.textContent = '🔌 Kết nối';
+            connectBtn.style.background = '';
+            connectBtn.disabled = false;
+            flashBtn.disabled = true;
+            autoBtn.disabled = true;
+            progressContainer.classList.remove('show');
+            chipInfo.textContent = 'Chưa kết nối';
+
+            if (reason) {
+                setStatus('🔌', 'Đã ngắt kết nối', reason);
+                showWarning(reason);
+                addLog(`⚠️ ${reason}`, 'error');
             }
         }
 
