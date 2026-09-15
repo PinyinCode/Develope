@@ -156,7 +156,6 @@
             display: block;
         }
         
-        /* ẨN ô trạng thái "đang phát", "tạm dừng" */
         .player-status {
             display: none !important;
         }
@@ -199,6 +198,45 @@
             color: var(--text-secondary);
             font-size: 12px;
             font-weight: 500;
+        }
+        
+        /* ============================================================
+           ✨ WORD HIGHLIGHT — TỪ ĐƠN / TỪ GHÉP
+           ============================================================ */
+        .word {
+            display: inline-block;
+            transition: all 0.15s ease;
+            border-radius: 4px;
+            padding: 0 1px;
+        }
+        .word.single {
+            color: var(--text-secondary);
+            background: transparent;
+        }
+        .word.compound {
+            color: #ffd60a;
+            background: rgba(255, 214, 10, 0.12);
+            padding: 0 3px;
+            font-weight: 800;
+            text-shadow: 0 0 12px rgba(255, 214, 10, 0.25);
+            border-bottom: 1.5px solid rgba(255, 214, 10, 0.5);
+        }
+        .py .word.compound {
+            color: #ffd60a;
+            background: rgba(255, 214, 10, 0.10);
+            border-bottom: 1px solid rgba(255, 214, 10, 0.35);
+            font-weight: 700;
+            text-shadow: none;
+        }
+        .vi .word.compound {
+            color: #ffd60a;
+            background: rgba(255, 214, 10, 0.10);
+            border-bottom: 1px solid rgba(255, 214, 10, 0.35);
+            font-weight: 700;
+            text-shadow: none;
+        }
+        .vi .word.single {
+            color: var(--accent-teal);
         }
         
         /* ============================================================
@@ -425,9 +463,6 @@
         }
         .btn-icon:disabled { opacity: 0.4; pointer-events: none; }
         
-        /* ============================================================
-           NÚT PLAY/PAUSE - TO, DỄ BẤM
-           ============================================================ */
         .btn-play-big {
             min-width: 48px !important;
             height: 48px !important;
@@ -553,7 +588,7 @@
         .status-badge.no-match { background: var(--bg-tertiary); color: var(--text-tertiary); border-color: var(--border-color); }
         
         /* ============================================================
-           TIMELINE (cho Library Player)
+           TIMELINE
            ============================================================ */
         #timeline-card { padding: 8px 14px; }
         #time-slider {
@@ -595,7 +630,7 @@
         }
         
         /* ============================================================
-           CONTROLS - LUÔN HIỂN THỊ, NẰM TRÊN SUBTITLE LIBRARY
+           CONTROLS
            ============================================================ */
         .controls-row {
             display: flex;
@@ -1195,7 +1230,6 @@
         <div class="player-container hidden" id="library-player-wrapper">
             <div class="player-iframe" id="library-player"></div>
         </div>
-        <!-- player-status đã bị ẨN bằng CSS -->
         <div class="player-status" id="library-player-status"></div>
     </div>
     
@@ -1311,8 +1345,21 @@
             </div>
             
             <button class="btn btn-primary" style="width:100%;margin-top:6px;" onclick="saveSettings()">Save</button>
+            
+            <!-- 📚 DICT CONTROL -->
+            <div style="margin-top:12px;padding-top:10px;border-top:0.5px solid var(--border-color);">
+                <label style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;display:block;font-weight:600;">
+                    Từ điển từ ghép (HSK)
+                </label>
+                <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;" id="dict-status">
+                    ⏳ Đang khởi tạo...
+                </div>
+                <button class="btn btn-sm" onclick="forceReloadDict()" style="width:100%;">
+                    📚 Tải lại từ điển HSK
+                </button>
+            </div>
         </div>
-        <div class="settings-footer"><span class="version">v1.0</span></div>
+        <div class="settings-footer"><span class="version">v1.1 · HSK</span></div>
     </div>
 
     <!-- LOG - có thể ẩn -->
@@ -1324,66 +1371,50 @@
 
 <script>
 // ============================================================
-// 🎯 CACHE MANAGEMENT - LƯU THƯ VIỆN VÀO LOCALSTORAGE
+// 🎯 LƯU TRẠNG THÁI TỐC ĐỘ PHÁT
 // ============================================================
-// Để tránh tình trạng phải load lại thư viện khi để lâu không vào
+const SPEED_STORAGE_KEY = 'pinyin_ai_playback_speed';
 
-const CACHE_KEY = 'pinyin_ai_library_cache';
-const CACHE_TIMESTAMP_KEY = 'pinyin_ai_library_timestamp';
-const CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 ngày
-
-// Lưu thư viện vào cache
-function saveLibraryToCache(libraryData) {
+function savePlaybackSpeed(speed) {
     try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(libraryData));
-        localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
-        console.log('✅ Đã lưu thư viện vào cache');
-    } catch (e) {
-        console.warn('⚠️ Không thể lưu cache:', e);
-    }
+        localStorage.setItem(SPEED_STORAGE_KEY, speed.toString());
+    } catch (e) {}
 }
 
-// Đọc thư viện từ cache
-function loadLibraryFromCache() {
+function loadPlaybackSpeed() {
     try {
-        const cached = localStorage.getItem(CACHE_KEY);
-        const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
-        
-        if (!cached || !timestamp) return null;
-        
-        // Kiểm tra hết hạn
-        const age = Date.now() - parseInt(timestamp);
-        if (age > CACHE_EXPIRY) {
-            console.log('⏰ Cache đã hết hạn');
-            return null;
+        const saved = localStorage.getItem(SPEED_STORAGE_KEY);
+        if (saved) {
+            const speed = parseFloat(saved);
+            const validSpeeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+            if (validSpeeds.includes(speed)) return speed;
         }
-        
-        const data = JSON.parse(cached);
-        console.log(`✅ Đã load cache (${Math.round(age/1000/60)} phút trước)`);
-        return data;
-    } catch (e) {
-        console.warn('⚠️ Lỗi đọc cache:', e);
-        return null;
-    }
+    } catch (e) {}
+    return 1.0;
 }
 
 // ============================================================
 // STATE
 // ============================================================
-// === PLAYER LIBRARY ===
 let libraryPlayer, librarySubtitles=[], librarySyncInterval=null, libraryActiveSubIndex=-1;
 let libraryVideoId = null;
 let libraryPlayerReady = false;
 
-// === PLAYER UPLOAD ===
 let uploadPlayer = null;
 let uploadPlayerReady = false;
 let uploadSubtitles = [];
 
-// === CHUNG ===
 let currentGistItem=null;
-let isLoopEnabled=false, currentSpeedIndex=2;
+let isLoopEnabled=false;
+let currentSpeedIndex = 2;
 const speeds=[0.5,0.75,1.0,1.25,1.5,2.0];
+
+const savedSpeed = loadPlaybackSpeed();
+if (savedSpeed) {
+    currentSpeedIndex = speeds.indexOf(savedSpeed);
+    if (currentSpeedIndex === -1) currentSpeedIndex = 2;
+}
+
 let gh_cloud_map={};
 let selectedFile = null;
 let isUploading = false;
@@ -1414,6 +1445,339 @@ let processedLinks = {};
 let isCacheLoaded = false;
 
 // ============================================================
+// ✨ TỪ ĐIỂN TỪ GHÉP — TỰ ĐỘNG TẢI HSK 1-6 & CACHE
+// ============================================================
+const DICT_CACHE_KEY = 'pinyin_ai_hsk_dict_v1';
+const DICT_TIMESTAMP_KEY = 'pinyin_ai_hsk_dict_ts_v1';
+const DICT_CACHE_EXPIRY = 30 * 24 * 60 * 60 * 1000; // 30 ngày
+
+// Fallback tối thiểu — dùng khi chưa tải xong / không có mạng
+const FALLBACK_COMPOUNDS = new Set([
+    '你好','谢谢','再见','对不起','没关系','请问','什么','名字','朋友','老师','学生',
+    '同学','医生','爸爸','妈妈','哥哥','姐姐','弟弟','妹妹','学校','大学','中国',
+    '美国','时间','今天','明天','昨天','现在','早上','上午','中午','下午','晚上',
+    '喜欢','认识','知道','觉得','认为','希望','打算','准备','开始','结束','完成',
+    '考试','学习','复习','上课','下课','放学','作业','问题','回答','帮助','需要',
+    '可以','应该','必须','可能','也许','大概','一定','肯定','当然','真的','好的',
+    '不用谢','不客气','欢迎','恭喜','生日快乐','新年快乐','圣诞快乐','熊猫',
+    '中国菜','米饭','面条','饺子','包子','馒头','面包','鸡蛋','牛奶','咖啡',
+    '水果','蔬菜','电脑','手机','电视','冰箱','洗衣机','空调','沙发','桌子',
+    '椅子','窗户','钥匙','钱包','书包','眼镜','手表','衣服','裤子','鞋子',
+    '帽子','围巾','手套','袜子','天气','太阳','月亮','星星','下雨','下雪',
+    '刮风','晴天','阴天','健康','生病','感冒','发烧','咳嗽','头疼','吃药',
+    '打针','住院','高兴','快乐','开心','难过','伤心','生气','着急','紧张',
+    '害怕','担心','放心','满意','讨厌','失望','愿意','同意','反对','支持',
+    '建议','意见','公司','经理','老板','员工','同事','秘书','部门','会议',
+    '文件','报告','计划','合同','工资','奖金','加班','请假','退休','面试',
+    '招聘','应聘','简历','经验','能力','技术','科学','研究','实验','发明',
+    '发现','创造','创新','发展','进步','提高','改善','环境','污染','保护',
+    '节约','浪费','回收','垃圾','环保','绿色','自然','空气','社会','国家',
+    '政府','人民','公民','法律','法院','警察','律师','犯罪','安全','危险',
+]);
+
+let COMPOUND_WORDS = new Set(FALLBACK_COMPOUNDS);
+let COMPOUND_SORTED = [];
+let MAX_COMPOUND_LEN = 4;
+let dictReady = false;
+let dictLoading = false;
+
+function rebuildDictIndex() {
+    COMPOUND_SORTED = Array.from(COMPOUND_WORDS).sort((a, b) => b.length - a.length);
+    MAX_COMPOUND_LEN = COMPOUND_SORTED.length > 0
+        ? Math.max(...COMPOUND_SORTED.map(w => w.length))
+        : 4;
+    updateDictStatusUI();
+}
+
+function updateDictStatusUI() {
+    const el = document.getElementById('dict-status');
+    if (!el) return;
+    if (dictLoading) {
+        el.innerHTML = `⏳ Đang tải từ điển HSK...`;
+    } else if (dictReady) {
+        el.innerHTML = `✅ <span style="color:var(--accent-green);font-weight:600;">${COMPOUND_WORDS.size.toLocaleString()}</span> từ ghép (HSK 1-6 + fallback)`;
+    } else {
+        el.innerHTML = `⏸️ Chưa tải (dùng fallback ${COMPOUND_WORDS.size} từ)`;
+    }
+}
+
+// ---------- Tải HSK 1-6 từ GitHub ----------
+async function loadCompoundDict() {
+    if (dictLoading) return;
+    dictLoading = true;
+    updateDictStatusUI();
+
+    // 1. Thử cache trước
+    try {
+        const cached = localStorage.getItem(DICT_CACHE_KEY);
+        const ts = localStorage.getItem(DICT_TIMESTAMP_KEY);
+        if (cached && ts) {
+            const age = Date.now() - parseInt(ts);
+            if (age < DICT_CACHE_EXPIRY) {
+                const arr = JSON.parse(cached);
+                if (Array.isArray(arr) && arr.length > 100) {
+                    COMPOUND_WORDS = new Set(arr);
+                    dictReady = true;
+                    dictLoading = false;
+                    rebuildDictIndex();
+                    console.log(`✅ Dict loaded from cache: ${arr.length} từ`);
+                    return;
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('⚠️ Cache dict lỗi:', e);
+    }
+
+    // 2. Tải HSK 1-6 từ GitHub (glxxyz/hskhsk.com)
+    const baseUrl = 'https://raw.githubusercontent.com/glxxyz/hskhsk.com/main/data/lists/';
+    const sources = [
+        'HSK%20Official%20With%20Definitions%202012%20L1.txt',
+        'HSK%20Official%20With%20Definitions%202012%20L2.txt',
+        'HSK%20Official%20With%20Definitions%202012%20L3.txt',
+        'HSK%20Official%20With%20Definitions%202012%20L4.txt',
+        'HSK%20Official%20With%20Definitions%202012%20L5.txt',
+        'HSK%20Official%20With%20Definitions%202012%20L6.txt',
+    ];
+
+    const collected = new Set();
+    let successCount = 0;
+
+    for (let i = 0; i < sources.length; i++) {
+        try {
+            const url = baseUrl + sources[i];
+            const res = await fetch(url, { mode: 'cors' });
+            if (!res.ok) {
+                console.warn(`⚠️ HSK L${i+1} HTTP ${res.status}`);
+                continue;
+            }
+            const text = await res.text();
+            const lines = text.split(/\r?\n/);
+            let countBefore = collected.size;
+            for (const line of lines) {
+                if (!line) continue;
+                // Format: "汉字\tnghĩa\t..."  — cột đầu là chữ Hán
+                const parts = line.split('\t');
+                if (parts.length === 0) continue;
+                let word = parts[0].trim();
+                if (!word) continue;
+                // Chỉ nhận nếu toàn chữ Hán
+                if (!/^[\u4E00-\u9FFF]+$/.test(word)) continue;
+                // Chỉ nhận từ 2-6 chữ
+                if (word.length < 2 || word.length > 6) continue;
+                collected.add(word);
+            }
+            const added = collected.size - countBefore;
+            successCount++;
+            console.log(`✅ HSK L${i+1}: +${added} từ (tổng ${collected.size})`);
+        } catch (e) {
+            console.warn(`⚠️ Không tải được HSK L${i+1}:`, e.message);
+        }
+    }
+
+    // 3. Trộn fallback
+    for (const w of FALLBACK_COMPOUNDS) collected.add(w);
+
+    if (collected.size > 100) {
+        COMPOUND_WORDS = collected;
+        dictReady = true;
+
+        // Lưu cache
+        try {
+            localStorage.setItem(DICT_CACHE_KEY, JSON.stringify(Array.from(collected)));
+            localStorage.setItem(DICT_TIMESTAMP_KEY, Date.now().toString());
+            console.log(`💾 Đã lưu HSK dict: ${collected.size} từ`);
+        } catch (e) {
+            console.warn('⚠️ Không lưu được HSK cache:', e);
+        }
+    } else {
+        COMPOUND_WORDS = new Set(FALLBACK_COMPOUNDS);
+        dictReady = true;
+        console.warn('⚠️ Không tải được HSK, dùng fallback');
+    }
+
+    dictLoading = false;
+    rebuildDictIndex();
+}
+
+async function forceReloadDict() {
+    try {
+        localStorage.removeItem(DICT_CACHE_KEY);
+        localStorage.removeItem(DICT_TIMESTAMP_KEY);
+    } catch (e) {}
+    dictReady = false;
+    dictLoading = false;
+    showToast('📚 Đang tải lại từ điển HSK...', 'info');
+    log('📚 Force reload HSK dict', 'info');
+    await loadCompoundDict();
+    showToast(`✅ Đã tải ${COMPOUND_WORDS.size.toLocaleString()} từ ghép`, 'success');
+    log(`✅ HSK dict loaded: ${COMPOUND_WORDS.size} từ`, 'ok');
+    // Re-render phụ đề hiện tại
+    rerenderAllSubtitles();
+}
+
+function rerenderAllSubtitles() {
+    // Library
+    if (librarySubtitles.length > 0 && libraryActiveSubIndex >= 0) {
+        const s = librarySubtitles[libraryActiveSubIndex];
+        if (s && s.rawLines) updateLibrarySubtitle(s.rawLines);
+    }
+    // Upload
+    if (uploadSubtitles.length > 0) {
+        const s = uploadSubtitles[0];
+        if (s && s.rawLines) updateUploadSubtitle(s.rawLines);
+    }
+}
+
+// Khởi tạo index ngay từ fallback
+rebuildDictIndex();
+
+// ============================================================
+// ✨ TÁCH TỪ TIẾNG TRUNG (MAXIMAL MATCHING)
+// ============================================================
+function segmentChinese(text) {
+    const result = [];
+    let i = 0;
+    const len = text.length;
+    
+    while (i < len) {
+        const ch = text[i];
+        
+        // Bỏ qua ký tự không phải chữ Hán
+        if (!/[\u4E00-\u9FFF]/.test(ch)) {
+            result.push({ text: ch, isCompound: false, isPunct: true });
+            i++;
+            continue;
+        }
+        
+        // Thử khớp từ dài nhất có thể
+        let matched = null;
+        const maxTry = Math.min(MAX_COMPOUND_LEN, len - i);
+        for (let l = maxTry; l >= 2; l--) {
+            const candidate = text.substring(i, i + l);
+            if (COMPOUND_WORDS.has(candidate)) {
+                matched = candidate;
+                break;
+            }
+        }
+        
+        if (matched) {
+            result.push({ text: matched, isCompound: true, isPunct: false });
+            i += matched.length;
+        } else {
+            result.push({ text: ch, isCompound: false, isPunct: false });
+            i++;
+        }
+    }
+    return result;
+}
+
+function escapeHtml(s) {
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function renderChineseLine(text) {
+    if (!text) return '';
+    const segments = segmentChinese(text);
+    return segments.map(seg => {
+        const safe = escapeHtml(seg.text);
+        if (seg.isPunct) return `<span class="word">${safe}</span>`;
+        if (seg.isCompound) return `<span class="word compound">${safe}</span>`;
+        return `<span class="word single">${safe}</span>`;
+    }).join('');
+}
+
+function renderPinyinLine(pinyinText, cnText) {
+    if (!pinyinText) return '';
+    const syllables = pinyinText.trim().split(/\s+/).filter(Boolean);
+    if (!cnText || !cnText.trim()) {
+        return escapeHtml(pinyinText);
+    }
+    
+    const segments = segmentChinese(cnText);
+    const syllableCounts = segments.map(seg => {
+        if (seg.isPunct) return 0;
+        return (seg.text.match(/[\u4E00-\u9FFF]/g) || []).length;
+    });
+    
+    const totalSyllables = syllableCounts.reduce((a, b) => a + b, 0);
+    if (totalSyllables !== syllables.length) {
+        return escapeHtml(pinyinText);
+    }
+    
+    let idx = 0;
+    const parts = [];
+    for (let k = 0; k < segments.length; k++) {
+        const seg = segments[k];
+        const count = syllableCounts[k];
+        if (count === 0) continue;
+        const syl = syllables.slice(idx, idx + count).join(' ');
+        idx += count;
+        const safe = escapeHtml(syl);
+        if (seg.isCompound) {
+            parts.push(`<span class="word compound">${safe}</span>`);
+        } else {
+            parts.push(`<span class="word single">${safe}</span>`);
+        }
+    }
+    
+    if (idx < syllables.length) {
+        const rest = syllables.slice(idx).join(' ');
+        parts.push(`<span class="word single">${escapeHtml(rest)}</span>`);
+    }
+    
+    return parts.join(' ');
+}
+
+function renderVietnameseLine(viText, cnText) {
+    if (!viText) return '';
+    const viWords = viText.trim().split(/\s+/).filter(Boolean);
+    if (!cnText || !cnText.trim()) {
+        return escapeHtml(viText);
+    }
+    
+    const segments = segmentChinese(cnText);
+    const hanziCounts = segments.map(seg => {
+        if (seg.isPunct) return 0;
+        return (seg.text.match(/[\u4E00-\u9FFF]/g) || []).length;
+    });
+    
+    const totalHanzi = hanziCounts.reduce((a, b) => a + b, 0);
+    if (totalHanzi === 0) return escapeHtml(viText);
+    
+    let viIdx = 0;
+    const parts = [];
+    for (let k = 0; k < segments.length; k++) {
+        const seg = segments[k];
+        const count = hanziCounts[k];
+        if (count === 0) continue;
+        
+        const viCount = Math.max(1, Math.round((count / totalHanzi) * viWords.length));
+        const chunk = viWords.slice(viIdx, viIdx + viCount).join(' ');
+        viIdx += viCount;
+        
+        if (!chunk) continue;
+        const safe = escapeHtml(chunk);
+        if (seg.isCompound) {
+            parts.push(`<span class="word compound">${safe}</span>`);
+        } else {
+            parts.push(`<span class="word single">${safe}</span>`);
+        }
+    }
+    
+    if (viIdx < viWords.length) {
+        const rest = viWords.slice(viIdx).join(' ');
+        parts.push(`<span class="word single">${escapeHtml(rest)}</span>`);
+    }
+    
+    return parts.join(' ');
+}
+
+// ============================================================
 // TOAST
 // ============================================================
 function showToast(message, type = 'info') {
@@ -1435,22 +1799,14 @@ async function fetchVideoInfo(videoId) {
         if (response.ok) {
             const data = await response.json();
             if (data && data.title) {
-                return {
-                    title: data.title,
-                    author_name: data.author_name || '',
-                    thumbnail_url: data.thumbnail_url || ''
-                };
+                return { title: data.title, author_name: data.author_name || '', thumbnail_url: data.thumbnail_url || '' };
             }
         }
         const response2 = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
         if (response2.ok) {
             const data = await response2.json();
             if (data && data.title) {
-                return {
-                    title: data.title,
-                    author_name: data.author_name || '',
-                    thumbnail_url: data.thumbnail_url || ''
-                };
+                return { title: data.title, author_name: data.author_name || '', thumbnail_url: data.thumbnail_url || '' };
             }
         }
         return null;
@@ -1460,16 +1816,8 @@ async function fetchVideoInfo(videoId) {
     }
 }
 
-// ============================================================
-// UPDATE PLAYER STATUS (ĐÃ ẨN, NHƯNG VẪN GIỮ HÀM ĐỂ KHÔNG LỖI)
-// ============================================================
-function updateUploadPlayerStatus(type, message, extra = '') {
-    // Đã ẩn nên không cần làm gì
-}
-
-function updateLibraryPlayerStatus(type, message, extra = '') {
-    // Đã ẩn nên không cần làm gì
-}
+function updateUploadPlayerStatus(type, message, extra = '') {}
+function updateLibraryPlayerStatus(type, message, extra = '') {}
 
 // ============================================================
 // UPDATE SUBTITLE BOXES
@@ -1480,11 +1828,15 @@ function updateUploadSubtitle(lines) {
         box.innerHTML = `<span class="label">📝 Upload Subtitles</span><span class="empty">Chưa có phụ đề</span>`;
         return;
     }
+    const cn = lines[0] || '';
+    const py = lines[1] || '';
+    const vi = lines[2] || '';
+    
     box.innerHTML = `
         <span class="label">📝 Upload Subtitles</span>
-        <div class="cn">${lines[0] || ''}</div>
-        <div class="py">${lines[1] || ''}</div>
-        <div class="vi">${lines[2] || ''}</div>
+        <div class="cn">${renderChineseLine(cn)}</div>
+        <div class="py">${renderPinyinLine(py, cn)}</div>
+        <div class="vi">${renderVietnameseLine(vi, cn)}</div>
     `;
 }
 
@@ -1494,16 +1846,20 @@ function updateLibrarySubtitle(lines) {
         box.innerHTML = `<span class="label">📝 Library Subtitles</span><span class="empty">Chọn phụ đề để xem</span>`;
         return;
     }
+    const cn = lines[0] || '';
+    const py = lines[1] || '';
+    const vi = lines[2] || '';
+    
     box.innerHTML = `
         <span class="label">📝 Library Subtitles</span>
-        <div class="cn">${lines[0] || ''}</div>
-        <div class="py">${lines[1] || ''}</div>
-        <div class="vi">${lines[2] || ''}</div>
+        <div class="cn">${renderChineseLine(cn)}</div>
+        <div class="py">${renderPinyinLine(py, cn)}</div>
+        <div class="vi">${renderVietnameseLine(vi, cn)}</div>
     `;
 }
 
 // ============================================================
-// SWITCH TAB - HIỂN/ẨN UPLOAD PLAYER
+// SWITCH TAB
 // ============================================================
 function switchTab(tab) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -1560,7 +1916,7 @@ function loadUploadPlayer(videoId) {
 }
 
 // ============================================================
-// HÀM XỬ LÝ KHI NHẬP URL YOUTUBE
+// YOUTUBE URL INPUT
 // ============================================================
 async function onYtUrlInput() {
     const val = document.getElementById('yt-url-input').value;
@@ -1604,7 +1960,6 @@ async function onYtUrlInput() {
                 hintEl.innerHTML = `✅ Video ID: <span class="id-found">${vid}</span>`;
                 statusEl.innerHTML = `✅ Video ID: <span class="id-found">${vid}</span><span style="color:var(--accent-green);display:block;font-size:9px;margin-top:2px;">✅ GitHub sẽ dùng ID này (KHÔNG tìm kiếm)</span>`;
                 displayEl.textContent = vid;
-                
                 log(`📌 Dùng Video ID từ link: ${vid} (không lấy được tên)`, 'id');
             }
             
@@ -1612,7 +1967,6 @@ async function onYtUrlInput() {
             if (subtitleMatch) {
                 loadUploadSubtitles(subtitleMatch);
             }
-            
         } else {
             hintEl.innerHTML = '⚠️ Không tìm thấy Video ID trong link';
             hintBox.style.display = 'none';
@@ -1660,7 +2014,7 @@ function clearYtUrl() {
 }
 
 // ============================================================
-// TÌM PHỤ ĐỀ CHO UPLOAD PLAYER
+// FIND SUBTITLE FOR UPLOAD
 // ============================================================
 function findMatchingSubtitleForUpload(videoId) {
     if (!videoId) return null;
@@ -1713,7 +2067,7 @@ function loadUploadSubtitles(item) {
 }
 
 // ============================================================
-// TÌM PHỤ ĐỀ TRONG LIBRARY
+// FIND & PLAY MATCHING
 // ============================================================
 function findSubtitleInLibrary(videoId) {
     if (!videoId) return false;
@@ -1755,7 +2109,7 @@ function findAndPlayMatchingInLibrary(videoId) {
 }
 
 // ============================================================
-// CLEAN SEARCH QUERY & SIMILARITY SCORE
+// CLEAN SEARCH QUERY & SIMILARITY
 // ============================================================
 function cleanSearchQuery(filename) {
     let name = filename;
@@ -1973,18 +2327,13 @@ function confirmRender() {
 // SKIP AND RENDER
 // ============================================================
 function skipAndRender() {
-    console.log('⏭️ skipAndRender() called');
-    console.log('📌 pendingRenderFile:', pendingRenderFile);
-    
     closeConfirmDialog();
     showToast('⏭️ Bỏ qua video, GitHub sẽ tự tìm kiếm theo tên file', 'info');
     log('⏭️ Người dùng chọn bỏ qua video, render với tên file', 'info');
     
     if (pendingRenderFile) {
-        console.log('📤 Gọi performRender với file:', pendingRenderFile);
         performRender(pendingRenderFile);
     } else {
-        console.error('❌ Không có file để render!');
         showToast('⚠️ Lỗi: Không tìm thấy file để render', 'error');
     }
 }
@@ -1997,15 +2346,8 @@ async function performRender(fileName) {
     const user = targetUser;
     const repo = targetRepo;
     
-    console.log('🚀 ===== PERFORM RENDER START =====');
-    console.log('📁 fileName:', fileName);
-    console.log('🎯 pendingVideoId:', pendingVideoId);
-    console.log('💾 currentSmartFileId:', currentSmartFileId);
-    console.log('🔑 token:', token ? '✅ CÓ' : '❌ KHÔNG');
-    
     if (!token) { 
         showToast('⚠️ Nhập GitHub Token trong Settings!', 'error');
-        console.error('❌ KHÔNG CÓ TOKEN!');
         return; 
     }
     
@@ -2016,7 +2358,6 @@ async function performRender(fileName) {
     
     if (!driveFileId) {
         showToast('⚠️ Không tìm thấy Drive File ID!', 'error');
-        console.error('❌ KHÔNG CÓ DRIVE FILE ID!');
         return;
     }
     
@@ -2044,8 +2385,6 @@ async function performRender(fileName) {
             timestamp: new Date().toISOString()
         }
     };
-    
-    console.log('📦 Payload gửi đi:', JSON.stringify(payload, null, 2));
     
     try {
         const response = await fetch(`https://api.github.com/repos/${user}/${repo}/dispatches`, {
@@ -2113,11 +2452,6 @@ async function renderFromFile() {
     const fileName = selectedFile.name;
     pendingRenderFile = fileName;
     
-    console.log('📌 renderFromFile() called');
-    console.log('📁 fileName:', fileName);
-    console.log('🎯 pendingVideoId:', pendingVideoId);
-    console.log('💾 driveFileId:', driveFileId);
-    
     if (pendingVideoId && pendingVideoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
         showToast(`✅ Dùng Video ID từ link: ${pendingVideoId}`, 'success');
         log(`📌 Render với Video ID từ link: ${pendingVideoId}`, 'id');
@@ -2147,7 +2481,6 @@ async function renderFromFile() {
             lowMatches, 
             fileName,
             (bestMatch) => {
-                console.log('✅ User chọn render với video:', bestMatch.title);
                 pendingVideoId = bestMatch.videoId;
                 currentVideoId = bestMatch.videoId;
                 document.getElementById('upload-vid-display').textContent = bestMatch.videoId;
@@ -2161,45 +2494,37 @@ async function renderFromFile() {
                 performRender(fileName);
             },
             () => {
-                console.log('⏭️ User chọn bỏ qua, gọi performRender với file:', fileName);
                 performRender(fileName);
             }
         );
         return;
     }
     
-    console.log('📤 Không có video nào, render bình thường');
     await performRender(fileName);
 }
 
 // ============================================================
-// 🎯 LOAD LIBRARY - CÓ CACHE
+// LOAD LIBRARY - CÓ CACHE
 // ============================================================
 async function loadLibrary(force = false) {
     const dropdown = document.getElementById('library-dropdown');
     
-    // Nếu có cache và không force refresh, dùng cache trước
     if (!force && !isCacheLoaded) {
         const cachedData = loadLibraryFromCache();
         if (cachedData && cachedData.length > 0) {
-            console.log(`📦 Đang dùng cache: ${cachedData.length} items`);
             libraryItems = cachedData;
             isCacheLoaded = true;
             updateLibraryDropdown();
             document.getElementById('library-status').textContent = `${libraryItems.length} subtitles (cached)`;
-            
-            // Vẫn fetch mới trong nền để cập nhật
             fetchLibraryInBackground();
             return;
         }
     }
     
-    // Fetch từ API
     dropdown.innerHTML = '<option value="">Loading...</option>';
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
     if (!token) { 
         dropdown.innerHTML = '<option value="">Enter GitHub Token</option>';
-        // Thử dùng cache nếu có
         const cachedData = loadLibraryFromCache();
         if (cachedData && cachedData.length > 0) {
             libraryItems = cachedData;
@@ -2277,7 +2602,6 @@ async function loadLibrary(force = false) {
         libraryItems = Array.from(uniqueItems.values());
         libraryItems.sort((a, b) => a.title.localeCompare(b.title));
         
-        // Lưu vào cache
         saveLibraryToCache(libraryItems);
         isCacheLoaded = true;
         
@@ -2294,7 +2618,6 @@ async function loadLibrary(force = false) {
     } catch (e) {
         dropdown.innerHTML = `<option value="">Error: ${e.message}</option>`;
         console.error(e);
-        // Thử dùng cache khi lỗi
         const cachedData = loadLibraryFromCache();
         if (cachedData && cachedData.length > 0) {
             libraryItems = cachedData;
@@ -2306,12 +2629,42 @@ async function loadLibrary(force = false) {
     }
 }
 
-// Fetch library trong nền để cập nhật
+// ============================================================
+// CACHE MANAGEMENT
+// ============================================================
+const CACHE_KEY = 'pinyin_ai_library_cache';
+const CACHE_TIMESTAMP_KEY = 'pinyin_ai_library_timestamp';
+const CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000;
+
+function saveLibraryToCache(libraryData) {
+    try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(libraryData));
+        localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
+    } catch (e) {}
+}
+
+function loadLibraryFromCache() {
+    try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+        
+        if (!cached || !timestamp) return null;
+        
+        const age = Date.now() - parseInt(timestamp);
+        if (age > CACHE_EXPIRY) return null;
+        
+        return JSON.parse(cached);
+    } catch (e) {
+        return null;
+    }
+}
+
 async function fetchLibraryInBackground() {
     try {
         const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
         if (!token) return;
         
+        // Reuse loadLibrary logic nhưng nhẹ hơn
         let allGists = [];
         let page = 1;
         let hasMore = true;
@@ -2378,17 +2731,13 @@ async function fetchLibraryInBackground() {
         const newItems = Array.from(uniqueItems.values());
         newItems.sort((a, b) => a.title.localeCompare(b.title));
         
-        // Chỉ cập nhật nếu có thay đổi
         if (JSON.stringify(newItems) !== JSON.stringify(libraryItems)) {
             libraryItems = newItems;
             saveLibraryToCache(libraryItems);
             updateLibraryDropdown();
             document.getElementById('library-status').textContent = `${libraryItems.length} subtitles (updated)`;
-            console.log('🔄 Đã cập nhật thư viện trong nền');
         }
-    } catch (e) {
-        console.warn('⚠️ Không thể cập nhật thư viện trong nền:', e);
-    }
+    } catch (e) {}
 }
 
 function updateLibraryDropdown() {
@@ -2544,17 +2893,32 @@ function loadLibraryPlayer(videoId, autoplay = true) {
     document.getElementById('library-player').innerHTML = '';
     document.getElementById('library-player-wrapper').classList.remove('hidden');
     
+    const currentSpeed = speeds[currentSpeedIndex];
+    document.getElementById('btn-speed').innerHTML = `${currentSpeed}x`;
+    
     libraryPlayer = new YT.Player('library-player', {
         height: '100%', width: '100%', videoId: videoId,
-        playerVars: { playsinline: 1, autoplay: autoplay ? 1 : 0, controls: 0, rel: 0, showinfo: 0, origin: window.location.origin, modestbranding: 1 },
+        playerVars: { 
+            playsinline: 1, 
+            autoplay: autoplay ? 1 : 0, 
+            controls: 0, 
+            rel: 0, 
+            showinfo: 0, 
+            origin: window.location.origin, 
+            modestbranding: 1 
+        },
         events: {
             onReady: (e) => {
                 libraryPlayerReady = true;
+                try {
+                    e.target.setPlaybackRate(currentSpeed);
+                } catch(err) {}
+                
                 startLibrarySync();
                 if (autoplay) {
                     e.target.playVideo();
                     updatePlayPauseBtn(true);
-                    showToast('▶️ Playing video', 'info');
+                    showToast(`▶️ Playing video (${currentSpeed}x)`, 'info');
                 } else {
                     e.target.pauseVideo();
                     updatePlayPauseBtn(false);
@@ -2570,12 +2934,15 @@ function loadLibraryPlayer(videoId, autoplay = true) {
             }
         }
     });
-    log(`🎬 Loading library video: ${videoId}`, 'info');
 }
 
 function onLibraryPlayerStateChange(e) {
     if (e.data == YT.PlayerState.PLAYING) {
         updatePlayPauseBtn(true);
+        if (libraryPlayer && libraryPlayer.setPlaybackRate) {
+            const currentSpeed = speeds[currentSpeedIndex];
+            try { libraryPlayer.setPlaybackRate(currentSpeed); } catch(err) {}
+        }
     } else if (e.data == YT.PlayerState.PAUSED) {
         updatePlayPauseBtn(false);
     } else if (e.data == YT.PlayerState.ENDED) {
@@ -2660,14 +3027,14 @@ function togglePlayPause() {
     } else {
         libraryPlayer.playVideo();
         updatePlayPauseBtn(true);
+        const currentSpeed = speeds[currentSpeedIndex];
+        try { libraryPlayer.setPlaybackRate(currentSpeed); } catch(err) {}
     }
 }
 
 function updatePlayPauseBtn(p) {
     const b = document.getElementById('btn-play-pause');
-    if (b) {
-        b.innerHTML = p ? '⏸' : '▶';
-    }
+    if (b) b.innerHTML = p ? '⏸' : '▶';
 }
 
 function toggleVideoVisibility() {
@@ -2678,12 +3045,22 @@ function cyclePlaybackRate() {
     currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
     let r = speeds[currentSpeedIndex];
     document.getElementById('btn-speed').innerHTML = `${r}x`;
-    if (libraryPlayer?.setPlaybackRate) libraryPlayer.setPlaybackRate(r);
+    savePlaybackSpeed(r);
+    
+    if (libraryPlayer && libraryPlayerReady && libraryPlayer.setPlaybackRate) {
+        try {
+            libraryPlayer.setPlaybackRate(r);
+            showToast(`⏩ Tốc độ: ${r}x`, 1500);
+        } catch(e) {}
+    } else {
+        showToast(`⏩ Tốc độ: ${r}x (sẽ áp dụng khi phát)`, 1500);
+    }
 }
 
 function toggleLoop() {
     isLoopEnabled = !isLoopEnabled;
     document.getElementById('btn-loop').classList.toggle('active', isLoopEnabled);
+    showToast(isLoopEnabled ? '🔁 Lặp: BẬT' : '🔁 Lặp: TẮT', 1000);
 }
 
 function updateFont(t, v) {
@@ -2706,7 +3083,6 @@ function copyYouTubeLink() {
     else { showToast('No video selected!', 'warning'); return; }
     navigator.clipboard.writeText(link).then(() => {
         showToast('Copied!', 'success');
-        log('Copied YouTube link', 'ok');
     }).catch(() => {
         const textarea = document.createElement('textarea');
         textarea.value = link;
@@ -2736,13 +3112,11 @@ async function deleteLibraryItem(index) {
     if (!token) { showToast('Enter GitHub Token!', 'error'); isDeleting = false; return; }
     try {
         showToast(`Deleting: ${item.title}...`, 'info');
-        log(`Deleting Gist: ${item.title}`, 'info');
         const deleteRes = await fetch(`https://api.github.com/gists/${item.gistId}`, {
             method: 'DELETE', headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
         });
         if (deleteRes.ok || deleteRes.status === 404) {
             libraryItems.splice(index, 1);
-            // Cập nhật cache sau khi xóa
             saveLibraryToCache(libraryItems);
             if (selectedLibraryIndex === index) { selectedLibraryIndex = -1; currentGistItem = null; libraryVideoId = null; resetLibraryPlayer(); }
             else if (selectedLibraryIndex > index) selectedLibraryIndex--;
@@ -2754,16 +3128,13 @@ async function deleteLibraryItem(index) {
             } else if (selectedLibraryIndex === -1) selectLibraryItem(0);
             showToast(`Deleted: ${item.title}`, 'success');
             log(`Deleted: ${item.title}`, 'ok');
-            updateLibrarySubtitle([]);
             document.getElementById('library-status').textContent = `Deleted: ${item.title}`;
         } else {
             const err = await deleteRes.text();
             showToast(`Error: ${err}`, 'error');
-            log(`Error: ${err}`, 'err');
         }
     } catch (e) {
         showToast(`Error: ${e.message}`, 'error');
-        log(`Error: ${e.message}`, 'err');
     }
     isDeleting = false;
 }
@@ -2817,27 +3188,22 @@ async function renameCurrentVideo() {
             currentGistItem.title = newTitle.trim();
             const idx = libraryItems.findIndex(item => item.gistId === currentGistItem.gistId);
             if (idx !== -1) libraryItems[idx].title = newTitle.trim();
-            // Cập nhật cache
             saveLibraryToCache(libraryItems);
             updateLibraryDropdown();
             updateLibraryInfo(currentGistItem);
             document.getElementById('library-status').textContent = `Renamed: ${newTitle.trim()}`;
             showToast(`Renamed: ${newTitle.trim()}`, 'success');
-            log(`Renamed: ${oldTitle} → ${newTitle.trim()}`, 'ok');
         } else {
             const err = await updateRes.text();
             showToast(`Error: ${err}`, 'error');
-            log(`Error: ${err}`, 'err');
         }
     } catch (e) {
         showToast(`Error: ${e.message}`, 'error');
-        log(`Error: ${e.message}`, 'err');
     }
     isRenaming = false;
 }
 
 function refreshLibrary() { 
-    // Force refresh, bỏ qua cache
     isCacheLoaded = false;
     loadLibrary(true); 
 }
@@ -2909,7 +3275,6 @@ function restoreDriveLink() {
         document.getElementById('smart-drive-link').value = saved;
         onSmartDriveInput();
         showToast('Restored saved Drive link', 'info');
-        log('Restored saved Drive link', 'info');
         return true;
     }
     return false;
@@ -2943,7 +3308,6 @@ function onSmartDriveInput() {
         document.getElementById('drive-info-box').style.display = 'block';
         document.getElementById('drive-file-id').textContent = fileId;
         document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">File link detected</span>`;
-        log(`File ID: ${fileId}`, 'info');
         saveDriveLink(val);
     } else if (folderId && hasApiKey) {
         isFolderMode = true;
@@ -2953,12 +3317,10 @@ function onSmartDriveInput() {
         document.getElementById('folder-area').style.display = 'block';
         document.getElementById('saved-folder-id').textContent = folderName;
         document.getElementById('drive-info').innerHTML = `<span class="status-badge drive">📁 Folder: ${folderName}</span>`;
-        log(`Folder ID: ${folderId}`, 'info');
         loadFilesFromFolder();
         saveDriveLink(val);
     } else if (folderId && !hasApiKey) {
         document.getElementById('drive-info').innerHTML = `<span class="status-badge">Need API Key</span>`;
-        log('Add Google API Key for folder browsing', 'warning');
     } else {
         document.getElementById('drive-info').innerHTML = `<span class="status-badge error">Invalid Drive link</span>`;
     }
@@ -2973,7 +3335,6 @@ function replaceDriveLink() {
     saveDriveLink(currentVal);
     document.getElementById('btn-replace-link').style.display = 'none';
     showToast('Drive link replaced!', 'success');
-    log(`Replaced Drive link with: ${currentVal}`, 'ok');
 }
 
 function clearSmartInput() {
@@ -3011,14 +3372,11 @@ async function loadFilesFromFolder() {
                 opt.textContent = `${file.name} (${sizeMB} MB)`;
                 select.appendChild(opt);
             });
-            log(`Loaded ${audioFiles.length} audio files`, 'ok');
         } else {
             select.innerHTML = '<option value="">Error loading</option>';
-            log('Error loading files from folder', 'err');
         }
     } catch (e) {
         select.innerHTML = '<option value="">Connection error</option>';
-        log('Error: ' + e.message, 'err');
     }
 }
 
@@ -3047,7 +3405,6 @@ function clearSavedFolder() {
     document.getElementById('btn-replace-link').style.display = 'none';
     document.getElementById('drive-info').innerHTML = '';
     document.getElementById('drive-info-box').style.display = 'none';
-    log('Cleared Drive folder and saved link', 'info');
     showToast('Folder and saved link cleared', 'success');
 }
 
@@ -3065,7 +3422,6 @@ function onFolderFileSelect() {
             document.getElementById('file-name').textContent = `📄 ${fileData.name} (Drive)`;
             document.getElementById('file-name').style.color = 'var(--text-primary)';
             document.getElementById('file-info').innerHTML = `<span class="status-badge drive">Drive file</span><span class="status-badge">${fileData.id}</span>`;
-            log(`Selected: ${fileData.name}`, 'info');
             showToast(`Selected: ${fileData.name}`, 'success');
             
             const fileName = fileData.name;
@@ -3079,7 +3435,6 @@ function onFolderFileSelect() {
                 }
             }
             if (bestMatch && bestScore > 0.3) {
-                log(`✅ Tìm thấy video trùng tên trong Library: ${bestMatch.title} (${Math.round(bestScore*100)}%)`, 'ok');
                 showToast(`🔍 Tìm thấy phụ đề: ${bestMatch.title} (${Math.round(bestScore*100)}%)`, 'info');
                 const idx = libraryItems.findIndex(i => i.videoId === bestMatch.videoId);
                 if (idx !== -1) selectLibraryItem(idx);
@@ -3107,11 +3462,10 @@ function handleFileSelect(file) {
 }
 
 // ============================================================
-// UPLOAD TO GITHUB
+// UPLOAD TO GITHUB (placeholder)
 // ============================================================
 async function uploadToGitHub() {
     showToast('Upload to GitHub', 'info');
-    log('Upload to GitHub', 'info');
 }
 
 // ============================================================
@@ -3119,34 +3473,24 @@ async function uploadToGitHub() {
 // ============================================================
 function toggleHideMode() {
     isHideMode = !isHideMode;
-    const btn = document.getElementById('btn-toggle-hide');
     const hideables = document.querySelectorAll('.hideable');
     if (isHideMode) {
         hideables.forEach(el => el.classList.add('hidden'));
-        btn.innerHTML = '👁';
-        log('🔒 Ẩn thành phần phụ (video, phụ đề, controls vẫn hiển thị)', 'info');
     } else {
         hideables.forEach(el => el.classList.remove('hidden'));
-        btn.innerHTML = '👁';
-        log('🔓 Hiện tất cả thành phần', 'info');
     }
 }
 
 function toggleFullSettings() {
     isSettingsVisible = !isSettingsVisible;
-    const btn = document.getElementById('btn-toggle-settings');
     const settingsGroup = document.getElementById('settings-group');
     const logCard = document.getElementById('log-card');
     if (isSettingsVisible) {
         settingsGroup.classList.remove('hidden');
         logCard.classList.remove('hidden');
-        btn.innerHTML = '⚙';
-        log('Settings & Log shown', 'info');
     } else {
         settingsGroup.classList.add('hidden');
         logCard.classList.add('hidden');
-        btn.innerHTML = '⚙';
-        log('Settings & Log hidden', 'info');
     }
 }
 
@@ -3177,9 +3521,23 @@ function onYouTubeIframeAPIReady() {
     loadSettings();
     loadProcessingState();
     checkPendingProcessing();
-    // Load library với cache
+    
+    // ✅ Tải HSK dict
+    loadCompoundDict().then(() => {
+        rerenderAllSubtitles();
+        log(`📚 HSK dict ready: ${COMPOUND_WORDS.size} từ`, 'ok');
+    });
+    
+    const savedSpeed = loadPlaybackSpeed();
+    if (savedSpeed) {
+        const idx = speeds.indexOf(savedSpeed);
+        if (idx !== -1) {
+            currentSpeedIndex = idx;
+            document.getElementById('btn-speed').innerHTML = `${savedSpeed}x`;
+        }
+    }
+    
     loadLibrary(false);
-    const apiKey = localStorage.google_api_key || '';
     setTimeout(() => { restoreDriveLink(); }, 500);
 }
 
@@ -3228,7 +3586,15 @@ window.addEventListener('load', function() {
     document.getElementById('upload-player-card').style.display = 'none';
     document.getElementById('upload-subtitle-box').style.display = 'none';
     
-    // Load library từ cache ngay lập tức
+    const savedSpeed = loadPlaybackSpeed();
+    if (savedSpeed) {
+        const idx = speeds.indexOf(savedSpeed);
+        if (idx !== -1) {
+            currentSpeedIndex = idx;
+            document.getElementById('btn-speed').innerHTML = `${savedSpeed}x`;
+        }
+    }
+    
     const cachedData = loadLibraryFromCache();
     if (cachedData && cachedData.length > 0) {
         libraryItems = cachedData;
@@ -3238,10 +3604,8 @@ window.addEventListener('load', function() {
         if (libraryItems.length > 0) {
             selectLibraryItem(0);
         }
-        console.log('📦 Đã load library từ cache khi khởi động');
     }
     
-    // Sau đó fetch dữ liệu mới
     setTimeout(() => {
         loadLibrary(false);
     }, 1000);
@@ -3254,24 +3618,8 @@ document.addEventListener('change', function(e) {
     }
 });
 
-// ============================================================
-// SERVICE WORKER - Cache thư viện cho chế độ offline
-// ============================================================
-// Đăng ký service worker để cache trang và dữ liệu
-if ('serviceWorker' in navigator) {
-    // Kiểm tra nếu đang chạy trên iOS (Safari)
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    if (!isIOS) {
-        // Chrome/Android có thể dùng service worker
-        try {
-            // Chỉ đăng ký nếu được hỗ trợ
-        } catch(e) {}
-    }
-}
-
-console.log('🎯 Pinyin AI - Cache enabled');
-console.log('📦 Library data được lưu vào localStorage để tránh load lại');
-console.log('🔄 Tự động refresh khi có dữ liệu mới');
+console.log('🎯 Pinyin AI v1.1 - HSK dict auto-load');
+console.log('📚 Từ điển HSK 1-6 được tải tự động và cache 30 ngày');
 </script>
 </body>
 </html>
