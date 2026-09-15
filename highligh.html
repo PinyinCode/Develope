@@ -201,7 +201,7 @@
         }
         
         /* ============================================================
-           ✨ WORD HIGHLIGHT — ĐƠN / GHÉP / ĐANG PHÁT
+           ✨ WORD HIGHLIGHT — CN + PY (VI không dùng)
            ============================================================ */
         .word {
             display: inline-block;
@@ -224,7 +224,7 @@
             text-shadow: 0 0 12px rgba(255, 214, 10, 0.2);
             border-bottom: 1.5px solid rgba(255, 214, 10, 0.4);
         }
-        /* Từ ĐANG PHÁT — chỉ CN + PY (không áp dụng cho VI) */
+        /* Từ ĐANG PHÁT — chỉ áp dụng cho CN + PY */
         .cn .word.active,
         .py .word.active {
             background: #ffffff !important;
@@ -246,18 +246,6 @@
             color: #ffd60a;
             font-weight: 700;
             text-shadow: none;
-        }
-        /* VI: chỉ tô màu từ ghép, không active */
-        .vi .word.compound {
-            color: #ffd60a;
-            font-weight: 700;
-            text-shadow: none;
-            background: rgba(255, 214, 10, 0.08);
-            border-bottom: 1px solid rgba(255, 214, 10, 0.3);
-        }
-        .vi .word.single {
-            color: var(--accent-teal);
-            opacity: 0.85;
         }
         
         /* ============================================================
@@ -1347,7 +1335,7 @@
                 </button>
             </div>
         </div>
-        <div class="settings-footer"><span class="version">v1.3 · HSK Sync</span></div>
+        <div class="settings-footer"><span class="version">v1.4 · HSK Sync</span></div>
     </div>
 
     <div class="card hideable hidden" id="log-card">
@@ -1643,7 +1631,7 @@ function escapeHtml(s) {
 }
 
 // ============================================================
-// ✨ BUILD SEGMENTS CHO PINYIN & VIỆT
+// ✨ BUILD SEGMENTS CHO PINYIN (theo CN)
 // ============================================================
 function buildSegmentsForPinyin(pinyinText, cnSegments) {
     if (!pinyinText) {
@@ -1688,82 +1676,21 @@ function buildSegmentsForPinyin(pinyinText, cnSegments) {
     return result;
 }
 
-function buildSegmentsForVietnamese(viText, cnSegments) {
-    if (!viText) {
-        return cnSegments.map(seg => ({ text: '', isCompound: seg.isCompound, isPunct: seg.isPunct }));
-    }
-    const viWords = viText.trim().split(/\s+/).filter(Boolean);
-    if (!cnSegments || cnSegments.length === 0) return [];
-    
-    const hanziCounts = cnSegments.map(seg => {
-        if (seg.isPunct) return 0;
-        return (seg.text.match(/[\u4E00-\u9FFF]/g) || []).length;
-    });
-    const totalHanzi = hanziCounts.reduce((a,b) => a+b, 0);
-    
-    if (totalHanzi === 0) {
-        let placed = false;
-        return cnSegments.map(seg => {
-            if (seg.isPunct) return { text: '', isCompound: false, isPunct: true };
-            if (!placed) {
-                placed = true;
-                return { text: viText, isCompound: seg.isCompound, isPunct: false };
-            }
-            return { text: '', isCompound: seg.isCompound, isPunct: false };
-        });
-    }
-    
-    const result = [];
-    let viIdx = 0;
-    for (let k = 0; k < cnSegments.length; k++) {
-        const count = hanziCounts[k];
-        if (count === 0) {
-            result.push({ text: '', isCompound: false, isPunct: true });
-        } else {
-            const viCount = Math.max(1, Math.round((count / totalHanzi) * viWords.length));
-            const chunk = viWords.slice(viIdx, viIdx + viCount).join(' ');
-            viIdx += viCount;
-            result.push({
-                text: chunk,
-                isCompound: cnSegments[k].isCompound,
-                isPunct: false
-            });
-        }
-    }
-    if (viIdx < viWords.length) {
-        for (let k = result.length - 1; k >= 0; k--) {
-            if (!result[k].isPunct && result[k].text) {
-                result[k].text = (result[k].text + ' ' + viWords.slice(viIdx).join(' ')).trim();
-                break;
-            }
-        }
-    }
-    return result;
-}
-
 // ============================================================
-// ✨ RENDER SEGMENTS
-// - syncable=true (CN, PY): gán data-word-idx để có thể active
-// - syncable=false (VI): KHÔNG gán data-word-idx, không bao giờ active
+// ✨ RENDER SEGMENTS — chỉ CN + PY dùng
 // ============================================================
-function renderSegments(segments, syncable = true) {
+function renderSegments(segments) {
     let wordIdx = 0;
     return segments.map(seg => {
         const safe = escapeHtml(seg.text);
         if (seg.isPunct || !seg.text) {
             return `<span class="word punct">${safe}</span>`;
         }
+        const thisIdx = wordIdx++;
         let cls = 'word';
         if (seg.isCompound) cls += ' compound';
         else cls += ' single';
-        
-        if (syncable) {
-            const thisIdx = wordIdx++;
-            return `<span class="${cls}" data-word-idx="${thisIdx}">${safe}</span>`;
-        } else {
-            // VI: chỉ hiển thị, không có data-word-idx
-            return `<span class="${cls}">${safe}</span>`;
-        }
+        return `<span class="${cls}" data-word-idx="${thisIdx}">${safe}</span>`;
     }).join(' ');
 }
 
@@ -1807,21 +1734,20 @@ function updateUploadPlayerStatus(type, message, extra = '') {}
 function updateLibraryPlayerStatus(type, message, extra = '') {}
 
 // ============================================================
-// ✨ RENDER SUBTITLE — CN + PY syncable, VI static
+// ✨ RENDER SUBTITLE — CN + PY sync, VI raw
 // ============================================================
 function renderSubtitleHTML(cn, py, vi, labelText) {
     const cnSegs = segmentChinese(cn);
     const pySegs = buildSegmentsForPinyin(py, cnSegs);
-    const viSegs = buildSegmentsForVietnamese(vi, cnSegs);
     
     currentActiveWordIdx = -1;
     currentSubTotalWords = cnSegs.filter(s => !s.isPunct).length;
     
     return `
         <span class="label">${labelText}</span>
-        <div class="cn">${renderSegments(cnSegs, true)}</div>
-        <div class="py">${renderSegments(pySegs, true)}</div>
-        <div class="vi">${renderSegments(viSegs, false)}</div>
+        <div class="cn">${renderSegments(cnSegs)}</div>
+        <div class="py">${renderSegments(pySegs)}</div>
+        <div class="vi">${escapeHtml(vi)}</div>
     `;
 }
 
@@ -1866,7 +1792,6 @@ function updateActiveWordGlobal(newIdx) {
         for (const boxId of boxes) {
             const box = document.getElementById(boxId);
             if (!box) continue;
-            // CHỈ CN và PY — KHÔNG áp dụng cho VI
             ['cn','py'].forEach(type => {
                 const el = box.querySelector(`.${type} .word[data-word-idx="${newIdx}"]`);
                 if (el && !el.classList.contains('punct')) el.classList.add('active');
@@ -3395,7 +3320,7 @@ document.addEventListener('change', function(e) {
     }
 });
 
-console.log('🎯 Pinyin AI v1.3 - CN + PY sync, VI only color');
+console.log('🎯 Pinyin AI v1.4 - CN + PY sync only');
 </script>
 </body>
 </html>
