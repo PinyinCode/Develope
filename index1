@@ -1324,6 +1324,38 @@
 
 <script>
 // ============================================================
+// 🎯 LƯU TRẠNG THÁI TỐC ĐỘ PHÁT
+// ============================================================
+const SPEED_STORAGE_KEY = 'pinyin_ai_playback_speed';
+
+function savePlaybackSpeed(speed) {
+    try {
+        localStorage.setItem(SPEED_STORAGE_KEY, speed.toString());
+        console.log(`✅ Đã lưu tốc độ phát: ${speed}x`);
+    } catch (e) {
+        console.warn('⚠️ Không thể lưu tốc độ:', e);
+    }
+}
+
+function loadPlaybackSpeed() {
+    try {
+        const saved = localStorage.getItem(SPEED_STORAGE_KEY);
+        if (saved) {
+            const speed = parseFloat(saved);
+            // Kiểm tra xem speed có hợp lệ không
+            const validSpeeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+            if (validSpeeds.includes(speed)) {
+                console.log(`✅ Đã load tốc độ đã lưu: ${speed}x`);
+                return speed;
+            }
+        }
+    } catch (e) {
+        console.warn('⚠️ Không thể load tốc độ:', e);
+    }
+    return 1.0; // Mặc định
+}
+
+// ============================================================
 // STATE
 // ============================================================
 // === PLAYER LIBRARY ===
@@ -1338,8 +1370,17 @@ let uploadSubtitles = [];
 
 // === CHUNG ===
 let currentGistItem=null;
-let isLoopEnabled=false, currentSpeedIndex=2;
+let isLoopEnabled=false;
+let currentSpeedIndex = 2; // Mặc định 1.0x
 const speeds=[0.5,0.75,1.0,1.25,1.5,2.0];
+
+// Load tốc độ đã lưu
+const savedSpeed = loadPlaybackSpeed();
+if (savedSpeed) {
+    currentSpeedIndex = speeds.indexOf(savedSpeed);
+    if (currentSpeedIndex === -1) currentSpeedIndex = 2;
+}
+
 let gh_cloud_map={};
 let selectedFile = null;
 let isUploading = false;
@@ -1367,6 +1408,7 @@ let confirmCallback = null;
 let confirmSkipCallback = null;
 let processingQueue = {};
 let processedLinks = {};
+let isCacheLoaded = false;
 
 // ============================================================
 // TOAST
@@ -2128,19 +2170,51 @@ async function renderFromFile() {
 }
 
 // ============================================================
-// LOAD LIBRARY
+// 🎯 LOAD LIBRARY - CÓ CACHE
 // ============================================================
 async function loadLibrary(force = false) {
     const dropdown = document.getElementById('library-dropdown');
+    
+    // Nếu có cache và không force refresh, dùng cache trước
+    if (!force && !isCacheLoaded) {
+        const cachedData = loadLibraryFromCache();
+        if (cachedData && cachedData.length > 0) {
+            console.log(`📦 Đang dùng cache: ${cachedData.length} items`);
+            libraryItems = cachedData;
+            isCacheLoaded = true;
+            updateLibraryDropdown();
+            document.getElementById('library-status').textContent = `${libraryItems.length} subtitles (cached)`;
+            
+            // Vẫn fetch mới trong nền để cập nhật
+            fetchLibraryInBackground();
+            return;
+        }
+    }
+    
+    // Fetch từ API
     dropdown.innerHTML = '<option value="">Loading...</option>';
     const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
-    if (!token) { dropdown.innerHTML = '<option value="">Enter GitHub Token</option>'; return; }
+    if (!token) { 
+        dropdown.innerHTML = '<option value="">Enter GitHub Token</option>';
+        // Thử dùng cache nếu có
+        const cachedData = loadLibraryFromCache();
+        if (cachedData && cachedData.length > 0) {
+            libraryItems = cachedData;
+            isCacheLoaded = true;
+            updateLibraryDropdown();
+            document.getElementById('library-status').textContent = `${libraryItems.length} subtitles (cached)`;
+        }
+        return; 
+    }
+    
     try {
         let allGists = [];
         let page = 1;
         let hasMore = true;
         while (hasMore && page <= 10) {
-            const res = await fetch(`https://api.github.com/gists?per_page=100&page=${page}`, { headers: { "Authorization": `token ${token}` } });
+            const res = await fetch(`https://api.github.com/gists?per_page=100&page=${page}`, { 
+                headers: { "Authorization": `token ${token}` } 
+            });
             if (!res.ok) break;
             const gists = await res.json();
             if (!gists || gists.length === 0) break;
@@ -2199,6 +2273,11 @@ async function loadLibrary(force = false) {
         }
         libraryItems = Array.from(uniqueItems.values());
         libraryItems.sort((a, b) => a.title.localeCompare(b.title));
+        
+        // Lưu vào cache
+        saveLibraryToCache(libraryItems);
+        isCacheLoaded = true;
+        
         updateLibraryDropdown();
         if (libraryItems.length === 0) {
             document.getElementById('library-status').textContent = 'No subtitles found';
@@ -2212,6 +2291,139 @@ async function loadLibrary(force = false) {
     } catch (e) {
         dropdown.innerHTML = `<option value="">Error: ${e.message}</option>`;
         console.error(e);
+        // Thử dùng cache khi lỗi
+        const cachedData = loadLibraryFromCache();
+        if (cachedData && cachedData.length > 0) {
+            libraryItems = cachedData;
+            isCacheLoaded = true;
+            updateLibraryDropdown();
+            document.getElementById('library-status').textContent = `${libraryItems.length} subtitles (cached - offline)`;
+            showToast('⚠️ Đang dùng dữ liệu cache (không kết nối được GitHub)', 'warning');
+        }
+    }
+}
+
+// ============================================================
+// CACHE MANAGEMENT
+// ============================================================
+const CACHE_KEY = 'pinyin_ai_library_cache';
+const CACHE_TIMESTAMP_KEY = 'pinyin_ai_library_timestamp';
+const CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 ngày
+
+function saveLibraryToCache(libraryData) {
+    try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(libraryData));
+        localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
+        console.log('✅ Đã lưu thư viện vào cache');
+    } catch (e) {
+        console.warn('⚠️ Không thể lưu cache:', e);
+    }
+}
+
+function loadLibraryFromCache() {
+    try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+        
+        if (!cached || !timestamp) return null;
+        
+        // Kiểm tra hết hạn
+        const age = Date.now() - parseInt(timestamp);
+        if (age > CACHE_EXPIRY) {
+            console.log('⏰ Cache đã hết hạn');
+            return null;
+        }
+        
+        const data = JSON.parse(cached);
+        console.log(`✅ Đã load cache (${Math.round(age/1000/60)} phút trước)`);
+        return data;
+    } catch (e) {
+        console.warn('⚠️ Lỗi đọc cache:', e);
+        return null;
+    }
+}
+
+async function fetchLibraryInBackground() {
+    try {
+        const token = localStorage.gh_token || document.getElementById('ghToken').value.trim();
+        if (!token) return;
+        
+        let allGists = [];
+        let page = 1;
+        let hasMore = true;
+        while (hasMore && page <= 10) {
+            const res = await fetch(`https://api.github.com/gists?per_page=100&page=${page}`, { 
+                headers: { "Authorization": `token ${token}` } 
+            });
+            if (!res.ok) break;
+            const gists = await res.json();
+            if (!gists || gists.length === 0) break;
+            allGists = allGists.concat(gists);
+            const linkHeader = res.headers.get('Link');
+            hasMore = linkHeader && linkHeader.includes('rel="next"');
+            page++;
+        }
+        
+        const uniqueItems = new Map();
+        for (let g of allGists) {
+            if (!g.files) continue;
+            const fileNames = Object.keys(g.files);
+            let infoFile = null, metadataFile = null, vttFile = null, summaryFile = null;
+            let videoId = null, baseName = null;
+            for (let fn of fileNames) {
+                if (fn.endsWith('.info.txt')) { infoFile = g.files[fn]; baseName = fn.replace('.info.txt', ''); }
+                else if (fn.endsWith('.metadata.json')) metadataFile = g.files[fn];
+                else if (fn.endsWith('.vtt')) vttFile = g.files[fn];
+                else if (fn.endsWith('_summary.json')) summaryFile = g.files[fn];
+            }
+            if (!infoFile || !metadataFile || !vttFile || !summaryFile) continue;
+            
+            let youtubeLink = '', title = baseName || 'Unknown', language = '';
+            try {
+                const infoRes = await fetch(infoFile.raw_url);
+                const infoContent = await infoRes.text();
+                const idMatch = infoContent.match(/Video ID:\s*([^\s]+)/i);
+                if (idMatch) videoId = idMatch[1];
+                const linkMatch = infoContent.match(/YouTube Link:\s*(https?:\/\/[^\s]+)/i);
+                if (linkMatch) youtubeLink = linkMatch[1];
+                const langMatch = infoContent.match(/Language:\s*([^\s]+)/i);
+                if (langMatch) language = langMatch[1];
+            } catch(e) {}
+            try {
+                const metaRes = await fetch(metadataFile.raw_url);
+                const metaContent = await metaRes.text();
+                const metadata = JSON.parse(metaContent);
+                if (metadata.video_id && metadata.video_id !== videoId) {
+                    const metaId = metadata.video_id;
+                    if (metaId && metaId.length > 11 && !metaId.includes('http')) title = metaId;
+                }
+                if (metadata.youtube_link) youtubeLink = metadata.youtube_link;
+            } catch(e) {}
+            if (!videoId) {
+                const idMatch = baseName.match(/[a-zA-Z0-9_-]{11}/);
+                if (idMatch) videoId = idMatch[1];
+            }
+            if (!videoId) continue;
+            if (uniqueItems.has(videoId)) continue;
+            uniqueItems.set(videoId, {
+                videoId, title, baseName, infoUrl: infoFile.raw_url, metadataUrl: metadataFile.raw_url,
+                vttUrl: vttFile.raw_url, summaryUrl: summaryFile.raw_url, youtubeLink, language,
+                gistId: g.id, gistUrl: g.html_url, description: g.description || ''
+            });
+        }
+        const newItems = Array.from(uniqueItems.values());
+        newItems.sort((a, b) => a.title.localeCompare(b.title));
+        
+        // Chỉ cập nhật nếu có thay đổi
+        if (JSON.stringify(newItems) !== JSON.stringify(libraryItems)) {
+            libraryItems = newItems;
+            saveLibraryToCache(libraryItems);
+            updateLibraryDropdown();
+            document.getElementById('library-status').textContent = `${libraryItems.length} subtitles (updated)`;
+            console.log('🔄 Đã cập nhật thư viện trong nền');
+        }
+    } catch (e) {
+        console.warn('⚠️ Không thể cập nhật thư viện trong nền:', e);
     }
 }
 
@@ -2356,7 +2568,7 @@ async function loadLibraryVideo(item, autoplay = true) {
 }
 
 // ============================================================
-// LOAD LIBRARY PLAYER
+// LOAD LIBRARY PLAYER - CÓ ÁP DỤNG TỐC ĐỘ ĐÃ LƯU
 // ============================================================
 function loadLibraryPlayer(videoId, autoplay = true) {
     if (libraryPlayer) {
@@ -2368,17 +2580,37 @@ function loadLibraryPlayer(videoId, autoplay = true) {
     document.getElementById('library-player').innerHTML = '';
     document.getElementById('library-player-wrapper').classList.remove('hidden');
     
+    // Lấy tốc độ hiện tại
+    const currentSpeed = speeds[currentSpeedIndex];
+    document.getElementById('btn-speed').innerHTML = `${currentSpeed}x`;
+    
     libraryPlayer = new YT.Player('library-player', {
         height: '100%', width: '100%', videoId: videoId,
-        playerVars: { playsinline: 1, autoplay: autoplay ? 1 : 0, controls: 0, rel: 0, showinfo: 0, origin: window.location.origin, modestbranding: 1 },
+        playerVars: { 
+            playsinline: 1, 
+            autoplay: autoplay ? 1 : 0, 
+            controls: 0, 
+            rel: 0, 
+            showinfo: 0, 
+            origin: window.location.origin, 
+            modestbranding: 1 
+        },
         events: {
             onReady: (e) => {
                 libraryPlayerReady = true;
+                // Áp dụng tốc độ đã lưu
+                try {
+                    e.target.setPlaybackRate(currentSpeed);
+                    console.log(`▶️ Áp dụng tốc độ: ${currentSpeed}x`);
+                } catch(err) {
+                    console.warn('⚠️ Không thể áp dụng tốc độ:', err);
+                }
+                
                 startLibrarySync();
                 if (autoplay) {
                     e.target.playVideo();
                     updatePlayPauseBtn(true);
-                    showToast('▶️ Playing video', 'info');
+                    showToast(`▶️ Playing video (${currentSpeed}x)`, 'info');
                 } else {
                     e.target.pauseVideo();
                     updatePlayPauseBtn(false);
@@ -2400,6 +2632,13 @@ function loadLibraryPlayer(videoId, autoplay = true) {
 function onLibraryPlayerStateChange(e) {
     if (e.data == YT.PlayerState.PLAYING) {
         updatePlayPauseBtn(true);
+        // Đảm bảo tốc độ luôn đúng khi phát
+        if (libraryPlayer && libraryPlayer.setPlaybackRate) {
+            const currentSpeed = speeds[currentSpeedIndex];
+            try {
+                libraryPlayer.setPlaybackRate(currentSpeed);
+            } catch(err) {}
+        }
     } else if (e.data == YT.PlayerState.PAUSED) {
         updatePlayPauseBtn(false);
     } else if (e.data == YT.PlayerState.ENDED) {
@@ -2484,6 +2723,11 @@ function togglePlayPause() {
     } else {
         libraryPlayer.playVideo();
         updatePlayPauseBtn(true);
+        // Đảm bảo tốc độ đúng khi phát
+        const currentSpeed = speeds[currentSpeedIndex];
+        try {
+            libraryPlayer.setPlaybackRate(currentSpeed);
+        } catch(err) {}
     }
 }
 
@@ -2502,12 +2746,28 @@ function cyclePlaybackRate() {
     currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
     let r = speeds[currentSpeedIndex];
     document.getElementById('btn-speed').innerHTML = `${r}x`;
-    if (libraryPlayer?.setPlaybackRate) libraryPlayer.setPlaybackRate(r);
+    
+    // Lưu tốc độ vào localStorage
+    savePlaybackSpeed(r);
+    
+    // Áp dụng cho player
+    if (libraryPlayer && libraryPlayerReady && libraryPlayer.setPlaybackRate) {
+        try {
+            libraryPlayer.setPlaybackRate(r);
+            console.log(`🔄 Đã đổi tốc độ: ${r}x`);
+            showToast(`⏩ Tốc độ: ${r}x`, 1500);
+        } catch(e) {
+            console.warn('⚠️ Không thể đổi tốc độ:', e);
+        }
+    } else {
+        showToast(`⏩ Tốc độ: ${r}x (sẽ áp dụng khi phát)`, 1500);
+    }
 }
 
 function toggleLoop() {
     isLoopEnabled = !isLoopEnabled;
     document.getElementById('btn-loop').classList.toggle('active', isLoopEnabled);
+    showToast(isLoopEnabled ? '🔁 Lặp: BẬT' : '🔁 Lặp: TẮT', 1000);
 }
 
 function updateFont(t, v) {
@@ -2566,6 +2826,8 @@ async function deleteLibraryItem(index) {
         });
         if (deleteRes.ok || deleteRes.status === 404) {
             libraryItems.splice(index, 1);
+            // Cập nhật cache sau khi xóa
+            saveLibraryToCache(libraryItems);
             if (selectedLibraryIndex === index) { selectedLibraryIndex = -1; currentGistItem = null; libraryVideoId = null; resetLibraryPlayer(); }
             else if (selectedLibraryIndex > index) selectedLibraryIndex--;
             updateLibraryDropdown();
@@ -2639,6 +2901,8 @@ async function renameCurrentVideo() {
             currentGistItem.title = newTitle.trim();
             const idx = libraryItems.findIndex(item => item.gistId === currentGistItem.gistId);
             if (idx !== -1) libraryItems[idx].title = newTitle.trim();
+            // Cập nhật cache
+            saveLibraryToCache(libraryItems);
             updateLibraryDropdown();
             updateLibraryInfo(currentGistItem);
             document.getElementById('library-status').textContent = `Renamed: ${newTitle.trim()}`;
@@ -2656,7 +2920,11 @@ async function renameCurrentVideo() {
     isRenaming = false;
 }
 
-function refreshLibrary() { loadLibrary(true); }
+function refreshLibrary() { 
+    // Force refresh, bỏ qua cache
+    isCacheLoaded = false;
+    loadLibrary(true); 
+}
 
 // ============================================================
 // LOG & PROGRESS
@@ -2993,6 +3261,19 @@ function onYouTubeIframeAPIReady() {
     loadSettings();
     loadProcessingState();
     checkPendingProcessing();
+    
+    // Khôi phục tốc độ đã lưu
+    const savedSpeed = loadPlaybackSpeed();
+    if (savedSpeed) {
+        const idx = speeds.indexOf(savedSpeed);
+        if (idx !== -1) {
+            currentSpeedIndex = idx;
+            document.getElementById('btn-speed').innerHTML = `${savedSpeed}x`;
+            console.log(`✅ Đã khôi phục tốc độ: ${savedSpeed}x`);
+        }
+    }
+    
+    // Load library với cache
     loadLibrary(false);
     const apiKey = localStorage.google_api_key || '';
     setTimeout(() => { restoreDriveLink(); }, 500);
@@ -3042,7 +3323,35 @@ window.addEventListener('load', function() {
     checkPendingProcessing();
     document.getElementById('upload-player-card').style.display = 'none';
     document.getElementById('upload-subtitle-box').style.display = 'none';
-    setTimeout(() => loadLibrary(true), 1000);
+    
+    // Khôi phục tốc độ đã lưu
+    const savedSpeed = loadPlaybackSpeed();
+    if (savedSpeed) {
+        const idx = speeds.indexOf(savedSpeed);
+        if (idx !== -1) {
+            currentSpeedIndex = idx;
+            document.getElementById('btn-speed').innerHTML = `${savedSpeed}x`;
+            console.log(`✅ Đã khôi phục tốc độ: ${savedSpeed}x`);
+        }
+    }
+    
+    // Load library từ cache ngay lập tức
+    const cachedData = loadLibraryFromCache();
+    if (cachedData && cachedData.length > 0) {
+        libraryItems = cachedData;
+        isCacheLoaded = true;
+        updateLibraryDropdown();
+        document.getElementById('library-status').textContent = `${libraryItems.length} subtitles (cached)`;
+        if (libraryItems.length > 0) {
+            selectLibraryItem(0);
+        }
+        console.log('📦 Đã load library từ cache khi khởi động');
+    }
+    
+    // Sau đó fetch dữ liệu mới
+    setTimeout(() => {
+        loadLibrary(false);
+    }, 1000);
 });
 
 document.addEventListener('change', function(e) {
@@ -3051,6 +3360,11 @@ document.addEventListener('change', function(e) {
         setTimeout(saveSettings, 500);
     }
 });
+
+console.log('🎯 Pinyin AI - Playback speed saved');
+console.log('🎯 Pinyin AI - Cache enabled');
+console.log('📦 Library data được lưu vào localStorage để tránh load lại');
+console.log('🔄 Tốc độ phát được lưu và khôi phục tự động');
 </script>
 </body>
 </html>
