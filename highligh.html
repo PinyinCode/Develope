@@ -224,8 +224,9 @@
             text-shadow: 0 0 12px rgba(255, 214, 10, 0.2);
             border-bottom: 1.5px solid rgba(255, 214, 10, 0.4);
         }
-        /* Từ ĐANG PHÁT — sáng rực + scale nhẹ */
-        .word.active {
+        /* Từ ĐANG PHÁT — chỉ CN + PY (không áp dụng cho VI) */
+        .cn .word.active,
+        .py .word.active {
             background: #ffffff !important;
             color: #000000 !important;
             font-weight: 900 !important;
@@ -236,30 +237,27 @@
             padding: 0 4px;
             opacity: 1 !important;
         }
-        /* Pinyin dòng: active nhẹ hơn chút */
         .py .word.active {
             transform: scale(1.06);
             box-shadow: 0 0 12px rgba(255, 255, 255, 0.55);
             background: rgba(255, 255, 255, 0.95) !important;
-        }
-        /* Việt dòng: active nhẹ hơn nữa */
-        .vi .word.active {
-            transform: scale(1.04);
-            box-shadow: 0 0 8px rgba(255, 255, 255, 0.45);
-            background: rgba(255, 255, 255, 0.9) !important;
         }
         .py .word.compound {
             color: #ffd60a;
             font-weight: 700;
             text-shadow: none;
         }
+        /* VI: chỉ tô màu từ ghép, không active */
         .vi .word.compound {
             color: #ffd60a;
             font-weight: 700;
             text-shadow: none;
+            background: rgba(255, 214, 10, 0.08);
+            border-bottom: 1px solid rgba(255, 214, 10, 0.3);
         }
         .vi .word.single {
             color: var(--accent-teal);
+            opacity: 0.85;
         }
         
         /* ============================================================
@@ -1349,7 +1347,7 @@
                 </button>
             </div>
         </div>
-        <div class="settings-footer"><span class="version">v1.2 · HSK + Sync</span></div>
+        <div class="settings-footer"><span class="version">v1.3 · HSK Sync</span></div>
     </div>
 
     <div class="card hideable hidden" id="log-card">
@@ -1432,13 +1430,12 @@ let processedLinks = {};
 let isCacheLoaded = false;
 
 // ============================================================
-// ✨ SYNC STATE
+// ✨ SYNC STATE (chỉ dùng cho CN + PY)
 // ============================================================
-let currentActiveWordIdx = -1;       // index từ đang phát trong câu hiện tại
+let currentActiveWordIdx = -1;
 let currentSubStartTime = 0;
 let currentSubEndTime = 0;
 let currentSubTotalWords = 0;
-let currentSubSegmentsCN = [];       // mảng segments CN của câu đang phát
 
 // ============================================================
 // ✨ HSK DICT
@@ -1582,10 +1579,8 @@ async function forceReloadDict() {
     dictReady = false;
     dictLoading = false;
     showToast('📚 Đang tải lại từ điển HSK...', 'info');
-    log('📚 Force reload HSK dict', 'info');
     await loadCompoundDict();
     showToast(`✅ Đã tải ${COMPOUND_WORDS.size.toLocaleString()} từ ghép`, 'success');
-    log(`✅ HSK dict loaded: ${COMPOUND_WORDS.size} từ`, 'ok');
     rerenderAllSubtitles();
 }
 
@@ -1650,9 +1645,6 @@ function escapeHtml(s) {
 // ============================================================
 // ✨ BUILD SEGMENTS CHO PINYIN & VIỆT
 // ============================================================
-// Mỗi segment của PY/VI tương ứng 1-1 với segment CN
-// để active index đồng bộ trên cả 3 dòng.
-
 function buildSegmentsForPinyin(pinyinText, cnSegments) {
     if (!pinyinText) {
         return cnSegments.map(seg => ({ text: '', isCompound: seg.isCompound, isPunct: seg.isPunct }));
@@ -1666,9 +1658,7 @@ function buildSegmentsForPinyin(pinyinText, cnSegments) {
     });
     const total = counts.reduce((a,b) => a+b, 0);
     
-    // Nếu không khớp syllable, trả về mảng rỗng cho các seg (chỉ hiển thị pinyin nguyên bản ở dòng đầu)
     if (total !== syllables.length) {
-        // Fallback: gộp toàn bộ pinyin vào segment đầu tiên không punct
         let placed = false;
         return cnSegments.map(seg => {
             if (seg.isPunct) return { text: '', isCompound: false, isPunct: true };
@@ -1740,7 +1730,6 @@ function buildSegmentsForVietnamese(viText, cnSegments) {
             });
         }
     }
-    // phần dư → thêm vào segment không punct cuối
     if (viIdx < viWords.length) {
         for (let k = result.length - 1; k >= 0; k--) {
             if (!result[k].isPunct && result[k].text) {
@@ -1753,22 +1742,28 @@ function buildSegmentsForVietnamese(viText, cnSegments) {
 }
 
 // ============================================================
-// ✨ RENDER SEGMENTS — có data-word-idx để sync
+// ✨ RENDER SEGMENTS
+// - syncable=true (CN, PY): gán data-word-idx để có thể active
+// - syncable=false (VI): KHÔNG gán data-word-idx, không bao giờ active
 // ============================================================
-// Chỉ số word đếm cho các segment không punct (khớp giữa 3 dòng)
-function renderSegments(segments) {
+function renderSegments(segments, syncable = true) {
     let wordIdx = 0;
     return segments.map(seg => {
         const safe = escapeHtml(seg.text);
         if (seg.isPunct || !seg.text) {
-            // Punct không chiếm index → vẫn render để giữ dấu câu
-            return `<span class="word punct" data-word-idx="-1">${safe}</span>`;
+            return `<span class="word punct">${safe}</span>`;
         }
-        const thisIdx = wordIdx++;
         let cls = 'word';
         if (seg.isCompound) cls += ' compound';
         else cls += ' single';
-        return `<span class="${cls}" data-word-idx="${thisIdx}">${safe}</span>`;
+        
+        if (syncable) {
+            const thisIdx = wordIdx++;
+            return `<span class="${cls}" data-word-idx="${thisIdx}">${safe}</span>`;
+        } else {
+            // VI: chỉ hiển thị, không có data-word-idx
+            return `<span class="${cls}">${safe}</span>`;
+        }
     }).join(' ');
 }
 
@@ -1812,27 +1807,22 @@ function updateUploadPlayerStatus(type, message, extra = '') {}
 function updateLibraryPlayerStatus(type, message, extra = '') {}
 
 // ============================================================
-// ✨ UPDATE SUBTITLE BOXES — có data-word-idx
+// ✨ RENDER SUBTITLE — CN + PY syncable, VI static
 // ============================================================
 function renderSubtitleHTML(cn, py, vi, labelText) {
     const cnSegs = segmentChinese(cn);
     const pySegs = buildSegmentsForPinyin(py, cnSegs);
     const viSegs = buildSegmentsForVietnamese(vi, cnSegs);
     
-    // Reset sync state
     currentActiveWordIdx = -1;
-    currentSubSegmentsCN = cnSegs;
     currentSubTotalWords = cnSegs.filter(s => !s.isPunct).length;
     
-    return {
-        html: `
-            <span class="label">${labelText}</span>
-            <div class="cn">${renderSegments(cnSegs)}</div>
-            <div class="py">${renderSegments(pySegs)}</div>
-            <div class="vi">${renderSegments(viSegs)}</div>
-        `,
-        cnSegs
-    };
+    return `
+        <span class="label">${labelText}</span>
+        <div class="cn">${renderSegments(cnSegs, true)}</div>
+        <div class="py">${renderSegments(pySegs, true)}</div>
+        <div class="vi">${renderSegments(viSegs, false)}</div>
+    `;
 }
 
 function updateUploadSubtitle(lines, startTime, endTime) {
@@ -1844,8 +1834,7 @@ function updateUploadSubtitle(lines, startTime, endTime) {
     const cn = lines[0] || '';
     const py = lines[1] || '';
     const vi = lines[2] || '';
-    const r = renderSubtitleHTML(cn, py, vi, '📝 Upload Subtitles');
-    box.innerHTML = r.html;
+    box.innerHTML = renderSubtitleHTML(cn, py, vi, '📝 Upload Subtitles');
     currentSubStartTime = startTime || 0;
     currentSubEndTime = endTime || 0;
 }
@@ -1859,19 +1848,17 @@ function updateLibrarySubtitle(lines, startTime, endTime) {
     const cn = lines[0] || '';
     const py = lines[1] || '';
     const vi = lines[2] || '';
-    const r = renderSubtitleHTML(cn, py, vi, '📝 Library Subtitles');
-    box.innerHTML = r.html;
+    box.innerHTML = renderSubtitleHTML(cn, py, vi, '📝 Library Subtitles');
     currentSubStartTime = startTime || 0;
     currentSubEndTime = endTime || 0;
 }
 
 // ============================================================
-// ✨ UPDATE ACTIVE WORD — đồng bộ CN + PY + VI
+// ✨ UPDATE ACTIVE — CHỈ CN + PY
 // ============================================================
 function updateActiveWordGlobal(newIdx) {
     if (newIdx === currentActiveWordIdx) return;
     
-    // Bỏ active cũ trên tất cả box
     document.querySelectorAll('.word.active').forEach(el => el.classList.remove('active'));
     
     if (newIdx >= 0) {
@@ -1879,7 +1866,8 @@ function updateActiveWordGlobal(newIdx) {
         for (const boxId of boxes) {
             const box = document.getElementById(boxId);
             if (!box) continue;
-            ['cn','py','vi'].forEach(type => {
+            // CHỈ CN và PY — KHÔNG áp dụng cho VI
+            ['cn','py'].forEach(type => {
                 const el = box.querySelector(`.${type} .word[data-word-idx="${newIdx}"]`);
                 if (el && !el.classList.contains('punct')) el.classList.add('active');
             });
@@ -1888,7 +1876,6 @@ function updateActiveWordGlobal(newIdx) {
     currentActiveWordIdx = newIdx;
 }
 
-// Tính từ index từ currentTime
 function syncActiveWord(t) {
     if (currentSubTotalWords === 0) return;
     if (currentSubEndTime <= currentSubStartTime) return;
@@ -2422,7 +2409,6 @@ async function loadLibrary(force = false) {
             isCacheLoaded = true;
             updateLibraryDropdown();
             document.getElementById('library-status').textContent = `${libraryItems.length} subtitles (cached)`;
-            fetchLibraryInBackground();
             return;
         }
     }
@@ -2551,11 +2537,6 @@ function loadLibraryFromCache() {
         if (age > CACHE_EXPIRY) return null;
         return JSON.parse(cached);
     } catch (e) { return null; }
-}
-
-async function fetchLibraryInBackground() {
-    // Bỏ qua — dùng refreshLibrary thủ công để đơn giản
-    return;
 }
 
 function updateLibraryDropdown() {
@@ -2758,7 +2739,7 @@ function onLibraryPlayerStateChange(e) {
 }
 
 // ============================================================
-// ✨ LIBRARY SYNC — sync cả câu & từ
+// ✨ LIBRARY SYNC
 // ============================================================
 function startLibrarySync() {
     if (librarySyncInterval) clearInterval(librarySyncInterval);
@@ -2773,16 +2754,13 @@ function librarySyncSub() {
     const idx = librarySubtitles.findIndex(s => t >= s.start && t <= s.end);
     
     if (idx !== -1 && idx !== libraryActiveSubIndex) {
-        // Sang câu mới
         libraryActiveSubIndex = idx;
         const s = librarySubtitles[idx];
         updateLibrarySubtitle(s.rawLines || [], s.start, s.end);
         syncActiveWord(t);
     } else if (idx !== -1) {
-        // Vẫn trong câu — chỉ update active word
         syncActiveWord(t);
     } else {
-        // Ngoài câu — bỏ active
         if (currentActiveWordIdx !== -1) updateActiveWordGlobal(-1);
     }
 }
@@ -3417,7 +3395,7 @@ document.addEventListener('change', function(e) {
     }
 });
 
-console.log('🎯 Pinyin AI v1.2 - Sync highlight');
+console.log('🎯 Pinyin AI v1.3 - CN + PY sync, VI only color');
 </script>
 </body>
 </html>
