@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Chuyển file Excel → HTML tự chứa dữ liệu
+- Khung vẽ chữ Hán có ô 米字格, chữ nằm gọn chính giữa
 - Tích hợp Hanzi Writer: luyện viết chữ Hán trong modal popup
 - Font chữ Trung tối ưu (PingFang SC/Microsoft YaHei/Noto Sans SC)
 - 3 nút toggle (FAB) cố định góc dưới phải
@@ -945,6 +946,7 @@ tr.tapped td{animation:tapPulse .6s}
     box-shadow:0 4px 10px rgba(37,99,235,.3);
 }
 
+/* ✅ Khung vẽ chữ Hán với ô 米字格 */
 .writer-target{
     width:280px;
     height:280px;
@@ -954,8 +956,36 @@ tr.tapped td{animation:tapPulse .6s}
     position:relative;
     box-shadow:inset 0 0 0 2px var(--border);
     overflow:hidden;
+    /* Ô 米字格: đường ngang + dọc + 2 đường chéo mờ */
+    background-image:
+        linear-gradient(to right,
+            transparent calc(50% - 0.5px),
+            #e2e8f0 calc(50% - 0.5px),
+            #e2e8f0 calc(50% + 0.5px),
+            transparent calc(50% + 0.5px)),
+        linear-gradient(to bottom,
+            transparent calc(50% - 0.5px),
+            #e2e8f0 calc(50% - 0.5px),
+            #e2e8f0 calc(50% + 0.5px),
+            transparent calc(50% + 0.5px)),
+        linear-gradient(45deg,
+            transparent calc(50% - 0.5px),
+            #e2e8f0 calc(50% - 0.5px),
+            #e2e8f0 calc(50% + 0.5px),
+            transparent calc(50% + 0.5px)),
+        linear-gradient(-45deg,
+            transparent calc(50% - 0.5px),
+            #e2e8f0 calc(50% - 0.5px),
+            #e2e8f0 calc(50% + 0.5px),
+            transparent calc(50% + 0.5px));
 }
-.writer-target svg{display:block;width:100%;height:100%}
+.writer-target svg{
+    display:block;
+    width:100%;
+    height:100%;
+    position:relative;
+    z-index:1;
+}
 
 .writer-controls{
     display:flex;
@@ -1733,16 +1763,24 @@ function showWriterChar(char) {
     setTimeout(function() {
         try {
             target.innerHTML = '';
+            
+            // ✅ Lấy kích thước thực tế để hỗ trợ responsive
+            var targetSize = target.offsetWidth || 280;
+            // Padding 6% để chữ nằm gọn trong ô 米字格, không chạm viền
+            var padSize = Math.round(targetSize * 0.06);
+            // Nét vẽ ~7% kích thước để cân đối
+            var drawWidth = Math.round(targetSize * 0.07);
+            
             writerInstance = HanziWriter.create('writerTarget', char, {
-                width: 280,
-                height: 280,
-                padding: 8,
+                width: targetSize,
+                height: targetSize,
+                padding: padSize,
                 strokeColor: '#1e293b',
                 radicalColor: '#2563eb',
                 highlightColor: '#f59e0b',
                 outlineColor: '#cbd5e1',
                 drawingColor: '#2563eb',
-                drawingWidth: 20,
+                drawingWidth: drawWidth,
                 showOutline: true,
                 strokeAnimationSpeed: 1,
                 delayBetweenStrokes: 250,
