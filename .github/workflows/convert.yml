@@ -6,7 +6,7 @@ on:
       - 'data/input.xlsx'
       - 'scripts/convert.py'
       - '.github/workflows/convert.yml'
-  workflow_dispatch:  # Cho phép chạy thủ công
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -43,7 +43,7 @@ jobs:
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actionsupload-pages-artifact@v3
         with:
           path: '.'
 
