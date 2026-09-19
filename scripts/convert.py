@@ -4,6 +4,7 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - Giao diện hiện đại, responsive (card view mobile, table desktop)
 - Dark mode toggle
 - Toggle ẩn/hiện: Pinyin, Tiếng Việt, Ô nhập tiếng Trung (mặc định ẩn)
+- Hiển thị cột Chủ điểm (nhưng không có filter Chủ điểm)
 - Phát âm bằng Web Speech API
 - Hỗ trợ iPhone notch
 """
@@ -206,7 +207,7 @@ body{
     border-radius:var(--radius);
     box-shadow:0 10px 30px rgba(0,0,0,.15);
     padding:.5rem;
-    min-width:220px;
+    min-width:230px;
     display:none;
     z-index:200;
 }
@@ -249,8 +250,6 @@ body{
     white-space:nowrap;
 }
 .stats-pill b{font-weight:800}
-
-/* Wrapper cho toggle panel */
 .toggle-wrapper{position:relative}
 
 /* ========== MAIN ========== */
@@ -306,7 +305,7 @@ body{
 .search-clear.show{display:flex}
 .search-clear:hover{background:var(--danger-light);color:var(--danger)}
 
-/* ========== FILTERS ========== */
+/* ========== FILTERS (chỉ HSK + Chủ đề) ========== */
 .filters{
     display:grid;
     grid-template-columns:1fr 1fr auto;
@@ -397,7 +396,6 @@ body{
 }
 
 /* ========== TOGGLE CLASSES ========== */
-/* Mặc định: pinyin + vi ẩn, practice ẩn */
 body:not(.show-pinyin) .col-pinyin,
 body:not(.show-pinyin) .card-pinyin{display:none!important}
 body:not(.show-vi) .col-vi,
@@ -456,7 +454,8 @@ tbody tr:last-child td{border-bottom:none}
     font-weight:700;
     white-space:nowrap;
 }
-.topic-cell,.subject-cell{font-size:.82rem;color:var(--text-2)}
+.topic-cell{font-size:.8rem;color:var(--text-2);font-weight:500}
+.subject-cell{font-size:.82rem;color:var(--text-2)}
 .vi-cell{font-size:.85rem;color:var(--text)}
 .zh-cell{font-size:.95rem;font-weight:600;color:var(--text)}
 .pinyin{
@@ -564,6 +563,8 @@ tbody tr:last-child td{border-bottom:none}
     white-space:nowrap;
 }
 .card-tag.hsk{background:var(--primary-light);color:var(--primary-dark)}
+.card-tag.topic{background:#fef3c7;color:#92400e}
+[data-theme="dark"] .card-tag.topic{background:#78350f;color:#fde68a}
 .card-body{margin-bottom:.75rem}
 .card-vi{
     font-size:.85rem;
@@ -738,7 +739,7 @@ tbody tr:last-child td{border-bottom:none}
             </button>
         </div>
 
-        <!-- FILTERS (chỉ còn HSK + Chủ đề + Đặt lại) -->
+        <!-- FILTERS (chỉ HSK + Chủ đề + Đặt lại) -->
         <div class="filters">
             <div class="chip" id="hskChip">
                 <span class="chip-label">HSK</span>
@@ -822,14 +823,12 @@ $('themeToggle').addEventListener('click', function() {
 });
 
 /* ========== TOGGLE HIỂN THỊ ========== */
-// Mặc định: tất cả ẩn
 var displayState = {
     vi: false,
     pinyin: false,
     practice: false
 };
 
-// Load từ localStorage
 (function initDisplay() {
     try {
         var saved = localStorage.getItem('displayState');
@@ -841,7 +840,6 @@ var displayState = {
         }
     } catch(e) {}
     applyDisplayState();
-    // Cập nhật checkbox
     $('toggleVi').checked = displayState.vi;
     $('togglePinyin').checked = displayState.pinyin;
     $('togglePractice').checked = displayState.practice;
@@ -867,20 +865,17 @@ function updateToggleIcon() {
     $('toggleBtn').classList.toggle('active', active);
 }
 
-// Mở/đóng panel
 $('toggleBtn').addEventListener('click', function(e) {
     e.stopPropagation();
     $('togglePanel').classList.toggle('show');
 });
 
-// Đóng panel khi click ngoài
 document.addEventListener('click', function(e) {
     if (!$('togglePanel').contains(e.target) && !$('toggleBtn').contains(e.target)) {
         $('togglePanel').classList.remove('show');
     }
 });
 
-// Xử lý checkbox
 $('toggleVi').addEventListener('change', function() {
     displayState.vi = this.checked;
     applyDisplayState();
@@ -1016,7 +1011,7 @@ function render(reset) {
     
     if (reset) {
         desktopWrapper.innerHTML = '<table><thead><tr>' +
-            '<th>STT</th><th>HSK</th><th>Chủ đề</th>' +
+            '<th>STT</th><th>HSK</th><th>Chủ điểm</th><th>Chủ đề</th>' +
             '<th class="col-vi">Tiếng Việt</th>' +
             '<th>Tiếng Trung</th>' +
             '<th class="col-pinyin">Pinyin</th>' +
@@ -1044,6 +1039,7 @@ function render(reset) {
         deskHtml += '<tr>' +
             '<td class="stt">' + escapeHtml(r.stt) + '</td>' +
             '<td><span class="hsk-badge">' + escapeHtml(r.hsk) + '</span></td>' +
+            '<td class="topic-cell">' + escapeHtml(r.topic) + '</td>' +
             '<td class="subject-cell">' + escapeHtml(r.subject) + '</td>' +
             '<td class="vi-cell col-vi">' + escapeHtml(r.vi) + '</td>' +
             '<td class="zh-cell">' + zhHtml + '</td>' +
@@ -1059,6 +1055,7 @@ function render(reset) {
                 '<div class="card-stt">' + escapeHtml(r.stt) + '</div>' +
                 '<div class="card-meta">' +
                     (r.hsk ? '<span class="card-tag hsk">' + escapeHtml(r.hsk) + '</span>' : '') +
+                    (r.topic ? '<span class="card-tag topic">' + escapeHtml(r.topic) + '</span>' : '') +
                     (r.subject ? '<span class="card-tag">' + escapeHtml(r.subject) + '</span>' : '') +
                 '</div>' +
                 audio +
@@ -1075,12 +1072,10 @@ function render(reset) {
             '</div>';
     }
     
-    // Append
     if (desktopBody) desktopBody.insertAdjacentHTML('beforeend', deskHtml);
     mobileWrapper.insertAdjacentHTML('beforeend', mobHtml);
     renderedCount = end;
     
-    // Remove old buttons
     var oldDesktopBtn = desktopWrapper.parentElement.querySelector('.load-more');
     if (oldDesktopBtn) oldDesktopBtn.remove();
     var oldMobileBtn = mobileWrapper.querySelector('.load-more');
@@ -1090,7 +1085,6 @@ function render(reset) {
     var oldMobileEnd = mobileWrapper.querySelector('.end-note');
     if (oldMobileEnd) oldMobileEnd.remove();
     
-    // Add "load more" button if needed
     if (renderedCount < filtered.length) {
         var btnDesktop = document.createElement('button');
         btnDesktop.className = 'load-more';
@@ -1149,7 +1143,9 @@ function applyFilter() {
             var inVi = (r.vi || '').toLowerCase().indexOf(s) !== -1;
             var inZh = (r.zh || '').toLowerCase().indexOf(s) !== -1;
             var inPinyin = (r.pinyin || '').toLowerCase().indexOf(s) !== -1;
-            if (!inVi && !inZh && !inPinyin) return false;
+            var inTopic = (r.topic || '').toLowerCase().indexOf(s) !== -1;
+            var inSubject = (r.subject || '').toLowerCase().indexOf(s) !== -1;
+            if (!inVi && !inZh && !inPinyin && !inTopic && !inSubject) return false;
         }
         if (state.hsk && r.hsk !== state.hsk) return false;
         if (state.subject && r.subject !== state.subject) return false;
