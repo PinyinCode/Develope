@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Chuyển file Excel → HTML tự chứa dữ liệu
+- Đọc cấu hình từ config.json (không cần sửa code khi đổi cấu hình)
 - Demo mode cho khách chưa đăng nhập
 - Hệ thống đăng nhập Firebase + Admin panel
-- BẢO VỆ: Đúng 2 admin — không nâng thêm, không hạ bớt, không xóa
+- BẢO VỆ: Đúng 2 admin (không nâng/hạ/xóa)
+- Nút Zalo liên hệ floating góc dưới trái
 - Hanzi Writer, font chữ Trung tối ưu, 3 FAB, focus mode
 """
 import openpyxl
@@ -11,25 +13,43 @@ import json
 import os
 import sys
 
-# ====== CẤU HÌNH ======
-EXCEL_FILE = "data/input.xlsx"
-OUTPUT_HTML = "index.html"
-SHEET_INDEX = 0
-DEMO_LIMIT = 50
-DEMO_AUDIO_LIMIT = 10
+# ====== ĐỌC CONFIG ======
+CONFIG_FILE = "scripts/config.json"
 
-# ✅ Firebase config
-FIREBASE_CONFIG = {
-    "apiKey": "AIzaSyA8VlFQvE_om-51pxffgd7hd2Ud6hQm11k",
-    "authDomain": "hoc-tieng-trung-64b8d.firebaseapp.com",
-    "projectId": "hoc-tieng-trung-64b8d",
-    "storageBucket": "hoc-tieng-trung-64b8d.firebasestorage.app",
-    "messagingSenderId": "614326539390",
-    "appId": "1:614326539390:web:57344a021d7cbc7b18b42f"
-}
+if not os.path.exists(CONFIG_FILE):
+    print(f"❌ Không tìm thấy file cấu hình: {CONFIG_FILE}")
+    print(f"💡 Hãy tạo file config.json trong thư mục scripts/")
+    sys.exit(1)
+
+with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+    CONFIG = json.load(f)
+
+# Đọc các giá trị từ config
+EXCEL_FILE = CONFIG.get("excel_file", "data/input.xlsx")
+OUTPUT_HTML = CONFIG.get("output_html", "index.html")
+SHEET_INDEX = CONFIG.get("sheet_index", 0)
+DEMO_LIMIT = CONFIG.get("demo_limit", 50)
+DEMO_AUDIO_LIMIT = CONFIG.get("demo_audio_limit", 10)
+TARGET_ADMINS = CONFIG.get("target_admins", 2)
+ZALO_PHONE = CONFIG.get("zalo_phone", "")
+ZALO_NAME = CONFIG.get("zalo_name", "Hỗ trợ")
+FIREBASE_CONFIG = CONFIG.get("firebase_config", {})
+
+# Kiểm tra config
+if not FIREBASE_CONFIG.get("apiKey"):
+    print(f"❌ Firebase config chưa được cấu hình trong {CONFIG_FILE}")
+    sys.exit(1)
+
+if not ZALO_PHONE:
+    print(f"⚠️  Chưa cấu hình số Zalo trong {CONFIG_FILE}")
+
+print(f"⚙️  Đã đọc cấu hình từ: {CONFIG_FILE}")
+print(f"   📞 Zalo: {ZALO_PHONE} ({ZALO_NAME})")
+print(f"   🎁 Demo: {DEMO_LIMIT} câu + {DEMO_AUDIO_LIMIT} audio")
+print(f"   👑 Target admins: {TARGET_ADMINS}")
 
 # ====== ĐỌC EXCEL ======
-print(f"📖 Đang đọc file: {EXCEL_FILE}")
+print(f"\n📖 Đang đọc file: {EXCEL_FILE}")
 if not os.path.exists(EXCEL_FILE):
     print(f"❌ Không tìm thấy file {EXCEL_FILE}")
     sys.exit(1)
@@ -89,6 +109,7 @@ html_template = r'''<!DOCTYPE html>
     --primary:#2563eb;--primary-dark:#1d4ed8;--primary-light:#dbeafe;
     --success:#16a34a;--danger:#dc2626;--danger-light:#fee2e2;
     --amber:#f59e0b;--amber-light:#fef3c7;
+    --zalo:#0068ff;
     --shadow-sm:0 1px 2px rgba(15,23,42,.04);--shadow:0 4px 12px rgba(15,23,42,.06);
     --shadow-fab:0 8px 24px rgba(15,23,42,.18);
     --radius:14px;--radius-sm:10px;--radius-full:999px;
@@ -275,6 +296,58 @@ body{
     pointer-events:none;
 }
 .chip.locked select{pointer-events:none}
+
+/* ✅ ZALO BUTTON */
+.zalo-btn{
+    position:fixed;
+    bottom:calc(20px + env(safe-area-inset-bottom));
+    left:20px;
+    z-index:1000;
+    display:flex;
+    align-items:center;
+    gap:.5rem;
+    padding:.7rem 1.1rem;
+    border-radius:50px;
+    background:linear-gradient(135deg, #0068ff, #0084ff);
+    color:#fff;
+    text-decoration:none;
+    font-weight:700;
+    font-size:.85rem;
+    box-shadow:0 8px 24px rgba(0,104,255,.4);
+    transition:transform .2s, box-shadow .2s;
+    -webkit-tap-highlight-color:transparent;
+    white-space:nowrap;
+    border:2px solid #fff;
+    font-family:inherit;
+}
+.zalo-btn:hover,.zalo-btn:active{
+    transform:scale(1.05);
+    box-shadow:0 12px 32px rgba(0,104,255,.55);
+    color:#fff;
+}
+.zalo-btn i{font-size:1.2rem;flex-shrink:0}
+.zalo-btn .zalo-text{
+    line-height:1.15;
+    display:flex;
+    flex-direction:column;
+}
+.zalo-btn .zalo-label{font-size:.65rem;opacity:.85;font-weight:500}
+.zalo-btn .zalo-name{font-size:.85rem;font-weight:700}
+.zalo-btn::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    border-radius:50px;
+    background:linear-gradient(135deg, #0068ff, #0084ff);
+    opacity:.5;
+    z-index:-1;
+    animation:zaloPulse 2s infinite;
+}
+@keyframes zaloPulse{
+    0%{transform:scale(1);opacity:.5}
+    50%{transform:scale(1.08);opacity:0}
+    100%{transform:scale(1);opacity:0}
+}
 
 .fab-group{
     position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));
@@ -844,10 +917,23 @@ tr.tapped td{animation:tapPulse .6s}
     .user-dropdown{min-width:220px}
     .btn-login-header{padding:.45rem .7rem;font-size:.75rem}
     .btn-login-header span{display:none}
+    .zalo-btn{
+        left:16px;
+        bottom:calc(16px + env(safe-area-inset-bottom));
+        padding:.6rem .9rem;
+        font-size:.8rem;
+        gap:.4rem;
+    }
+    .zalo-btn i{font-size:1.05rem}
+    .zalo-btn .zalo-label{font-size:.6rem}
+    .zalo-btn .zalo-name{font-size:.78rem;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }
 @media(max-width:400px){
     .logo-text .subtitle{display:none}
     .icon-btn{width:30px;height:30px;font-size:.75rem}
+    .zalo-btn .zalo-text{display:none}
+    .zalo-btn{padding:0;border-radius:50%;width:48px;height:48px;justify-content:center}
+    .zalo-btn i{font-size:1.2rem}
 }
 </style>
 </head>
@@ -935,6 +1021,14 @@ tr.tapped td{animation:tapPulse .6s}
         </div>
     </div>
 </div>
+
+<a class="zalo-btn" id="zaloBtn" href="#" target="_blank" rel="noopener noreferrer" title="Liên hệ Zalo hỗ trợ">
+    <i class="fas fa-comment-dots"></i>
+    <div class="zalo-text">
+        <span class="zalo-label">Liên hệ Zalo</span>
+        <span class="zalo-name">Hỗ trợ</span>
+    </div>
+</a>
 
 <div class="fab-group" id="fabGroup" style="display:none">
     <button class="fab-btn fab-sub" id="toggleViBtn" data-label="Tiếng Việt" title="Ẩn/hiện Tiếng Việt">
@@ -1068,9 +1162,11 @@ tr.tapped td{animation:tapPulse .6s}
 <script>
 var RAW_DATA = __DATA__;
 var FIREBASE_CONFIG = __FIREBASE_CONFIG__;
-var DEMO_LIMIT = 50;
-var DEMO_AUDIO_LIMIT = 10;
-var TARGET_ADMINS = 2;  // ✅ Đúng 2 admin
+var DEMO_LIMIT = __DEMO_LIMIT__;
+var DEMO_AUDIO_LIMIT = __DEMO_AUDIO_LIMIT__;
+var TARGET_ADMINS = __TARGET_ADMINS__;
+var ZALO_PHONE = "__ZALO_PHONE__";
+var ZALO_NAME = "__ZALO_NAME__";
 
 var currentUser = null;
 var isDemo = true;
@@ -1285,6 +1381,7 @@ function initApp() {
     $('fabGroup').style.display = 'flex';
     $('mainContent').style.display = 'block';
     
+    initZaloButton();
     initScrollDetection();
     initFabGroup();
     initTheme();
@@ -1316,6 +1413,29 @@ function initApp() {
     
     try { buildFilters(); applyFilter(); }
     catch(e) { console.error('Init error:', e); }
+}
+
+function initZaloButton() {
+    var zaloBtn = $('zaloBtn');
+    if (!zaloBtn) return;
+    
+    var phone = (ZALO_PHONE || '').replace(/\D/g, '');
+    
+    if (phone) {
+        zaloBtn.href = 'https://zalo.me/' + phone;
+        zaloBtn.title = 'Liên hệ Zalo: ' + phone;
+    } else {
+        zaloBtn.href = '#';
+        zaloBtn.onclick = function(e) {
+            e.preventDefault();
+            alert('Chưa cấu hình số Zalo.');
+        };
+    }
+    
+    var nameEl = zaloBtn.querySelector('.zalo-name');
+    if (nameEl && ZALO_NAME) {
+        nameEl.textContent = ZALO_NAME;
+    }
 }
 
 function initScrollDetection() {
@@ -1449,7 +1569,8 @@ document.addEventListener('click', function(e) {
         e.target.closest('.fab-group') || e.target.closest('.icon-btn') ||
         e.target.closest('.search-bar') || e.target.closest('.filters') ||
         e.target.closest('.writer-modal') || e.target.closest('.user-menu') ||
-        e.target.closest('.login-modal') || e.target.closest('.admin-modal')) return;
+        e.target.closest('.login-modal') || e.target.closest('.admin-modal') ||
+        e.target.closest('.zalo-btn')) return;
     clearFocus();
 }, true);
 
@@ -1894,7 +2015,6 @@ function renderAdminStats() {
         '<div class="stat-card"><div class="num" style="color:#16a34a">' + users + '</div><div class="label">User</div></div>';
 }
 
-/* ✅ RENDER USERS - Đúng 2 admin */
 function renderUsers() {
     var list = $('userList');
     if (!usersCache.length) {
@@ -1908,16 +2028,13 @@ function renderUsers() {
         var isMe = u.email === currentUser.email;
         var isAdmin = u.role === 'admin';
         
-        // Nút đổi vai trò
         var roleBtn = '';
         if (isAdmin) {
-            // Admin → luôn bị khóa nút hạ
             var reason = isMe 
                 ? 'Không thể tự hạ quyền chính mình' 
                 : 'Phải giữ đúng ' + TARGET_ADMINS + ' admin trong hệ thống';
             roleBtn = '<button class="u-btn" disabled title="' + escapeHtml(reason) + '"><i class="fas fa-user"></i></button>';
         } else {
-            // User → chỉ nâng được khi adminCount < TARGET_ADMINS
             if (adminCount < TARGET_ADMINS) {
                 roleBtn = '<button class="u-btn" onclick="changeRole(\'' + escapeJs(u.email) + '\', \'admin\')" title="Nâng lên Admin"><i class="fas fa-shield-alt"></i></button>';
             } else {
@@ -1925,7 +2042,6 @@ function renderUsers() {
             }
         }
         
-        // Nút xóa
         var deleteBtn = '';
         if (isMe) {
             deleteBtn = '<button class="u-btn danger" disabled title="Không thể tự xóa chính mình"><i class="fas fa-trash"></i></button>';
@@ -1946,7 +2062,6 @@ function renderUsers() {
     }).join('');
 }
 
-/* ✅ CHANGE ROLE - Đúng 2 admin */
 window.changeRole = async function(email, newRole) {
     var target = usersCache.find(function(u) { return u.email === email; });
     if (!target) { alert('Không tìm thấy user!'); return; }
@@ -1955,19 +2070,16 @@ window.changeRole = async function(email, newRole) {
     var isAdmin = target.role === 'admin';
     var adminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
     
-    // Chặn tự hạ chính mình
     if (isMe && newRole === 'user') {
         alert('⚠️ Không thể tự hạ quyền admin của chính mình!');
         return;
     }
     
-    // Chặn hạ admin (vì phải giữ đúng TARGET_ADMINS)
     if (isAdmin && newRole === 'user') {
         alert('⚠️ Không thể hạ quyền admin!\n\nHệ thống phải giữ đúng ' + TARGET_ADMINS + ' admin.\nHiện tại đang có ' + adminCount + ' admin.');
         return;
     }
     
-    // Chặn nâng khi đã đủ TARGET_ADMINS
     if (!isAdmin && newRole === 'admin' && adminCount >= TARGET_ADMINS) {
         alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!\n\nKhông thể nâng thêm.');
         return;
@@ -1983,7 +2095,6 @@ window.changeRole = async function(email, newRole) {
     }
 };
 
-/* ✅ DELETE USER - Đúng 2 admin */
 window.deleteUser = async function(email) {
     var target = usersCache.find(function(u) { return u.email === email; });
     if (!target) { alert('Không tìm thấy user!'); return; }
@@ -2027,7 +2138,6 @@ $('confirmAddUser').addEventListener('click', async function() {
     if (!email || !email.includes('@')) { alert('Email không hợp lệ'); return; }
     if (!name) name = email.split('@')[0];
     
-    // ✅ Kiểm tra nếu cố thêm admin khi đã đủ 2
     if (role === 'admin') {
         var currentAdminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
         if (currentAdminCount >= TARGET_ADMINS) {
@@ -2086,14 +2196,23 @@ setTimeout(function() {
 </html>'''
 
 # ====== GHI FILE HTML ======
-html_output = html_template.replace("__DATA__", json_data).replace("__FIREBASE_CONFIG__", firebase_config_json)
+html_output = (html_template
+    .replace("__DATA__", json_data)
+    .replace("__FIREBASE_CONFIG__", firebase_config_json)
+    .replace("__ZALO_PHONE__", ZALO_PHONE)
+    .replace("__ZALO_NAME__", ZALO_NAME)
+    .replace("__DEMO_LIMIT__", str(DEMO_LIMIT))
+    .replace("__DEMO_AUDIO_LIMIT__", str(DEMO_AUDIO_LIMIT))
+    .replace("__TARGET_ADMINS__", str(TARGET_ADMINS))
+)
 with open(OUTPUT_HTML, "w", encoding="utf-8") as f:
     f.write(html_output)
 
 size_kb = os.path.getsize(OUTPUT_HTML) / 1024
-print(f"🎉 Đã tạo: {OUTPUT_HTML}")
+print(f"\n🎉 Đã tạo: {OUTPUT_HTML}")
 print(f"📦 Kích thước: {size_kb:.1f} KB")
 print(f"📚 Tổng số câu: {len(data)}")
 print(f"🎁 Demo: {DEMO_LIMIT} câu + {DEMO_AUDIO_LIMIT} lần phát âm/ngày")
-print(f"🔥 Firebase: {FIREBASE_CONFIG['projectId']}")
-print(f"👑 Chế độ: Đúng 2 admin (không nâng/hạ/xóa)")
+print(f"🔥 Firebase: {FIREBASE_CONFIG.get('projectId', 'N/A')}")
+print(f"👑 Chế độ: Đúng {TARGET_ADMINS} admin")
+print(f"📞 Zalo: {ZALO_PHONE} ({ZALO_NAME})")
