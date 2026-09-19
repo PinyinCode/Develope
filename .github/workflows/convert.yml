@@ -6,14 +6,21 @@ on:
       - 'data/input.xlsx'
       - 'scripts/convert.py'
       - '.github/workflows/convert.yml'
-  workflow_dispatch:  # Cho phép chạy thủ công
+  workflow_dispatch:
 
+# ✅ Cần thiết để deploy Pages
 permissions:
   contents: write
   pages: write
   id-token: write
 
+# ✅ Chỉ cho phép 1 deployment chạy cùng lúc
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
+  # ===== JOB 1: Chuyển Excel → HTML rồi commit =====
   convert:
     runs-on: ubuntu-latest
     steps:
@@ -36,17 +43,31 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git diff --quiet && git diff --staged --quiet || git commit -m "🤖 Auto convert Excel → HTML"
-          git push
+          if git diff --quiet && git diff --staged --quiet; then
+            echo "Không có thay đổi để commit"
+          else
+            git commit -m "🤖 Auto convert Excel → HTML"
+            git push
+          fi
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
+      # ✅ Upload artifact để job deploy dùng
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
 
+  # ===== JOB 2: Deploy lên GitHub Pages =====
+  deploy:
+    needs: convert
+    runs-on: ubuntu-latest
+    # ✅ QUAN TRỌNG: Khai báo environment để fix lỗi "Missing environment"
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
         id: deployment
+        uses: actions/deploy-pages@v4
