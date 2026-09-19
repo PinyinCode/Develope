@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Chuyển file Excel → HTML tự chứa dữ liệu
-- Giao diện hiện đại, responsive (card view trên mobile, table trên desktop)
+- Giao diện hiện đại, responsive (card view mobile, table desktop)
 - Dark mode toggle
-- Phát âm bằng Web Speech API (giọng AI tích hợp iOS/Android)
-- Hỗ trợ iPhone notch (safe-area-inset)
+- Toggle ẩn/hiện: Pinyin, Tiếng Việt, Ô nhập tiếng Trung (mặc định ẩn)
+- Phát âm bằng Web Speech API
+- Hỗ trợ iPhone notch
 """
 import openpyxl
 import json
@@ -87,14 +88,11 @@ html_template = r'''<!DOCTYPE html>
     --primary:#2563eb;
     --primary-dark:#1d4ed8;
     --primary-light:#dbeafe;
-    --accent:#f59e0b;
     --success:#16a34a;
-    --success-light:#dcfce7;
     --danger:#dc2626;
     --danger-light:#fee2e2;
     --shadow-sm:0 1px 2px rgba(15,23,42,.04);
     --shadow:0 4px 12px rgba(15,23,42,.06);
-    --shadow-lg:0 10px 30px rgba(15,23,42,.08);
     --radius:14px;
     --radius-sm:10px;
     --radius-full:999px;
@@ -115,7 +113,6 @@ html_template = r'''<!DOCTYPE html>
     --danger-light:#7f1d1d;
     --shadow-sm:0 1px 2px rgba(0,0,0,.3);
     --shadow:0 4px 12px rgba(0,0,0,.3);
-    --shadow-lg:0 10px 30px rgba(0,0,0,.4);
 }
 html,body{height:100%}
 body{
@@ -194,8 +191,51 @@ body{
     font-size:.95rem;
     transition:.15s;
     -webkit-tap-highlight-color:transparent;
+    position:relative;
 }
 .icon-btn:hover,.icon-btn:active{background:var(--surface-2);color:var(--primary);border-color:var(--primary)}
+.icon-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* Dropdown panel cho toggle */
+.toggle-panel{
+    position:absolute;
+    top:calc(100% + .5rem);
+    right:0;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:0 10px 30px rgba(0,0,0,.15);
+    padding:.5rem;
+    min-width:220px;
+    display:none;
+    z-index:200;
+}
+.toggle-panel.show{display:block}
+.toggle-panel label{
+    display:flex;
+    align-items:center;
+    gap:.6rem;
+    padding:.6rem .75rem;
+    border-radius:var(--radius-sm);
+    cursor:pointer;
+    font-size:.85rem;
+    color:var(--text);
+    transition:.15s;
+    user-select:none;
+}
+.toggle-panel label:hover{background:var(--surface-2)}
+.toggle-panel input[type="checkbox"]{
+    width:18px;height:18px;
+    accent-color:var(--primary);
+    cursor:pointer;
+    flex-shrink:0;
+}
+.toggle-panel .divider{
+    height:1px;
+    background:var(--border);
+    margin:.4rem 0;
+}
+
 .stats-pill{
     display:inline-flex;
     align-items:center;
@@ -210,14 +250,14 @@ body{
 }
 .stats-pill b{font-weight:800}
 
+/* Wrapper cho toggle panel */
+.toggle-wrapper{position:relative}
+
 /* ========== MAIN ========== */
 .main{padding:1rem 0 3rem}
 
 /* ========== SEARCH ========== */
-.search-bar{
-    position:relative;
-    margin-bottom:.75rem;
-}
+.search-bar{position:relative;margin-bottom:.75rem}
 .search-bar i.fa-search{
     position:absolute;
     left:16px;
@@ -269,7 +309,7 @@ body{
 /* ========== FILTERS ========== */
 .filters{
     display:grid;
-    grid-template-columns:repeat(3,1fr) auto;
+    grid-template-columns:1fr 1fr auto;
     gap:.5rem;
     margin-bottom:1rem;
 }
@@ -356,6 +396,15 @@ body{
     border-color:var(--danger);
 }
 
+/* ========== TOGGLE CLASSES ========== */
+/* Mặc định: pinyin + vi ẩn, practice ẩn */
+body:not(.show-pinyin) .col-pinyin,
+body:not(.show-pinyin) .card-pinyin{display:none!important}
+body:not(.show-vi) .col-vi,
+body:not(.show-vi) .card-vi{display:none!important}
+body:not(.show-practice) .col-practice,
+body:not(.show-practice) .card-practice{display:none!important}
+
 /* ========== DESKTOP TABLE ========== */
 .desktop-view{display:block}
 .table-card{
@@ -371,7 +420,7 @@ body{
     max-height:calc(100vh - 260px);
     -webkit-overflow-scrolling:touch;
 }
-table{width:100%;border-collapse:collapse;font-size:.85rem;min-width:1100px}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
 thead th{
     background:var(--surface-2);
     color:var(--text-2);
@@ -475,7 +524,6 @@ tbody tr:last-child td{border-bottom:none}
     padding:1rem;
     margin-bottom:.75rem;
     box-shadow:var(--shadow-sm);
-    position:relative;
 }
 .card-header{
     display:flex;
@@ -539,14 +587,15 @@ tbody tr:last-child td{border-bottom:none}
     border-radius:6px;
     display:inline-block;
 }
-.card-footer{
+.card-practice{
     display:flex;
     align-items:center;
     gap:.5rem;
     padding-top:.75rem;
     border-top:1px dashed var(--border);
+    margin-top:.75rem;
 }
-.card-footer .practice-input{flex:1;min-width:0}
+.card-practice .practice-input{flex:1;min-width:0}
 .card-check{
     font-size:.8rem;
     font-weight:700;
@@ -601,7 +650,7 @@ tbody tr:last-child td{border-bottom:none}
 
 /* ========== RESPONSIVE ========== */
 @media(max-width:900px){
-    .filters{grid-template-columns:repeat(3,1fr);gap:.4rem}
+    .filters{grid-template-columns:1fr 1fr;gap:.4rem}
     .btn-reset{grid-column:1 / -1;padding:.6rem;font-size:.82rem}
 }
 @media(max-width:768px){
@@ -617,7 +666,6 @@ tbody tr:last-child td{border-bottom:none}
     .icon-btn{width:34px;height:34px;font-size:.85rem}
     
     .main{padding:.75rem 0 2rem}
-    
     .search-bar input{padding:.75rem 2.75rem .75rem 2.6rem;font-size:.9rem}
     
     .filters{grid-template-columns:1fr 1fr;gap:.4rem}
@@ -647,6 +695,29 @@ tbody tr:last-child td{border-bottom:none}
             <div class="stats-pill" id="statsDisplay">
                 <i class="fas fa-book-open"></i> <span id="statsText">Đang tải...</span>
             </div>
+
+            <!-- Nút toggle ẩn/hiện -->
+            <div class="toggle-wrapper">
+                <button class="icon-btn" id="toggleBtn" title="Ẩn/hiện cột">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <div class="toggle-panel" id="togglePanel">
+                    <label>
+                        <input type="checkbox" id="toggleVi">
+                        <span><i class="fas fa-language" style="width:18px;color:var(--text-3)"></i> Tiếng Việt</span>
+                    </label>
+                    <label>
+                        <input type="checkbox" id="togglePinyin">
+                        <span><i class="fas fa-spell-check" style="width:18px;color:var(--text-3)"></i> Pinyin</span>
+                    </label>
+                    <div class="divider"></div>
+                    <label>
+                        <input type="checkbox" id="togglePractice">
+                        <span><i class="fas fa-keyboard" style="width:18px;color:var(--text-3)"></i> Ô nhập tiếng Trung</span>
+                    </label>
+                </div>
+            </div>
+
             <button class="icon-btn" id="themeToggle" title="Đổi giao diện sáng/tối">
                 <i class="fas fa-moon"></i>
             </button>
@@ -667,19 +738,13 @@ tbody tr:last-child td{border-bottom:none}
             </button>
         </div>
 
-        <!-- FILTERS -->
+        <!-- FILTERS (chỉ còn HSK + Chủ đề + Đặt lại) -->
         <div class="filters">
             <div class="chip" id="hskChip">
                 <span class="chip-label">HSK</span>
                 <span class="chip-value" id="hskValue">Tất cả</span>
                 <i class="fas fa-chevron-down chip-arrow"></i>
                 <select id="hskFilter"><option value="">Tất cả HSK</option></select>
-            </div>
-            <div class="chip" id="topicChip">
-                <span class="chip-label">Chủ điểm</span>
-                <span class="chip-value" id="topicValue">Tất cả</span>
-                <i class="fas fa-chevron-down chip-arrow"></i>
-                <select id="topicFilter"><option value="">Tất cả chủ điểm</option></select>
             </div>
             <div class="chip" id="subjectChip">
                 <span class="chip-label">Chủ đề</span>
@@ -721,7 +786,7 @@ var RAW_DATA = __DATA__;
 })();
 
 var filtered = RAW_DATA.slice();
-var state = { search:'', hsk:'', topic:'', subject:'' };
+var state = { search:'', hsk:'', subject:'' };
 var PAGE_SIZE = 300;
 var renderedCount = 0;
 
@@ -754,6 +819,85 @@ $('themeToggle').addEventListener('click', function() {
     document.documentElement.setAttribute('data-theme', newTheme);
     try { localStorage.setItem('theme', newTheme); } catch(e) {}
     updateThemeIcon();
+});
+
+/* ========== TOGGLE HIỂN THỊ ========== */
+// Mặc định: tất cả ẩn
+var displayState = {
+    vi: false,
+    pinyin: false,
+    practice: false
+};
+
+// Load từ localStorage
+(function initDisplay() {
+    try {
+        var saved = localStorage.getItem('displayState');
+        if (saved) {
+            var parsed = JSON.parse(saved);
+            displayState.vi = !!parsed.vi;
+            displayState.pinyin = !!parsed.pinyin;
+            displayState.practice = !!parsed.practice;
+        }
+    } catch(e) {}
+    applyDisplayState();
+    // Cập nhật checkbox
+    $('toggleVi').checked = displayState.vi;
+    $('togglePinyin').checked = displayState.pinyin;
+    $('togglePractice').checked = displayState.practice;
+    updateToggleIcon();
+})();
+
+function applyDisplayState() {
+    document.body.classList.toggle('show-vi', displayState.vi);
+    document.body.classList.toggle('show-pinyin', displayState.pinyin);
+    document.body.classList.toggle('show-practice', displayState.practice);
+}
+
+function saveDisplayState() {
+    try {
+        localStorage.setItem('displayState', JSON.stringify(displayState));
+    } catch(e) {}
+}
+
+function updateToggleIcon() {
+    var active = displayState.vi || displayState.pinyin || displayState.practice;
+    var icon = $('toggleBtn').querySelector('i');
+    icon.className = active ? 'fas fa-eye' : 'fas fa-eye-slash';
+    $('toggleBtn').classList.toggle('active', active);
+}
+
+// Mở/đóng panel
+$('toggleBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    $('togglePanel').classList.toggle('show');
+});
+
+// Đóng panel khi click ngoài
+document.addEventListener('click', function(e) {
+    if (!$('togglePanel').contains(e.target) && !$('toggleBtn').contains(e.target)) {
+        $('togglePanel').classList.remove('show');
+    }
+});
+
+// Xử lý checkbox
+$('toggleVi').addEventListener('change', function() {
+    displayState.vi = this.checked;
+    applyDisplayState();
+    saveDisplayState();
+    updateToggleIcon();
+});
+$('togglePinyin').addEventListener('change', function() {
+    displayState.pinyin = this.checked;
+    applyDisplayState();
+    saveDisplayState();
+    updateToggleIcon();
+});
+$('togglePractice').addEventListener('change', function() {
+    displayState.practice = this.checked;
+    applyDisplayState();
+    saveDisplayState();
+    updateToggleIcon();
 });
 
 /* ========== WEB SPEECH API ========== */
@@ -833,18 +977,15 @@ function escapeJs(str) {
         .replace(/\n/g, '\\n').replace(/\r/g, '');
 }
 
-/* ========== BUILD FILTERS ========== */
+/* ========== BUILD FILTERS (chỉ HSK + Chủ đề) ========== */
 function buildFilters() {
-    var hskSet = {}, topicSet = {}, subjectSet = {};
+    var hskSet = {}, subjectSet = {};
     RAW_DATA.forEach(function(r) {
         if (r.hsk) hskSet[r.hsk] = 1;
-        if (r.topic) topicSet[r.topic] = 1;
         if (r.subject) subjectSet[r.subject] = 1;
     });
     $('hskFilter').innerHTML = '<option value="">Tất cả HSK</option>' +
         Object.keys(hskSet).sort().map(function(v){ return '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>'; }).join('');
-    $('topicFilter').innerHTML = '<option value="">Tất cả chủ điểm</option>' +
-        Object.keys(topicSet).sort().map(function(v){ return '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>'; }).join('');
     $('subjectFilter').innerHTML = '<option value="">Tất cả chủ đề</option>' +
         Object.keys(subjectSet).sort().map(function(v){ return '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>'; }).join('');
 }
@@ -852,15 +993,12 @@ function buildFilters() {
 /* ========== UPDATE FILTER UI ========== */
 function updateFilterUI() {
     var hsk = $('hskFilter').value;
-    var topic = $('topicFilter').value;
     var subject = $('subjectFilter').value;
     
     $('hskValue').textContent = hsk || 'Tất cả';
-    $('topicValue').textContent = topic || 'Tất cả';
     $('subjectValue').textContent = subject || 'Tất cả';
     
     $('hskChip').classList.toggle('has-value', !!hsk);
-    $('topicChip').classList.toggle('has-value', !!topic);
     $('subjectChip').classList.toggle('has-value', !!subject);
 }
 
@@ -878,9 +1016,13 @@ function render(reset) {
     
     if (reset) {
         desktopWrapper.innerHTML = '<table><thead><tr>' +
-            '<th>STT</th><th>HSK</th><th>Chủ điểm</th><th>Chủ đề</th>' +
-            '<th>Tiếng Việt</th><th>Tiếng Trung</th><th>Pinyin</th>' +
-            '<th></th><th>Luyện tập</th><th>Check</th>' +
+            '<th>STT</th><th>HSK</th><th>Chủ đề</th>' +
+            '<th class="col-vi">Tiếng Việt</th>' +
+            '<th>Tiếng Trung</th>' +
+            '<th class="col-pinyin">Pinyin</th>' +
+            '<th></th>' +
+            '<th class="col-practice">Luyện tập</th>' +
+            '<th>Check</th>' +
             '</tr></thead><tbody id="desktopBody"></tbody></table>';
         mobileWrapper.innerHTML = '';
     }
@@ -902,13 +1044,12 @@ function render(reset) {
         deskHtml += '<tr>' +
             '<td class="stt">' + escapeHtml(r.stt) + '</td>' +
             '<td><span class="hsk-badge">' + escapeHtml(r.hsk) + '</span></td>' +
-            '<td class="topic-cell">' + escapeHtml(r.topic) + '</td>' +
             '<td class="subject-cell">' + escapeHtml(r.subject) + '</td>' +
-            '<td class="vi-cell">' + escapeHtml(r.vi) + '</td>' +
+            '<td class="vi-cell col-vi">' + escapeHtml(r.vi) + '</td>' +
             '<td class="zh-cell">' + zhHtml + '</td>' +
-            '<td><span class="pinyin">' + escapeHtml(r.pinyin) + '</span></td>' +
+            '<td class="col-pinyin"><span class="pinyin">' + escapeHtml(r.pinyin) + '</span></td>' +
             '<td style="text-align:center">' + audio + '</td>' +
-            '<td><input type="text" class="practice-input" placeholder="Nhập tiếng Trung..." data-answer="' + zhHtml + '" data-stt="' + escapeHtml(r.stt) + '" oninput="checkInput(this)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></td>' +
+            '<td class="col-practice"><input type="text" class="practice-input" placeholder="Nhập tiếng Trung..." data-answer="' + zhHtml + '" data-stt="' + escapeHtml(r.stt) + '" oninput="checkInput(this)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></td>' +
             '<td class="check-cell" data-check-stt="' + escapeHtml(r.stt) + '"></td>' +
             '</tr>';
         
@@ -918,17 +1059,16 @@ function render(reset) {
                 '<div class="card-stt">' + escapeHtml(r.stt) + '</div>' +
                 '<div class="card-meta">' +
                     (r.hsk ? '<span class="card-tag hsk">' + escapeHtml(r.hsk) + '</span>' : '') +
-                    (r.topic ? '<span class="card-tag">' + escapeHtml(r.topic) + '</span>' : '') +
                     (r.subject ? '<span class="card-tag">' + escapeHtml(r.subject) + '</span>' : '') +
                 '</div>' +
                 audio +
             '</div>' +
             '<div class="card-body">' +
-                '<div class="card-vi">' + escapeHtml(r.vi) + '</div>' +
+                (r.vi ? '<div class="card-vi">' + escapeHtml(r.vi) + '</div>' : '') +
                 '<div class="card-zh">' + zhHtml + '</div>' +
-                '<div class="card-pinyin">' + escapeHtml(r.pinyin) + '</div>' +
+                (r.pinyin ? '<div class="card-pinyin">' + escapeHtml(r.pinyin) + '</div>' : '') +
             '</div>' +
-            '<div class="card-footer">' +
+            '<div class="card-practice">' +
                 '<input type="text" class="practice-input" placeholder="Nhập tiếng Trung..." data-answer="' + zhHtml + '" data-stt="' + escapeHtml(r.stt) + '" oninput="checkInput(this)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">' +
                 '<div class="card-check" data-check-stt="' + escapeHtml(r.stt) + '"></div>' +
             '</div>' +
@@ -995,7 +1135,6 @@ window.checkInput = function(input) {
 function applyFilter() {
     state.search = $('searchInput').value.trim().toLowerCase();
     state.hsk = $('hskFilter').value;
-    state.topic = $('topicFilter').value;
     state.subject = $('subjectFilter').value;
     
     updateFilterUI();
@@ -1013,7 +1152,6 @@ function applyFilter() {
             if (!inVi && !inZh && !inPinyin) return false;
         }
         if (state.hsk && r.hsk !== state.hsk) return false;
-        if (state.topic && r.topic !== state.topic) return false;
         if (state.subject && r.subject !== state.subject) return false;
         return true;
     });
@@ -1027,12 +1165,10 @@ function updateStats() {
 /* ========== EVENTS ========== */
 $('searchInput').addEventListener('input', applyFilter);
 $('hskFilter').addEventListener('change', applyFilter);
-$('topicFilter').addEventListener('change', applyFilter);
 $('subjectFilter').addEventListener('change', applyFilter);
 $('resetBtn').addEventListener('click', function() {
     $('searchInput').value = '';
     $('hskFilter').value = '';
-    $('topicFilter').value = '';
     $('subjectFilter').value = '';
     applyFilter();
 });
