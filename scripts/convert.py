@@ -2,9 +2,9 @@
 """
 Chuyển file Excel → HTML tự chứa dữ liệu
 - 3 nút toggle (FAB) cố định góc dưới phải
-- Nhấn vào câu → phóng to chữ để dễ nhìn (focus mode)
+- Nhấn vào câu → phóng to CHỦ ĐIỂM + TIẾNG TRUNG
 - Ô tìm kiếm gọn: "Tìm kiếm..."
-- Header sticky: Logo + Đặt lại + Dark mode
+- Header sticky + Search + Filters luôn dính trên cùng
 - Phát âm bằng Web Speech API
 """
 import openpyxl
@@ -235,7 +235,7 @@ body{
 }
 .icon-btn:not(.has-badge) .badge{display:none}
 
-/* ========== SEARCH (gọn hơn) ========== */
+/* ========== SEARCH ========== */
 .search-bar{position:relative;margin-bottom:.55rem}
 .search-bar i.fa-search{
     position:absolute;
@@ -509,14 +509,19 @@ tbody tr:last-child td{border-bottom:none}
     font-weight:700;
     white-space:nowrap;
 }
-.topic-cell{font-size:.78rem;color:var(--text-2);font-weight:500}
+.topic-cell{
+    font-size:.78rem;
+    color:var(--text-2);
+    font-weight:500;
+    transition:font-size .3s cubic-bezier(.34,1.56,.64,1), color .3s, font-weight .3s;
+}
 .subject-cell{font-size:.8rem;color:var(--text-2)}
 .vi-cell{font-size:.85rem;color:var(--text)}
 .zh-cell{
     font-size:.95rem;
     font-weight:600;
     color:var(--text);
-    transition:font-size .3s, color .3s;
+    transition:font-size .3s cubic-bezier(.34,1.56,.64,1), color .3s;
 }
 .pinyin{
     display:inline-block;
@@ -574,8 +579,7 @@ tbody tr:last-child td{border-bottom:none}
 .check-correct{color:var(--success)}
 .check-wrong{color:var(--danger)}
 
-/* ========== FOCUS MODE (khi nhấn vào câu) ========== */
-/* Desktop: row được chọn */
+/* ========== FOCUS MODE ========== */
 tr.focused td{
     background:var(--primary-light) !important;
     padding-top:1.1rem !important;
@@ -585,15 +589,24 @@ tr.focused td{
 [data-theme="dark"] tr.focused td{
     background:rgba(59,130,246,.15) !important;
 }
+/* ✅ CHỈ PHÓNG TO CHỦ ĐIỂM */
+tr.focused .topic-cell{
+    font-size:1.15rem !important;
+    font-weight:800 !important;
+    color:var(--primary-dark) !important;
+}
+[data-theme="dark"] tr.focused .topic-cell{
+    color:#60a5fa !important;
+}
+/* ✅ CHỈ PHÓNG TO TIẾNG TRUNG */
 tr.focused .zh-cell{
     font-size:1.6rem !important;
     color:var(--primary-dark);
     font-weight:800;
     letter-spacing:.5px;
 }
-tr.focused .vi-cell{
-    font-size:1rem !important;
-    font-weight:500;
+[data-theme="dark"] tr.focused .zh-cell{
+    color:#60a5fa;
 }
 
 /* Mobile: card được chọn */
@@ -607,6 +620,7 @@ tr.focused .vi-cell{
     background:linear-gradient(135deg, var(--surface) 0%, rgba(59,130,246,.15) 100%);
     box-shadow:0 12px 32px rgba(59,130,246,.3);
 }
+/* ✅ CHỈ PHÓNG TO TIẾNG TRUNG */
 .card.focused .card-zh{
     font-size:1.8rem;
     color:var(--primary-dark);
@@ -617,14 +631,18 @@ tr.focused .vi-cell{
 [data-theme="dark"] .card.focused .card-zh{
     color:#60a5fa;
 }
-.card.focused .card-vi{
-    font-size:1rem;
-    font-weight:500;
-    color:var(--text);
+/* ✅ CHỈ PHÓNG TO TAG CHỦ ĐIỂM */
+.card.focused .card-tag.topic{
+    font-size:.9rem;
+    padding:.28rem .7rem;
+    font-weight:700;
+    background:var(--amber);
+    color:#fff;
+    box-shadow:0 3px 10px rgba(245,158,11,.35);
+    animation:zoomIn .35s cubic-bezier(.34,1.56,.64,1);
 }
-.card.focused .card-pinyin{
-    font-size:.95rem;
-    padding:.35rem .7rem;
+[data-theme="dark"] .card.focused .card-tag.topic{
+    color:#fff;
 }
 
 @keyframes zoomIn{
@@ -633,7 +651,6 @@ tr.focused .vi-cell{
     100%{transform:scale(1);opacity:1}
 }
 
-/* Hiệu ứng pulse khi vừa nhấn */
 @keyframes tapPulse{
     0%{box-shadow:0 0 0 0 rgba(37,99,235,.4)}
     70%{box-shadow:0 0 0 14px rgba(37,99,235,0)}
@@ -646,7 +663,6 @@ tr.tapped td{
     animation:tapPulse .6s;
 }
 
-/* Cursor cho phép nhấn */
 .card,.desktop-view tbody tr{
     cursor:pointer;
     user-select:none;
@@ -662,7 +678,6 @@ tr.tapped td{
     transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s, border-color .25s, background .25s;
 }
 
-/* Ô nhập và audio không kích hoạt focus khi nhấn */
 .practice-input, .audio-btn, .card-practice, .col-practice{
     cursor:auto;
 }
@@ -706,6 +721,7 @@ tr.tapped td{
     font-size:.65rem;
     font-weight:600;
     white-space:nowrap;
+    transition:all .35s cubic-bezier(.34,1.56,.64,1);
 }
 .card-tag.hsk{background:var(--primary-light);color:var(--primary-dark)}
 .card-tag.topic{background:var(--amber-light);color:#92400e}
@@ -716,7 +732,6 @@ tr.tapped td{
     color:var(--text-2);
     margin-bottom:.35rem;
     line-height:1.4;
-    transition:font-size .3s, color .3s;
 }
 .card-zh{
     font-size:1.1rem;
@@ -724,7 +739,7 @@ tr.tapped td{
     color:var(--text);
     margin-bottom:.35rem;
     line-height:1.3;
-    transition:font-size .3s, color .3s;
+    transition:font-size .3s cubic-bezier(.34,1.56,.64,1), color .3s;
 }
 .card-pinyin{
     font-size:.78rem;
@@ -734,7 +749,6 @@ tr.tapped td{
     padding:.2rem .45rem;
     border-radius:6px;
     display:inline-block;
-    transition:font-size .3s;
 }
 .card-practice{
     display:flex;
@@ -822,7 +836,6 @@ tr.tapped td{
     .fab-main{width:52px;height:52px;font-size:1.2rem}
     .fab-btn{width:48px;height:48px;font-size:1.05rem}
     
-    /* Focus lớn hơn trên mobile */
     .card.focused .card-zh{
         font-size:2rem;
     }
@@ -860,7 +873,7 @@ tr.tapped td{
             </div>
         </header>
 
-        <!-- SEARCH (gọn) -->
+        <!-- SEARCH -->
         <div class="search-bar">
             <i class="fas fa-search"></i>
             <input type="text" id="searchInput" placeholder="Tìm kiếm..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
@@ -1078,24 +1091,13 @@ $('togglePracticeBtn').addEventListener('click', function(e) {
 
 /* ========== FOCUS MODE ========== */
 window.toggleFocus = function(stt, element) {
-    // Nếu đang focus chính nó → bỏ focus
     if (focusedStt === stt) {
         clearFocus();
         return;
     }
-    
-    // Xóa focus cũ
     clearFocus();
-    
-    // Đặt focus mới
     focusedStt = stt;
-    if (element.classList.contains('card')) {
-        element.classList.add('focused', 'tapped');
-    } else {
-        element.classList.add('focused', 'tapped');
-    }
-    
-    // Xóa class 'tapped' sau animation
+    element.classList.add('focused', 'tapped');
     setTimeout(function() {
         if (element) element.classList.remove('tapped');
     }, 600);
@@ -1108,13 +1110,10 @@ window.clearFocus = function() {
     focusedStt = null;
 };
 
-// Nhấn ra ngoài để bỏ focus
 document.addEventListener('click', function(e) {
-    // Nếu nhấn vào card hoặc row → xử lý trong onclick của nó
     if (e.target.closest('.card') || e.target.closest('.desktop-view tbody tr')) {
         return;
     }
-    // Nếu nhấn vào input, button, chip, fab → không bỏ focus
     if (e.target.closest('.practice-input') || 
         e.target.closest('.audio-btn') || 
         e.target.closest('.chip') || 
@@ -1157,9 +1156,7 @@ if ('speechSynthesis' in window) {
 }
 
 window.speakText = function(text, btn, evt) {
-    if (evt) {
-        evt.stopPropagation();
-    }
+    if (evt) evt.stopPropagation();
     if (!('speechSynthesis' in window)) {
         alert('Trình duyệt không hỗ trợ phát âm.');
         return;
@@ -1282,12 +1279,12 @@ function render(reset) {
         var zhJs = escapeJs(r.zh);
         var zhHtml = escapeHtml(r.zh);
         var sttSafe = escapeHtml(r.stt);
+        var sttJs = escapeJs(r.stt);
         var audio = r.zh
             ? '<button class="audio-btn" onclick="speakText(\'' + zhJs + '\', this, event)" title="Nghe"><i class="fas fa-volume-up"></i></button>'
             : '';
         
-        // Desktop row - nhấn vào row (không phải ô nhập/audio) → toggle focus
-        deskHtml += '<tr onclick="toggleFocus(\'' + sttSafe.replace(/'/g, "\\'") + '\', this)" data-stt="' + sttSafe + '">' +
+        deskHtml += '<tr onclick="toggleFocus(\'' + sttJs + '\', this)" data-stt="' + sttSafe + '">' +
             '<td class="stt">' + sttSafe + '</td>' +
             '<td><span class="hsk-badge">' + escapeHtml(r.hsk) + '</span></td>' +
             '<td class="topic-cell">' + escapeHtml(r.topic) + '</td>' +
@@ -1300,8 +1297,7 @@ function render(reset) {
             '<td class="check-cell" data-check-stt="' + sttSafe + '"></td>' +
             '</tr>';
         
-        // Mobile card - nhấn vào card (không phải ô nhập/audio) → toggle focus
-        mobHtml += '<div class="card" onclick="toggleFocus(\'' + sttSafe.replace(/'/g, "\\'") + '\', this)" data-stt="' + sttSafe + '">' +
+        mobHtml += '<div class="card" onclick="toggleFocus(\'' + sttJs + '\', this)" data-stt="' + sttSafe + '">' +
             '<div class="card-header">' +
                 '<div class="card-stt">' + sttSafe + '</div>' +
                 '<div class="card-meta">' +
