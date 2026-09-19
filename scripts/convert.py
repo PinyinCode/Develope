@@ -9,6 +9,7 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - Nút Zalo: TO khi demo, NHỎ khi đã đăng nhập
 - Dark mode fix: HSK badge + nút nghe dễ đọc
 - Hanzi Writer, font chữ Trung tối ưu, 3 FAB, focus mode
+- ✅ Hiển thị số lượng kết quả theo ô tìm kiếm / bộ lọc
 """
 import openpyxl
 import json
@@ -304,6 +305,33 @@ body{
     pointer-events:none;
 }
 .chip.locked select{pointer-events:none}
+
+/* ✅ Số lượng kết quả */
+.result-count{
+    display:none;
+    align-items:center;
+    gap:.4rem;
+    margin-top:.5rem;
+    padding:.45rem .85rem;
+    border-radius:var(--radius-full);
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text-2);
+    font-size:.8rem;
+    font-weight:600;
+    width:fit-content;
+    box-shadow:var(--shadow-sm);
+    transition:.2s;
+}
+.result-count.show{display:inline-flex}
+.result-count i{color:var(--primary);font-size:.85rem}
+.result-count b{color:var(--primary);font-weight:800}
+.result-count.empty{background:var(--danger-light);border-color:rgba(220,38,38,.3);color:var(--danger)}
+.result-count.empty i,
+.result-count.empty b{color:var(--danger)}
+[data-theme="dark"] .result-count.empty{background:rgba(220,38,38,.15);border-color:rgba(220,38,38,.4);color:#fca5a5}
+[data-theme="dark"] .result-count.empty i,
+[data-theme="dark"] .result-count.empty b{color:#fca5a5}
 
 /* ✅ ZALO BUTTON - To khi demo, nhỏ khi đã đăng nhập */
 .zalo-btn{
@@ -924,6 +952,7 @@ body:not(.show-practice) .card-practice{display:none!important}
     .filters{max-width:100%}
     .chip{padding:.5rem .75rem;font-size:.8rem}
     .chip-label{font-size:.65rem}
+    .result-count{font-size:.75rem;padding:.4rem .7rem;margin-top:.45rem}
     .fab-group{right:16px;bottom:calc(16px + env(safe-area-inset-bottom));gap:.45rem}
     .fab-main{width:52px;height:52px;font-size:1.2rem}
     .fab-btn{width:48px;height:48px;font-size:1.05rem}
@@ -1045,6 +1074,12 @@ body:not(.show-practice) .card-practice{display:none!important}
                 <i class="fas fa-chevron-down chip-arrow"></i>
                 <select id="subjectFilter"><option value="">Tất cả chủ đề</option></select>
             </div>
+        </div>
+
+        <!-- ✅ Số lượng kết quả -->
+        <div class="result-count" id="resultCount">
+            <i class="fas fa-list-ul"></i>
+            <span>Tìm thấy <b id="resultCountNum">0</b> kết quả</span>
         </div>
     </div>
 </div>
@@ -1341,6 +1376,7 @@ function refreshApp() {
     applyFilter();
     applyDisplayState();
     updateToggleButtons();
+    updateResultCount();
 }
 
 window.showLoginModal = function() {
@@ -1702,6 +1738,36 @@ function updateFilterUI() {
     } else {
         resetBtn.classList.add('hidden');
     }
+    
+    // ✅ Cập nhật số lượng kết quả
+    updateResultCount();
+}
+
+// ✅ Hàm hiển thị số lượng kết quả
+function updateResultCount() {
+    var el = $('resultCount');
+    if (!el) return;
+    
+    var total = filtered ? filtered.length : 0;
+    var hasFilter = !!(state.search || state.hsk || state.subject);
+    
+    // Chỉ hiển thị khi có ít nhất 1 điều kiện lọc
+    if (!hasFilter) {
+        el.classList.remove('show', 'empty');
+        return;
+    }
+    
+    el.classList.add('show');
+    el.classList.toggle('empty', total === 0);
+    
+    var spanEl = el.querySelector('span');
+    if (spanEl) {
+        if (total === 0) {
+            spanEl.innerHTML = 'Không tìm thấy kết quả nào';
+        } else {
+            spanEl.innerHTML = 'Tìm thấy <b>' + total + '</b> kết quả';
+        }
+    }
 }
 
 /* ✅ RENDER - Card grid (2 cột desktop, 1 cột mobile) */
@@ -1833,6 +1899,8 @@ function applyFilter() {
         if (state.subject && r.subject !== state.subject) return false;
         return true;
     });
+    
+    updateResultCount(); // ✅ Cập nhật số lượng kết quả
     render(true);
 }
 
@@ -2218,3 +2286,4 @@ print(f"📞 Zalo: {ZALO_PHONE} ({ZALO_NAME})")
 print(f"💡 Zalo button: TO khi demo, NHỎ khi đã đăng nhập")
 print(f"🌙 Dark mode: HSK badge + nút nghe đã fix")
 print(f"🖥️ Desktop: Card 2 cột | 📱 Mobile: Card 1 cột")
+print(f"🔍 Hiển thị số lượng kết quả theo ô tìm kiếm / bộ lọc")
