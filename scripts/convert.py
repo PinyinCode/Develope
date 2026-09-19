@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Chuyển file Excel → HTML tự chứa dữ liệu
-- Header + Search + Filters LUÔN DÍNH trên cùng khi cuộn
-- Toggle riêng: Tiếng Việt | Pinyin | Ô nhập
+- 3 nút toggle (Tiếng Việt/Pinyin/Ô nhập) là FLOATING BUTTONS ở góc dưới phải
+- Header sticky trên cùng: Logo + Đặt lại + Dark mode
+- Search + Filters sticky cùng header
 - Bật ô nhập → tự tắt Pinyin (và ngược lại)
 - HSK chỉ hiển thị HSK1-HSK6
-- Nút Đặt lại nhỏ gọn chỉ hiện khi có filter
 - Phát âm bằng Web Speech API
 """
 import openpyxl
@@ -95,6 +95,7 @@ html_template = r'''<!DOCTYPE html>
     --amber-light:#fef3c7;
     --shadow-sm:0 1px 2px rgba(15,23,42,.04);
     --shadow:0 4px 12px rgba(15,23,42,.06);
+    --shadow-fab:0 8px 24px rgba(15,23,42,.18);
     --radius:14px;
     --radius-sm:10px;
     --radius-full:999px;
@@ -116,6 +117,7 @@ html_template = r'''<!DOCTYPE html>
     --amber-light:#78350f;
     --shadow-sm:0 1px 2px rgba(0,0,0,.3);
     --shadow:0 4px 12px rgba(0,0,0,.3);
+    --shadow-fab:0 8px 24px rgba(0,0,0,.5);
 }
 html,body{height:100%}
 body{
@@ -124,7 +126,8 @@ body{
     color:var(--text);
     line-height:1.5;
     font-size:15px;
-    padding-bottom:env(safe-area-inset-bottom);
+    /* Chừa chỗ cho FAB ở dưới */
+    padding-bottom:calc(90px + env(safe-area-inset-bottom));
     transition:background .2s,color .2s;
 }
 .container{max-width:1400px;margin:0 auto;padding:0 1rem}
@@ -148,11 +151,8 @@ body{
     box-shadow:0 4px 16px -8px rgba(0,0,0,.5);
 }
 
-/* ========== HEADER ========== */
-.header{
-    background:transparent;
-    border:none;
-}
+/* ========== HEADER (chỉ còn Logo + Đặt lại + Theme) ========== */
+.header{background:transparent;border:none}
 .header-inner{
     display:flex;
     align-items:center;
@@ -189,10 +189,9 @@ body{
 }
 .logo-text .title{font-size:.9rem;font-weight:700;color:var(--text)}
 .logo-text .subtitle{font-size:.68rem;color:var(--text-3);font-weight:500}
-
 .header-actions{display:flex;gap:.35rem;align-items:center;flex-shrink:0}
 
-/* Icon button */
+/* Icon button chung (dùng cho header) */
 .icon-btn{
     width:34px;height:34px;
     border-radius:8px;
@@ -213,12 +212,6 @@ body{
     background:var(--surface-2);
     color:var(--primary);
     border-color:var(--primary);
-}
-.icon-btn.active{
-    background:var(--primary);
-    color:#fff;
-    border-color:var(--primary);
-    box-shadow:0 2px 8px rgba(37,99,235,.3);
 }
 .icon-btn.hidden{display:none}
 .icon-btn.reset-btn:hover,.icon-btn.reset-btn:active{
@@ -359,7 +352,121 @@ body{
     height:100%;
 }
 
-/* ========== TOGGLE VISIBILITY CLASSES ========== */
+/* ========== FLOATING ACTION BUTTONS (3 nút toggle) ========== */
+.fab-group{
+    position:fixed;
+    /* Cách đáy màn hình 20px + safe area */
+    bottom:calc(20px + env(safe-area-inset-bottom));
+    right:20px;
+    z-index:1000;
+    display:flex;
+    flex-direction:column;
+    gap:.5rem;
+    align-items:flex-end;
+    /* Đảm bảo không bị che khuất bởi bất cứ gì */
+    pointer-events:none;
+}
+.fab-group > *{pointer-events:auto}
+
+/* Nút FAB chính */
+.fab-btn{
+    width:52px;
+    height:52px;
+    border-radius:50%;
+    border:none;
+    background:var(--surface);
+    color:var(--text-2);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1.15rem;
+    box-shadow:var(--shadow-fab);
+    transition:transform .2s, background .2s, color .2s;
+    -webkit-tap-highlight-color:transparent;
+    position:relative;
+    border:2px solid var(--surface);
+}
+.fab-btn:hover,.fab-btn:active{
+    transform:scale(1.08);
+    background:var(--primary-light);
+    color:var(--primary-dark);
+}
+/* Trạng thái BẬT */
+.fab-btn.active{
+    background:var(--primary);
+    color:#fff;
+    border-color:var(--primary);
+    box-shadow:0 8px 24px rgba(37,99,235,.4);
+}
+.fab-btn.active:hover,.fab-btn.active:active{
+    background:var(--primary-dark);
+    color:#fff;
+}
+/* Nhãn nhỏ hiển thị tên nút khi hover (desktop) */
+.fab-btn::after{
+    content:attr(data-label);
+    position:absolute;
+    right:calc(100% + 10px);
+    top:50%;
+    transform:translateY(-50%);
+    background:var(--text);
+    color:var(--surface);
+    padding:.4rem .7rem;
+    border-radius:8px;
+    font-size:.75rem;
+    font-weight:600;
+    white-space:nowrap;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .15s;
+    font-family:inherit;
+}
+.fab-btn:hover::after{opacity:1}
+/* Ẩn label trên mobile */
+@media(max-width:768px){
+    .fab-btn::after{display:none}
+}
+
+/* Nhóm FAB mở/đóng khi nhấn nút chính */
+.fab-main{
+    width:56px;
+    height:56px;
+    font-size:1.3rem;
+    background:linear-gradient(135deg,#2563eb,#7c3aed);
+    color:#fff;
+    border:none;
+    box-shadow:0 8px 24px rgba(37,99,235,.4);
+}
+.fab-main:hover,.fab-main:active{
+    background:linear-gradient(135deg,#1d4ed8,#6d28d9);
+    color:#fff;
+    transform:scale(1.08) rotate(15deg);
+}
+.fab-main i{
+    transition:transform .3s;
+}
+.fab-group.open .fab-main i{
+    transform:rotate(180deg);
+}
+/* Các nút con - ẩn mặc định, hiện khi open */
+.fab-sub{
+    opacity:0;
+    transform:translateY(10px) scale(.8);
+    pointer-events:none !important;
+    transition:opacity .2s, transform .25s;
+}
+.fab-group.open .fab-sub{
+    opacity:1;
+    transform:translateY(0) scale(1);
+    pointer-events:auto !important;
+}
+/* Hiệu ứng xuất hiện tuần tự */
+.fab-group.open .fab-sub:nth-child(1){transition-delay:.05s}
+.fab-group.open .fab-sub:nth-child(2){transition-delay:.1s}
+.fab-group.open .fab-sub:nth-child(3){transition-delay:.15s}
+
+/* ========== TOGGLE CLASSES ========== */
 body:not(.show-pinyin) .col-pinyin,
 body:not(.show-pinyin) .card-pinyin{display:none!important}
 body:not(.show-vi) .col-vi,
@@ -632,6 +739,15 @@ tbody tr:last-child td{border-bottom:none}
     .filters{max-width:100%}
     .chip{padding:.5rem .75rem;font-size:.8rem}
     .chip-label{font-size:.65rem}
+    
+    /* FAB di động nhỏ hơn chút */
+    .fab-group{
+        right:16px;
+        bottom:calc(16px + env(safe-area-inset-bottom));
+        gap:.45rem;
+    }
+    .fab-main{width:52px;height:52px;font-size:1.2rem}
+    .fab-btn{width:48px;height:48px;font-size:1.05rem}
 }
 @media(max-width:400px){
     .logo-text .subtitle{display:none}
@@ -645,7 +761,7 @@ tbody tr:last-child td{border-bottom:none}
 <div class="sticky-top" id="stickyTop">
     <div class="container">
 
-        <!-- HEADER -->
+        <!-- HEADER - chỉ còn Logo + Đặt lại + Theme -->
         <header class="header">
             <div class="header-inner">
                 <div class="logo">
@@ -656,15 +772,6 @@ tbody tr:last-child td{border-bottom:none}
                     </div>
                 </div>
                 <div class="header-actions">
-                    <button class="icon-btn" id="toggleViBtn" title="Ẩn/hiện Tiếng Việt">
-                        <i class="fas fa-language"></i>
-                    </button>
-                    <button class="icon-btn" id="togglePinyinBtn" title="Ẩn/hiện Pinyin">
-                        <i class="fas fa-spell-check"></i>
-                    </button>
-                    <button class="icon-btn" id="togglePracticeBtn" title="Ẩn/hiện Ô nhập">
-                        <i class="fas fa-keyboard"></i>
-                    </button>
                     <button class="icon-btn reset-btn hidden" id="resetBtn" title="Đặt lại bộ lọc">
                         <i class="fas fa-undo-alt"></i>
                         <span class="badge" id="resetBadge">0</span>
@@ -712,6 +819,26 @@ tbody tr:last-child td{border-bottom:none}
     </div>
 </div>
 
+<!-- ============ FLOATING ACTION BUTTONS ============ -->
+<div class="fab-group" id="fabGroup">
+    <!-- Nút con 1: Tiếng Việt -->
+    <button class="fab-btn fab-sub" id="toggleViBtn" data-label="Tiếng Việt" title="Ẩn/hiện Tiếng Việt">
+        <i class="fas fa-language"></i>
+    </button>
+    <!-- Nút con 2: Pinyin -->
+    <button class="fab-btn fab-sub" id="togglePinyinBtn" data-label="Pinyin" title="Ẩn/hiện Pinyin">
+        <i class="fas fa-spell-check"></i>
+    </button>
+    <!-- Nút con 3: Ô nhập -->
+    <button class="fab-btn fab-sub" id="togglePracticeBtn" data-label="Ô nhập tiếng Trung" title="Ẩn/hiện Ô nhập">
+        <i class="fas fa-keyboard"></i>
+    </button>
+    <!-- Nút chính: mở/đóng nhóm -->
+    <button class="fab-btn fab-main" id="fabMainBtn" title="Tùy chọn hiển thị">
+        <i class="fas fa-sliders-h"></i>
+    </button>
+</div>
+
 <!-- ============ MAIN ============ -->
 <main class="main">
     <div class="container">
@@ -746,18 +873,15 @@ var $ = function(id) { return document.getElementById(id); };
 var desktopWrapper = $('desktopWrapper');
 var mobileWrapper = $('mobileWrapper');
 
-/* ========== SCROLL DETECTION ========== */
+/* ========== SCROLL DETECTION cho sticky-top ========== */
 (function initScroll() {
     var sticky = document.getElementById('stickyTop');
     if (!sticky) return;
     
     var ticking = false;
     function update() {
-        if (window.scrollY > 5) {
-            sticky.classList.add('scrolled');
-        } else {
-            sticky.classList.remove('scrolled');
-        }
+        if (window.scrollY > 5) sticky.classList.add('scrolled');
+        else sticky.classList.remove('scrolled');
         ticking = false;
     }
     
@@ -770,6 +894,35 @@ var mobileWrapper = $('mobileWrapper');
     
     update();
 })();
+
+/* ========== FAB GROUP - mở/đóng ========== */
+var fabGroup = $('fabGroup');
+var fabMainBtn = $('fabMainBtn');
+
+// Trạng thái mở/đóng của FAB (lưu vào localStorage)
+var fabOpen = false;
+try {
+    var savedFab = localStorage.getItem('fabOpen');
+    if (savedFab === 'true') fabOpen = true;
+} catch(e) {}
+
+if (fabOpen) fabGroup.classList.add('open');
+
+fabMainBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    fabOpen = !fabOpen;
+    fabGroup.classList.toggle('open', fabOpen);
+    try { localStorage.setItem('fabOpen', fabOpen ? 'true' : 'false'); } catch(e) {}
+});
+
+// Tự đóng FAB khi click ra ngoài (chỉ trên desktop)
+document.addEventListener('click', function(e) {
+    if (!fabGroup.contains(e.target) && fabOpen && window.innerWidth > 768) {
+        fabOpen = false;
+        fabGroup.classList.remove('open');
+        try { localStorage.setItem('fabOpen', 'false'); } catch(e) {}
+    }
+});
 
 /* ========== DARK MODE ========== */
 (function initTheme() {
@@ -810,7 +963,6 @@ var displayState = { vi: false, pinyin: false, practice: false };
             displayState.practice = !!parsed.practice;
         }
     } catch(e) {}
-    // Nếu practice bật thì tắt pinyin
     if (displayState.practice) displayState.pinyin = false;
     applyDisplayState();
     updateToggleButtons();
@@ -832,14 +984,16 @@ function updateToggleButtons() {
     $('togglePracticeBtn').classList.toggle('active', displayState.practice);
 }
 
-$('toggleViBtn').addEventListener('click', function() {
+$('toggleViBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
     displayState.vi = !displayState.vi;
     applyDisplayState();
     saveDisplayState();
     updateToggleButtons();
 });
 
-$('togglePinyinBtn').addEventListener('click', function() {
+$('togglePinyinBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
     displayState.pinyin = !displayState.pinyin;
     if (displayState.pinyin && displayState.practice) displayState.practice = false;
     applyDisplayState();
@@ -847,7 +1001,8 @@ $('togglePinyinBtn').addEventListener('click', function() {
     updateToggleButtons();
 });
 
-$('togglePracticeBtn').addEventListener('click', function() {
+$('togglePracticeBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
     displayState.practice = !displayState.practice;
     if (displayState.practice && displayState.pinyin) displayState.pinyin = false;
     applyDisplayState();
