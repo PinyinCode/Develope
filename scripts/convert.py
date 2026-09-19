@@ -1,65 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Chuyển file Excel → HTML tự chứa dữ liệu
-- Fix lỗi "Đang tải dữ liệu..." do JSON bị vỡ
-- Phát âm bằng Web Speech API
-- Fix dòng cuối bị thanh trình duyệt che
-"""
-import openpyxl
-import json
-import os
-import sys
-
-# ====== CẤU HÌNH ======
-EXCEL_FILE = "data/input.xlsx"
-OUTPUT_HTML = "index.html"
-SHEET_INDEX = 0
-
-# ====== ĐỌC EXCEL ======
-print(f"📖 Đang đọc file: {EXCEL_FILE}")
-if not os.path.exists(EXCEL_FILE):
-    print(f"❌ Không tìm thấy file {EXCEL_FILE}")
-    sys.exit(1)
-
-wb = openpyxl.load_workbook(EXCEL_FILE, data_only=True)
-ws = wb.worksheets[SHEET_INDEX]
-print(f"📊 Sheet: {ws.title} - {ws.max_row} dòng")
-
-data = []
-for row in ws.iter_rows(min_row=2, values_only=True):
-    if not row or len(row) < 6:
-        continue
-    stt = row[0] if row[0] is not None else ""
-    hsk = str(row[1]).strip() if row[1] else ""
-    topic = str(row[2]).strip() if row[2] else ""
-    subject = str(row[3]).strip() if row[3] else ""
-    vi = str(row[4]).strip() if row[4] else ""
-    zh = str(row[5]).strip() if row[5] else ""
-    pinyin = str(row[6]).strip() if len(row) > 6 and row[6] else ""
-    if not vi and not zh:
-        continue
-    # ✅ Loại bỏ ký tự điều khiển và xuống dòng gây lỗi JSON
-    def clean(s):
-        return s.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ').replace('\\', '\\\\')
-    data.append({
-        "stt": str(stt),
-        "hsk": clean(hsk),
-        "topic": clean(topic),
-        "subject": clean(subject),
-        "vi": clean(vi),
-        "zh": clean(zh),
-        "pinyin": clean(pinyin)
-    })
-
-print(f"✅ Đã đọc {len(data)} câu")
-
-# ====== CHUYỂN SANG JSON AN TOÀN ======
-# ✅ ensure_ascii=True: escape toàn bộ Unicode (an toàn cho mọi trình duyệt)
-json_data = json.dumps(data, ensure_ascii=True, separators=(',', ':'))
-# ✅ Escape </ để không phá thẻ <script>
-json_data = json_data.replace('</', '<\\/')
-
-# ====== TEMPLATE HTML ======
 html_template = r'''<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -72,41 +10,174 @@ html_template = r'''<!DOCTYPE html>
 html,body{height:100%}
 body{
     font-family:-apple-system,'Segoe UI',Roboto,sans-serif;
-    background:#f5f7fb;
-    color:#1e2a3a;
+    background:#f5f7fb;color:#1e2a3a;
     padding:1rem;
     padding-bottom:calc(1rem + env(safe-area-inset-bottom));
     line-height:1.5;
 }
 .container{max-width:1500px;margin:0 auto}
-header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.8rem;margin-bottom:1rem}
-h1{font-size:1.3rem;font-weight:600;color:#0b2b4a;display:flex;align-items:center;gap:8px}
-h1 i{color:#c0392b}
-.stats{background:#fff;border-radius:40px;padding:.4rem 1rem;box-shadow:0 2px 8px rgba(0,0,0,.03);font-size:.85rem;border:1px solid #e9edf4}
+
+/* ========== HEADER ========== */
+header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:1rem;
+    margin-bottom:1rem;
+    flex-wrap:wrap;
+}
+h1{
+    font-size:1.25rem;
+    font-weight:600;
+    color:#0b2b4a;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex:1;
+    min-width:0;
+}
+h1 i{color:#c0392b;flex-shrink:0}
+h1 span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stats{
+    background:#fff;
+    border-radius:40px;
+    padding:.45rem 1rem =;
+    box-shadow:0 2========px 8px rgba(0,0=,0,.04);
+    font-size FIL:.82rem;
+    border:1pxTER solid #e9edf4;
+S    white-space:nowrap;
+    flex-shrink:0;
+}
 .stats span{font-weight:700;color:#c0392b}
-.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem;align-items:center}
-.search-box{flex:2;min-width:200px;position:relative}
-.search-box i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#8a9aa8;font-size:.9rem}
-.search-box input{width:100%;padding:11px 16px 11px 38px;border-radius:50px;border:1px solid #dbe1e9;font-size:.95rem;background:#fff;outline:none;transition:.2s}
-.search-box input:focus{border-color:#3b7cbf;box-shadow:0 0 0 3px rgba(59,124,191,.1)}
-.filter-select{padding:10px 14px;border-radius:30px;border:1px solid #dbe1e9;background:#fff;font-size:.85rem;outline:none;cursor:pointer;min-width:120px}
-.reset-btn{background:#fff;border:1px solid #dbe1e9;padding:10px 14px;border-radius:30px;cursor:pointer;font-size:.85rem;display:flex;align-items:center;gap:6px;color:#5b6f82;transition:.2s}
-.reset-btn:hover{background:#eef3fa}
+
+/* ========== SEARCH (1 dòng riêng) ========== */
+.search-row{
+    margin-bottom:.75rem;
+}
+.search-box{position:relative}
+.search-box i{
+    position:absolute;
+    left:16px;
+    top:50%;
+    transform:translateY(-50%);
+    color:#8a9aa8;
+    font-size:.95rem;
+    pointer-events:none;
+}
+.search-box input{
+    width:100%;
+    padding:13px 44px 13px 44px;
+    border-radius:50px;
+    border:1px solid #dbe1e9;
+    font-size:.95rem;
+    background:#fff;
+    outline:none;
+    transition:.2s;
+    box-shadow:0 1px 3px rgba(0,0,0,.02);
+    -webkit-appearance:none;
+}
+.search-box input:focus{
+    border-color:#3b7cbf;
+    box-shadow:0 0 0 3px rgba(59,124,191,.1);
+}
+.search-box .clear-btn{
+    position:absolute;
+    right:14px;
+    top:50%;
+    transform:translateY(-50%);
+    background:none;
+    border:none;
+    color:#8a9aa8;
+    cursor:pointer;
+    padding:6px;
+    font-size:1rem;
+    display:none;
+    -webkit-tap-highlight-color:transparent;
+}
+.search-box .clear-btn.show{display:block}
+
+/* (1 dòng chung) ========== */
+.filters-row{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr auto;
+    gap:.5rem;
+    margin-bottom:1rem;
+}
+.filter-select{
+    padding:11px 32px 11px 14px;
+    border-radius:30px;
+    border:1px solid #dbe1e9;
+    background:#fff url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a9aa8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 14px center;
+    font-size:.88rem;
+    outline:none;
+    cursor:pointer;
+    appearance:none;
+    -webkit-appearance:none;
+    box-shadow:0 1px 3px rgba(middle0,0,0,.02);
+   }
+ text-overflow:ellipstris;
+    min-width:0;
+    transition:.:15s;
+}
+.filter-select:focus{borderlast-color:#3b7cbf;box-shadow-child:0 0 0 3px rgba(59,124,191,.1)}
+.filter-select.has-value{
+    border-color:#3b7cbf;
+    background-color:#eef5ff;
+    font-weight:600;
+    color:#1a5a9c;
+}
+.reset-btn{
+    background:#fff;
+    border:1px solid #dbe1e9;
+    padding:11px 16px;
+    border-radius:30px;
+    cursor:pointer;
+    font-size:.88rem;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    color:#5b6f82;
+    transition:.2s;
+    white-space:nowrap;
+    box-shadow:0 1px 3px rgba(0,0,0,.02);
+    -webkit-tap-highlight-color:transparent;
+}
+.reset-btn:hover,.reset-btn:active{
+    background:#eef3fa;
+    border-color:#b8ccdf;
+    color:#1a5a9c;
+}
+
+/* ========== TABLE ========== */
 .table-wrapper{
     background:#fff;
     border-radius:20px;
     box-shadow:0 12px 30px rgba(0,0,0,.05);
     overflow-y:auto;
     overflow-x:auto;
-    max-height:calc(100vh - 240px);
+    max-height:calc(100vh - 280px);
     border:1px solid #eef2f7;
     -webkit-overflow-scrolling:touch;
     padding-bottom:calc(120px + env(safe-area-inset-bottom));
 }
 table{width:100%;border-collapse:collapse;font-size:.88rem;min-width:1200px}
-th{background:#f0f5fc;color:#1e3b5c;font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.3px;padding:12px 10px;text-align:left;border-bottom:1px solid #d8e2ee;position:sticky;top:0;z-index:10;white-space:nowrap}
-td{padding:10px;border-bottom:1px solid #ecf1f7;vertical-align:middle}
-tr:last-child td{border-bottom:none}
+th{
+    background:#f0f5fc;
+    color:#1e3b5c;
+    font-weight:600;
+    font-size:.75rem;
+    text-transform:uppercase;
+    letter-spacing:.3px;
+    padding:12px 10px;
+    text-align:left;
+    border-bottom:1px solid #d8e2ee;
+    position:sticky;
+    top:0;
+    z-index:10;
+    white-space:nowrap;
+}
+td{padding:10px;border-bottom:1px solid #ecf1f7;vertical-align: td{border-bottom:none}
 tr:hover td{background:#f9fcff}
 th:nth-child(1),td:nth-child(1){width:50px;text-align:center}
 th:nth-child(2),td:nth-child(2){width:70px}
@@ -118,6 +189,7 @@ th:nth-child(7),td:nth-child(7){width:160px}
 th:nth-child(8),td:nth-child(8){width:55px;text-align:center}
 th:nth-child(9),td:nth-child(9){width:180px}
 th:nth-child(10),td:nth-child(10){width:100px;text-align:center}
+
 .audio-btn{
     display:inline-flex;
     align-items:center;
@@ -144,15 +216,49 @@ th:nth-child(10),td:nth-child(10){width:100px;text-align:center}
     0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(192,57,43,.5)}
     50%{transform:scale(1.1);box-shadow:0 0 0 8px rgba(192,57,43,0)}
 }
-.pinyin{color:#2c6b9e;font-style:italic;font-size:.82rem;background:#f2f8ff;padding:2px 6px;border-radius:12px;display:inline-block}
+.pinyin{
+    color:#2c6b9e;
+    font-style:italic;
+    font-size:.82rem;
+    background:#f2f8ff;
+    padding:2px 6px;
+    border-radius:12px;
+    display:inline-block;
+}
 .check-cell{font-weight:600;font-size:.85rem;white-space:nowrap}
 .check-correct{color:#1e7a4a}
 .check-wrong{color:#b33a3a}
-.practice-input{width:100%;padding:7px 10px;border-radius:30px;border:1px solid #dbe1e9;font-size:.85rem;background:#fbfdff;outline:none;transition:.15s}
-.practice-input:focus{border-color:#3b7cbf;box-shadow:0 0 0 3px rgba(59,124,191,.1)}
-.no-data{text-align:center;padding:2.5rem 1rem;color:#7a8b9f;font-size:1rem}
+.practice-input{
+    width:100%;
+    padding:7px 10px;
+    border-radius:30px;
+    border:1px solid #dbe1e9;
+    font-size:.85rem;
+    background:#fbfdff;
+    outline:none;
+    transition:.15s;
+    -webkit-appearance:none;
+}
+.practice-input:focus{
+    border-color:#3b7cbf;
+    box-shadow:0 0 0 3px rgba(59,124,191,.1);
+    background:#fff;
+}
+.no-data{
+    text-align:center;
+    padding:2.5rem 1rem;
+    color:#7a8b9f;
+    font-size:1rem;
+}
 .no-data i{font-size:2.5rem;margin-bottom:.8rem;color:#b8ccdf;display:block}
-.hsk-badge{background:#eef3fa;padding:3px 9px;border-radius:20px;font-size:.75rem;font-weight:600;white-space:nowrap}
+.hsk-badge{
+    background:#eef3fa;
+    padding:3px 9px;
+    border-radius:20px;
+    font-size:.75rem;
+    font-weight:600;
+    white-space:nowrap;
+}
 .load-more{
     text-align:center;
     padding:1.3rem 1rem;
@@ -188,12 +294,27 @@ th:nth-child(10),td:nth-child(10){width:100px;text-align:center}
     margin:1rem;
 }
 .error-box i{font-size:2rem;margin-bottom:.5rem;display:block}
+
+/* ========== RESPONSIVE ========== */
+@media(max-width:700px){
+    /* Filters: 2 cột cho select, nút reset full width */
+    .filters-row{
+        grid-template-columns:1fr 1fr;
+        gap:.5rem;
+    }
+    .reset-btn{
+        grid-column:1 / -1;
+        padding:10px;
+    }
+}
 @media(max-width:600px){
     body{padding:.7rem;padding-bottom:calc(.7rem + env(safe-area-inset-bottom))}
-    h1{font-size:1.1rem}
-    .filter-select{min-width:100px;font-size:.8rem;padding:8px 10px}
-    .search-box input{font-size:.9rem;padding:10px 14px 10px 34px}
-    .table-wrapper{max-height:calc(100vh - 280px);padding-bottom:calc(140px + env(safe-area-inset-bottom))}
+    h1{font-size:1.05rem;gap:6px}
+    h1 span{font-size:1.05rem}
+    .stats{padding:.35rem .8rem;font-size:.75rem}
+    .search-box input{padding:12px 40px 12px 40px;font-size:.9rem}
+    .filter-select{padding:10px 28px 10px 12px;font-size:.82rem}
+    .table-wrapper{max-height:calc(100vh - 320px);padding-bottom:calc(140px + env(safe-area-inset-bottom))}
     .load-more{margin-bottom:calc(5rem + env(safe-area-inset-bottom))}
     .audio-btn{width:34px;height:34px;font-size:.95rem}
 }
@@ -201,34 +322,48 @@ th:nth-child(10),td:nth-child(10){width:100px;text-align:center}
 </head>
 <body>
 <div class="container">
+
+<!-- ============ HEADER ============ -->
 <header>
-<h1><i class="fas fa-language"></i> Học tiếng Trung · Văn phòng & Công xưởng</h1>
-<div class="stats" id="statsDisplay"><i class="fas fa-book-open"></i> Đang tải...</div>
+    <h1>
+        <i class="fas fa-language"></i>
+        <span>Học tiếng Trung · VP & CX</span>
+    </h1>
+    <div class="stats" id="statsDisplay">
+        <i class="fas fa-book-open"></i> Đang tải...
+    </div>
 </header>
 
-<div class="filters">
+<!-- ============ SEARCH (1 DÒNG RIÊNG) ============ -->
+<div class="search-row">
     <div class="search-box">
         <i class="fas fa-search"></i>
-        <input type="text" id="searchInput" placeholder="Tìm tiếng Việt, tiếng Trung, pinyin...">
+        <input type="text" id="searchInput" placeholder="Tìm tiếng Việt, tiếng Trung, pinyin..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <button class="clear-btn" id="clearSearchBtn" aria-label="Xóa"><i class="fas fa-times-circle"></i></button>
     </div>
+</div>
+
+<!-- ============ FILTERS (1 DÒNG CHUNG) ============ -->
+<div class="filters-row">
     <select id="hskFilter" class="filter-select"><option value="">Tất cả HSK</option></select>
     <select id="topicFilter" class="filter-select"><option value="">Tất cả chủ điểm</option></select>
     <select id="subjectFilter" class="filter-select"><option value="">Tất cả chủ đề</option></select>
     <button class="reset-btn" id="resetBtn"><i class="fas fa-undo-alt"></i> Đặt lại</button>
 </div>
 
+<!-- ============ TABLE ============ -->
 <div class="table-wrapper" id="tableWrapper">
     <div class="no-data"><i class="fas fa-spinner fa-pulse"></i>Đang tải dữ liệu...</div>
 </div>
+
 </div>
 
 <script>
 /* ========== DỮ LIỆU ========== */
 var RAW_DATA = __DATA__;
 
-/* ========== KIỂM TRA DỮ LIỆU ========== */
+/* ========== KIỂM TRA ========== */
 (function() {
-    // Nếu JSON lỗi, hiển thị thông báo rõ ràng
     if (!Array.isArray(RAW_DATA)) {
         document.getElementById('tableWrapper').innerHTML =
             '<div class="error-box"><i class="fas fa-exclamation-triangle"></i>' +
@@ -349,6 +484,15 @@ function buildFilters() {
         Object.keys(subjectSet).sort().map(function(v){ return '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>'; }).join('');
 }
 
+/* ========== CẬP NHẬT TRẠNG THÁI FILTER ========== */
+function updateFilterStates() {
+    ['hskFilter','topicFilter','subjectFilter'].forEach(function(id) {
+        var el = $(id);
+        if (el.value) el.classList.add('has-value');
+        else el.classList.remove('has-value');
+    });
+}
+
 /* ========== RENDER ========== */
 function render(reset) {
     if (reset) renderedCount = 0;
@@ -365,10 +509,7 @@ function render(reset) {
             '</tr></thead><tbody id="dataBody"></tbody></table>';
     }
     var tbody = $('dataBody');
-    if (!tbody) {
-        console.error('Không tìm thấy tbody');
-        return;
-    }
+    if (!tbody) return;
     var end = Math.min(renderedCount + PAGE_SIZE, filtered.length);
     var html = '';
     for (var i = renderedCount; i < end; i++) {
@@ -440,6 +581,15 @@ function applyFilter() {
     state.hsk = $('hskFilter').value;
     state.topic = $('topicFilter').value;
     state.subject = $('subjectFilter').value;
+
+    // Cập nhật trạng thái hiển thị của filter
+    updateFilterStates();
+
+    // Hiện/ẩn nút xóa search
+    var clearBtn = $('clearSearchBtn');
+    if (state.search) clearBtn.classList.add('show');
+    else clearBtn.classList.remove('show');
+
     filtered = RAW_DATA.filter(function(r) {
         if (state.search) {
             var s = state.search;
@@ -457,7 +607,7 @@ function applyFilter() {
 }
 
 function updateStats() {
-    statsDisplay.innerHTML = '<i class="fas fa-book-open"></i> Hiển thị <span>' + renderedCount + '</span> / ' + filtered.length + ' câu';
+    statsDisplay.innerHTML = '<i class="fas fa-book-open"></i> <span>' + renderedCount + '</span> / ' + filtered.length + ' câu';
 }
 
 /* ========== EVENTS ========== */
@@ -470,6 +620,11 @@ $('resetBtn').addEventListener('click', function() {
     $('hskFilter').value = '';
     $('topicFilter').value = '';
     $('subjectFilter').value = '';
+    applyFilter();
+});
+$('clearSearchBtn').addEventListener('click', function() {
+    $('searchInput').value = '';
+    $('searchInput').focus();
     applyFilter();
 });
 
@@ -486,12 +641,3 @@ try {
 </script>
 </body>
 </html>'''
-
-html_output = html_template.replace("__DATA__", json_data)
-with open(OUTPUT_HTML, "w", encoding="utf-8") as f:
-    f.write(html_output)
-
-size_kb = os.path.getsize(OUTPUT_HTML) / 1024
-print(f"🎉 Đã tạo: {OUTPUT_HTML}")
-print(f"📦 Kích thước: {size_kb:.1f} KB")
-print(f"📚 Tổng số câu: {len(data)}")
