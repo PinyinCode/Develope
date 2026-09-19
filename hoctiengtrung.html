@@ -2,71 +2,103 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Học tiếng Trung · Văn phòng & Công xưởng</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-<!-- Thư viện đọc Excel -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',Roboto,sans-serif;background:#f5f7fb;color:#1e2a3a;padding:1.5rem;line-height:1.5}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:#f5f7fb;color:#1e2a3a;padding:1rem;line-height:1.5}
 .container{max-width:1500px;margin:0 auto}
-header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:2rem}
-h1{font-size:1.8rem;font-weight:600;color:#0b2b4a;display:flex;align-items:center;gap:10px}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.8rem;margin-bottom:1.5rem}
+h1{font-size:1.4rem;font-weight:600;color:#0b2b4a;display:flex;align-items:center;gap:8px}
 h1 i{color:#c0392b}
-.stats{background:#fff;border-radius:40px;padding:.5rem 1.2rem;box-shadow:0 2px 8px rgba(0,0,0,.03);font-size:.95rem;border:1px solid #e9edf4}
+.stats{background:#fff;border-radius:40px;padding:.4rem 1rem;box-shadow:0 2px 8px rgba(0,0,0,.03);font-size:.85rem;border:1px solid #e9edf4}
 .stats span{font-weight:700;color:#c0392b}
-.filters{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:1.5rem;align-items:center}
-.search-box{flex:2;min-width:240px;position:relative}
-.search-box i{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:#8a9aa8}
-.search-box input{width:100%;padding:12px 18px 12px 45px;border-radius:50px;border:1px solid #dbe1e9;font-size:1rem;background:#fff;outline:none;transition:.2s}
+
+/* ==== NÚT CHỌN FILE — QUAN TRỌNG ==== */
+.file-label{
+    display:block;
+    width:100%;
+    background:linear-gradient(135deg,#c0392b,#e74c3c);
+    color:#fff;
+    padding:1.5rem;
+    border-radius:20px;
+    text-align:center;
+    cursor:pointer;
+    margin-bottom:1.5rem;
+    box-shadow:0 8px 20px rgba(192,57,43,.25);
+    transition:.2s;
+    /* Ngăn iOS chặn sự kiện */
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-touch-callout:none;
+    position:relative;
+}
+.file-label:active{transform:scale(.98);box-shadow:0 4px 10px rgba(192,57,43,.25)}
+.file-label i{font-size:2.5rem;display:block;margin-bottom:.5rem}
+.file-label h2{font-size:1.15rem;margin-bottom:.3rem;font-weight:600}
+.file-label p{font-size:.85rem;opacity:.9}
+
+/* Ẩn input nhưng vẫn cho phép chạm — KHÔNG dùng display:none */
+.file-label input[type="file"]{
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    opacity:0;
+    cursor:pointer;
+    /* iOS yêu cầu điều này */
+    -webkit-appearance:none;
+}
+
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem;align-items:center}
+.search-box{flex:2;min-width:200px;position:relative}
+.search-box i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#8a9aa8;font-size:.9rem}
+.search-box input{width:100%;padding:11px 16px 11px 38px;border-radius:50px;border:1px solid #dbe1e9;font-size:.95rem;background:#fff;outline:none;transition:.2s}
 .search-box input:focus{border-color:#3b7cbf;box-shadow:0 0 0 3px rgba(59,124,191,.1)}
-.filter-select{padding:10px 18px;border-radius:30px;border:1px solid #dbe1e9;background:#fff;font-size:.95rem;outline:none;cursor:pointer;min-width:150px}
-.filter-select:focus{border-color:#3b7cbf}
-.reset-btn{background:#fff;border:1px solid #dbe1e9;padding:10px 18px;border-radius:30px;cursor:pointer;font-size:.95rem;display:flex;align-items:center;gap:6px;color:#5b6f82;transition:.2s}
-.reset-btn:hover{background:#eef3fa;border-color:#b8ccdf}
-.table-wrapper{background:#fff;border-radius:24px;box-shadow:0 12px 30px rgba(0,0,0,.05);overflow:auto;max-height:75vh;border:1px solid #eef2f7}
-table{width:100%;border-collapse:collapse;font-size:.92rem;min-width:1350px}
-th{background:#f0f5fc;color:#1e3b5c;font-weight:600;font-size:.82rem;text-transform:uppercase;letter-spacing:.3px;padding:15px 12px;text-align:left;border-bottom:1px solid #d8e2ee;position:sticky;top:0;z-index:10;white-space:nowrap}
-td{padding:12px;border-bottom:1px solid #ecf1f7;vertical-align:middle}
+.filter-select{padding:10px 14px;border-radius:30px;border:1px solid #dbe1e9;background:#fff;font-size:.85rem;outline:none;cursor:pointer;min-width:120px}
+.reset-btn{background:#fff;border:1px solid #dbe1e9;padding:10px 14px;border-radius:30px;cursor:pointer;font-size:.85rem;display:flex;align-items:center;gap:6px;color:#5b6f82;transition:.2s}
+.reset-btn:hover{background:#eef3fa}
+
+.table-wrapper{background:#fff;border-radius:20px;box-shadow:0 12px 30px rgba(0,0,0,.05);overflow:auto;max-height:75vh;border:1px solid #eef2f7;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:.88rem;min-width:1200px}
+th{background:#f0f5fc;color:#1e3b5c;font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.3px;padding:12px 10px;text-align:left;border-bottom:1px solid #d8e2ee;position:sticky;top:0;z-index:10;white-space:nowrap}
+td{padding:10px;border-bottom:1px solid #ecf1f7;vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:#f9fcff}
-th:nth-child(1),td:nth-child(1){width:55px;text-align:center}
-th:nth-child(2),td:nth-child(2){width:75px}
-th:nth-child(3),td:nth-child(3){width:140px}
-th:nth-child(4),td:nth-child(4){width:120px}
-th:nth-child(5),td:nth-child(5){width:220px}
-th:nth-child(6),td:nth-child(6){width:220px}
-th:nth-child(7),td:nth-child(7){width:180px}
-th:nth-child(8),td:nth-child(8){width:60px;text-align:center}
-th:nth-child(9),td:nth-child(9){width:200px}
-th:nth-child(10),td:nth-child(10){width:110px;text-align:center}
-.audio-btn{display:inline-flex;align-items:center;justify-content:center;background:#e8f0fe;color:#1a5a9c;width:36px;height:36px;border-radius:50%;text-decoration:none;transition:.2s;font-size:1.1rem}
-.audio-btn:hover{background:#1a5a9c;color:#fff;transform:scale(1.05)}
-.pinyin{color:#2c6b9e;font-style:italic;font-size:.85rem;background:#f2f8ff;padding:2px 6px;border-radius:12px;display:inline-block}
-.check-cell{font-weight:600;font-size:.9rem;white-space:nowrap}
+th:nth-child(1),td:nth-child(1){width:50px;text-align:center}
+th:nth-child(2),td:nth-child(2){width:70px}
+th:nth-child(3),td:nth-child(3){width:130px}
+th:nth-child(4),td:nth-child(4){width:110px}
+th:nth-child(5),td:nth-child(5){width:200px}
+th:nth-child(6),td:nth-child(6){width:200px}
+th:nth-child(7),td:nth-child(7){width:160px}
+th:nth-child(8),td:nth-child(8){width:55px;text-align:center}
+th:nth-child(9),td:nth-child(9){width:180px}
+th:nth-child(10),td:nth-child(10){width:100px;text-align:center}
+.audio-btn{display:inline-flex;align-items:center;justify-content:center;background:#e8f0fe;color:#1a5a9c;width:34px;height:34px;border-radius:50%;text-decoration:none;transition:.2s;font-size:1rem}
+.audio-btn:hover{background:#1a5a9c;color:#fff}
+.audio-btn:active{background:#1a5a9c;color:#fff;transform:scale(.95)}
+.pinyin{color:#2c6b9e;font-style:italic;font-size:.82rem;background:#f2f8ff;padding:2px 6px;border-radius:12px;display:inline-block}
+.check-cell{font-weight:600;font-size:.85rem;white-space:nowrap}
 .check-correct{color:#1e7a4a}
 .check-wrong{color:#b33a3a}
-.practice-input{width:100%;padding:8px 12px;border-radius:30px;border:1px solid #dbe1e9;font-size:.9rem;background:#fbfdff;outline:none;transition:.15s}
+.practice-input{width:100%;padding:7px 10px;border-radius:30px;border:1px solid #dbe1e9;font-size:.85rem;background:#fbfdff;outline:none;transition:.15s}
 .practice-input:focus{border-color:#3b7cbf;box-shadow:0 0 0 3px rgba(59,124,191,.1)}
-.no-data{text-align:center;padding:3rem 1rem;color:#7a8b9f;font-size:1.1rem}
-.no-data i{font-size:3rem;margin-bottom:1rem;color:#b8ccdf;display:block}
-.hsk-badge{background:#eef3fa;padding:4px 10px;border-radius:20px;font-size:.78rem;font-weight:600;white-space:nowrap}
-
-/* Upload zone */
-.upload-zone{background:#fff;border:2px dashed #b8ccdf;border-radius:24px;padding:3rem 2rem;text-align:center;cursor:pointer;transition:.2s;margin-bottom:1.5rem}
-.upload-zone:hover{border-color:#3b7cbf;background:#f9fcff}
-.upload-zone i{font-size:3rem;color:#3b7cbf;margin-bottom:1rem;display:block}
-.upload-zone h2{font-size:1.2rem;color:#1e3b5c;margin-bottom:.5rem}
-.upload-zone p{color:#7a8b9f;font-size:.9rem}
-.upload-zone input{display:none}
-.upload-zone.dragover{border-color:#c0392b;background:#fef5f5}
-
-/* Loading */
+.no-data{text-align:center;padding:2.5rem 1rem;color:#7a8b9f;font-size:1rem}
+.no-data i{font-size:2.5rem;margin-bottom:.8rem;color:#b8ccdf;display:block}
+.hsk-badge{background:#eef3fa;padding:3px 9px;border-radius:20px;font-size:.75rem;font-weight:600;white-space:nowrap}
 .loading{text-align:center;padding:2rem;color:#3b7cbf}
 .loading i{font-size:2rem;margin-bottom:.5rem;display:block}
 
-@media(max-width:700px){body{padding:.8rem}h1{font-size:1.3rem}.filter-select{min-width:110px;font-size:.82rem;padding:8px 12px}}
+@media(max-width:600px){
+    body{padding:.7rem}
+    h1{font-size:1.15rem}
+    .filter-select{min-width:100px;font-size:.8rem;padding:8px 10px}
+    .search-box input{font-size:.9rem;padding:10px 14px 10px 34px}
+}
 </style>
 </head>
 <body>
@@ -76,28 +108,28 @@ th:nth-child(10),td:nth-child(10){width:110px;text-align:center}
 <div class="stats" id="statsDisplay"><i class="fas fa-book-open"></i> Chưa có dữ liệu</div>
 </header>
 
-<!-- Vùng upload file -->
-<div class="upload-zone" id="uploadZone">
-<i class="fas fa-file-excel"></i>
-<h2>Kéo thả file Excel vào đây</h2>
-<p>hoặc nhấn để chọn file (.xlsx, .xls)</p>
-<input type="file" id="fileInput" accept=".xlsx,.xls">
-</div>
+<!-- ==== VÙNG CHỌN FILE — LABEL BAO QUANH INPUT ==== -->
+<label class="file-label" for="fileInput" id="fileLabel">
+    <i class="fas fa-file-excel"></i>
+    <h2>Nhấn để chọn file Excel</h2>
+    <p>Hỗ trợ .xlsx, .xls · Dữ liệu xử lý ngay trên thiết bị</p>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+</label>
 
 <div class="filters" id="filters" style="display:none">
-<div class="search-box">
-<i class="fas fa-search"></i>
-<input type="text" id="searchInput" placeholder="Tìm tiếng Việt, tiếng Trung, pinyin...">
-</div>
-<select id="hskFilter" class="filter-select"><option value="">Tất cả HSK</option></select>
-<select id="topicFilter" class="filter-select"><option value="">Tất cả chủ điểm</option></select>
-<select id="subjectFilter" class="filter-select"><option value="">Tất cả chủ đề</option></select>
-<button class="reset-btn" id="resetBtn"><i class="fas fa-undo-alt"></i> Đặt lại</button>
-<button class="reset-btn" id="reloadBtn"><i class="fas fa-file-upload"></i> Đổi file</button>
+    <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" id="searchInput" placeholder="Tìm tiếng Việt, tiếng Trung, pinyin...">
+    </div>
+    <select id="hskFilter" class="filter-select"><option value="">Tất cả HSK</option></select>
+    <select id="topicFilter" class="filter-select"><option value="">Tất cả chủ điểm</option></select>
+    <select id="subjectFilter" class="filter-select"><option value="">Tất cả chủ đề</option></select>
+    <button class="reset-btn" id="resetBtn"><i class="fas fa-undo-alt"></i> Đặt lại</button>
+    <button class="reset-btn" id="reloadBtn"><i class="fas fa-file-upload"></i> Đổi file</button>
 </div>
 
 <div class="table-wrapper" id="tableWrapper">
-<div class="no-data"><i class="fas fa-file-excel"></i>Hãy tải file Excel lên để bắt đầu học</div>
+    <div class="no-data"><i class="fas fa-file-excel"></i>Nhấn vào nút phía trên để chọn file Excel</div>
 </div>
 </div>
 
@@ -107,27 +139,27 @@ let filtered = [];
 const state = { search:'', hsk:'', topic:'', subject:'' };
 
 const $ = id => document.getElementById(id);
-const uploadZone = $('uploadZone');
 const fileInput = $('fileInput');
-const tableWrapper = $('tableWrapper');
+(econst tableWrapper = $('tableWrapper');
 const statsDisplay = $('statsDisplay');
 const filters = $('filters');
+const fileLabel = $('fileLabel');
 
-/* ========== XỬ LÝ UPLOAD ========== */
-uploadZone.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', e => { if(e.target.files[0]) readFile(e.target.files[0]); });
+/* ========== XỬ LÝ CHỌN FILE ========== */
+// Dùng cả 'change' và 'input' để tương thích iOS
+fileInput.addEventListener('change', handleFileSelect);
+fileInput.addEventListener('input', handleFileSelect);
 
-// Drag & drop
-['dragenter','dragover'].forEach(evt => {
-    uploadZone.addEventListener(evt, e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
-});
-['dragleave','drop'].forEach(evt => {
-    uploadZone.addEventListener(evt, e => { e.preventDefault(); uploadZone.classList.remove('dragover'); });
-});
-uploadZone.addEventListener('drop', e => {
-    const file = e.dataTransfer.files[0];
-    if (file) readFile(file);
-});
+let lastFileProcessed = null;
+
+function handleFileSelect(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    // Tránh xử lý trùng lặp khi cả change và input cùng fire
+    if (lastFileProcessed === file) return;
+    lastFileProcessed = file;
+    readFile(file);
+}
 
 /* ========== ĐỌC FILE EXCEL ========== */
 function readFile(file) {
@@ -135,45 +167,78 @@ function readFile(file) {
         alert('Vui lòng chọn file Excel (.xlsx hoặc .xls)');
         return;
     }
-    tableWrapper.innerHTML = `<div class="loading"><i class="fas fa-spinner fa-pulse"></i>Đang đọc file ${file.name}...</div>`;
+    
+    // Cập nhật label hiển thị file đang xử lý
+    const labelText = fileLabel.querySelector('h2');
+    const labelSub = fileLabel.querySelector('p');
+    const originalText = labelText.textContent;
+    labelText.textContent = 'Đang đọc: ' + file.name;
+    labelSub.textContent = 'Vui lòng đợi...';
+    
+    tableWrapper.innerHTML = `<div class="loading"><i class="fas fa-spinner fa-pulse"></i>Đang xử lý ${file.name}...</div>`;
+    
     const reader = new FileReader();
-    reader.onload = e => {
+    
+    reader.onload = function(e) {
         try {
-            const data = new Uint8Array(e.target.result);
+            const data = new Uint8Array.target.result);
             const workbook = XLSX.read(data, { type:'array' });
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
             const json = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'' });
-            parseData(json);
+            parseData(json, file.name);
         } catch(err) {
+            console.error(err);
             tableWrapper.innerHTML = `<div class="no-data"><i class="fas fa-exclamation-triangle" style="color:#c0392b"></i>Lỗi đọc file: ${err.message}</div>`;
+            labelText.textContent = originalText;
+            labelSub.textContent = 'Hỗ trợ .xlsx, .xls · Dữ liệu xử lý ngay trên thiết bị';
+            lastFileProcessed = null;
         }
     };
+    
+    reader.onerror = function() {
+        tableWrapper.innerHTML = `<div class="no-data"><i class="fas fa-exclamation-triangle" style="color:#c0392b"></i>Không thể đọc file</div>`;
+        labelText.textContent = originalText;
+        labelSub.textContent = 'Hỗ trợ .xlsx, .xls · Dữ liệu xử lý ngay trên thiết bị';
+        lastFileProcessed = null;
+    };
+    
     reader.readAsArrayBuffer(file);
 }
 
 /* ========== CHUYỂN DỮ LIỆU ========== */
-function parseData(rows) {
-    // Bỏ dòng tiêu đề
+function parseData(rows, fileName) {
     RAW_DATA = [];
     for (let i = 1; i < rows.length; i++) {
         const r = rows[i];
         if (!r || r.length === 0) continue;
-        const stt = r[0];
-        const hsk = (r[1]||'').toString().trim();
-        const topic = (r[2]||'').toString().trim();
-        const subject = (r[3]||'').toString().trim();
-        const vi = (r[4]||'').toString().trim();
-        const zh = (r[5]||'').toString().trim();
-        const pinyin = (r[6]||'').toString().trim();
-        if (!stt && !zh) continue;
+        
+        // Bỏ qua dòng rỗng
+        const hasData = r.some(c => c !== '' && c !== null && c !== undefined);
+        if (!hasData) continue;
+        
+        const stt = r[0] !== undefined ? String(r[0]).trim() : '';
+        const hsk = r[1] ? String(r[1]).trim() : '';
+        const topic = r[2] ? String(r[2]).trim() : '';
+        const subject = r[3] ? String(r[3]).trim() : '';
+        const vi = r[4] ? String(r[4]).trim() : '';
+        const zh = r[5] ? String(r[5]).trim() : '';
+        const pinyin = r[6] ? String(r[6]).trim() : '';
+        
+        if (!vi && !zh) continue;
         RAW_DATA.push({ stt, hsk, topic, subject, vi, zh, pinyin });
     }
+    
     if (!RAW_DATA.length) {
-        tableWrapper.innerHTML = `<div class="no-data"><i class="fas fa-info-circle"></i>File không có dữ liệu hoặc sai định dạng</div>`;
+        tableWrapper.innerHTML = `<div class="no-data"><i class="fas fa-info-circle"></i>File không có dữ liệu hoặc sai định dạng<br><small>Cần có các cột: STT, HSK, Chủ điểm, Chủ đề, Tiếng Việt, Tiếng Trung, Pinyin</small></div>`;
         return;
     }
-    // Ẩn upload, hiện filters
-    uploadZone.style.display = 'none';
+    
+    // Cập nhật label
+    fileLabel.querySelector('h2').textContent = '✅ ' + fileName;
+    fileLabel.querySelector('p').textContent = `Đã tải ${RAW_DATA.length} câu · Nhấn để đổi file`;
+    
+    // Hiện filters
     filters.style.display = 'flex';
     buildFilters();
     filtered = [...RAW_DATA];
@@ -183,7 +248,11 @@ function parseData(rows) {
 /* ========== BUILD FILTER ========== */
 function buildFilters() {
     const hskSet = new Set(), topicSet = new Set(), subjectSet = new Set();
-    RAW_DATA.forEach(r => { if(r.hsk) hskSet.add(r.hsk); if(r.topic) topicSet.add(r.topic); if(r.subject) subjectSet.add(r.subject); });
+    RAW_DATA.forEach(r => { 
+        if(r.hsk) hskSet.add(r.hsk); 
+        if(r.topic) topicSet.add(r.topic); 
+        if(r.subject) subjectSet.add(r.subject); 
+    });
     $('hskFilter').innerHTML = '<option value="">Tất cả HSK</option>' + [...hskSet].sort().map(v=>`<option value="${v}">${v}</option>`).join('');
     $('topicFilter').innerHTML = '<option value="">Tất cả chủ điểm</option>' + [...topicSet].sort().map(v=>`<option value="${v}">${v}</option>`).join('');
     $('subjectFilter').innerHTML = '<option value="">Tất cả chủ đề</option>' + [...subjectSet].sort().map(v=>`<option value="${v}">${v}</option>`).join('');
@@ -201,9 +270,14 @@ function render() {
         <th>Tiếng Việt</th><th>Tiếng Trung</th><th>Pinyin</th>
         <th>Nghe</th><th>Luyện tập</th><th>Check</th>
     </tr></thead><tbody>`;
-    filtered.forEach(r => {
+    
+    // Giới hạn hiển thị để không bị lag trên iOS (có thể tăng nếu máy khỏe)
+    const MAX_RENDER = 500;
+    const toRender = filtered.length > MAX_RENDER ? filtered.slice(0, MAX_RENDER) : filtered;
+    
+    toRender.forEach(r => {
         const encoded = encodeURIComponent(r.zh);
-        const audio = r.zh ? `<a href="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-CN&q=${encoded}" target="_blank" class="audio-btn" title="Nghe"><i class="fas fa-volume-up"></i></a>` : '';
+        const audio = r.zh ? `<a href="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-CN&q=${encoded}" target="_blank" class="audio-btn"><i class="fas fa-volume-up"></i></a>` : '';
         html += `<tr>
             <td>${r.stt}</td>
             <td><span class="hsk-badge">${r.hsk}</span></td>
@@ -217,7 +291,15 @@ function render() {
             <td class="check-cell" data-check-stt="${r.stt}"></td>
         </tr>`;
     });
+    
     html += `</tbody></table>`;
+    
+    if (filtered.length > MAX_RENDER) {
+        html += `<div style="padding:1rem;text-align:center;color:#7a8b9f;font-size:.9rem;background:#f9fcff">
+            Chỉ hiển thị ${MAX_RENDER} / ${filtered.length} câu. Dùng bộ lọc để thu hẹp kết quả.
+        </div>`;
+    }
+    
     tableWrapper.innerHTML = html;
     updateStats();
 }
@@ -263,19 +345,22 @@ function updateStats() {
 $('searchInput').addEventListener('input', applyFilter);
 $('hskFilter').addEventListener('change', applyFilter);
 $('topicFilter').addEventListener('change', applyFilter);
-$('subjectkhFilter').addEventListener('change', applyôngFilter);
-$('resetBtn').add cEventListener('click', () => {
-ần    $('searchInput').value = click ''; $('hskFilter').value = '';
+$('subjectFilter').addEventListener('change', applyFilter);
+$('resetBtn').addEventListener('click', () => {
+    $('searchInput').value = ''; $('hskFilter').value = '';
     $('topicFilter').value = ''; $('subjectFilter').value = '';
     applyFilter();
 });
 $('reloadBtn').addEventListener('click', () => {
-    RAW_DATA = []; filtered = []; 
-    uploadZone.style.display = 'block';
-    filters.style.display = 'none';
-    tableWrapper.innerHTML = `<div class="no-data"><i class="fas fa-file-excel"></i>Hãy tải file Excel lên để bắt đầu học</div>`;
-    statsDisplay.innerHTML = `<i class="fas fa-book-open"></i> Chưa có dữ liệu`;
+    RAW_DATA = []; filtered = [];
+    lastFileProcessed = null;
     fileInput.value = '';
+    filters.style.display = 'none';
+    fileLabel.querySelector('h2').textContent = 'Nhấn để chọn file Excel';
+    fileLabel.querySelector('p').textContent = 'Hỗ trợ .xlsx, .xls · Dữ liệu xử lý ngay trên thiết bị';
+    tableWrapper.innerHTML = `<div class="no-data"><i class="fas fa-file-excel"></i>Nhấn vào nút phía trên để chọn file Excel</div>`;
+    statsDisplay.innerHTML = `<i class="fas fa-book-open"></i> Chưa có dữ liệu`;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 </script>
 </body>
