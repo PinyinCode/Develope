@@ -3,6 +3,7 @@
 Chuyển file Excel → HTML tự chứa dữ liệu
 - 3 nút toggle (FAB) cố định góc dưới phải
 - Nhấn vào câu → phóng to CHỦ ĐIỂM + TIẾNG TRUNG (GIỮ NGUYÊN MÀU)
+- Pinyin ở dark mode: chữ sáng hơn để dễ đọc
 - Ô tìm kiếm gọn: "Tìm kiếm..."
 - Header sticky + Search + Filters luôn dính trên cùng
 - Phát âm bằng Web Speech API
@@ -533,6 +534,13 @@ tbody tr:last-child td{border-bottom:none}
     font-style:italic;
     white-space:nowrap;
 }
+/* ✅ Pinyin ở dark mode: chữ sáng + nền xanh mờ để dễ đọc */
+[data-theme="dark"] .pinyin{
+    background:rgba(59,130,246,.18);
+    color:#93c5fd;
+    font-weight:500;
+    font-style:italic;
+}
 .audio-btn{
     width:32px;height:32px;
     border-radius:50%;
@@ -731,6 +739,13 @@ tr.tapped td{
     padding:.2rem .45rem;
     border-radius:6px;
     display:inline-block;
+}
+/* ✅ Pinyin card ở dark mode: chữ sáng + nền xanh mờ để dễ đọc */
+[data-theme="dark"] .card-pinyin{
+    background:rgba(59,130,246,.18);
+    color:#93c5fd;
+    font-weight:500;
+    font-style:italic;
 }
 .card-practice{
     display:flex;
