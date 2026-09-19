@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Chuyển file Excel → HTML tự chứa dữ liệu
-- Font chữ Trung tối ưu: PingFang SC (iOS) / Microsoft YaHei (Win) / Noto Sans SC
-- Font-weight 500 thanh mảnh, dễ đọc
+- Tích hợp Hanzi Writer: luyện viết chữ Hán trong modal popup
+- Font chữ Trung tối ưu (PingFang SC/Microsoft YaHei/Noto Sans SC)
 - 3 nút toggle (FAB) cố định góc dưới phải
 - Nhấn vào câu → phóng to CHỦ ĐIỂM + TIẾNG TRUNG (GIỮ NGUYÊN MÀU)
 - Pinyin dark mode dễ đọc
-- Header sticky + Search + Filters luôn dính trên cùng
 - Phát âm bằng Web Speech API
 """
 import openpyxl
@@ -74,6 +73,7 @@ html_template = r'''<!DOCTYPE html>
 <meta http-equiv="Expires" content="0">
 <title>Học tiếng Trung · VP & CX</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5.0/dist/hanzi-writer.min.js"></script>
 <style>
 /* ========== RESET & THEME ========== */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -100,7 +100,7 @@ html_template = r'''<!DOCTYPE html>
     --radius:14px;
     --radius-sm:10px;
     --radius-full:999px;
-    --font-zh: 'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans SC','Source Han Sans SC',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --font-zh:'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans SC','Source Han Sans SC',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 }
 [data-theme="dark"]{
     --bg:#0f172a;
@@ -520,8 +520,6 @@ tbody tr:last-child td{border-bottom:none}
 }
 .subject-cell{font-size:.8rem;color:var(--text-2)}
 .vi-cell{font-size:.85rem;color:var(--text)}
-
-/* ✅ TIẾNG TRUNG - FONT CHUYÊN CHO CHỮ HÁN */
 .zh-cell{
     font-size:1rem;
     font-weight:500;
@@ -541,7 +539,6 @@ tbody tr:last-child td{border-bottom:none}
     font-style:italic;
     white-space:nowrap;
 }
-/* ✅ Pinyin dark mode: chữ sáng + nền xanh mờ */
 [data-theme="dark"] .pinyin{
     background:rgba(59,130,246,.18);
     color:#93c5fd;
@@ -572,6 +569,43 @@ tbody tr:last-child td{border-bottom:none}
     0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.6)}
     50%{box-shadow:0 0 0 10px rgba(220,38,38,0)}
 }
+
+/* Nút viết chữ Hán */
+.write-btn{
+    width:32px;height:32px;
+    border-radius:50%;
+    border:none;
+    background:var(--amber-light);
+    color:#92400e;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-size:.8rem;
+    transition:.15s;
+    -webkit-tap-highlight-color:transparent;
+}
+.write-btn:hover,.write-btn:active{
+    background:var(--amber);
+    color:#fff;
+    transform:scale(1.08);
+}
+[data-theme="dark"] .write-btn{
+    background:rgba(245,158,11,.25);
+    color:#fcd34d;
+}
+[data-theme="dark"] .write-btn:hover{
+    background:var(--amber);
+    color:#fff;
+}
+
+.action-group{
+    display:flex;
+    gap:.3rem;
+    justify-content:center;
+    align-items:center;
+}
+
 .practice-input{
     width:100%;
     min-width:140px;
@@ -604,12 +638,10 @@ tr.focused td{
 [data-theme="dark"] tr.focused td{
     background:rgba(59,130,246,.15) !important;
 }
-/* ✅ CHỈ PHÓNG TO CHỦ ĐIỂM - GIỮ NGUYÊN MÀU */
 tr.focused .topic-cell{
     font-size:1.15rem !important;
     font-weight:700 !important;
 }
-/* ✅ CHỈ PHÓNG TO TIẾNG TRUNG - FONT HÁN, WEIGHT 500 */
 tr.focused .zh-cell{
     font-size:1.75rem !important;
     font-weight:500 !important;
@@ -617,7 +649,6 @@ tr.focused .zh-cell{
     line-height:1.55;
 }
 
-/* Mobile: card được chọn */
 .card.focused{
     transform:scale(1.02);
     box-shadow:0 12px 32px rgba(37,99,235,.2);
@@ -628,7 +659,6 @@ tr.focused .zh-cell{
     background:linear-gradient(135deg, var(--surface) 0%, rgba(59,130,246,.15) 100%);
     box-shadow:0 12px 32px rgba(59,130,246,.3);
 }
-/* ✅ CHỈ PHÓNG TO TIẾNG TRUNG - FONT HÁN, WEIGHT 500 */
 .card.focused .card-zh{
     font-size:2rem;
     font-weight:500;
@@ -636,7 +666,6 @@ tr.focused .zh-cell{
     line-height:1.5;
     animation:zoomIn .35s cubic-bezier(.34,1.56,.64,1);
 }
-/* ✅ CHỈ PHÓNG TO TAG CHỦ ĐIỂM - GIỮ NGUYÊN MÀU */
 .card.focused .card-tag.topic{
     font-size:.9rem;
     padding:.28rem .7rem;
@@ -649,18 +678,13 @@ tr.focused .zh-cell{
     60%{transform:scale(1.08)}
     100%{transform:scale(1);opacity:1}
 }
-
 @keyframes tapPulse{
     0%{box-shadow:0 0 0 0 rgba(37,99,235,.4)}
     70%{box-shadow:0 0 0 14px rgba(37,99,235,0)}
     100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}
 }
-.card.tapped{
-    animation:tapPulse .6s;
-}
-tr.tapped td{
-    animation:tapPulse .6s;
-}
+.card.tapped{animation:tapPulse .6s}
+tr.tapped td{animation:tapPulse .6s}
 
 .card,.desktop-view tbody tr{
     cursor:pointer;
@@ -676,8 +700,7 @@ tr.tapped td{
     box-shadow:var(--shadow-sm);
     transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s, border-color .25s, background .25s;
 }
-
-.practice-input, .audio-btn, .card-practice, .col-practice{
+.practice-input, .audio-btn, .write-btn, .card-practice, .col-practice{
     cursor:auto;
 }
 
@@ -732,8 +755,6 @@ tr.tapped td{
     margin-bottom:.35rem;
     line-height:1.4;
 }
-
-/* ✅ TIẾNG TRUNG CARD - FONT CHUYÊN CHO CHỮ HÁN */
 .card-zh{
     font-size:1.2rem;
     font-weight:500;
@@ -753,7 +774,6 @@ tr.tapped td{
     border-radius:6px;
     display:inline-block;
 }
-/* ✅ Pinyin card dark mode: chữ sáng + nền xanh mờ */
 [data-theme="dark"] .card-pinyin{
     background:rgba(59,130,246,.18);
     color:#93c5fd;
@@ -819,6 +839,185 @@ tr.tapped td{
 }
 .error-box i{font-size:2rem;margin-bottom:.5rem;display:block}
 
+/* ========== WRITER MODAL ========== */
+.writer-modal{
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,.7);
+    backdrop-filter:blur(4px);
+    -webkit-backdrop-filter:blur(4px);
+    z-index:2000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:1rem;
+    animation:fadeIn .2s;
+}
+.writer-modal.show{display:flex}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+.writer-box{
+    background:var(--surface);
+    border-radius:20px;
+    padding:1.5rem 1.25rem;
+    max-width:420px;
+    width:100%;
+    max-height:calc(100vh - 2rem);
+    overflow-y:auto;
+    box-shadow:0 20px 60px rgba(0,0,0,.3);
+    position:relative;
+    animation:slideUp .3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes slideUp{
+    from{transform:translateY(30px) scale(.95);opacity:0}
+    to{transform:translateY(0) scale(1);opacity:1}
+}
+.writer-close{
+    position:absolute;
+    top:10px;
+    right:10px;
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    border:none;
+    background:var(--surface-2);
+    color:var(--text-2);
+    cursor:pointer;
+    font-size:1rem;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:.15s;
+    z-index:5;
+}
+.writer-close:hover{background:var(--danger-light);color:var(--danger)}
+
+.writer-char-info{text-align:center;margin-bottom:.75rem}
+.writer-char-info .vi-small{
+    font-size:.85rem;
+    color:var(--text-2);
+    margin-bottom:.3rem;
+    line-height:1.4;
+}
+.writer-char-info .pinyin-small{
+    font-size:.8rem;
+    font-style:italic;
+    color:var(--primary-dark);
+    background:var(--surface-2);
+    padding:.2rem .6rem;
+    border-radius:6px;
+    display:inline-block;
+}
+[data-theme="dark"] .writer-char-info .pinyin-small{
+    background:rgba(59,130,246,.18);
+    color:#93c5fd;
+}
+
+.writer-chars{
+    display:flex;
+    gap:.4rem;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-bottom:.75rem;
+}
+.writer-char-btn{
+    width:42px;
+    height:42px;
+    border-radius:10px;
+    border:1.5px solid var(--border);
+    background:var(--surface-2);
+    color:var(--text);
+    font-family:var(--font-zh);
+    font-size:1.3rem;
+    font-weight:500;
+    cursor:pointer;
+    transition:.15s;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0;
+}
+.writer-char-btn:hover{border-color:var(--primary)}
+.writer-char-btn.active{
+    background:var(--primary);
+    color:#fff;
+    border-color:var(--primary);
+    box-shadow:0 4px 10px rgba(37,99,235,.3);
+}
+
+.writer-target{
+    width:280px;
+    height:280px;
+    margin:0 auto;
+    background:#fff;
+    border-radius:14px;
+    position:relative;
+    box-shadow:inset 0 0 0 2px var(--border);
+    overflow:hidden;
+}
+.writer-target svg{display:block;width:100%;height:100%}
+
+.writer-controls{
+    display:flex;
+    gap:.4rem;
+    justify-content:center;
+    margin-top:1rem;
+    flex-wrap:wrap;
+}
+.writer-btn{
+    padding:.6rem .95rem;
+    border-radius:10px;
+    border:1.5px solid var(--border);
+    background:var(--surface);
+    color:var(--text);
+    font-size:.82rem;
+    font-weight:600;
+    cursor:pointer;
+    transition:.15s;
+    display:flex;
+    align-items:center;
+    gap:.35rem;
+    font-family:inherit;
+    -webkit-tap-highlight-color:transparent;
+}
+.writer-btn:hover{
+    background:var(--primary-light);
+    border-color:var(--primary);
+    color:var(--primary-dark);
+}
+.writer-btn.primary{
+    background:var(--primary);
+    color:#fff;
+    border-color:var(--primary);
+}
+.writer-btn.primary:hover{
+    background:var(--primary-dark);
+    color:#fff;
+}
+.writer-loading{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    height:100%;
+    color:var(--text-3);
+    font-size:.85rem;
+    gap:.5rem;
+    padding:1rem;
+    text-align:center;
+}
+.writer-loading i{font-size:1.8rem;color:var(--primary)}
+
+.writer-score{
+    text-align:center;
+    margin-top:.6rem;
+    font-size:.82rem;
+    color:var(--text-2);
+    min-height:1.2em;
+}
+.writer-score.success{color:var(--success);font-weight:600}
+.writer-score.error{color:var(--danger);font-weight:600}
+
 /* ========== RESPONSIVE ========== */
 @media(max-width:768px){
     .desktop-view{display:none}
@@ -846,9 +1045,12 @@ tr.tapped td{
     .fab-main{width:52px;height:52px;font-size:1.2rem}
     .fab-btn{width:48px;height:48px;font-size:1.05rem}
     
-    .card.focused .card-zh{
-        font-size:2.2rem;
-    }
+    .card.focused .card-zh{font-size:2.2rem}
+    
+    .writer-box{padding:1.2rem 1rem;max-width:340px}
+    .writer-target{width:240px;height:240px}
+    .writer-char-btn{width:38px;height:38px;font-size:1.15rem}
+    .writer-btn{padding:.55rem .8rem;font-size:.78rem}
 }
 @media(max-width:400px){
     .logo-text .subtitle{display:none}
@@ -931,6 +1133,38 @@ tr.tapped td{
     <button class="fab-btn fab-main" id="fabMainBtn" title="Tùy chọn hiển thị">
         <i class="fas fa-sliders-h"></i>
     </button>
+</div>
+
+<!-- ============ WRITER MODAL ============ -->
+<div class="writer-modal" id="writerModal">
+    <div class="writer-box">
+        <button class="writer-close" id="writerClose" aria-label="Đóng">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <div class="writer-char-info">
+            <div class="vi-small" id="writerViSmall"></div>
+            <div class="pinyin-small" id="writerPinyinSmall"></div>
+        </div>
+
+        <div class="writer-chars" id="writerChars"></div>
+
+        <div class="writer-target" id="writerTarget"></div>
+
+        <div class="writer-score" id="writerScore"></div>
+
+        <div class="writer-controls">
+            <button class="writer-btn primary" id="writerAnimate">
+                <i class="fas fa-play"></i> Viết
+            </button>
+            <button class="writer-btn" id="writerQuiz">
+                <i class="fas fa-pen"></i> Tự viết
+            </button>
+            <button class="writer-btn" id="writerReset">
+                <i class="fas fa-undo-alt"></i> Xóa
+            </button>
+        </div>
+    </div>
 </div>
 
 <!-- ============ MAIN ============ -->
@@ -1125,11 +1359,13 @@ document.addEventListener('click', function(e) {
     }
     if (e.target.closest('.practice-input') || 
         e.target.closest('.audio-btn') || 
+        e.target.closest('.write-btn') ||
         e.target.closest('.chip') || 
         e.target.closest('.fab-group') || 
         e.target.closest('.icon-btn') ||
         e.target.closest('.search-bar') ||
-        e.target.closest('.filters')) {
+        e.target.closest('.filters') ||
+        e.target.closest('.writer-modal')) {
         return;
     }
     clearFocus();
@@ -1271,7 +1507,7 @@ function render(reset) {
             '<th class="col-vi">Tiếng Việt</th>' +
             '<th>Tiếng Trung</th>' +
             '<th class="col-pinyin">Pinyin</th>' +
-            '<th></th>' +
+            '<th>Thao tác</th>' +
             '<th class="col-practice">Luyện tập</th>' +
             '<th>Check</th>' +
             '</tr></thead><tbody id="desktopBody"></tbody></table>';
@@ -1286,12 +1522,19 @@ function render(reset) {
     for (var i = renderedCount; i < end; i++) {
         var r = filtered[i];
         var zhJs = escapeJs(r.zh);
+        var viJs = escapeJs(r.vi);
+        var pinyinJs = escapeJs(r.pinyin);
         var zhHtml = escapeHtml(r.zh);
         var sttSafe = escapeHtml(r.stt);
         var sttJs = escapeJs(r.stt);
+        
         var audio = r.zh
             ? '<button class="audio-btn" onclick="speakText(\'' + zhJs + '\', this, event)" title="Nghe"><i class="fas fa-volume-up"></i></button>'
             : '';
+        var writeBtn = r.zh
+            ? '<button class="write-btn" onclick="openWriter(\'' + zhJs + '\', \'' + viJs + '\', \'' + pinyinJs + '\', event)" title="Luyện viết"><i class="fas fa-pen-fancy"></i></button>'
+            : '';
+        var actionGroup = '<div class="action-group">' + audio + writeBtn + '</div>';
         
         deskHtml += '<tr onclick="toggleFocus(\'' + sttJs + '\', this)" data-stt="' + sttSafe + '">' +
             '<td class="stt">' + sttSafe + '</td>' +
@@ -1301,7 +1544,7 @@ function render(reset) {
             '<td class="vi-cell col-vi">' + escapeHtml(r.vi) + '</td>' +
             '<td class="zh-cell">' + zhHtml + '</td>' +
             '<td class="col-pinyin"><span class="pinyin">' + escapeHtml(r.pinyin) + '</span></td>' +
-            '<td style="text-align:center" onclick="event.stopPropagation()">' + audio + '</td>' +
+            '<td onclick="event.stopPropagation()" style="text-align:center">' + actionGroup + '</td>' +
             '<td class="col-practice" onclick="event.stopPropagation()"><input type="text" class="practice-input" placeholder="Nhập tiếng Trung..." data-answer="' + zhHtml + '" data-stt="' + sttSafe + '" oninput="checkInput(this)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></td>' +
             '<td class="check-cell" data-check-stt="' + sttSafe + '"></td>' +
             '</tr>';
@@ -1314,7 +1557,7 @@ function render(reset) {
                     (r.topic ? '<span class="card-tag topic">' + escapeHtml(r.topic) + '</span>' : '') +
                     (r.subject ? '<span class="card-tag">' + escapeHtml(r.subject) + '</span>' : '') +
                 '</div>' +
-                '<div onclick="event.stopPropagation()">' + audio + '</div>' +
+                '<div onclick="event.stopPropagation()" class="action-group">' + audio + writeBtn + '</div>' +
             '</div>' +
             '<div class="card-body">' +
                 (r.vi ? '<div class="card-vi">' + escapeHtml(r.vi) + '</div>' : '') +
@@ -1407,6 +1650,171 @@ function applyFilter() {
     });
     render(true);
 }
+
+/* ========== HANZI WRITER ========== */
+var writerInstance = null;
+var currentWriteZh = '';
+var currentWriteVi = '';
+var currentWritePinyin = '';
+var currentCharIndex = 0;
+
+window.openWriter = function(zh, vi, pinyin, evt) {
+    if (evt) {
+        evt.stopPropagation();
+        if (evt.preventDefault) evt.preventDefault();
+    }
+    
+    if (typeof HanziWriter === 'undefined') {
+        alert('Thư viện viết chữ chưa tải xong. Vui lòng đợi vài giây rồi thử lại.');
+        return;
+    }
+    
+    currentWriteZh = zh || '';
+    currentWriteVi = vi || '';
+    currentWritePinyin = pinyin || '';
+    currentCharIndex = 0;
+    
+    var chars = currentWriteZh.split('').filter(function(c) {
+        return /[\u4e00-\u9fa5]/.test(c);
+    });
+    
+    if (chars.length === 0) {
+        alert('Câu này không có chữ Hán để luyện viết.');
+        return;
+    }
+    
+    $('writerModal').classList.add('show');
+    $('writerScore').textContent = '';
+    $('writerScore').className = 'writer-score';
+    
+    $('writerViSmall').textContent = currentWriteVi;
+    $('writerPinyinSmall').textContent = currentWritePinyin;
+    
+    renderWriterChars(chars);
+    showWriterChar(chars[0]);
+};
+
+window.closeWriter = function() {
+    $('writerModal').classList.remove('show');
+    writerInstance = null;
+};
+
+function renderWriterChars(chars) {
+    var container = $('writerChars');
+    if (chars.length <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+    container.innerHTML = chars.map(function(c, i) {
+        return '<button class="writer-char-btn' + (i === 0 ? ' active' : '') + '" data-idx="' + i + '" data-char="' + c + '">' + c + '</button>';
+    }).join('');
+    
+    container.querySelectorAll('.writer-char-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var idx = parseInt(this.dataset.idx);
+            var ch = this.dataset.char;
+            container.querySelectorAll('.writer-char-btn').forEach(function(b) {
+                b.classList.remove('active');
+            });
+            this.classList.add('active');
+            currentCharIndex = idx;
+            $('writerScore').textContent = '';
+            $('writerScore').className = 'writer-score';
+            showWriterChar(ch);
+        });
+    });
+}
+
+function showWriterChar(char) {
+    var target = $('writerTarget');
+    target.innerHTML = '<div class="writer-loading"><i class="fas fa-spinner fa-pulse"></i>Đang tải nét vẽ...</div>';
+    writerInstance = null;
+    
+    setTimeout(function() {
+        try {
+            target.innerHTML = '';
+            writerInstance = HanziWriter.create('writerTarget', char, {
+                width: 280,
+                height: 280,
+                padding: 8,
+                strokeColor: '#1e293b',
+                radicalColor: '#2563eb',
+                highlightColor: '#f59e0b',
+                outlineColor: '#cbd5e1',
+                drawingColor: '#2563eb',
+                drawingWidth: 20,
+                showOutline: true,
+                strokeAnimationSpeed: 1,
+                delayBetweenStrokes: 250,
+                charDataLoader: function(ch, onComplete, onError) {
+                    fetch('https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0/' + encodeURIComponent(ch) + '.json')
+                        .then(function(res) {
+                            if (!res.ok) throw new Error('Không có dữ liệu');
+                            return res.json();
+                        })
+                        .then(onComplete)
+                        .catch(function(err) {
+                            console.error('Lỗi tải dữ liệu chữ:', err);
+                            if (onError) onError(err);
+                            target.innerHTML = '<div class="writer-loading"><i class="fas fa-exclamation-triangle" style="color:#dc2626"></i>Không tải được dữ liệu nét vẽ.<br><small>Kiểm tra kết nối mạng.</small></div>';
+                        });
+                }
+            });
+        } catch(e) {
+            console.error(e);
+            target.innerHTML = '<div class="writer-loading"><i class="fas fa-exclamation-triangle"></i>Lỗi tạo khung vẽ</div>';
+        }
+    }, 100);
+}
+
+$('writerAnimate').addEventListener('click', function() {
+    if (!writerInstance) return;
+    $('writerScore').textContent = '';
+    $('writerScore').className = 'writer-score';
+    writerInstance.cancelQuiz();
+    writerInstance.animateCharacter();
+});
+
+$('writerQuiz').addEventListener('click', function() {
+    if (!writerInstance) return;
+    $('writerScore').textContent = 'Vẽ chữ bằng ngón tay...';
+    $('writerScore').className = 'writer-score';
+    writerInstance.quiz({
+        onMistake: function(strokeData) {
+            $('writerScore').textContent = 'Sai nét ' + (strokeData.strokeNum + 1) + ' - thử lại';
+            $('writerScore').className = 'writer-score error';
+        },
+        onComplete: function(summary) {
+            if (summary.totalMistakes === 0) {
+                $('writerScore').textContent = '🎉 Tuyệt vời! Viết đúng tất cả các nét!';
+                $('writerScore').className = 'writer-score success';
+            } else {
+                $('writerScore').textContent = 'Hoàn thành! Số nét sai: ' + summary.totalMistakes;
+                $('writerScore').className = 'writer-score';
+            }
+        }
+    });
+});
+
+$('writerReset').addEventListener('click', function() {
+    if (!writerInstance) return;
+    $('writerScore').textContent = '';
+    $('writerScore').className = 'writer-score';
+    writerInstance.cancelQuiz();
+    var chars = currentWriteZh.split('').filter(function(c) {
+        return /[\u4e00-\u9fa5]/.test(c);
+    });
+    var currentChar = chars[currentCharIndex];
+    if (currentChar) showWriterChar(currentChar);
+});
+
+$('writerClose').addEventListener('click', closeWriter);
+$('writerModal').addEventListener('click', function(e) {
+    if (e.target === this) closeWriter();
+});
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeWriter();
+});
 
 /* ========== EVENTS ========== */
 $('searchInput').addEventListener('input', applyFilter);
