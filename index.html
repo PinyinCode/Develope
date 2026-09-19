@@ -449,7 +449,7 @@ tbody tr:last-child td{border-bottom:none}
     font-size:.78rem;
     color:var(--text-2);
     font-weight:500;
-    transition:font-size .3s cubic-bezier(.34,1.56,.64,1), color .3s, font-weight .3s;
+    transition:font-size .3s cubic-bezier(.34,1.56,.64,1), font-weight .3s;
 }
 .subject-cell{font-size:.8rem;color:var(--text-2)}
 .vi-cell{font-size:.85rem;color:var(--text)}
@@ -457,7 +457,7 @@ tbody tr:last-child td{border-bottom:none}
     font-size:.95rem;
     font-weight:600;
     color:var(--text);
-    transition:font-size .3s cubic-bezier(.34,1.56,.64,1), color .3s;
+    transition:font-size .3s cubic-bezier(.34,1.56,.64,1), font-weight .3s;
 }
 .pinyin{
     display:inline-block;
@@ -525,24 +525,16 @@ tr.focused td{
 [data-theme="dark"] tr.focused td{
     background:rgba(59,130,246,.15) !important;
 }
-/* ✅ CHỈ PHÓNG TO CHỦ ĐIỂM */
+/* ✅ CHỈ PHÓNG TO CHỦ ĐIỂM - GIỮ NGUYÊN MÀU */
 tr.focused .topic-cell{
     font-size:1.15rem !important;
     font-weight:800 !important;
-    color:var(--primary-dark) !important;
 }
-[data-theme="dark"] tr.focused .topic-cell{
-    color:#60a5fa !important;
-}
-/* ✅ CHỈ PHÓNG TO TIẾNG TRUNG */
+/* ✅ CHỈ PHÓNG TO TIẾNG TRUNG - GIỮ NGUYÊN MÀU */
 tr.focused .zh-cell{
     font-size:1.6rem !important;
-    color:var(--primary-dark);
-    font-weight:800;
+    font-weight:800 !important;
     letter-spacing:.5px;
-}
-[data-theme="dark"] tr.focused .zh-cell{
-    color:#60a5fa;
 }
 
 /* Mobile: card được chọn */
@@ -556,29 +548,19 @@ tr.focused .zh-cell{
     background:linear-gradient(135deg, var(--surface) 0%, rgba(59,130,246,.15) 100%);
     box-shadow:0 12px 32px rgba(59,130,246,.3);
 }
-/* ✅ CHỈ PHÓNG TO TIẾNG TRUNG */
+/* ✅ CHỈ PHÓNG TO TIẾNG TRUNG - GIỮ NGUYÊN MÀU */
 .card.focused .card-zh{
     font-size:1.8rem;
-    color:var(--primary-dark);
     font-weight:800;
     letter-spacing:1px;
     animation:zoomIn .35s cubic-bezier(.34,1.56,.64,1);
 }
-[data-theme="dark"] .card.focused .card-zh{
-    color:#60a5fa;
-}
-/* ✅ CHỈ PHÓNG TO TAG CHỦ ĐIỂM */
+/* ✅ CHỈ PHÓNG TO TAG CHỦ ĐIỂM - GIỮ NGUYÊN MÀU */
 .card.focused .card-tag.topic{
     font-size:.9rem;
     padding:.28rem .7rem;
     font-weight:700;
-    background:var(--amber);
-    color:#fff;
-    box-shadow:0 3px 10px rgba(245,158,11,.35);
     animation:zoomIn .35s cubic-bezier(.34,1.56,.64,1);
-}
-[data-theme="dark"] .card.focused .card-tag.topic{
-    color:#fff;
 }
 
 @keyframes zoomIn{
@@ -657,7 +639,7 @@ tr.tapped td{
     font-size:.65rem;
     font-weight:600;
     white-space:nowrap;
-    transition:all .35s cubic-bezier(.34,1.56,.64,1);
+    transition:font-size .35s cubic-bezier(.34,1.56,.64,1), padding .35s cubic-bezier(.34,1.56,.64,1);
 }
 .card-tag.hsk{background:var(--primary-light);color:var(--primary-dark)}
 .card-tag.topic{background:var(--amber-light);color:#92400e}
@@ -675,7 +657,7 @@ tr.tapped td{
     color:var(--text);
     margin-bottom:.35rem;
     line-height:1.3;
-    transition:font-size .3s cubic-bezier(.34,1.56,.64,1), color .3s;
+    transition:font-size .3s cubic-bezier(.34,1.56,.64,1), font-weight .3s;
 }
 .card-pinyin{
     font-size:.78rem;
@@ -809,7 +791,6 @@ tr.tapped td{
             </div>
         </header>
 
-        <!-- SEARCH -->
         <div class="search-bar">
             <i class="fas fa-search"></i>
             <input type="text" id="searchInput" placeholder="Tìm kiếm..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
