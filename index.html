@@ -41,7 +41,6 @@ body{
 }
 .container{max-width:1400px;margin:0 auto;padding:0 1rem}
 
-/* ========== LOADING ========== */
 .loading-screen{
     position:fixed;inset:0;background:var(--bg);
     display:flex;align-items:center;justify-content:center;
@@ -51,7 +50,6 @@ body{
 .loading-screen i{font-size:2.5rem;color:var(--primary);animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* ========== STICKY TOP ========== */
 .sticky-top{
     position:sticky;top:0;z-index:100;background:var(--bg);
     padding:.5rem 0 .6rem 0;
@@ -94,7 +92,6 @@ body{
 }
 .icon-btn:not(.has-badge) .badge{display:none}
 
-/* Demo badge */
 .demo-badge{
     display:flex;align-items:center;gap:.35rem;
     padding:.35rem .7rem;border-radius:50px;
@@ -105,7 +102,6 @@ body{
 }
 [data-theme="dark"] .demo-badge{color:#fcd34d}
 
-/* User menu */
 .user-menu{position:relative}
 .user-avatar{
     width:34px;height:34px;border-radius:50%;border:2px solid var(--border);
@@ -139,7 +135,6 @@ body{
 .dropdown-item.danger{color:var(--danger)}
 .dropdown-item.danger:hover{background:var(--danger-light)}
 
-/* Login button */
 .btn-login-header{
     display:flex;align-items:center;gap:.4rem;
     padding:.5rem .9rem;border-radius:50px;
@@ -151,7 +146,6 @@ body{
 }
 .btn-login-header:hover,.btn-login-header:active{background:var(--primary-dark);transform:translateY(-1px)}
 
-/* Search */
 .search-bar{position:relative;margin-bottom:.55rem}
 .search-bar i.fa-search{
     position:absolute;left:14px;top:50%;transform:translateY(-50%);
@@ -175,7 +169,6 @@ body{
 }
 .search-clear.show{display:flex}
 
-/* Filters */
 .filters{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;max-width:600px}
 .chip{
     display:flex;align-items:center;gap:.4rem;
@@ -213,7 +206,6 @@ body{
 }
 .chip.locked select{pointer-events:none}
 
-/* FAB */
 .fab-group{
     position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));
     right:20px;z-index:1000;display:flex;flex-direction:column;
@@ -274,7 +266,6 @@ body{
     border:2px solid var(--surface);
 }
 
-/* Toggle classes */
 body:not(.show-pinyin) .col-pinyin,
 body:not(.show-pinyin) .card-pinyin{display:none!important}
 body:not(.show-vi) .col-vi,
@@ -282,10 +273,8 @@ body:not(.show-vi) .card-vi{display:none!important}
 body:not(.show-practice) .col-practice,
 body:not(.show-practice) .card-practice{display:none!important}
 
-/* Main */
 .main{padding:.25rem 0 3rem}
 
-/* Demo banner */
 .demo-banner{
     background:linear-gradient(135deg, #fef3c7, #fde68a);
     border:1.5px solid #f59e0b;
@@ -320,7 +309,6 @@ body:not(.show-practice) .card-practice{display:none!important}
 }
 .demo-banner-btn:hover{background:#d97706;transform:translateY(-1px)}
 
-/* Desktop table */
 .desktop-view{display:block}
 .table-card{
     background:var(--surface);border-radius:var(--radius);
@@ -409,7 +397,6 @@ tbody tr:last-child td{border-bottom:none}
 .check-correct{color:var(--success)}
 .check-wrong{color:var(--danger)}
 
-/* Focus mode */
 tr.focused td{
     background:var(--primary-light) !important;
     padding-top:1.1rem !important;padding-bottom:1.1rem !important;
@@ -455,7 +442,6 @@ tr.tapped td{animation:tapPulse .6s}
 }
 .practice-input, .audio-btn, .write-btn, .card-practice, .col-practice{cursor:auto}
 
-/* Mobile cards */
 .mobile-view{display:none}
 .card-header{
     display:flex;align-items:center;gap:.4rem;
@@ -495,7 +481,6 @@ tr.tapped td{animation:tapPulse .6s}
 .card-practice .practice-input{flex:1;min-width:0}
 .card-check{font-size:.75rem;font-weight:700;white-space:nowrap;min-width:55px;text-align:center}
 
-/* Load more */
 .load-more{
     display:block;width:100%;padding:.9rem;margin-top:.8rem;
     border-radius:var(--radius);border:1.5px dashed var(--border-strong);
@@ -520,7 +505,6 @@ tr.tapped td{animation:tapPulse .6s}
 }
 .error-box i{font-size:2rem;margin-bottom:.5rem;display:block}
 
-/* Login modal */
 .login-modal{
     position:fixed;inset:0;
     background:rgba(15,23,42,.8);
@@ -576,7 +560,6 @@ tr.tapped td{animation:tapPulse .6s}
     border-top:1px solid #e2e8f0;font-size:.78rem;color:#94a3b8;line-height:1.5;
 }
 
-/* Writer modal */
 .writer-modal{
     position:fixed;inset:0;background:rgba(15,23,42,.7);
     backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
@@ -644,7 +627,6 @@ tr.tapped td{animation:tapPulse .6s}
 .writer-score.success{color:var(--success);font-weight:600}
 .writer-score.error{color:var(--danger);font-weight:600}
 
-/* Admin modal */
 .admin-modal{
     position:fixed;inset:0;background:rgba(15,23,42,.75);
     backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
@@ -714,6 +696,9 @@ tr.tapped td{animation:tapPulse .6s}
 }
 .u-btn:hover{background:var(--surface-2);color:var(--primary);border-color:var(--primary)}
 .u-btn.danger:hover{background:var(--danger-light);color:var(--danger);border-color:var(--danger)}
+.u-btn:disabled{opacity:.35;cursor:not-allowed}
+.u-btn:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border)}
+.u-btn.danger:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border)}
 .admin-close{
     width:34px;height:34px;border-radius:8px;border:1px solid var(--border);
     background:var(--surface);color:var(--text-2);cursor:pointer;
@@ -757,7 +742,6 @@ tr.tapped td{animation:tapPulse .6s}
 .log-item .log-time{color:var(--text-3);flex-shrink:0;font-family:monospace;font-size:.7rem}
 .log-item .log-msg{flex:1;word-break:break-word}
 
-/* Responsive */
 @media(max-width:768px){
     .desktop-view{display:none}
     .mobile-view{display:block}
@@ -799,13 +783,11 @@ tr.tapped td{animation:tapPulse .6s}
 </head>
 <body>
 
-<!-- LOADING -->
 <div class="loading-screen" id="loadingScreen">
     <i class="fas fa-spinner"></i>
     <div>Đang tải...</div>
 </div>
 
-<!-- STICKY TOP -->
 <div class="sticky-top" id="stickyTop" style="display:none">
     <div class="container">
         <header class="header">
@@ -884,7 +866,6 @@ tr.tapped td{animation:tapPulse .6s}
     </div>
 </div>
 
-<!-- FAB GROUP -->
 <div class="fab-group" id="fabGroup" style="display:none">
     <button class="fab-btn fab-sub" id="toggleViBtn" data-label="Tiếng Việt" title="Ẩn/hiện Tiếng Việt">
         <i class="fas fa-language"></i>
@@ -900,7 +881,6 @@ tr.tapped td{animation:tapPulse .6s}
     </button>
 </div>
 
-<!-- MAIN -->
 <main class="main" id="mainContent" style="display:none">
     <div class="container">
         <div class="demo-banner" id="demoBanner" style="display:none">
@@ -929,7 +909,6 @@ tr.tapped td{animation:tapPulse .6s}
     </div>
 </main>
 
-<!-- LOGIN MODAL -->
 <div class="login-modal" id="loginModal">
     <div class="login-box">
         <button class="login-close" id="loginClose"><i class="fas fa-times"></i></button>
@@ -947,7 +926,6 @@ tr.tapped td{animation:tapPulse .6s}
     </div>
 </div>
 
-<!-- WRITER MODAL -->
 <div class="writer-modal" id="writerModal">
     <div class="writer-box">
         <button class="writer-close" id="writerClose" aria-label="Đóng"><i class="fas fa-times"></i></button>
@@ -966,7 +944,6 @@ tr.tapped td{animation:tapPulse .6s}
     </div>
 </div>
 
-<!-- ADMIN MODAL -->
 <div class="admin-modal" id="adminModal">
     <div class="admin-box">
         <div class="admin-header">
@@ -1023,6 +1000,7 @@ var RAW_DATA = [{"stt":"1","hsk":"HSK1","topic":"\u662f\u2026\u2026\u5417\uff1f"
 var FIREBASE_CONFIG = {"apiKey": "AIzaSyA8VlFQvE_om-51pxffgd7hd2Ud6hQm11k", "authDomain": "hoc-tieng-trung-64b8d.firebaseapp.com", "projectId": "hoc-tieng-trung-64b8d", "storageBucket": "hoc-tieng-trung-64b8d.firebasestorage.app", "messagingSenderId": "614326539390", "appId": "1:614326539390:web:57344a021d7cbc7b18b42f"};
 var DEMO_LIMIT = 50;
 var DEMO_AUDIO_LIMIT = 10;
+var TARGET_ADMINS = 2;  // ✅ Đúng 2 admin
 
 var currentUser = null;
 var isDemo = true;
@@ -1846,41 +1824,120 @@ function renderAdminStats() {
         '<div class="stat-card"><div class="num" style="color:#16a34a">' + users + '</div><div class="label">User</div></div>';
 }
 
+/* ✅ RENDER USERS - Đúng 2 admin */
 function renderUsers() {
     var list = $('userList');
     if (!usersCache.length) {
         list.innerHTML = '<div class="no-data" style="padding:1.5rem;font-size:.85rem">Chưa có tài khoản</div>';
         return;
     }
+    
+    var adminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
+    
     list.innerHTML = usersCache.map(function(u) {
         var isMe = u.email === currentUser.email;
+        var isAdmin = u.role === 'admin';
+        
+        // Nút đổi vai trò
+        var roleBtn = '';
+        if (isAdmin) {
+            // Admin → luôn bị khóa nút hạ
+            var reason = isMe 
+                ? 'Không thể tự hạ quyền chính mình' 
+                : 'Phải giữ đúng ' + TARGET_ADMINS + ' admin trong hệ thống';
+            roleBtn = '<button class="u-btn" disabled title="' + escapeHtml(reason) + '"><i class="fas fa-user"></i></button>';
+        } else {
+            // User → chỉ nâng được khi adminCount < TARGET_ADMINS
+            if (adminCount < TARGET_ADMINS) {
+                roleBtn = '<button class="u-btn" onclick="changeRole(\'' + escapeJs(u.email) + '\', \'admin\')" title="Nâng lên Admin"><i class="fas fa-shield-alt"></i></button>';
+            } else {
+                roleBtn = '<button class="u-btn" disabled title="Đã đủ ' + TARGET_ADMINS + ' admin, không thể nâng thêm"><i class="fas fa-shield-alt"></i></button>';
+            }
+        }
+        
+        // Nút xóa
+        var deleteBtn = '';
+        if (isMe) {
+            deleteBtn = '<button class="u-btn danger" disabled title="Không thể tự xóa chính mình"><i class="fas fa-trash"></i></button>';
+        } else if (isAdmin) {
+            deleteBtn = '<button class="u-btn danger" disabled title="Phải giữ đúng ' + TARGET_ADMINS + ' admin trong hệ thống"><i class="fas fa-trash"></i></button>';
+        } else {
+            deleteBtn = '<button class="u-btn danger" onclick="deleteUser(\'' + escapeJs(u.email) + '\')" title="Xóa"><i class="fas fa-trash"></i></button>';
+        }
+        
         return '<div class="user-row">' +
             '<div class="u-info">' +
                 '<div class="u-name">' + escapeHtml(u.name || u.email.split('@')[0]) + (isMe ? ' <span style="color:#94a3b8;font-size:.7rem">(bạn)</span>' : '') + '</div>' +
                 '<div class="u-email">' + escapeHtml(u.email) + '</div>' +
             '</div>' +
-            '<span class="u-role ' + (u.role === 'admin' ? 'admin' : 'user') + '">' + (u.role || 'user') + '</span>' +
-            '<div class="u-actions">' +
-                (u.role === 'admin' ? 
-                    '<button class="u-btn" onclick="changeRole(\'' + escapeJs(u.email) + '\', \'user\')" title="Hạ xuống User"><i class="fas fa-user"></i></button>' :
-                    '<button class="u-btn" onclick="changeRole(\'' + escapeJs(u.email) + '\', \'admin\')" title="Nâng lên Admin"><i class="fas fa-shield-alt"></i></button>'
-                ) +
-                (!isMe ? '<button class="u-btn danger" onclick="deleteUser(\'' + escapeJs(u.email) + '\')" title="Xóa"><i class="fas fa-trash"></i></button>' : '') +
-            '</div>' +
+            '<span class="u-role ' + (isAdmin ? 'admin' : 'user') + '">' + (u.role || 'user') + '</span>' +
+            '<div class="u-actions">' + roleBtn + deleteBtn + '</div>' +
         '</div>';
     }).join('');
 }
 
+/* ✅ CHANGE ROLE - Đúng 2 admin */
 window.changeRole = async function(email, newRole) {
-    if (!confirm('Đổi vai trò của ' + email + ' thành "' + newRole + '"?')) return;
-    try { await db.collection('allowed_users').doc(email).update({ role: newRole }); }
-    catch(e) { alert('Lỗi: ' + e.message); }
+    var target = usersCache.find(function(u) { return u.email === email; });
+    if (!target) { alert('Không tìm thấy user!'); return; }
+    
+    var isMe = email === currentUser.email;
+    var isAdmin = target.role === 'admin';
+    var adminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
+    
+    // Chặn tự hạ chính mình
+    if (isMe && newRole === 'user') {
+        alert('⚠️ Không thể tự hạ quyền admin của chính mình!');
+        return;
+    }
+    
+    // Chặn hạ admin (vì phải giữ đúng TARGET_ADMINS)
+    if (isAdmin && newRole === 'user') {
+        alert('⚠️ Không thể hạ quyền admin!\n\nHệ thống phải giữ đúng ' + TARGET_ADMINS + ' admin.\nHiện tại đang có ' + adminCount + ' admin.');
+        return;
+    }
+    
+    // Chặn nâng khi đã đủ TARGET_ADMINS
+    if (!isAdmin && newRole === 'admin' && adminCount >= TARGET_ADMINS) {
+        alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!\n\nKhông thể nâng thêm.');
+        return;
+    }
+    
+    var action = newRole === 'admin' ? 'NÂNG LÊN ADMIN' : 'HẠ XUỐNG USER';
+    if (!confirm(action + ' cho tài khoản:\n\n' + email + '\n\nBạn có chắc không?')) return;
+    
+    try {
+        await db.collection('allowed_users').doc(email).update({ role: newRole });
+    } catch(e) {
+        alert('Lỗi: ' + e.message);
+    }
 };
 
+/* ✅ DELETE USER - Đúng 2 admin */
 window.deleteUser = async function(email) {
-    if (!confirm('XÓA tài khoản ' + email + '?')) return;
-    try { await db.collection('allowed_users').doc(email).delete(); }
-    catch(e) { alert('Lỗi: ' + e.message); }
+    var target = usersCache.find(function(u) { return u.email === email; });
+    if (!target) { alert('Không tìm thấy user!'); return; }
+    
+    var isMe = email === currentUser.email;
+    var isAdmin = target.role === 'admin';
+    
+    if (isMe) {
+        alert('⚠️ Không thể tự xóa tài khoản của chính mình!');
+        return;
+    }
+    
+    if (isAdmin) {
+        alert('⚠️ Không thể xóa admin!\n\nHệ thống phải giữ đúng ' + TARGET_ADMINS + ' admin.\n\nNếu cần thay đổi admin, hãy làm thủ công trong Firebase Console.');
+        return;
+    }
+    
+    if (!confirm('⚠️ XÓA TÀI KHOẢN\n\n' + email + '\n\nNgười này sẽ không đăng nhập được nữa.\n\nBạn có chắc không?')) return;
+    
+    try {
+        await db.collection('allowed_users').doc(email).delete();
+    } catch(e) {
+        alert('Lỗi: ' + e.message);
+    }
 };
 
 $('showAddUserBtn').addEventListener('click', function() {
@@ -1899,6 +1956,16 @@ $('confirmAddUser').addEventListener('click', async function() {
     var role = $('newUserRole').value;
     if (!email || !email.includes('@')) { alert('Email không hợp lệ'); return; }
     if (!name) name = email.split('@')[0];
+    
+    // ✅ Kiểm tra nếu cố thêm admin khi đã đủ 2
+    if (role === 'admin') {
+        var currentAdminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
+        if (currentAdminCount >= TARGET_ADMINS) {
+            alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!\n\nKhông thể thêm admin mới.\nChỉ có thể thêm User.');
+            return;
+        }
+    }
+    
     try {
         var docRef = db.collection('allowed_users').doc(email);
         var doc = await docRef.get();
