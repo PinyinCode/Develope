@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Chuyển file Excel → HTML tự chứa dữ liệu
+- Font chữ Trung tối ưu: PingFang SC (iOS) / Microsoft YaHei (Win) / Noto Sans SC
+- Font-weight 500 thanh mảnh, dễ đọc
 - 3 nút toggle (FAB) cố định góc dưới phải
 - Nhấn vào câu → phóng to CHỦ ĐIỂM + TIẾNG TRUNG (GIỮ NGUYÊN MÀU)
-- Pinyin ở dark mode: chữ sáng hơn để dễ đọc
-- Ô tìm kiếm gọn: "Tìm kiếm..."
+- Pinyin dark mode dễ đọc
 - Header sticky + Search + Filters luôn dính trên cùng
 - Phát âm bằng Web Speech API
 """
@@ -99,6 +100,7 @@ html_template = r'''<!DOCTYPE html>
     --radius:14px;
     --radius-sm:10px;
     --radius-full:999px;
+    --font-zh: 'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans SC','Source Han Sans SC',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 }
 [data-theme="dark"]{
     --bg:#0f172a;
@@ -518,10 +520,15 @@ tbody tr:last-child td{border-bottom:none}
 }
 .subject-cell{font-size:.8rem;color:var(--text-2)}
 .vi-cell{font-size:.85rem;color:var(--text)}
+
+/* ✅ TIẾNG TRUNG - FONT CHUYÊN CHO CHỮ HÁN */
 .zh-cell{
-    font-size:.95rem;
-    font-weight:600;
+    font-size:1rem;
+    font-weight:500;
     color:var(--text);
+    font-family:var(--font-zh);
+    letter-spacing:.02em;
+    line-height:1.55;
     transition:font-size .3s cubic-bezier(.34,1.56,.64,1), font-weight .3s;
 }
 .pinyin{
@@ -534,7 +541,7 @@ tbody tr:last-child td{border-bottom:none}
     font-style:italic;
     white-space:nowrap;
 }
-/* ✅ Pinyin ở dark mode: chữ sáng + nền xanh mờ để dễ đọc */
+/* ✅ Pinyin dark mode: chữ sáng + nền xanh mờ */
 [data-theme="dark"] .pinyin{
     background:rgba(59,130,246,.18);
     color:#93c5fd;
@@ -573,10 +580,10 @@ tbody tr:last-child td{border-bottom:none}
     border:1.5px solid var(--border);
     background:var(--surface);
     color:var(--text);
-    font-size:.82rem;
+    font-size:.85rem;
     outline:none;
     transition:.15s;
-    font-family:inherit;
+    font-family:var(--font-zh);
     -webkit-appearance:none;
 }
 .practice-input:focus{
@@ -600,13 +607,14 @@ tr.focused td{
 /* ✅ CHỈ PHÓNG TO CHỦ ĐIỂM - GIỮ NGUYÊN MÀU */
 tr.focused .topic-cell{
     font-size:1.15rem !important;
-    font-weight:800 !important;
+    font-weight:700 !important;
 }
-/* ✅ CHỈ PHÓNG TO TIẾNG TRUNG - GIỮ NGUYÊN MÀU */
+/* ✅ CHỈ PHÓNG TO TIẾNG TRUNG - FONT HÁN, WEIGHT 500 */
 tr.focused .zh-cell{
-    font-size:1.6rem !important;
-    font-weight:800 !important;
-    letter-spacing:.5px;
+    font-size:1.75rem !important;
+    font-weight:500 !important;
+    letter-spacing:.02em;
+    line-height:1.55;
 }
 
 /* Mobile: card được chọn */
@@ -620,11 +628,12 @@ tr.focused .zh-cell{
     background:linear-gradient(135deg, var(--surface) 0%, rgba(59,130,246,.15) 100%);
     box-shadow:0 12px 32px rgba(59,130,246,.3);
 }
-/* ✅ CHỈ PHÓNG TO TIẾNG TRUNG - GIỮ NGUYÊN MÀU */
+/* ✅ CHỈ PHÓNG TO TIẾNG TRUNG - FONT HÁN, WEIGHT 500 */
 .card.focused .card-zh{
-    font-size:1.8rem;
-    font-weight:800;
-    letter-spacing:1px;
+    font-size:2rem;
+    font-weight:500;
+    letter-spacing:.02em;
+    line-height:1.5;
     animation:zoomIn .35s cubic-bezier(.34,1.56,.64,1);
 }
 /* ✅ CHỈ PHÓNG TO TAG CHỦ ĐIỂM - GIỮ NGUYÊN MÀU */
@@ -723,12 +732,16 @@ tr.tapped td{
     margin-bottom:.35rem;
     line-height:1.4;
 }
+
+/* ✅ TIẾNG TRUNG CARD - FONT CHUYÊN CHO CHỮ HÁN */
 .card-zh{
-    font-size:1.1rem;
-    font-weight:700;
+    font-size:1.2rem;
+    font-weight:500;
     color:var(--text);
-    margin-bottom:.35rem;
-    line-height:1.3;
+    margin-bottom:.4rem;
+    line-height:1.5;
+    font-family:var(--font-zh);
+    letter-spacing:.02em;
     transition:font-size .3s cubic-bezier(.34,1.56,.64,1), font-weight .3s;
 }
 .card-pinyin{
@@ -740,7 +753,7 @@ tr.tapped td{
     border-radius:6px;
     display:inline-block;
 }
-/* ✅ Pinyin card ở dark mode: chữ sáng + nền xanh mờ để dễ đọc */
+/* ✅ Pinyin card dark mode: chữ sáng + nền xanh mờ */
 [data-theme="dark"] .card-pinyin{
     background:rgba(59,130,246,.18);
     color:#93c5fd;
@@ -834,7 +847,7 @@ tr.tapped td{
     .fab-btn{width:48px;height:48px;font-size:1.05rem}
     
     .card.focused .card-zh{
-        font-size:2rem;
+        font-size:2.2rem;
     }
 }
 @media(max-width:400px){
