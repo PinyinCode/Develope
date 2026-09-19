@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 Chuyển file Excel → HTML tự chứa dữ liệu
-- Giao diện hiện đại, responsive (card view mobile, table desktop)
-- Dark mode toggle
-- Toggle ẩn/hiện: Pinyin, Tiếng Việt, Ô nhập tiếng Trung (mặc định ẩn)
-- Hiển thị cột Chủ điểm (nhưng không có filter Chủ điểm)
+- Header + Search + Filters LUÔN DÍNH trên cùng khi cuộn
+- Toggle riêng: Tiếng Việt | Pinyin | Ô nhập
+- Bật ô nhập → tự tắt Pinyin (và ngược lại)
+- HSK chỉ hiển thị HSK1-HSK6
+- Nút Đặt lại nhỏ gọn chỉ hiện khi có filter
 - Phát âm bằng Web Speech API
-- Hỗ trợ iPhone notch
 """
 import openpyxl
 import json
@@ -29,7 +29,6 @@ ws = wb.worksheets[SHEET_INDEX]
 print(f"📊 Sheet: {ws.title} - {ws.max_row} dòng")
 
 def clean(s):
-    """Loại bỏ ký tự gây lỗi JSON"""
     if s is None:
         return ""
     return str(s).replace('\n', ' ').replace('\r', ' ').replace('\t', ' ').replace('\\', '\\\\')
@@ -75,7 +74,7 @@ html_template = r'''<!DOCTYPE html>
 <title>Học tiếng Trung · VP & CX</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <style>
-/* ========== RESET & BASE ========== */
+/* ========== RESET & THEME ========== */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
     --bg:#f0f4f8;
@@ -92,6 +91,8 @@ html_template = r'''<!DOCTYPE html>
     --success:#16a34a;
     --danger:#dc2626;
     --danger-light:#fee2e2;
+    --amber:#f59e0b;
+    --amber-light:#fef3c7;
     --shadow-sm:0 1px 2px rgba(15,23,42,.04);
     --shadow:0 4px 12px rgba(15,23,42,.06);
     --radius:14px;
@@ -112,6 +113,7 @@ html_template = r'''<!DOCTYPE html>
     --primary-light:#1e3a8a;
     --success-light:#14532d;
     --danger-light:#7f1d1d;
+    --amber-light:#78350f;
     --shadow-sm:0 1px 2px rgba(0,0,0,.3);
     --shadow:0 4px 12px rgba(0,0,0,.3);
 }
@@ -127,44 +129,53 @@ body{
 }
 .container{max-width:1400px;margin:0 auto;padding:0 1rem}
 
-/* ========== HEADER ========== */
-.header{
+/* ========== STICKY TOP ========== */
+.sticky-top{
     position:sticky;
     top:0;
     z-index:100;
+    background:var(--bg);
+    padding:.5rem 0 .6rem 0;
+    transition:background .2s, box-shadow .2s, border-color .2s;
+    border-bottom:1px solid transparent;
+}
+.sticky-top.scrolled{
     background:var(--surface);
-    border-bottom:1px solid var(--border);
-    backdrop-filter:saturate(180%) blur(12px);
-    -webkit-backdrop-filter:saturate(180%) blur(12px);
+    border-bottom-color:var(--border);
+    box-shadow:0 4px 16px -8px rgba(15,23,42,.15);
+}
+[data-theme="dark"] .sticky-top.scrolled{
+    box-shadow:0 4px 16px -8px rgba(0,0,0,.5);
+}
+
+/* ========== HEADER ========== */
+.header{
+    background:transparent;
+    border:none;
 }
 .header-inner{
-    max-width:1400px;
-    margin:0 auto;
-    padding:.75rem 1rem;
     display:flex;
     align-items:center;
-    gap:.75rem;
+    gap:.5rem;
+    margin-bottom:.6rem;
 }
 .logo{
     display:flex;
     align-items:center;
-    gap:.6rem;
+    gap:.5rem;
     font-weight:700;
-    font-size:1rem;
-    color:var(--text);
     flex:1;
     min-width:0;
 }
 .logo-icon{
-    width:36px;
-    height:36px;
+    width:34px;height:34px;
     background:linear-gradient(135deg,#2563eb,#7c3aed);
     border-radius:10px;
     display:flex;
     align-items:center;
     justify-content:center;
     color:#fff;
-    font-size:1rem;
+    font-size:.95rem;
     flex-shrink:0;
     box-shadow:0 4px 10px rgba(37,99,235,.25);
 }
@@ -176,104 +187,83 @@ body{
     flex-direction:column;
     line-height:1.15;
 }
-.logo-text .title{font-size:.95rem;font-weight:700;color:var(--text)}
-.logo-text .subtitle{font-size:.72rem;color:var(--text-3);font-weight:500}
-.header-actions{display:flex;gap:.4rem;align-items:center;flex-shrink:0}
+.logo-text .title{font-size:.9rem;font-weight:700;color:var(--text)}
+.logo-text .subtitle{font-size:.68rem;color:var(--text-3);font-weight:500}
+
+.header-actions{display:flex;gap:.35rem;align-items:center;flex-shrink:0}
+
+/* Icon button */
 .icon-btn{
-    width:38px;height:38px;
-    border-radius:var(--radius-sm);
+    width:34px;height:34px;
+    border-radius:8px;
     border:1px solid var(--border);
     background:var(--surface);
-    color:var(--text-2);
+    color:var(--text-3);
     cursor:pointer;
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:.95rem;
+    font-size:.85rem;
     transition:.15s;
     -webkit-tap-highlight-color:transparent;
     position:relative;
-}
-.icon-btn:hover,.icon-btn:active{background:var(--surface-2);color:var(--primary);border-color:var(--primary)}
-.icon-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-
-/* Dropdown panel cho toggle */
-.toggle-panel{
-    position:absolute;
-    top:calc(100% + .5rem);
-    right:0;
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:var(--radius);
-    box-shadow:0 10px 30px rgba(0,0,0,.15);
-    padding:.5rem;
-    min-width:230px;
-    display:none;
-    z-index:200;
-}
-.toggle-panel.show{display:block}
-.toggle-panel label{
-    display:flex;
-    align-items:center;
-    gap:.6rem;
-    padding:.6rem .75rem;
-    border-radius:var(--radius-sm);
-    cursor:pointer;
-    font-size:.85rem;
-    color:var(--text);
-    transition:.15s;
-    user-select:none;
-}
-.toggle-panel label:hover{background:var(--surface-2)}
-.toggle-panel input[type="checkbox"]{
-    width:18px;height:18px;
-    accent-color:var(--primary);
-    cursor:pointer;
     flex-shrink:0;
 }
-.toggle-panel .divider{
-    height:1px;
-    background:var(--border);
-    margin:.4rem 0;
+.icon-btn:hover,.icon-btn:active{
+    background:var(--surface-2);
+    color:var(--primary);
+    border-color:var(--primary);
 }
-
-.stats-pill{
-    display:inline-flex;
+.icon-btn.active{
+    background:var(--primary);
+    color:#fff;
+    border-color:var(--primary);
+    box-shadow:0 2px 8px rgba(37,99,235,.3);
+}
+.icon-btn.hidden{display:none}
+.icon-btn.reset-btn:hover,.icon-btn.reset-btn:active{
+    background:var(--danger-light);
+    color:var(--danger);
+    border-color:var(--danger);
+}
+.icon-btn .badge{
+    position:absolute;
+    top:-4px;
+    right:-4px;
+    min-width:16px;
+    height:16px;
+    border-radius:50%;
+    background:var(--danger);
+    color:#fff;
+    font-size:.6rem;
+    font-weight:700;
+    display:flex;
     align-items:center;
-    gap:.4rem;
-    background:var(--primary-light);
-    color:var(--primary-dark);
-    padding:.45rem .85rem;
-    border-radius:var(--radius-full);
-    font-size:.78rem;
-    font-weight:600;
-    white-space:nowrap;
+    justify-content:center;
+    padding:0 4px;
+    border:2px solid var(--surface);
 }
-.stats-pill b{font-weight:800}
-.toggle-wrapper{position:relative}
-
-/* ========== MAIN ========== */
-.main{padding:1rem 0 3rem}
+.icon-btn:not(.has-badge) .badge{display:none}
 
 /* ========== SEARCH ========== */
-.search-bar{position:relative;margin-bottom:.75rem}
+.search-bar{position:relative;margin-bottom:.55rem}
 .search-bar i.fa-search{
     position:absolute;
-    left:16px;
+    left:14px;
     top:50%;
     transform:translateY(-50%);
     color:var(--text-3);
-    font-size:.95rem;
+    font-size:.9rem;
     pointer-events:none;
 }
 .search-bar input{
     width:100%;
-    padding:.85rem 3rem .85rem 2.85rem;
+    padding:.72rem 2.7rem .72rem 2.6rem;
     border-radius:var(--radius-full);
     border:1.5px solid var(--border);
     background:var(--surface);
     color:var(--text);
-    font-size:.95rem;
+    font-size:.92rem;
     outline:none;
     transition:.15s;
     box-shadow:var(--shadow-sm);
@@ -287,10 +277,10 @@ body{
 .search-bar input::placeholder{color:var(--text-3)}
 .search-clear{
     position:absolute;
-    right:10px;
+    right:8px;
     top:50%;
     transform:translateY(-50%);
-    width:32px;height:32px;
+    width:30px;height:30px;
     border-radius:50%;
     border:none;
     background:var(--surface-2);
@@ -299,24 +289,22 @@ body{
     display:none;
     align-items:center;
     justify-content:center;
-    font-size:.85rem;
-    transition:.15s;
+    font-size:.8rem;
 }
 .search-clear.show{display:flex}
-.search-clear:hover{background:var(--danger-light);color:var(--danger)}
 
-/* ========== FILTERS (chỉ HSK + Chủ đề) ========== */
+/* ========== FILTERS ========== */
 .filters{
     display:grid;
-    grid-template-columns:1fr 1fr auto;
+    grid-template-columns:1fr 1fr;
     gap:.5rem;
-    margin-bottom:1rem;
+    max-width:600px;
 }
 .chip{
     display:flex;
     align-items:center;
     gap:.4rem;
-    padding:.65rem 1rem;
+    padding:.55rem .95rem;
     border-radius:var(--radius-full);
     border:1.5px solid var(--border);
     background:var(--surface);
@@ -343,7 +331,7 @@ body{
 }
 .chip.has-value .chip-label{color:#fff;opacity:.85}
 .chip-label{
-    font-size:.72rem;
+    font-size:.7rem;
     color:var(--text-3);
     text-transform:uppercase;
     letter-spacing:.3px;
@@ -370,38 +358,17 @@ body{
     width:100%;
     height:100%;
 }
-.btn-reset{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:.4rem;
-    padding:.65rem 1.1rem;
-    border-radius:var(--radius-full);
-    border:1.5px solid var(--border);
-    background:var(--surface);
-    color:var(--text-2);
-    font-size:.85rem;
-    font-weight:600;
-    cursor:pointer;
-    transition:.15s;
-    font-family:inherit;
-    box-shadow:var(--shadow-sm);
-    -webkit-tap-highlight-color:transparent;
-    white-space:nowrap;
-}
-.btn-reset:hover,.btn-reset:active{
-    background:var(--danger-light);
-    color:var(--danger);
-    border-color:var(--danger);
-}
 
-/* ========== TOGGLE CLASSES ========== */
+/* ========== TOGGLE VISIBILITY CLASSES ========== */
 body:not(.show-pinyin) .col-pinyin,
 body:not(.show-pinyin) .card-pinyin{display:none!important}
 body:not(.show-vi) .col-vi,
 body:not(.show-vi) .card-vi{display:none!important}
 body:not(.show-practice) .col-practice,
 body:not(.show-practice) .card-practice{display:none!important}
+
+/* ========== MAIN ========== */
+.main{padding:.25rem 0 3rem}
 
 /* ========== DESKTOP TABLE ========== */
 .desktop-view{display:block}
@@ -415,7 +382,7 @@ body:not(.show-practice) .card-practice{display:none!important}
 .table-scroll{
     overflow-x:auto;
     overflow-y:auto;
-    max-height:calc(100vh - 260px);
+    max-height:calc(100vh - 220px);
     -webkit-overflow-scrolling:touch;
 }
 table{width:100%;border-collapse:collapse;font-size:.85rem}
@@ -426,7 +393,7 @@ thead th{
     font-size:.7rem;
     text-transform:uppercase;
     letter-spacing:.5px;
-    padding:.75rem .85rem;
+    padding:.7rem .8rem;
     text-align:left;
     border-bottom:1.5px solid var(--border);
     position:sticky;
@@ -435,7 +402,7 @@ thead th{
     white-space:nowrap;
 }
 tbody td{
-    padding:.7rem .85rem;
+    padding:.65rem .8rem;
     border-bottom:1px solid var(--border);
     vertical-align:middle;
     color:var(--text);
@@ -454,8 +421,8 @@ tbody tr:last-child td{border-bottom:none}
     font-weight:700;
     white-space:nowrap;
 }
-.topic-cell{font-size:.8rem;color:var(--text-2);font-weight:500}
-.subject-cell{font-size:.82rem;color:var(--text-2)}
+.topic-cell{font-size:.78rem;color:var(--text-2);font-weight:500}
+.subject-cell{font-size:.8rem;color:var(--text-2)}
 .vi-cell{font-size:.85rem;color:var(--text)}
 .zh-cell{font-size:.95rem;font-weight:600;color:var(--text)}
 .pinyin{
@@ -469,7 +436,7 @@ tbody tr:last-child td{border-bottom:none}
     white-space:nowrap;
 }
 .audio-btn{
-    width:34px;height:34px;
+    width:32px;height:32px;
     border-radius:50%;
     border:none;
     background:var(--primary-light);
@@ -478,7 +445,7 @@ tbody tr:last-child td{border-bottom:none}
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    font-size:.9rem;
+    font-size:.85rem;
     transition:.15s;
     -webkit-tap-highlight-color:transparent;
 }
@@ -495,12 +462,12 @@ tbody tr:last-child td{border-bottom:none}
 .practice-input{
     width:100%;
     min-width:140px;
-    padding:.5rem .75rem;
+    padding:.45rem .7rem;
     border-radius:var(--radius-full);
     border:1.5px solid var(--border);
     background:var(--surface);
     color:var(--text);
-    font-size:.83rem;
+    font-size:.82rem;
     outline:none;
     transition:.15s;
     font-family:inherit;
@@ -510,43 +477,43 @@ tbody tr:last-child td{border-bottom:none}
     border-color:var(--primary);
     box-shadow:0 0 0 3px rgba(37,99,235,.15);
 }
-.check-cell{font-weight:700;font-size:.8rem;white-space:nowrap;text-align:center;width:90px}
+.check-cell{font-weight:700;font-size:.78rem;white-space:nowrap;text-align:center;width:80px}
 .check-correct{color:var(--success)}
 .check-wrong{color:var(--danger)}
 
-/* ========== MOBILE CARD VIEW ========== */
+/* ========== MOBILE CARDS ========== */
 .mobile-view{display:none}
 .card{
     background:var(--surface);
     border-radius:var(--radius);
     border:1px solid var(--border);
-    padding:1rem;
-    margin-bottom:.75rem;
+    padding:.9rem;
+    margin-bottom:.6rem;
     box-shadow:var(--shadow-sm);
 }
 .card-header{
     display:flex;
     align-items:center;
-    gap:.5rem;
-    margin-bottom:.75rem;
-    padding-bottom:.75rem;
+    gap:.4rem;
+    margin-bottom:.6rem;
+    padding-bottom:.6rem;
     border-bottom:1px dashed var(--border);
 }
 .card-stt{
-    width:28px;height:28px;
+    width:26px;height:26px;
     border-radius:50%;
     background:var(--surface-2);
     color:var(--text-3);
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:.75rem;
+    font-size:.7rem;
     font-weight:700;
     flex-shrink:0;
 }
 .card-meta{
     display:flex;
-    gap:.35rem;
+    gap:.3rem;
     align-items:center;
     flex:1;
     min-width:0;
@@ -554,80 +521,78 @@ tbody tr:last-child td{border-bottom:none}
 }
 .card-tag{
     display:inline-block;
-    padding:.15rem .5rem;
+    padding:.12rem .45rem;
     border-radius:var(--radius-full);
     background:var(--surface-2);
     color:var(--text-2);
-    font-size:.68rem;
+    font-size:.65rem;
     font-weight:600;
     white-space:nowrap;
 }
 .card-tag.hsk{background:var(--primary-light);color:var(--primary-dark)}
-.card-tag.topic{background:#fef3c7;color:#92400e}
-[data-theme="dark"] .card-tag.topic{background:#78350f;color:#fde68a}
-.card-body{margin-bottom:.75rem}
+.card-tag.topic{background:var(--amber-light);color:#92400e}
+[data-theme="dark"] .card-tag.topic{color:#fde68a}
+.card-body{margin-bottom:.6rem}
 .card-vi{
     font-size:.85rem;
     color:var(--text-2);
-    margin-bottom:.4rem;
+    margin-bottom:.35rem;
     line-height:1.4;
 }
 .card-zh{
-    font-size:1.15rem;
+    font-size:1.1rem;
     font-weight:700;
     color:var(--text);
-    margin-bottom:.4rem;
-    line-height:1.35;
+    margin-bottom:.35rem;
+    line-height:1.3;
 }
 .card-pinyin{
-    font-size:.8rem;
+    font-size:.78rem;
     font-style:italic;
     color:var(--primary-dark);
     background:var(--surface-2);
-    padding:.25rem .5rem;
+    padding:.2rem .45rem;
     border-radius:6px;
     display:inline-block;
 }
 .card-practice{
     display:flex;
     align-items:center;
-    gap:.5rem;
-    padding-top:.75rem;
+    gap:.4rem;
+    padding-top:.6rem;
     border-top:1px dashed var(--border);
-    margin-top:.75rem;
 }
 .card-practice .practice-input{flex:1;min-width:0}
 .card-check{
-    font-size:.8rem;
+    font-size:.75rem;
     font-weight:700;
     white-space:nowrap;
-    min-width:60px;
+    min-width:55px;
     text-align:center;
 }
 
-/* ========== LOAD MORE & STATES ========== */
+/* ========== LOAD MORE ========== */
 .load-more{
     display:block;
     width:100%;
-    padding:1rem;
-    margin-top:1rem;
+    padding:.9rem;
+    margin-top:.8rem;
     border-radius:var(--radius);
     border:1.5px dashed var(--border-strong);
     background:var(--surface);
     color:var(--primary);
     font-weight:700;
-    font-size:.9rem;
+    font-size:.88rem;
     cursor:pointer;
     transition:.15s;
     font-family:inherit;
-    -webkit-tap-highlight-color:transparent;
 }
 .load-more:hover,.load-more:active{background:var(--primary-light);border-color:var(--primary)}
 .end-note{
     text-align:center;
-    padding:1.25rem 1rem;
+    padding:1rem;
     color:var(--text-3);
-    font-size:.85rem;
+    font-size:.82rem;
 }
 .end-note i{color:var(--success);margin-right:.35rem}
 .no-data{
@@ -650,102 +615,91 @@ tbody tr:last-child td{border-bottom:none}
 .error-box i{font-size:2rem;margin-bottom:.5rem;display:block}
 
 /* ========== RESPONSIVE ========== */
-@media(max-width:900px){
-    .filters{grid-template-columns:1fr 1fr;gap:.4rem}
-    .btn-reset{grid-column:1 / -1;padding:.6rem;font-size:.82rem}
-}
 @media(max-width:768px){
     .desktop-view{display:none}
     .mobile-view{display:block}
     
-    .container{padding:0 .75rem}
-    .header-inner{padding:.6rem .75rem;gap:.5rem}
-    .logo-icon{width:32px;height:32px;font-size:.9rem}
-    .logo-text .title{font-size:.85rem}
-    .logo-text .subtitle{font-size:.65rem}
-    .stats-pill{padding:.35rem .6rem;font-size:.7rem}
-    .icon-btn{width:34px;height:34px;font-size:.85rem}
+    .container{padding:0 .7rem}
+    .header-inner{gap:.35rem;margin-bottom:.5rem}
+    .logo-icon{width:30px;height:30px;font-size:.85rem}
+    .logo-text .title{font-size:.82rem}
+    .logo-text .subtitle{font-size:.6rem}
+    .icon-btn{width:32px;height:32px;font-size:.8rem}
     
-    .main{padding:.75rem 0 2rem}
-    .search-bar input{padding:.75rem 2.75rem .75rem 2.6rem;font-size:.9rem}
+    .main{padding:.15rem 0 2rem}
+    .search-bar input{padding:.68rem 2.6rem .68rem 2.5rem;font-size:.88rem}
     
-    .filters{grid-template-columns:1fr 1fr;gap:.4rem}
-    .chip{padding:.55rem .75rem;font-size:.78rem}
+    .filters{max-width:100%}
+    .chip{padding:.5rem .75rem;font-size:.8rem}
     .chip-label{font-size:.65rem}
-    .btn-reset{grid-column:1 / -1}
 }
 @media(max-width:400px){
     .logo-text .subtitle{display:none}
-    .chip-label{display:none}
+    .icon-btn{width:30px;height:30px;font-size:.75rem}
 }
 </style>
 </head>
 <body>
 
-<!-- ============ HEADER ============ -->
-<header class="header">
-    <div class="header-inner">
-        <div class="logo">
-            <div class="logo-icon"><i class="fas fa-language"></i></div>
-            <div class="logo-text">
-                <div class="title">Học tiếng Trung</div>
-                <div class="subtitle">Văn phòng & Công xưởng</div>
-            </div>
-        </div>
-        <div class="header-actions">
-            <div class="stats-pill" id="statsDisplay">
-                <i class="fas fa-book-open"></i> <span id="statsText">Đang tải...</span>
-            </div>
+<!-- ============ STICKY TOP ============ -->
+<div class="sticky-top" id="stickyTop">
+    <div class="container">
 
-            <!-- Nút toggle ẩn/hiện -->
-            <div class="toggle-wrapper">
-                <button class="icon-btn" id="toggleBtn" title="Ẩn/hiện cột">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <div class="toggle-panel" id="togglePanel">
-                    <label>
-                        <input type="checkbox" id="toggleVi">
-                        <span><i class="fas fa-language" style="width:18px;color:var(--text-3)"></i> Tiếng Việt</span>
-                    </label>
-                    <label>
-                        <input type="checkbox" id="togglePinyin">
-                        <span><i class="fas fa-spell-check" style="width:18px;color:var(--text-3)"></i> Pinyin</span>
-                    </label>
-                    <div class="divider"></div>
-                    <label>
-                        <input type="checkbox" id="togglePractice">
-                        <span><i class="fas fa-keyboard" style="width:18px;color:var(--text-3)"></i> Ô nhập tiếng Trung</span>
-                    </label>
+        <!-- HEADER -->
+        <header class="header">
+            <div class="header-inner">
+                <div class="logo">
+                    <div class="logo-icon"><i class="fas fa-language"></i></div>
+                    <div class="logo-text">
+                        <div class="title">Học tiếng Trung</div>
+                        <div class="subtitle">Văn phòng & Công xưởng</div>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="icon-btn" id="toggleViBtn" title="Ẩn/hiện Tiếng Việt">
+                        <i class="fas fa-language"></i>
+                    </button>
+                    <button class="icon-btn" id="togglePinyinBtn" title="Ẩn/hiện Pinyin">
+                        <i class="fas fa-spell-check"></i>
+                    </button>
+                    <button class="icon-btn" id="togglePracticeBtn" title="Ẩn/hiện Ô nhập">
+                        <i class="fas fa-keyboard"></i>
+                    </button>
+                    <button class="icon-btn reset-btn hidden" id="resetBtn" title="Đặt lại bộ lọc">
+                        <i class="fas fa-undo-alt"></i>
+                        <span class="badge" id="resetBadge">0</span>
+                    </button>
+                    <button class="icon-btn" id="themeToggle" title="Đổi giao diện">
+                        <i class="fas fa-moon"></i>
+                    </button>
                 </div>
             </div>
-
-            <button class="icon-btn" id="themeToggle" title="Đổi giao diện sáng/tối">
-                <i class="fas fa-moon"></i>
-            </button>
-        </div>
-    </div>
-</header>
-
-<!-- ============ MAIN ============ -->
-<main class="main">
-    <div class="container">
+        </header>
 
         <!-- SEARCH -->
         <div class="search-bar">
             <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="Tìm tiếng Việt, tiếng Trung hoặc pinyin..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <input type="text" id="searchInput" placeholder="Tìm tiếng Việt, tiếng Trung, pinyin, chủ điểm, chủ đề..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
             <button class="search-clear" id="clearSearchBtn" aria-label="Xóa">
                 <i class="fas fa-times"></i>
             </button>
         </div>
 
-        <!-- FILTERS (chỉ HSK + Chủ đề + Đặt lại) -->
+        <!-- FILTERS -->
         <div class="filters">
             <div class="chip" id="hskChip">
                 <span class="chip-label">HSK</span>
                 <span class="chip-value" id="hskValue">Tất cả</span>
                 <i class="fas fa-chevron-down chip-arrow"></i>
-                <select id="hskFilter"><option value="">Tất cả HSK</option></select>
+                <select id="hskFilter">
+                    <option value="">Tất cả</option>
+                    <option value="HSK1">HSK1</option>
+                    <option value="HSK2">HSK2</option>
+                    <option value="HSK3">HSK3</option>
+                    <option value="HSK4">HSK4</option>
+                    <option value="HSK5">HSK5</option>
+                    <option value="HSK6">HSK6</option>
+                </select>
             </div>
             <div class="chip" id="subjectChip">
                 <span class="chip-label">Chủ đề</span>
@@ -753,12 +707,14 @@ tbody tr:last-child td{border-bottom:none}
                 <i class="fas fa-chevron-down chip-arrow"></i>
                 <select id="subjectFilter"><option value="">Tất cả chủ đề</option></select>
             </div>
-            <button class="btn-reset" id="resetBtn">
-                <i class="fas fa-undo-alt"></i> Đặt lại
-            </button>
         </div>
 
-        <!-- DESKTOP TABLE -->
+    </div>
+</div>
+
+<!-- ============ MAIN ============ -->
+<main class="main">
+    <div class="container">
         <div class="desktop-view">
             <div class="table-card">
                 <div class="table-scroll" id="desktopWrapper">
@@ -766,10 +722,7 @@ tbody tr:last-child td{border-bottom:none}
                 </div>
             </div>
         </div>
-
-        <!-- MOBILE CARDS -->
         <div class="mobile-view" id="mobileWrapper"></div>
-
     </div>
 </main>
 
@@ -777,14 +730,12 @@ tbody tr:last-child td{border-bottom:none}
 /* ========== DỮ LIỆU ========== */
 var RAW_DATA = __DATA__;
 
-(function() {
-    if (!Array.isArray(RAW_DATA)) {
-        document.getElementById('desktopWrapper').innerHTML =
-            '<div class="error-box"><i class="fas fa-exclamation-triangle"></i>Dữ liệu không hợp lệ.</div>';
-        return;
-    }
+if (!Array.isArray(RAW_DATA)) {
+    document.getElementById('desktopWrapper').innerHTML =
+        '<div class="error-box"><i class="fas fa-exclamation-triangle"></i>Dữ liệu không hợp lệ.</div>';
+} else {
     console.log('✅ Đã load', RAW_DATA.length, 'câu');
-})();
+}
 
 var filtered = RAW_DATA.slice();
 var state = { search:'', hsk:'', subject:'' };
@@ -794,7 +745,31 @@ var renderedCount = 0;
 var $ = function(id) { return document.getElementById(id); };
 var desktopWrapper = $('desktopWrapper');
 var mobileWrapper = $('mobileWrapper');
-var statsText = $('statsText');
+
+/* ========== SCROLL DETECTION ========== */
+(function initScroll() {
+    var sticky = document.getElementById('stickyTop');
+    if (!sticky) return;
+    
+    var ticking = false;
+    function update() {
+        if (window.scrollY > 5) {
+            sticky.classList.add('scrolled');
+        } else {
+            sticky.classList.remove('scrolled');
+        }
+        ticking = false;
+    }
+    
+    window.addEventListener('scroll', function() {
+        if (!ticking) {
+            window.requestAnimationFrame(update);
+            ticking = true;
+        }
+    }, { passive: true });
+    
+    update();
+})();
 
 /* ========== DARK MODE ========== */
 (function initTheme() {
@@ -822,12 +797,8 @@ $('themeToggle').addEventListener('click', function() {
     updateThemeIcon();
 });
 
-/* ========== TOGGLE HIỂN THỊ ========== */
-var displayState = {
-    vi: false,
-    pinyin: false,
-    practice: false
-};
+/* ========== TOGGLE DISPLAY ========== */
+var displayState = { vi: false, pinyin: false, practice: false };
 
 (function initDisplay() {
     try {
@@ -839,11 +810,10 @@ var displayState = {
             displayState.practice = !!parsed.practice;
         }
     } catch(e) {}
+    // Nếu practice bật thì tắt pinyin
+    if (displayState.practice) displayState.pinyin = false;
     applyDisplayState();
-    $('toggleVi').checked = displayState.vi;
-    $('togglePinyin').checked = displayState.pinyin;
-    $('togglePractice').checked = displayState.practice;
-    updateToggleIcon();
+    updateToggleButtons();
 })();
 
 function applyDisplayState() {
@@ -853,46 +823,36 @@ function applyDisplayState() {
 }
 
 function saveDisplayState() {
-    try {
-        localStorage.setItem('displayState', JSON.stringify(displayState));
-    } catch(e) {}
+    try { localStorage.setItem('displayState', JSON.stringify(displayState)); } catch(e) {}
 }
 
-function updateToggleIcon() {
-    var active = displayState.vi || displayState.pinyin || displayState.practice;
-    var icon = $('toggleBtn').querySelector('i');
-    icon.className = active ? 'fas fa-eye' : 'fas fa-eye-slash';
-    $('toggleBtn').classList.toggle('active', active);
+function updateToggleButtons() {
+    $('toggleViBtn').classList.toggle('active', displayState.vi);
+    $('togglePinyinBtn').classList.toggle('active', displayState.pinyin);
+    $('togglePracticeBtn').classList.toggle('active', displayState.practice);
 }
 
-$('toggleBtn').addEventListener('click', function(e) {
-    e.stopPropagation();
-    $('togglePanel').classList.toggle('show');
+$('toggleViBtn').addEventListener('click', function() {
+    displayState.vi = !displayState.vi;
+    applyDisplayState();
+    saveDisplayState();
+    updateToggleButtons();
 });
 
-document.addEventListener('click', function(e) {
-    if (!$('togglePanel').contains(e.target) && !$('toggleBtn').contains(e.target)) {
-        $('togglePanel').classList.remove('show');
-    }
+$('togglePinyinBtn').addEventListener('click', function() {
+    displayState.pinyin = !displayState.pinyin;
+    if (displayState.pinyin && displayState.practice) displayState.practice = false;
+    applyDisplayState();
+    saveDisplayState();
+    updateToggleButtons();
 });
 
-$('toggleVi').addEventListener('change', function() {
-    displayState.vi = this.checked;
+$('togglePracticeBtn').addEventListener('click', function() {
+    displayState.practice = !displayState.practice;
+    if (displayState.practice && displayState.pinyin) displayState.pinyin = false;
     applyDisplayState();
     saveDisplayState();
-    updateToggleIcon();
-});
-$('togglePinyin').addEventListener('change', function() {
-    displayState.pinyin = this.checked;
-    applyDisplayState();
-    saveDisplayState();
-    updateToggleIcon();
-});
-$('togglePractice').addEventListener('change', function() {
-    displayState.practice = this.checked;
-    applyDisplayState();
-    saveDisplayState();
-    updateToggleIcon();
+    updateToggleButtons();
 });
 
 /* ========== WEB SPEECH API ========== */
@@ -972,15 +932,12 @@ function escapeJs(str) {
         .replace(/\n/g, '\\n').replace(/\r/g, '');
 }
 
-/* ========== BUILD FILTERS (chỉ HSK + Chủ đề) ========== */
+/* ========== BUILD FILTERS ========== */
 function buildFilters() {
-    var hskSet = {}, subjectSet = {};
+    var subjectSet = {};
     RAW_DATA.forEach(function(r) {
-        if (r.hsk) hskSet[r.hsk] = 1;
         if (r.subject) subjectSet[r.subject] = 1;
     });
-    $('hskFilter').innerHTML = '<option value="">Tất cả HSK</option>' +
-        Object.keys(hskSet).sort().map(function(v){ return '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>'; }).join('');
     $('subjectFilter').innerHTML = '<option value="">Tất cả chủ đề</option>' +
         Object.keys(subjectSet).sort().map(function(v){ return '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>'; }).join('');
 }
@@ -995,6 +952,22 @@ function updateFilterUI() {
     
     $('hskChip').classList.toggle('has-value', !!hsk);
     $('subjectChip').classList.toggle('has-value', !!subject);
+    
+    var count = 0;
+    if (state.search) count++;
+    if (hsk) count++;
+    if (subject) count++;
+    
+    var resetBtn = $('resetBtn');
+    var badge = $('resetBadge');
+    
+    if (count > 0) {
+        resetBtn.classList.remove('hidden');
+        resetBtn.classList.add('has-badge');
+        badge.textContent = count;
+    } else {
+        resetBtn.classList.add('hidden');
+    }
 }
 
 /* ========== RENDER ========== */
@@ -1005,7 +978,6 @@ function render(reset) {
         var html = '<div class="no-data"><i class="fas fa-search"></i>Không tìm thấy câu nào phù hợp</div>';
         desktopWrapper.innerHTML = html;
         mobileWrapper.innerHTML = html;
-        updateStats();
         return;
     }
     
@@ -1035,7 +1007,6 @@ function render(reset) {
             ? '<button class="audio-btn" onclick="speakText(\'' + zhJs + '\', this)" title="Nghe"><i class="fas fa-volume-up"></i></button>'
             : '';
         
-        // Desktop row
         deskHtml += '<tr>' +
             '<td class="stt">' + escapeHtml(r.stt) + '</td>' +
             '<td><span class="hsk-badge">' + escapeHtml(r.hsk) + '</span></td>' +
@@ -1049,7 +1020,6 @@ function render(reset) {
             '<td class="check-cell" data-check-stt="' + escapeHtml(r.stt) + '"></td>' +
             '</tr>';
         
-        // Mobile card
         mobHtml += '<div class="card">' +
             '<div class="card-header">' +
                 '<div class="card-stt">' + escapeHtml(r.stt) + '</div>' +
@@ -1102,8 +1072,6 @@ function render(reset) {
         desktopWrapper.parentElement.insertAdjacentHTML('beforeend', endNote);
         mobileWrapper.insertAdjacentHTML('beforeend', endNote);
     }
-    
-    updateStats();
 }
 
 /* ========== CHECK ========== */
@@ -1154,10 +1122,6 @@ function applyFilter() {
     render(true);
 }
 
-function updateStats() {
-    statsText.innerHTML = '<b>' + renderedCount + '</b> / ' + filtered.length;
-}
-
 /* ========== EVENTS ========== */
 $('searchInput').addEventListener('input', applyFilter);
 $('hskFilter').addEventListener('change', applyFilter);
@@ -1177,7 +1141,7 @@ $('clearSearchBtn').addEventListener('click', function() {
 /* ========== KHỞI TẠO ========== */
 try {
     buildFilters();
-    render(true);
+    applyFilter();
 } catch (e) {
     console.error('Lỗi khởi tạo:', e);
     desktopWrapper.innerHTML = '<div class="error-box"><i class="fas fa-exclamation-triangle"></i>Lỗi: ' + escapeHtml(e.message) + '</div>';
