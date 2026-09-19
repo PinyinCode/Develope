@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Chuyển file Excel → HTML tự chứa dữ liệu
-- Đọc cấu hình từ config.json (không cần sửa code khi đổi cấu hình)
+- Đọc cấu hình từ config.json
 - Demo mode cho khách chưa đăng nhập
 - Hệ thống đăng nhập Firebase + Admin panel
 - BẢO VỆ: Đúng 2 admin (không nâng/hạ/xóa)
-- Nút Zalo liên hệ floating góc dưới trái
+- Nút Zalo: TO khi demo, NHỎ khi đã đăng nhập
 - Hanzi Writer, font chữ Trung tối ưu, 3 FAB, focus mode
 """
 import openpyxl
@@ -18,13 +18,11 @@ CONFIG_FILE = "scripts/config.json"
 
 if not os.path.exists(CONFIG_FILE):
     print(f"❌ Không tìm thấy file cấu hình: {CONFIG_FILE}")
-    print(f"💡 Hãy tạo file config.json trong thư mục scripts/")
     sys.exit(1)
 
 with open(CONFIG_FILE, "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
 
-# Đọc các giá trị từ config
 EXCEL_FILE = CONFIG.get("excel_file", "data/input.xlsx")
 OUTPUT_HTML = CONFIG.get("output_html", "index.html")
 SHEET_INDEX = CONFIG.get("sheet_index", 0)
@@ -35,7 +33,6 @@ ZALO_PHONE = CONFIG.get("zalo_phone", "")
 ZALO_NAME = CONFIG.get("zalo_name", "Hỗ trợ")
 FIREBASE_CONFIG = CONFIG.get("firebase_config", {})
 
-# Kiểm tra config
 if not FIREBASE_CONFIG.get("apiKey"):
     print(f"❌ Firebase config chưa được cấu hình trong {CONFIG_FILE}")
     sys.exit(1)
@@ -297,7 +294,7 @@ body{
 }
 .chip.locked select{pointer-events:none}
 
-/* ✅ ZALO BUTTON */
+/* ✅ ZALO BUTTON - To khi demo, nhỏ khi đã đăng nhập */
 .zalo-btn{
     position:fixed;
     bottom:calc(20px + env(safe-area-inset-bottom));
@@ -314,25 +311,40 @@ body{
     font-weight:700;
     font-size:.85rem;
     box-shadow:0 8px 24px rgba(0,104,255,.4);
-    transition:transform .2s, box-shadow .2s;
+    transition:all .35s cubic-bezier(.34,1.56,.64,1);
     -webkit-tap-highlight-color:transparent;
     white-space:nowrap;
     border:2px solid #fff;
     font-family:inherit;
+    overflow:hidden;
 }
 .zalo-btn:hover,.zalo-btn:active{
     transform:scale(1.05);
     box-shadow:0 12px 32px rgba(0,104,255,.55);
     color:#fff;
 }
-.zalo-btn i{font-size:1.2rem;flex-shrink:0}
+.zalo-btn i{
+    font-size:1.2rem;
+    flex-shrink:0;
+    line-height:1;
+    position:relative;
+    z-index:2;
+    transition:font-size .3s;
+}
 .zalo-btn .zalo-text{
     line-height:1.15;
     display:flex;
     flex-direction:column;
+    position:relative;
+    z-index:2;
+    transition:opacity .2s, max-width .35s;
+    max-width:200px;
+    overflow:hidden;
 }
-.zalo-btn .zalo-label{font-size:.65rem;opacity:.85;font-weight:500}
-.zalo-btn .zalo-name{font-size:.85rem;font-weight:700}
+.zalo-btn .zalo-label{font-size:.65rem;opacity:.85;font-weight:500;white-space:nowrap}
+.zalo-btn .zalo-name{font-size:.85rem;font-weight:700;white-space:nowrap}
+
+/* Pulse animation */
 .zalo-btn::before{
     content:'';
     position:absolute;
@@ -340,13 +352,56 @@ body{
     border-radius:50px;
     background:linear-gradient(135deg, #0068ff, #0084ff);
     opacity:.5;
-    z-index:-1;
+    z-index:1;
     animation:zaloPulse 2s infinite;
 }
 @keyframes zaloPulse{
     0%{transform:scale(1);opacity:.5}
     50%{transform:scale(1.08);opacity:0}
     100%{transform:scale(1);opacity:0}
+}
+
+/* ✅ Khi đã đăng nhập → thu nhỏ thành icon tròn */
+.zalo-btn.compact{
+    width:52px;
+    height:52px;
+    padding:0;
+    border-radius:50%;
+    justify-content:center;
+    gap:0;
+}
+.zalo-btn.compact .zalo-text{
+    opacity:0;
+    max-width:0;
+}
+.zalo-btn.compact i{
+    font-size:1.35rem;
+}
+.zalo-btn.compact::before{
+    border-radius:50%;
+}
+.zalo-btn.compact::after{
+    content:'Zalo: ' attr(data-phone);
+    position:absolute;
+    left:calc(100% + 10px);
+    top:50%;
+    transform:translateY(-50%) scale(.9);
+    background:var(--text);
+    color:var(--surface);
+    padding:.4rem .7rem;
+    border-radius:8px;
+    font-size:.75rem;
+    font-weight:600;
+    white-space:nowrap;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .15s, transform .15s;
+    font-family:inherit;
+    z-index:3;
+}
+.zalo-btn.compact:hover::after{
+    opacity:1;
+    transform:translateY(-50%) scale(1);
 }
 
 .fab-group{
@@ -917,6 +972,8 @@ tr.tapped td{animation:tapPulse .6s}
     .user-dropdown{min-width:220px}
     .btn-login-header{padding:.45rem .7rem;font-size:.75rem}
     .btn-login-header span{display:none}
+    
+    /* Zalo button mobile */
     .zalo-btn{
         left:16px;
         bottom:calc(16px + env(safe-area-inset-bottom));
@@ -927,13 +984,21 @@ tr.tapped td{animation:tapPulse .6s}
     .zalo-btn i{font-size:1.05rem}
     .zalo-btn .zalo-label{font-size:.6rem}
     .zalo-btn .zalo-name{font-size:.78rem;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    
+    /* Compact trên mobile */
+    .zalo-btn.compact{
+        width:48px;
+        height:48px;
+    }
+    .zalo-btn.compact i{font-size:1.25rem}
+    .zalo-btn.compact::after{display:none}
 }
 @media(max-width:400px){
     .logo-text .subtitle{display:none}
     .icon-btn{width:30px;height:30px;font-size:.75rem}
-    .zalo-btn .zalo-text{display:none}
-    .zalo-btn{padding:0;border-radius:50%;width:48px;height:48px;justify-content:center}
-    .zalo-btn i{font-size:1.2rem}
+    .zalo-btn:not(.compact) .zalo-text{display:none}
+    .zalo-btn:not(.compact){padding:0;border-radius:50%;width:48px;height:48px;justify-content:center}
+    .zalo-btn:not(.compact) i{font-size:1.2rem}
 }
 </style>
 </head>
@@ -1304,6 +1369,16 @@ function applyUserUI() {
         subjectChip.classList.remove('locked');
     }
     
+    // ✅ Zalo button: to khi demo, nhỏ khi đã đăng nhập
+    var zaloBtn = $('zaloBtn');
+    if (zaloBtn) {
+        if (isDemo) {
+            zaloBtn.classList.remove('compact');
+        } else {
+            zaloBtn.classList.add('compact');
+        }
+    }
+    
     $('demoLimitText').textContent = DEMO_LIMIT;
     $('demoAudioText').textContent = DEMO_AUDIO_LIMIT;
 }
@@ -1424,6 +1499,7 @@ function initZaloButton() {
     if (phone) {
         zaloBtn.href = 'https://zalo.me/' + phone;
         zaloBtn.title = 'Liên hệ Zalo: ' + phone;
+        zaloBtn.setAttribute('data-phone', phone);
     } else {
         zaloBtn.href = '#';
         zaloBtn.onclick = function(e) {
@@ -2216,3 +2292,4 @@ print(f"🎁 Demo: {DEMO_LIMIT} câu + {DEMO_AUDIO_LIMIT} lần phát âm/ngày"
 print(f"🔥 Firebase: {FIREBASE_CONFIG.get('projectId', 'N/A')}")
 print(f"👑 Chế độ: Đúng {TARGET_ADMINS} admin")
 print(f"📞 Zalo: {ZALO_PHONE} ({ZALO_NAME})")
+print(f"💡 Zalo button: TO khi demo, NHỎ khi đã đăng nhập")
