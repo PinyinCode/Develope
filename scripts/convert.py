@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 Chuyển file Excel → HTML tự chứa dữ liệu
-- Phát âm bằng Web Speech API (giọng AI tích hợp iOS/Android)
-- Fix lỗi dòng cuối bị thanh trình duyệt che trên iPhone
-- Hỗ trợ iPhone notch (safe-area-inset)
+- Fix lỗi "Đang tải dữ liệu..." do JSON bị vỡ
+- Phát âm bằng Web Speech API
+- Fix dòng cuối bị thanh trình duyệt che
 """
 import openpyxl
 import json
@@ -38,13 +38,26 @@ for row in ws.iter_rows(min_row=2, values_only=True):
     pinyin = str(row[6]).strip() if len(row) > 6 and row[6] else ""
     if not vi and not zh:
         continue
+    # ✅ Loại bỏ ký tự điều khiển và xuống dòng gây lỗi JSON
+    def clean(s):
+        return s.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ').replace('\\', '\\\\')
     data.append({
-        "stt": stt, "hsk": hsk, "topic": topic, "subject": subject,
-        "vi": vi, "zh": zh, "pinyin": pinyin
+        "stt": str(stt),
+        "hsk": clean(hsk),
+        "topic": clean(topic),
+        "subject": clean(subject),
+        "vi": clean(vi),
+        "zh": clean(zh),
+        "pinyin": clean(pinyin)
     })
 
 print(f"✅ Đã đọc {len(data)} câu")
-json_data = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
+
+# ====== CHUYỂN SANG JSON AN TOÀN ======
+# ✅ ensure_ascii=True: escape toàn bộ Unicode (an toàn cho mọi trình duyệt)
+json_data = json.dumps(data, ensure_ascii=True, separators=(',', ':'))
+# ✅ Escape </ để không phá thẻ <script>
+json_data = json_data.replace('</', '<\\/')
 
 # ====== TEMPLATE HTML ======
 html_template = r'''<!DOCTYPE html>
@@ -79,8 +92,6 @@ h1 i{color:#c0392b}
 .filter-select{padding:10px 14px;border-radius:30px;border:1px solid #dbe1e9;background:#fff;font-size:.85rem;outline:none;cursor:pointer;min-width:120px}
 .reset-btn{background:#fff;border:1px solid #dbe1e9;padding:10px 14px;border-radius:30px;cursor:pointer;font-size:.85rem;display:flex;align-items:center;gap:6px;color:#5b6f82;transition:.2s}
 .reset-btn:hover{background:#eef3fa}
-
-/* ✅ FIX: Không bị che cạnh dưới + an toàn cho iPhone notch */
 .table-wrapper{
     background:#fff;
     border-radius:20px;
@@ -92,13 +103,11 @@ h1 i{color:#c0392b}
     -webkit-overflow-scrolling:touch;
     padding-bottom:calc(120px + env(safe-area-inset-bottom));
 }
-
 table{width:100%;border-collapse:collapse;font-size:.88rem;min-width:1200px}
 th{background:#f0f5fc;color:#1e3b5c;font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.3px;padding:12px 10px;text-align:left;border-bottom:1px solid #d8e2ee;position:sticky;top:0;z-index:10;white-space:nowrap}
 td{padding:10px;border-bottom:1px solid #ecf1f7;vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:#f9fcff}
-
 th:nth-child(1),td:nth-child(1){width:50px;text-align:center}
 th:nth-child(2),td:nth-child(2){width:70px}
 th:nth-child(3),td:nth-child(3){width:130px}
@@ -109,16 +118,13 @@ th:nth-child(7),td:nth-child(7){width:160px}
 th:nth-child(8),td:nth-child(8){width:55px;text-align:center}
 th:nth-child(9),td:nth-child(9){width:180px}
 th:nth-child(10),td:nth-child(10){width:100px;text-align:center}
-
-/* ✅ Nút nghe: button dùng Web Speech API */
 .audio-btn{
     display:inline-flex;
     align-items:center;
     justify-content:center;
     background:#e8f0fe;
     color:#1a5a9c;
-    width:36px;
-    height:36px;
+    width:36px;height:36px;
     border-radius:50%;
     border:none;
     cursor:pointer;
@@ -128,11 +134,7 @@ th:nth-child(10),td:nth-child(10){width:100px;text-align:center}
     font-family:inherit;
     -webkit-tap-highlight-color:transparent;
 }
-.audio-btn:hover,.audio-btn:active{
-    background:#1a5a9c;
-    color:#fff;
-    transform:scale(.95);
-}
+.audio-btn:hover,.audio-btn:active{background:#1a5a9c;color:#fff;transform:scale(.95)}
 .audio-btn.speaking{
     background:#c0392b;
     color:#fff;
@@ -142,7 +144,6 @@ th:nth-child(10),td:nth-child(10){width:100px;text-align:center}
     0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(192,57,43,.5)}
     50%{transform:scale(1.1);box-shadow:0 0 0 8px rgba(192,57,43,0)}
 }
-
 .pinyin{color:#2c6b9e;font-style:italic;font-size:.82rem;background:#f2f8ff;padding:2px 6px;border-radius:12px;display:inline-block}
 .check-cell{font-weight:600;font-size:.85rem;white-space:nowrap}
 .check-correct{color:#1e7a4a}
@@ -152,8 +153,6 @@ th:nth-child(10),td:nth-child(10){width:100px;text-align:center}
 .no-data{text-align:center;padding:2.5rem 1rem;color:#7a8b9f;font-size:1rem}
 .no-data i{font-size:2.5rem;margin-bottom:.8rem;color:#b8ccdf;display:block}
 .hsk-badge{background:#eef3fa;padding:3px 9px;border-radius:20px;font-size:.75rem;font-weight:600;white-space:nowrap}
-
-/* ✅ FIX: "Xem thêm" cách xa cạnh dưới, không bị che */
 .load-more{
     text-align:center;
     padding:1.3rem 1rem;
@@ -169,13 +168,8 @@ th:nth-child(10),td:nth-child(10){width:100px;text-align:center}
     position:relative;
     z-index:5;
 }
-.load-more:hover,.load-more:active{
-    background:#dbe8f7;
-    border-color:#3b7cbf;
-}
+.load-more:hover,.load-more:active{background:#dbe8f7;border-color:#3b7cbf}
 .load-more i{margin-right:6px}
-
-/* Thông báo hết dữ liệu */
 .end-note{
     text-align:center;
     padding:1.5rem 1rem calc(4rem + env(safe-area-inset-bottom)) 1rem;
@@ -183,7 +177,17 @@ th:nth-child(10),td:nth-child(10){width:100px;text-align:center}
     font-size:.9rem;
 }
 .end-note i{color:#1e7a4a;margin-right:6px}
-
+.error-box{
+    text-align:center;
+    padding:2rem 1rem;
+    color:#c0392b;
+    font-size:.95rem;
+    background:#fef5f5;
+    border-radius:20px;
+    border:1px solid #f5c6c6;
+    margin:1rem;
+}
+.error-box i{font-size:2rem;margin-bottom:.5rem;display:block}
 @media(max-width:600px){
     body{padding:.7rem;padding-bottom:calc(.7rem + env(safe-area-inset-bottom))}
     h1{font-size:1.1rem}
@@ -219,52 +223,56 @@ th:nth-child(10),td:nth-child(10){width:100px;text-align:center}
 </div>
 
 <script>
-const RAW_DATA = __DATA__;
-let filtered = [...RAW_DATA];
-const state = { search:'', hsk:'', topic:'', subject:'' };
-const PAGE_SIZE = 300;
-let renderedCount = 0;
+/* ========== DỮ LIỆU ========== */
+var RAW_DATA = __DATA__;
 
-const $ = id => document.getElementById(id);
-const tableWrapper = $('tableWrapper');
-const statsDisplay = $('statsDisplay');
+/* ========== KIỂM TRA DỮ LIỆU ========== */
+(function() {
+    // Nếu JSON lỗi, hiển thị thông báo rõ ràng
+    if (!Array.isArray(RAW_DATA)) {
+        document.getElementById('tableWrapper').innerHTML =
+            '<div class="error-box"><i class="fas fa-exclamation-triangle"></i>' +
+            'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại file Excel.</div>';
+        return;
+    }
+    console.log('✅ Đã load', RAW_DATA.length, 'câu');
+})();
 
-/* ========== WEB SPEECH API - PHÁT ÂM BẰNG AI ========== */
-let currentBtn = null;
-let voicesLoaded = false;
+var filtered = RAW_DATA.slice();
+var state = { search:'', hsk:'', topic:'', subject:'' };
+var PAGE_SIZE = 300;
+var renderedCount = 0;
 
-function loadVoices() {
-    if (!('speechSynthesis' in window)) return;
-    const voices = speechSynthesis.getVoices();
-    if (voices.length > 0) voicesLoaded = true;
-}
+var $ = function(id) { return document.getElementById(id); };
+var tableWrapper = $('tableWrapper');
+var statsDisplay = $('statsDisplay');
+
+/* ========== WEB SPEECH API ========== */
+var currentBtn = null;
 
 function getChineseVoice() {
     if (!('speechSynthesis' in window)) return null;
-    const voices = speechSynthesis.getVoices();
+    var voices = speechSynthesis.getVoices();
     if (!voices.length) return null;
-
-    // Ưu tiên giọng chất lượng cao
-    const priorities = [
-        v => v.lang === 'zh-CN' && /Ting-?Ting/i.test(v.name),
-        v => v.lang === 'zh-CN' && /Siri/i.test(v.name),
-        v => v.lang === 'zh-CN' && v.localService,
-        v => v.lang === 'zh-CN',
-        v => v.lang === 'zh-TW',
-        v => v.lang.startsWith('zh'),
+    var priorities = [
+        function(v){ return v.lang === 'zh-CN' && /Ting-?Ting/i.test(v.name); },
+        function(v){ return v.lang === 'zh-CN' && /Siri/i.test(v.name); },
+        function(v){ return v.lang === 'zh-CN' && v.localService; },
+        function(v){ return v.lang === 'zh-CN'; },
+        function(v){ return v.lang === 'zh-TW'; },
+        function(v){ return v.lang && v.lang.indexOf('zh') === 0; }
     ];
-    for (const test of priorities) {
-        const found = voices.find(test);
+    for (var i = 0; i < priorities.length; i++) {
+        var found = voices.find(priorities[i]);
         if (found) return found;
     }
     return null;
 }
 
-// Load voices (cần thiết cho Chrome)
 if ('speechSynthesis' in window) {
-    loadVoices();
+    speechSynthesis.getVoices();
     if (speechSynthesis.onvoiceschanged !== undefined) {
-        speechSynthesis.onvoiceschanged = loadVoices;
+        speechSynthesis.onvoiceschanged = function(){ getChineseVoice(); };
     }
 }
 
@@ -273,56 +281,29 @@ window.speakText = function(text, btn) {
         alert('Trình duyệt không hỗ trợ phát âm. Vui lòng dùng Chrome hoặc Safari mới.');
         return;
     }
-
-    // Dừng câu đang đọc
     speechSynthesis.cancel();
-
-    // Reset nút cũ
-    if (currentBtn) {
-        currentBtn.classList.remove('speaking');
-        currentBtn = null;
-    }
-
-    // Đánh dấu nút đang đọc
+    if (currentBtn) currentBtn.classList.remove('speaking');
     if (btn) {
         btn.classList.add('speaking');
         currentBtn = btn;
     }
-
-    const utterance = new SpeechSynthesisUtterance(text);
+    var utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'zh-CN';
     utterance.rate = 0.85;
     utterance.pitch = 1.0;
     utterance.volume = 1.0;
-
-    const voice = getChineseVoice();
-    if (voice) {
-        utterance.voice = voice;
-    }
-
-    utterance.onend = () => {
+    var voice = getChineseVoice();
+    if (voice) utterance.voice = voice;
+    utterance.onend = utterance.onerror = function() {
         if (currentBtn) {
             currentBtn.classList.remove('speaking');
             currentBtn = null;
         }
     };
-
-    utterance.onerror = (e) => {
-        console.warn('Speech error:', e);
-        if (currentBtn) {
-            currentBtn.classList.remove('speaking');
-            currentBtn = null;
-        }
-    };
-
-    // Delay nhỏ để iOS nhận diện user gesture
-    setTimeout(() => {
-        speechSynthesis.speak(utterance);
-    }, 50);
+    setTimeout(function(){ speechSynthesis.speak(utterance); }, 50);
 };
 
-// Dừng phát âm khi ẩn tab
-document.addEventListener('visibilitychange', () => {
+document.addEventListener('visibilitychange', function() {
     if (document.hidden && 'speechSynthesis' in window) {
         speechSynthesis.cancel();
         if (currentBtn) {
@@ -332,20 +313,7 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 
-/* ========== BUILD FILTERS ========== */
-(function buildFilters() {
-    const hskSet = new Set(), topicSet = new Set(), subjectSet = new Set();
-    RAW_DATA.forEach(r => {
-        if (r.hsk) hskSet.add(r.hsk);
-        if (r.topic) topicSet.add(r.topic);
-        if (r.subject) subjectSet.add(r.subject);
-    });
-    $('hskFilter').innerHTML = '<option value="">Tất cả HSK</option>' + [...hskSet].sort().map(v => `<option value="${v}">${v}</option>`).join('');
-    $('topicFilter').innerHTML = '<option value="">Tất cả chủ điểm</option>' + [...topicSet].sort().map(v => `<option value="${v}">${v}</option>`).join('');
-    $('subjectFilter').innerHTML = '<option value="">Tất cả chủ đề</option>' + [...subjectSet].sort().map(v => `<option value="${v}">${v}</option>`).join('');
-})();
-
-/* ========== ESCAPE HTML ========== */
+/* ========== ESCAPE ========== */
 function escapeHtml(str) {
     if (str === null || str === undefined) return '';
     return String(str)
@@ -355,7 +323,6 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
 }
-
 function escapeJs(str) {
     if (str === null || str === undefined) return '';
     return String(str)
@@ -366,16 +333,30 @@ function escapeJs(str) {
         .replace(/\r/g, '');
 }
 
+/* ========== BUILD FILTERS ========== */
+function buildFilters() {
+    var hskSet = {}, topicSet = {}, subjectSet = {};
+    RAW_DATA.forEach(function(r) {
+        if (r.hsk) hskSet[r.hsk] = 1;
+        if (r.topic) topicSet[r.topic] = 1;
+        if (r.subject) subjectSet[r.subject] = 1;
+    });
+    $('hskFilter').innerHTML = '<option value="">Tất cả HSK</option>' +
+        Object.keys(hskSet).sort().map(function(v){ return '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>'; }).join('');
+    $('topicFilter').innerHTML = '<option value="">Tất cả chủ điểm</option>' +
+        Object.keys(topicSet).sort().map(function(v){ return '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>'; }).join('');
+    $('subjectFilter').innerHTML = '<option value="">Tất cả chủ đề</option>' +
+        Object.keys(subjectSet).sort().map(function(v){ return '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>'; }).join('');
+}
+
 /* ========== RENDER ========== */
 function render(reset) {
     if (reset) renderedCount = 0;
-
     if (!filtered.length) {
-        tableWrapper.innerHTML = `<div class="no-data"><i class="fas fa-search"></i>Không tìm thấy câu nào phù hợp.</div>`;
+        tableWrapper.innerHTML = '<div class="no-data"><i class="fas fa-search"></i>Không tìm thấy câu nào phù hợp.</div>';
         updateStats();
         return;
     }
-
     if (reset) {
         tableWrapper.innerHTML = '<table id="dataTable"><thead><tr>' +
             '<th>STT</th><th>HSK</th><th>Chủ điểm</th><th>Chủ đề</th>' +
@@ -383,78 +364,69 @@ function render(reset) {
             '<th>Nghe</th><th>Luyện tập</th><th>Check</th>' +
             '</tr></thead><tbody id="dataBody"></tbody></table>';
     }
-
-    const tbody = $('dataBody');
-    const end = Math.min(renderedCount + PAGE_SIZE, filtered.length);
-    let html = '';
-
-    for (let i = renderedCount; i < end; i++) {
-        const r = filtered[i];
-        const zhJs = escapeJs(r.zh);
-        const zhHtml = escapeHtml(r.zh);
-        const audio = r.zh
-            ? `<button class="audio-btn" onclick="speakText('${zhJs}', this)" title="Nghe" aria-label="Nghe"><i class="fas fa-volume-up"></i></button>`
-            : '';
-
-        html += `<tr>
-            <td>${escapeHtml(r.stt)}</td>
-            <td><span class="hsk-badge">${escapeHtml(r.hsk)}</span></td>
-            <td>${escapeHtml(r.topic)}</td>
-            <td>${escapeHtml(r.subject)}</td>
-            <td>${escapeHtml(r.vi)}</td>
-            <td><strong>${zhHtml}</strong></td>
-            <td><span class="pinyin">${escapeHtml(r.pinyin)}</span></td>
-            <td style="text-align:center">${audio}</td>
-            <td><input type="text" class="practice-input" placeholder="Nhập..." data-answer="${zhHtml.replace(/"/g, '&quot;')}" data-stt="${escapeHtml(r.stt)}" oninput="checkInput(this)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></td>
-            <td class="check-cell" data-check-stt="${escapeHtml(r.stt)}"></td>
-        </tr>`;
+    var tbody = $('dataBody');
+    if (!tbody) {
+        console.error('Không tìm thấy tbody');
+        return;
     }
-
-    // Xóa nút cũ
-    const oldBtn = tableWrapper.querySelector('.load-more');
+    var end = Math.min(renderedCount + PAGE_SIZE, filtered.length);
+    var html = '';
+    for (var i = renderedCount; i < end; i++) {
+        var r = filtered[i];
+        var zhJs = escapeJs(r.zh);
+        var zhHtml = escapeHtml(r.zh);
+        var audio = r.zh
+            ? '<button class="audio-btn" onclick="speakText(\'' + zhJs + '\', this)" title="Nghe"><i class="fas fa-volume-up"></i></button>'
+            : '';
+        html += '<tr>' +
+            '<td>' + escapeHtml(r.stt) + '</td>' +
+            '<td><span class="hsk-badge">' + escapeHtml(r.hsk) + '</span></td>' +
+            '<td>' + escapeHtml(r.topic) + '</td>' +
+            '<td>' + escapeHtml(r.subject) + '</td>' +
+            '<td>' + escapeHtml(r.vi) + '</td>' +
+            '<td><strong>' + zhHtml + '</strong></td>' +
+            '<td><span class="pinyin">' + escapeHtml(r.pinyin) + '</span></td>' +
+            '<td style="text-align:center">' + audio + '</td>' +
+            '<td><input type="text" class="practice-input" placeholder="Nhập..." data-answer="' + zhHtml + '" data-stt="' + escapeHtml(r.stt) + '" oninput="checkInput(this)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></td>' +
+            '<td class="check-cell" data-check-stt="' + escapeHtml(r.stt) + '"></td>' +
+            '</tr>';
+    }
+    var oldBtn = tableWrapper.querySelector('.load-more');
     if (oldBtn) oldBtn.remove();
-    const oldEnd = tableWrapper.querySelector('.end-note');
+    var oldEnd = tableWrapper.querySelector('.end-note');
     if (oldEnd) oldEnd.remove();
-
     tbody.insertAdjacentHTML('beforeend', html);
     renderedCount = end;
-
     if (renderedCount < filtered.length) {
-        const btn = document.createElement('div');
+        var btn = document.createElement('div');
         btn.className = 'load-more';
-        btn.innerHTML = `<i class="fas fa-chevron-down"></i> Xem thêm (${renderedCount}/${filtered.length})`;
-        btn.onclick = () => {
+        btn.innerHTML = '<i class="fas fa-chevron-down"></i> Xem thêm (' + renderedCount + '/' + filtered.length + ')';
+        btn.onclick = function() {
             render(false);
-            // Sau khi render xong, cuộn tới cuối để thấy nút mới hoặc dòng mới
-            setTimeout(() => {
-                const newBtn = tableWrapper.querySelector('.load-more');
-                if (newBtn) {
-                    newBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
+            setTimeout(function() {
+                var newBtn = tableWrapper.querySelector('.load-more');
+                if (newBtn) newBtn.scrollIntoView({ behavior:'smooth', block:'center' });
             }, 100);
         };
         tableWrapper.appendChild(btn);
     } else if (filtered.length > PAGE_SIZE) {
-        const endNote = document.createElement('div');
+        var endNote = document.createElement('div');
         endNote.className = 'end-note';
-        endNote.innerHTML = `<i class="fas fa-check-circle"></i> Đã hiển thị tất cả ${filtered.length} câu`;
+        endNote.innerHTML = '<i class="fas fa-check-circle"></i> Đã hiển thị tất cả ' + filtered.length + ' câu';
         tableWrapper.appendChild(endNote);
     }
-
     updateStats();
 }
 
-/* ========== CHECK ĐÚNG/SAI ========== */
+/* ========== CHECK ========== */
 window.checkInput = function(input) {
-    const stt = input.dataset.stt;
-    const answer = input.dataset.answer;
-    const cell = document.querySelector(`[data-check-stt="${stt}"]`);
-    const val = input.value.trim();
-    if (!val) {
-        cell.innerHTML = '';
-        return;
-    }
-    const norm = s => s.replace(/[。，！？、；：""''（）\s.,!?;:'"()\[\]{}]/g, '');
+    var stt = input.dataset.stt;
+    var answer = input.dataset.answer;
+    var cell = document.querySelector('[data-check-stt="' + stt + '"]');
+    if (!cell) return;
+    var val = input.value.trim();
+    if (!val) { cell.innerHTML = ''; return; }
+    var norm = function(s){ return s.replace(/[。，！？、；：""''（）\s.,!?;:'"()\[\]{}]/g, ''); };
     if (norm(val) === norm(answer)) {
         cell.innerHTML = '<span class="check-correct">✅ ĐÚNG</span>';
     } else {
@@ -468,34 +440,32 @@ function applyFilter() {
     state.hsk = $('hskFilter').value;
     state.topic = $('topicFilter').value;
     state.subject = $('subjectFilter').value;
-
-    filtered = RAW_DATA.filter(r => {
+    filtered = RAW_DATA.filter(function(r) {
         if (state.search) {
-            const s = state.search;
-            const inVi = (r.vi || '').toLowerCase().includes(s);
-            const inZh = (r.zh || '').toLowerCase().includes(s);
-            const inPinyin = (r.pinyin || '').toLowerCase().includes(s);
+            var s = state.search;
+            var inVi = (r.vi || '').toLowerCase().indexOf(s) !== -1;
+            var inZh = (r.zh || '').toLowerCase().indexOf(s) !== -1;
+            var inPinyin = (r.pinyin || '').toLowerCase().indexOf(s) !== -1;
             if (!inVi && !inZh && !inPinyin) return false;
         }
-        if (state.hsk && r.hsk !== state.hsk)/ return false;
+        if (state.hsk && r.hsk !== state.hsk) return false;
         if (state.topic && r.topic !== state.topic) return false;
         if (state.subject && r.subject !== state.subject) return false;
         return true;
     });
-
     render(true);
 }
 
 function updateStats() {
-    statsDisplay.innerHTML = `<i class="fas fa-book-open"></i> Hiển thị <span>${renderedCount}</span> / ${filtered.length} câu`;
+    statsDisplay.innerHTML = '<i class="fas fa-book-open"></i> Hiển thị <span>' + renderedCount + '</span> / ' + filtered.length + ' câu';
 }
 
+/* ========== EVENTS ========== */
 $('searchInput').addEventListener('input', applyFilter);
 $('hskFilter').addEventListener('change', applyFilter);
 $('topicFilter').addEventListener('change', applyFilter);
 $('subjectFilter').addEventListener('change', applyFilter);
-
-$('resetBtn').addEventListener('click', () => {
+$('resetBtn').addEventListener('click', function() {
     $('searchInput').value = '';
     $('hskFilter').value = '';
     $('topicFilter').value = '';
@@ -503,8 +473,16 @@ $('resetBtn').addEventListener('click', () => {
     applyFilter();
 });
 
-/* Khởi tạo */
-render(true);
+/* ========== KHỞI TẠO ========== */
+try {
+    buildFilters();
+    render(true);
+} catch (e) {
+    console.error('Lỗi khởi tạo:', e);
+    tableWrapper.innerHTML =
+        '<div class="error-box"><i class="fas fa-exclamation-triangle"></i>' +
+        'Lỗi khởi tạo: ' + escapeHtml(e.message) + '</div>';
+}
 </script>
 </body>
 </html>'''
