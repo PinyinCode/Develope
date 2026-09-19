@@ -237,84 +237,47 @@ body{
     color:#fff;
 }
 .zalo-btn i{
-    font-size:1.2rem;
-    flex-shrink:0;
-    line-height:1;
-    position:relative;
-    z-index:2;
-    transition:font-size .3s;
+    font-size:1.2rem;flex-shrink:0;line-height:1;
+    position:relative;z-index:2;transition:font-size .3s;
 }
 .zalo-btn .zalo-text{
-    line-height:1.15;
-    display:flex;
-    flex-direction:column;
-    position:relative;
-    z-index:2;
+    line-height:1.15;display:flex;flex-direction:column;
+    position:relative;z-index:2;
     transition:opacity .2s, max-width .35s;
-    max-width:200px;
-    overflow:hidden;
+    max-width:200px;overflow:hidden;
 }
 .zalo-btn .zalo-label{font-size:.65rem;opacity:.85;font-weight:500;white-space:nowrap}
 .zalo-btn .zalo-name{font-size:.85rem;font-weight:700;white-space:nowrap}
-
-/* Pulse animation */
 .zalo-btn::before{
-    content:'';
-    position:absolute;
-    inset:0;
-    border-radius:50px;
+    content:'';position:absolute;inset:0;border-radius:50px;
     background:linear-gradient(135deg, #0068ff, #0084ff);
-    opacity:.5;
-    z-index:1;
-    animation:zaloPulse 2s infinite;
+    opacity:.5;z-index:1;animation:zaloPulse 2s infinite;
 }
 @keyframes zaloPulse{
     0%{transform:scale(1);opacity:.5}
     50%{transform:scale(1.08);opacity:0}
     100%{transform:scale(1);opacity:0}
 }
-
-/* ✅ Khi đã đăng nhập → thu nhỏ thành icon tròn */
 .zalo-btn.compact{
-    width:52px;
-    height:52px;
-    padding:0;
-    border-radius:50%;
-    justify-content:center;
-    gap:0;
+    width:52px;height:52px;padding:0;border-radius:50%;
+    justify-content:center;gap:0;
 }
-.zalo-btn.compact .zalo-text{
-    opacity:0;
-    max-width:0;
-}
-.zalo-btn.compact i{
-    font-size:1.35rem;
-}
-.zalo-btn.compact::before{
-    border-radius:50%;
-}
+.zalo-btn.compact .zalo-text{opacity:0;max-width:0}
+.zalo-btn.compact i{font-size:1.35rem}
+.zalo-btn.compact::before{border-radius:50%}
 .zalo-btn.compact::after{
     content:'Zalo: ' attr(data-phone);
-    position:absolute;
-    left:calc(100% + 10px);
-    top:50%;
+    position:absolute;left:calc(100% + 10px);top:50%;
     transform:translateY(-50%) scale(.9);
-    background:var(--text);
-    color:var(--surface);
-    padding:.4rem .7rem;
-    border-radius:8px;
-    font-size:.75rem;
-    font-weight:600;
-    white-space:nowrap;
-    opacity:0;
-    pointer-events:none;
+    background:var(--text);color:var(--surface);
+    padding:.4rem .7rem;border-radius:8px;
+    font-size:.75rem;font-weight:600;white-space:nowrap;
+    opacity:0;pointer-events:none;
     transition:opacity .15s, transform .15s;
-    font-family:inherit;
-    z-index:3;
+    font-family:inherit;z-index:3;
 }
 .zalo-btn.compact:hover::after{
-    opacity:1;
-    transform:translateY(-50%) scale(1);
+    opacity:1;transform:translateY(-50%) scale(1);
 }
 
 .fab-group{
@@ -368,8 +331,7 @@ body{
 .fab-btn.locked{opacity:.5}
 .fab-btn.locked::before{
     content:'\f023';
-    font-family:'Font Awesome 6 Free';
-    font-weight:900;
+    font-family:'Font Awesome 6 Free';font-weight:900;
     position:absolute;top:-4px;right:-4px;
     width:20px;height:20px;border-radius:50%;
     background:var(--amber);color:#fff;
@@ -392,8 +354,7 @@ body:not(.show-practice) .card-practice{display:none!important}
     border-radius:var(--radius);
     padding:.9rem 1.1rem;
     margin-bottom:1rem;
-    display:flex;align-items:center;gap:.75rem;
-    flex-wrap:wrap;
+    display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;
 }
 [data-theme="dark"] .demo-banner{
     background:linear-gradient(135deg, rgba(245,158,11,.15), rgba(245,158,11,.25));
@@ -415,8 +376,7 @@ body:not(.show-practice) .card-practice{display:none!important}
     background:var(--amber);color:#fff;
     font-size:.8rem;font-weight:700;cursor:pointer;
     transition:.15s;font-family:inherit;
-    display:flex;align-items:center;gap:.35rem;
-    white-space:nowrap;
+    display:flex;align-items:center;gap:.35rem;white-space:nowrap;
 }
 .demo-banner-btn:hover{background:#d97706;transform:translateY(-1px)}
 
@@ -469,7 +429,7 @@ tbody tr:last-child td{border-bottom:none}
     width:32px;height:32px;border-radius:50%;border:none;
     background:var(--primary-light);color:var(--primary-dark);
     cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
-    font-size:.85rem;transition:.15s;
+    font-size:.85rem;transition:.15s;position:relative;
 }
 .audio-btn:hover,.audio-btn:active{background:var(--primary);color:#fff;transform:scale(1.08)}
 .audio-btn.speaking{background:var(--danger);color:#fff;animation:pulse 1s infinite}
@@ -489,8 +449,7 @@ tbody tr:last-child td{border-bottom:none}
 .audio-btn.locked,.write-btn.locked{opacity:.5;cursor:not-allowed}
 .audio-btn.locked::after,.write-btn.locked::after{
     content:'\f023';
-    font-family:'Font Awesome 6 Free';
-    font-weight:900;
+    font-family:'Font Awesome 6 Free';font-weight:900;
     position:absolute;bottom:-2px;right:-2px;
     width:14px;height:14px;border-radius:50%;
     background:var(--amber);color:#fff;
@@ -853,6 +812,31 @@ tr.tapped td{animation:tapPulse .6s}
 .log-item .log-time{color:var(--text-3);flex-shrink:0;font-family:monospace;font-size:.7rem}
 .log-item .log-msg{flex:1;word-break:break-word}
 
+/* ✅ FIX DARK MODE: HSK badge + nút nghe dễ đọc hơn */
+[data-theme="dark"] .hsk-badge{
+    background:rgba(59,130,246,.25);
+    color:#93c5fd;
+    font-weight:800;
+    border:1px solid rgba(59,130,246,.4);
+}
+[data-theme="dark"] .card-tag.hsk{
+    background:rgba(59,130,246,.25);
+    color:#93c5fd;
+    font-weight:700;
+    border:1px solid rgba(59,130,246,.4);
+}
+[data-theme="dark"] .audio-btn{
+    background:rgba(59,130,246,.22);
+    color:#93c5fd;
+    border:1px solid rgba(59,130,246,.35);
+}
+[data-theme="dark"] .audio-btn:hover,
+[data-theme="dark"] .audio-btn:active{
+    background:#3b82f6;
+    color:#fff;
+    border-color:#3b82f6;
+}
+
 @media(max-width:768px){
     .desktop-view{display:none}
     .mobile-view{display:block}
@@ -886,23 +870,15 @@ tr.tapped td{animation:tapPulse .6s}
     .btn-login-header{padding:.45rem .7rem;font-size:.75rem}
     .btn-login-header span{display:none}
     
-    /* Zalo button mobile */
     .zalo-btn{
-        left:16px;
-        bottom:calc(16px + env(safe-area-inset-bottom));
-        padding:.6rem .9rem;
-        font-size:.8rem;
-        gap:.4rem;
+        left:16px;bottom:calc(16px + env(safe-area-inset-bottom));
+        padding:.6rem .9rem;font-size:.8rem;gap:.4rem;
     }
     .zalo-btn i{font-size:1.05rem}
     .zalo-btn .zalo-label{font-size:.6rem}
     .zalo-btn .zalo-name{font-size:.78rem;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     
-    /* Compact trên mobile */
-    .zalo-btn.compact{
-        width:48px;
-        height:48px;
-    }
+    .zalo-btn.compact{width:48px;height:48px}
     .zalo-btn.compact i{font-size:1.25rem}
     .zalo-btn.compact::after{display:none}
 }
@@ -1282,14 +1258,10 @@ function applyUserUI() {
         subjectChip.classList.remove('locked');
     }
     
-    // ✅ Zalo button: to khi demo, nhỏ khi đã đăng nhập
     var zaloBtn = $('zaloBtn');
     if (zaloBtn) {
-        if (isDemo) {
-            zaloBtn.classList.remove('compact');
-        } else {
-            zaloBtn.classList.add('compact');
-        }
+        if (isDemo) zaloBtn.classList.remove('compact');
+        else zaloBtn.classList.add('compact');
     }
     
     $('demoLimitText').textContent = DEMO_LIMIT;
