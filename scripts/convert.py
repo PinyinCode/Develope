@@ -3358,7 +3358,7 @@ function renderAdminStats() {
     $('adminStats').innerHTML =
         '<div class="stat-card"><div class="num">' + total + '</div><div class="label">Tổng</div></div>' +
         '<div class="stat-card"><div class="num" style="color:#f59e0b">' + admins + '</div><div class="label">Admin</div></div>' +
- var        '<div class="stat-card"><div class="num" style="color:#16a34a">' + users + '</div><div class="label">User</div></div>';
+        '<div class="stat-card"><div class="num" style="color:#16a34a">' + users + '</div><div class="label">User</div></div>';
 }
 
 function renderUsers() {
