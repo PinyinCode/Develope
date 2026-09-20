@@ -2131,12 +2131,33 @@ function smartCheck(userAnswer, correctAnswer) {
 /* ============================================================
    🎯 TÁCH CỤM TỪ THEO PINYIN
    ============================================================ */
-/* Đếm số âm tiết trong 1 nhóm pinyin (dựa trên số cụm nguyên âm) */
+/* ✅ Đếm số âm tiết trong 1 nhóm pinyin
+   - BƯỚC 1: Bỏ dấu câu
+   - BƯỚC 2: BỎ DẤU THANH (fix lỗi zhǔguǎn)
+   - BƯỚC 3: Đếm cụm nguyên âm liên tiếp
+*/
 function countSyllables(pinyinWord) {
     if (!pinyinWord) return 0;
+    
+    // Bỏ dấu câu
     var cleaned = pinyinWord.replace(/[.,!?;:'"()\[\]{}\-~`@#$%^&*+=|\\/<>。，！？、；：]/g, '').toLowerCase();
     if (!cleaned) return 0;
-    var vowels = 'aeiouüv';
+    
+    // ✅ BỎ DẤU THANH trước khi đếm
+    var map = {
+        'ā':'a','á':'a','ǎ':'a','à':'a',
+        'ē':'e','é':'e','ě':'e','è':'e',
+        'ī':'i','í':'i','ǐ':'i','ì':'i',
+        'ō':'o','ó':'o','ǒ':'o','ò':'o',
+        'ū':'u','ú':'u','ǔ':'u','ù':'u',
+        'ǖ':'v','ǘ':'v','ǚ':'v','ǜ':'v','ü':'v'
+    };
+    cleaned = cleaned.replace(/[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü]/g, function(c) {
+        return map[c] || c;
+    });
+    
+    // Đếm cụm nguyên âm liên tiếp (mỗi cụm = 1 âm tiết)
+    var vowels = 'aeiou';
     var count = 0;
     var prevIsVowel = false;
     for (var i = 0; i < cleaned.length; i++) {
