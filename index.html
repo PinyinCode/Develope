@@ -1205,6 +1205,11 @@ body.show-practice .card-body{
 }
 .user-row .u-role.admin{background:var(--amber-light);color:#92400e}
 .user-row .u-role.user{background:var(--primary-light);color:var(--primary-dark)}
+.user-row .u-role.super{
+    background:linear-gradient(135deg, #f59e0b, #d97706);
+    color:#fff;
+    box-shadow:0 2px 6px rgba(245,158,11,.4);
+}
 .user-row .u-actions{display:flex;gap:.3rem}
 .u-btn{
     width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
@@ -1214,10 +1219,58 @@ body.show-practice .card-body{
 }
 .u-btn:hover{background:var(--surface-2);color:var(--primary);border-color:var(--primary)}
 .u-btn.danger:hover{background:var(--danger-light);color:var(--danger);border-color:var(--danger)}
-.u-btn.expiry:hover{background:rgba(245,158,11,.15);color:#d97706;border-color:#f59e0b}
+
+/* ✅ Nút chỉnh hạn sử dụng = BIỂU TƯỢNG LỊCH */
+.u-btn.expiry{
+    background:rgba(245,158,11,.1);
+    color:#d97706;
+    border-color:rgba(245,158,11,.4);
+}
+.u-btn.expiry:hover{
+    background:var(--amber);
+    color:#fff;
+    border-color:var(--amber);
+    transform:scale(1.08);
+}
+.u-btn.expiry:active{
+    transform:scale(.95);
+}
+[data-theme="dark"] .u-btn.expiry{
+    background:rgba(245,158,11,.2);
+    color:#fcd34d;
+    border-color:rgba(245,158,11,.5);
+}
+[data-theme="dark"] .u-btn.expiry:hover{
+    background:var(--amber);
+    color:#fff;
+}
+/* Nhấp nháy đỏ khi user sắp hết hạn (≤ 7 ngày) */
+.u-btn.expiry.urgent{
+    background:rgba(220,38,38,.15);
+    color:var(--danger);
+    border-color:rgba(220,38,38,.5);
+    animation:expiryPulse 2s infinite;
+}
+.u-btn.expiry.urgent:hover{
+    background:var(--danger);
+    color:#fff;
+    border-color:var(--danger);
+}
+[data-theme="dark"] .u-btn.expiry.urgent{
+    background:rgba(220,38,38,.3);
+    color:#fca5a5;
+    border-color:rgba(220,38,38,.6);
+}
+@keyframes expiryPulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.4);}
+    50%{box-shadow:0 0 0 6px rgba(220,38,38,0);}
+}
+
 .u-btn:disabled{opacity:.35;cursor:not-allowed}
-.u-btn:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border)}
-.u-btn.danger:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border)}
+.u-btn:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border);transform:none;}
+.u-btn.danger:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border);}
+.u-btn.expiry:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border);transform:none;}
+
 .admin-close{
     width:34px;height:34px;border-radius:8px;border:1px solid var(--border);
     background:var(--surface);color:var(--text-2);cursor:pointer;
@@ -1598,7 +1651,6 @@ body.show-practice .card-body{
                                 </div>
                             </div>
                             
-                            <!-- ✅ MỚI: Nút đổi tên hiển thị -->
                             <button class="dropdown-item" id="changeNameBtn">
                                 <i class="fas fa-user-edit"></i> Đổi tên hiển thị
                             </button>
@@ -1734,7 +1786,6 @@ body.show-practice .card-body{
     </div>
 </div>
 
-<!-- ✅ MỚI: Modal đổi tên -->
 <div class="edit-modal" id="changeNameModal">
     <div class="edit-box">
         <button class="edit-close" id="changeNameClose"><i class="fas fa-times"></i></button>
@@ -1756,7 +1807,6 @@ body.show-practice .card-body{
     </div>
 </div>
 
-<!-- ✅ MỚI: Modal chỉnh hạn sử dụng -->
 <div class="edit-modal" id="editExpiryModal">
     <div class="edit-box">
         <button class="edit-close" id="editExpiryClose"><i class="fas fa-times"></i></button>
@@ -2545,7 +2595,7 @@ document.addEventListener('click', function(e) {
     }
 });
 
-/* ✅ MỚI: Đổi tên hiển thị */
+/* ✅ Đổi tên hiển thị */
 $('changeNameBtn').addEventListener('click', function() {
     $('userDropdown').classList.remove('show');
     if (!currentUser) return;
@@ -2620,7 +2670,7 @@ $('changeNameConfirm').addEventListener('click', async function() {
     }
 });
 
-/* ✅ MỚI: Chỉnh hạn sử dụng */
+/* ✅ Chỉnh hạn sử dụng */
 var editingExpiryEmail = null;
 
 window.openEditExpiry = function(email) {
@@ -4704,9 +4754,10 @@ function initAdminPanel() {
         if (!email || !email.includes('@')) { alert('Email không hợp lệ'); return; }
         if (!name) name = email.split('@')[0];
         
-        if (role === 'admin') {
-            var currentAdminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
-            if (currentAdminCount >= TARGET_ADMINS) { alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!'); return; }
+        // ✅ Thêm admin: CHỈ Super Admin mới làm được
+        if (role === 'admin' && !isSuperAdmin()) {
+            alert('⚠️ Chỉ Super Admin mới có quyền thêm admin!');
+            return;
         }
         
         try {
@@ -4720,7 +4771,7 @@ function initAdminPanel() {
                 addedBy: currentUser.email
             };
             
-            if (expiresVal) {
+            if (expiresVal && role !== 'admin') {
                 var d = new Date(expiresVal + 'T23:59:59');
                 if (!isNaN(d.getTime())) {
                     setData.expiresAt = firebase.firestore.Timestamp.fromDate(d);
@@ -4935,6 +4986,7 @@ function renderAdminStats() {
 function renderUsers(items) {
     var list = $('userList');
     var hidden = isHiddenAdmin();
+    var superAdmin = isSuperAdmin();
     var myEmail = (currentUser && currentUser.email ? currentUser.email.toLowerCase() : '');
     
     var displayItems = items;
@@ -4959,25 +5011,61 @@ function renderUsers(items) {
     list.innerHTML = displayItems.map(function(u) {
         var isMe = u.email === currentUser.email;
         var isAdmin = u.role === 'admin';
+        var targetIsSuper = (u.email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
+        
+        // ✅ SUPER ADMIN: có thể hạ quyền/xóa admin thường (trừ chính mình + trừ Super Admin)
+        var canModifyAdmin = superAdmin && isAdmin && !isMe && !targetIsSuper;
         
         var roleBtn = '';
         if (isAdmin) {
-            var reason = isMe ? 'Không thể tự hạ quyền chính mình' : 'Phải giữ đúng ' + TARGET_ADMINS + ' admin';
-            roleBtn = '<button class="u-btn" disabled title="' + escapeHtml(reason) + '"><i class="fas fa-user"></i></button>';
+            if (canModifyAdmin) {
+                roleBtn = '<button class="u-btn" onclick="changeRole(\'' + escapeJs(u.email) + '\', \'user\')" title="Hạ xuống User"><i class="fas fa-user"></i></button>';
+            } else {
+                var reason = isMe ? 'Không thể tự hạ quyền chính mình' : (targetIsSuper ? 'Không thể hạ quyền Super Admin' : 'Chỉ Super Admin mới hạ quyền được');
+                roleBtn = '<button class="u-btn" disabled title="' + escapeHtml(reason) + '"><i class="fas fa-user"></i></button>';
+            }
         } else {
-            if (adminCount < TARGET_ADMINS) roleBtn = '<button class="u-btn" onclick="changeRole(\'' + escapeJs(u.email) + '\', \'admin\')" title="Nâng lên Admin"><i class="fas fa-shield-alt"></i></button>';
-            else roleBtn = '<button class="u-btn" disabled title="Đã đủ ' + TARGET_ADMINS + ' admin"><i class="fas fa-shield-alt"></i></button>';
+            // Nâng user lên admin: chỉ Super Admin mới được nâng (để kiểm soát)
+            if (superAdmin) {
+                roleBtn = '<button class="u-btn" onclick="changeRole(\'' + escapeJs(u.email) + '\', \'admin\')" title="Nâng lên Admin"><i class="fas fa-shield-alt"></i></button>';
+            } else {
+                roleBtn = '<button class="u-btn" disabled title="Chỉ Super Admin mới nâng quyền được"><i class="fas fa-shield-alt"></i></button>';
+            }
         }
         
         var deleteBtn = '';
-        if (isMe) deleteBtn = '<button class="u-btn danger" disabled title="Không thể tự xóa chính mình"><i class="fas fa-trash"></i></button>';
-        else if (isAdmin) deleteBtn = '<button class="u-btn danger" disabled title="Phải giữ đúng ' + TARGET_ADMINS + ' admin"><i class="fas fa-trash"></i></button>';
-        else deleteBtn = '<button class="u-btn danger" onclick="deleteUser(\'' + escapeJs(u.email) + '\')" title="Xóa"><i class="fas fa-trash"></i></button>';
+        if (isMe) {
+            deleteBtn = '<button class="u-btn danger" disabled title="Không thể tự xóa chính mình"><i class="fas fa-trash"></i></button>';
+        } else if (targetIsSuper) {
+            deleteBtn = '<button class="u-btn danger" disabled title="Không thể xóa Super Admin"><i class="fas fa-trash"></i></button>';
+        } else if (isAdmin) {
+            if (canModifyAdmin) {
+                deleteBtn = '<button class="u-btn danger" onclick="deleteUser(\'' + escapeJs(u.email) + '\')" title="Xóa admin"><i class="fas fa-trash"></i></button>';
+            } else {
+                deleteBtn = '<button class="u-btn danger" disabled title="Chỉ Super Admin mới xóa được admin"><i class="fas fa-trash"></i></button>';
+            }
+        } else {
+            deleteBtn = '<button class="u-btn danger" onclick="deleteUser(\'' + escapeJs(u.email) + '\')" title="Xóa"><i class="fas fa-trash"></i></button>';
+        }
         
-        // ✅ Nút chỉnh hạn sử dụng (chỉ user, không admin)
+        // ✅ Nút chỉnh hạn sử dụng = BIỂU TƯỢNG LỊCH (icon only, có tooltip, pulse đỏ khi ≤7 ngày)
         var expiryBtn = '';
         if (!isAdmin) {
-            expiryBtn = '<button class="u-btn expiry" onclick="openEditExpiry(\'' + escapeJs(u.email) + '\')" title="Chỉnh hạn sử dụng"><i class="fas fa-calendar-edit"></i></button>';
+            var btnCls = 'u-btn expiry';
+            var tooltip = 'Chỉnh hạn sử dụng';
+            
+            if (u.expiresAt) {
+                var d = getExpiryDate(u.expiresAt);
+                if (d && !isNaN(d.getTime())) {
+                    var daysLeftExp = Math.ceil((d.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+                    tooltip = 'Chỉnh hạn (hiện tại: ' + d.toLocaleDateString('vi-VN') + ', còn ' + Math.max(0, daysLeftExp) + ' ngày)';
+                    if (daysLeftExp <= 7) btnCls += ' urgent';
+                }
+            } else {
+                tooltip = 'Chỉnh hạn (hiện tại: Vĩnh viễn)';
+            }
+            
+            expiryBtn = '<button class="' + btnCls + '" onclick="openEditExpiry(\'' + escapeJs(u.email) + '\')" title="' + escapeHtml(tooltip) + '"><i class="fas fa-calendar-alt"></i></button>';
         }
         
         var lastLoginHtml = '';
@@ -5023,6 +5111,10 @@ function renderUsers(items) {
             }
         }
         
+        var roleBadge = isAdmin 
+            ? '<span class="u-role ' + (targetIsSuper ? 'super' : 'admin') + '">' + (targetIsSuper ? '👑 super' : 'admin') + '</span>'
+            : '<span class="u-role user">user</span>';
+        
         return '<div class="user-row" data-email="' + escapeHtml(u.email) + '">' +
             '<div class="u-info">' +
                 '<div class="u-name">' + escapeHtml(u.name || u.email.split('@')[0]) + (isMe ? ' <span style="color:#94a3b8;font-size:.7rem">(bạn)</span>' : '') + '</div>' +
@@ -5030,25 +5122,56 @@ function renderUsers(items) {
                 lastLoginHtml +
                 expiryHtml +
             '</div>' +
-            '<span class="u-role ' + (isAdmin ? 'admin' : 'user') + '">' + (u.role || 'user') + '</span>' +
+            roleBadge +
             '<div class="u-actions">' + expiryBtn + roleBtn + deleteBtn + '</div>' +
         '</div>';
     }).join('');
 }
 
+/* ✅ Đổi vai trò: Super Admin có thể hạ quyền admin thường */
 window.changeRole = async function(email, newRole) {
     var target = usersCache.find(function(u) { return u.email === email; });
     if (!target) { alert('Không tìm thấy user!'); return; }
+    
     var isMe = email === currentUser.email;
     var isAdmin = target.role === 'admin';
-    var adminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
+    var superAdmin = isSuperAdmin();
+    var targetIsSuper = (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
     
-    if (isMe && newRole === 'user') { alert('⚠️ Không thể tự hạ quyền admin của chính mình!'); return; }
-    if (isAdmin && newRole === 'user') { alert('⚠️ Không thể hạ quyền admin!\n\nHệ thống phải giữ đúng ' + TARGET_ADMINS + ' admin.'); return; }
-    if (!isAdmin && newRole === 'admin' && adminCount >= TARGET_ADMINS) { alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!'); return; }
+    // ✅ Chặn tự hạ quyền chính mình
+    if (isMe && newRole === 'user') { 
+        alert('⚠️ Không thể tự hạ quyền admin của chính mình!'); 
+        return; 
+    }
     
-    var action = newRole === 'admin' ? 'NÂNG LÊN ADMIN' : 'HẠ XUỐNG USER';
+    // ✅ Chặn đổi quyền Super Admin
+    if (targetIsSuper) {
+        alert('⚠️ Không thể thay đổi quyền của Super Admin!');
+        return;
+    }
+    
+    // ✅ Hạ quyền admin → user: CHỈ Super Admin mới làm được
+    if (isAdmin && newRole === 'user') {
+        if (!superAdmin) {
+            alert('⚠️ Chỉ Super Admin mới có quyền hạ cấp admin khác!');
+            return;
+        }
+    }
+    
+    // ✅ Nâng user → admin: CHỈ Super Admin mới làm được
+    if (!isAdmin && newRole === 'admin') {
+        if (!superAdmin) {
+            alert('⚠️ Chỉ Super Admin mới có quyền nâng cấp lên admin!');
+            return;
+        }
+    }
+    
+    var action;
+    if (newRole === 'admin') action = 'NÂNG LÊN ADMIN';
+    else action = 'HẠ XUỐNG USER';
+    
     if (!confirm(action + ' cho tài khoản:\n\n' + email + '\n\nBạn có chắc không?')) return;
+    
     try {
         await db.collection('allowed_users').doc(email).update({ role: newRole });
         try { localStorage.removeItem('user_cache_' + email); } catch(e) {}
@@ -5058,15 +5181,39 @@ window.changeRole = async function(email, newRole) {
     catch(e) { alert('Lỗi: ' + e.message); }
 };
 
+/* ✅ Xóa user: Super Admin có thể xóa admin thường */
 window.deleteUser = async function(email) {
     var target = usersCache.find(function(u) { return u.email === email; });
     if (!target) { alert('Không tìm thấy user!'); return; }
+    
     var isMe = email === currentUser.email;
     var isAdmin = target.role === 'admin';
+    var superAdmin = isSuperAdmin();
+    var targetIsSuper = (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
     
-    if (isMe) { alert('⚠️ Không thể tự xóa tài khoản của chính mình!'); return; }
-    if (isAdmin) { alert('⚠️ Không thể xóa admin!'); return; }
-    if (!confirm('⚠️ XÓA TÀI KHOẢN\n\n' + email + '\n\nNgười này sẽ không đăng nhập được nữa.\n\nBạn có chắc không?')) return;
+    // ✅ Chặn tự xóa chính mình
+    if (isMe) { 
+        alert('⚠️ Không thể tự xóa tài khoản của chính mình!'); 
+        return; 
+    }
+    
+    // ✅ Chặn xóa Super Admin
+    if (targetIsSuper) {
+        alert('⚠️ Không thể xóa Super Admin!');
+        return;
+    }
+    
+    // ✅ Xóa admin: CHỈ Super Admin mới làm được
+    if (isAdmin && !superAdmin) {
+        alert('⚠️ Chỉ Super Admin mới có quyền xóa admin khác!');
+        return;
+    }
+    
+    var confirmMsg = isAdmin 
+        ? '⚠️ XÓA ADMIN\n\n' + email + '\n\nNgười này sẽ mất quyền quản trị và không đăng nhập được nữa.\n\nBạn có chắc không?'
+        : '⚠️ XÓA TÀI KHOẢN\n\n' + email + '\n\nNgười này sẽ không đăng nhập được nữa.\n\nBạn có chắc không?';
+    
+    if (!confirm(confirmMsg)) return;
     
     try {
         await db.collection('allowed_users').doc(email).delete();
