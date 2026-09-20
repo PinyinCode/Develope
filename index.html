@@ -115,7 +115,7 @@ body{
     position:absolute;top:calc(100% + .5rem);right:0;
     background:var(--surface);border:1px solid var(--border);
     border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.15);
-    padding:.5rem;min-width:260px;display:none;z-index:200;
+    padding:.5rem;min-width:290px;display:none;z-index:200;
 }
 .user-dropdown.show{display:block}
 .user-info{padding:.75rem;border-bottom:1px solid var(--border);margin-bottom:.5rem}
@@ -137,6 +137,89 @@ body{
 .dropdown-item:hover{background:var(--surface-2)}
 .dropdown-item.danger{color:var(--danger)}
 .dropdown-item.danger:hover{background:var(--danger-light)}
+
+/* ✅ CHI TIẾT TÀI KHOẢN USER */
+.user-details{
+    padding:.6rem .75rem .75rem .75rem;
+    border-bottom:1px solid var(--border);
+    margin-bottom:.5rem;
+    display:flex;flex-direction:column;gap:.6rem;
+}
+.detail-row{
+    display:flex;align-items:flex-start;gap:.65rem;
+}
+.detail-icon{
+    width:36px;height:36px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:.95rem;flex-shrink:0;
+    background:var(--surface-2);color:var(--text-2);
+    transition:.2s;
+}
+.detail-icon.ok{background:rgba(22,163,74,.12);color:var(--success);}
+.detail-icon.warn{background:rgba(245,158,11,.15);color:#d97706;}
+.detail-icon.urgent{background:rgba(220,38,38,.15);color:var(--danger);}
+.detail-icon.permanent{background:var(--primary-light);color:var(--primary-dark);}
+.detail-icon.expired{background:rgba(220,38,38,.25);color:var(--danger);}
+
+[data-theme="dark"] .detail-icon.ok{background:rgba(22,163,74,.25);color:#4ade80;}
+[data-theme="dark"] .detail-icon.warn{background:rgba(245,158,11,.25);color:#fcd34d;}
+[data-theme="dark"] .detail-icon.urgent{background:rgba(220,38,38,.3);color:#fca5a5;}
+[data-theme="dark"] .detail-icon.permanent{background:rgba(59,130,246,.25);color:#93c5fd;}
+[data-theme="dark"] .detail-icon.expired{background:rgba(220,38,38,.35);color:#fca5a5;}
+
+.detail-content{flex:1;min-width:0;}
+.detail-label{
+    font-size:.65rem;font-weight:700;
+    text-transform:uppercase;letter-spacing:.3px;
+    color:var(--text-3);margin-bottom:.15rem;
+}
+.detail-value{
+    font-size:.85rem;font-weight:700;
+    color:var(--text);line-height:1.3;
+    word-break:break-word;
+}
+.detail-value.ok{color:var(--success);}
+.detail-value.warn{color:#d97706;}
+[data-theme="dark"] .detail-value.warn{color:#fcd34d;}
+.detail-value.urgent{color:var(--danger);}
+.detail-value.permanent{color:var(--primary-dark);}
+[data-theme="dark"] .detail-value.permanent{color:#93c5fd;}
+.detail-value.expired{color:var(--danger);text-decoration:line-through;}
+
+.detail-sub{
+    font-size:.7rem;color:var(--text-3);
+    margin-top:.15rem;line-height:1.35;
+}
+.detail-sub b{color:var(--text-2);font-weight:700;}
+
+.detail-progress{margin-top:.15rem;}
+.progress-track{
+    width:100%;height:6px;
+    background:var(--surface-2);
+    border-radius:50px;overflow:hidden;
+    border:1px solid var(--border);
+}
+.progress-bar{
+    height:100%;border-radius:50px;
+    transition:width .4s ease, background .3s ease;
+    background:linear-gradient(90deg, #16a34a, #22c55e);
+}
+.progress-bar.ok{background:linear-gradient(90deg, #16a34a, #22c55e);}
+.progress-bar.warn{background:linear-gradient(90deg, #f59e0b, #fbbf24);}
+.progress-bar.urgent{background:linear-gradient(90deg, #dc2626, #ef4444);}
+.progress-bar.permanent{background:linear-gradient(90deg, #2563eb, #3b82f6);}
+
+/* ✅ ZALO CONTACT TRONG DROPDOWN */
+.dropdown-zalo{
+    display:flex;align-items:center;gap:.5rem;width:100%;
+    padding:.65rem .75rem;border-radius:var(--radius-sm);
+    background:linear-gradient(135deg, #0068ff, #0084ff);
+    color:#fff !important;font-size:.85rem;font-weight:700;
+    text-decoration:none;transition:.15s;
+    margin-top:.25rem;
+}
+.dropdown-zalo:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,104,255,.3);color:#fff !important;}
+.dropdown-zalo i{font-size:1rem;}
 
 .btn-login-header{
     display:flex;align-items:center;gap:.4rem;
@@ -1292,7 +1375,7 @@ body.show-practice .card-body{
     margin-top:1rem;padding:.65rem .85rem;
     border-radius:10px;
     background:var(--primary-light);color:var(--primary-dark);
-    font-size:.78rem;line-height:1.5;
+    font-size:.78rem;line-height:1.6;
     display:flex;align-items:flex-start;gap:.5rem;
 }
 [data-theme="dark"] .import-info{color:#93c5fd;}
@@ -1347,7 +1430,7 @@ body.show-practice .card-body{
     .admin-header{padding:1rem}
     .admin-header h2{font-size:1rem}
     .admin-body{padding:1rem}
-    .user-dropdown{min-width:220px}
+    .user-dropdown{min-width:260px;right:-8px}
     .btn-login-header{padding:.45rem .7rem;font-size:.75rem}
     .btn-login-header span{display:none}
     
@@ -1437,9 +1520,32 @@ body.show-practice .card-body{
                                 <div class="email" id="userEmail">-</div>
                                 <span class="role" id="userRole">user</span>
                             </div>
+                            
+                            <div class="user-details" id="userDetails" style="display:none">
+                                <div class="detail-row" id="expiryRow">
+                                    <div class="detail-icon" id="expiryIconWrap">
+                                        <i class="fas fa-calendar-check" id="expiryIcon"></i>
+                                    </div>
+                                    <div class="detail-content">
+                                        <div class="detail-label">Hạn sử dụng</div>
+                                        <div class="detail-value" id="expiryValue">-</div>
+                                        <div class="detail-sub" id="expirySub"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="detail-progress" id="expiryProgressWrap" style="display:none">
+                                    <div class="progress-track">
+                                        <div class="progress-bar" id="expiryProgressBar"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <button class="dropdown-item" id="openAdminBtn" style="display:none">
                                 <i class="fas fa-shield-alt"></i> Quản lý tài khoản
                             </button>
+                            <a class="dropdown-zalo" id="dropdownZaloBtn" href="#" target="_blank" rel="noopener noreferrer">
+                                <i class="fas fa-comment-dots"></i> Liên hệ Zalo hỗ trợ
+                            </a>
                             <button class="dropdown-item danger" id="logoutBtn">
                                 <i class="fas fa-sign-out-alt"></i> Đăng xuất
                             </button>
@@ -1678,7 +1784,6 @@ body.show-practice .card-body{
     </div>
 </div>
 
-<!-- ✅ MODAL IMPORT EXCEL -->
 <div class="import-modal" id="importModal">
     <div class="import-box">
         <div class="import-header">
@@ -1715,11 +1820,12 @@ body.show-practice .card-body{
             <div class="import-info">
                 <i class="fas fa-info-circle"></i>
                 <div>
-                    File Excel cần có cột: <b>email</b>, <b>name</b>, <b>expiresAt</b>.
-                    Cột <b>expiresAt</b> định dạng <b>YYYY-MM-DD</b>, để trống = vĩnh viễn.
-                    User đã tồn tại sẽ được <b>cập nhật</b>.
+                    File Excel cần có cột: <b>email</b> (bắt buộc), <b>name</b> (tùy chọn), <b>expiresAt</b> (tùy chọn).
+                    <br>• <b>email</b>: bắt buộc, phải hợp lệ
+                    <br>• <b>name</b>: nếu thiếu sẽ lấy phần trước @ của email
+                    <br>• <b>expiresAt</b>: định dạng <b>YYYY-MM-DD</b>, để trống = vĩnh viễn
+                    <br>• <b>Các cột khác</b> (STT, ghi chú, phone...) sẽ được <b>tự động bỏ qua</b>
                     <br><b>⚠️ Lưu ý:</b> Chỉ import <b>user</b>, KHÔNG import admin.
-                    Admin hiện có sẽ được giữ nguyên.
                 </div>
             </div>
         </div>
@@ -2054,6 +2160,9 @@ function applyUserUI() {
         headerLoginBtn.style.display = 'flex';
         userMenu.style.display = 'none';
         $('demoBanner').style.display = 'flex';
+        
+        var ud0 = $('userDetails');
+        if (ud0) ud0.style.display = 'none';
     } else {
         demoBadge.style.display = 'none';
         headerLoginBtn.style.display = 'none';
@@ -2077,6 +2186,8 @@ function applyUserUI() {
                 '</text></svg>'
             );
         }
+        
+        updateUserDetails();
     }
     
     var hskChip = $('hskChip');
@@ -2102,6 +2213,135 @@ function applyUserUI() {
     if (hskMaxEl1) hskMaxEl1.textContent = DEMO_HSK_MAX;
     if (hskMaxEl2) hskMaxEl2.textContent = DEMO_HSK_MAX;
     updateDemoRemaining();
+}
+
+/* ✅ HÀM CẬP NHẬT CHI TIẾT TÀI KHOẢN USER */
+function updateUserDetails() {
+    var detailsEl = $('userDetails');
+    if (!detailsEl) return;
+    
+    if (isDemo || !currentUser) {
+        detailsEl.style.display = 'none';
+        return;
+    }
+    
+    detailsEl.style.display = 'flex';
+    
+    var expiryValue = $('expiryValue');
+    var expirySub = $('expirySub');
+    var expiryIcon = $('expiryIcon');
+    var expiryIconWrap = $('expiryIconWrap');
+    var progressWrap = $('expiryProgressWrap');
+    var progressBar = $('expiryProgressBar');
+    
+    if (!expiryValue || !expirySub) return;
+    
+    // ✅ ADMIN = VĨNH VIỄN
+    if (currentUser.role === 'admin') {
+        expiryValue.textContent = 'Vĩnh viễn';
+        expiryValue.className = 'detail-value permanent';
+        expirySub.textContent = 'Tài khoản quản trị viên';
+        expiryIcon.className = 'fas fa-infinity';
+        expiryIconWrap.className = 'detail-icon permanent';
+        if (progressWrap) progressWrap.style.display = 'none';
+        return;
+    }
+    
+    // ✅ USER KHÔNG CÓ expiresAt = VĨNH VIỄN
+    if (!currentUser.expiresAt) {
+        expiryValue.textContent = 'Vĩnh viễn';
+        expiryValue.className = 'detail-value permanent';
+        expirySub.textContent = 'Không giới hạn thời gian';
+        expiryIcon.className = 'fas fa-infinity';
+        expiryIconWrap.className = 'detail-icon permanent';
+        if (progressWrap) progressWrap.style.display = 'none';
+        return;
+    }
+    
+    // ✅ USER CÓ expiresAt
+    var expDate;
+    try {
+        var ea = currentUser.expiresAt;
+        if (typeof ea.toDate === 'function') expDate = ea.toDate();
+        else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
+        else expDate = new Date(ea);
+    } catch(e) {
+        expiryValue.textContent = '-';
+        expirySub.textContent = '';
+        return;
+    }
+    
+    if (!expDate || isNaN(expDate.getTime())) {
+        expiryValue.textContent = '-';
+        expirySub.textContent = '';
+        return;
+    }
+    
+    var now = Date.now();
+    var expTime = expDate.getTime();
+    var daysLeft = Math.ceil((expTime - now) / (24 * 60 * 60 * 1000));
+    var dateStr = expDate.toLocaleDateString('vi-VN');
+    
+    expiryValue.className = 'detail-value';
+    expiryIconWrap.className = 'detail-icon';
+    
+    if (daysLeft < 0) {
+        expiryValue.textContent = 'Đã hết hạn';
+        expiryValue.classList.add('expired');
+        expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b><br>Đã hết hạn ' + Math.abs(daysLeft) + ' ngày trước';
+        expiryIcon.className = 'fas fa-calendar-times';
+        expiryIconWrap.classList.add('expired');
+        if (progressWrap) progressWrap.style.display = 'none';
+    } else if (daysLeft === 0) {
+        expiryValue.textContent = 'Hết hạn hôm nay';
+        expiryValue.classList.add('urgent');
+        expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b><br>Vui lòng liên hệ Admin để gia hạn!';
+        expiryIcon.className = 'fas fa-exclamation-circle';
+        expiryIconWrap.classList.add('urgent');
+        if (progressWrap) progressWrap.style.display = 'none';
+    } else if (daysLeft <= 3) {
+        expiryValue.textContent = 'Còn ' + daysLeft + ' ngày';
+        expiryValue.classList.add('urgent');
+        expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b><br>Sắp hết hạn, vui lòng gia hạn!';
+        expiryIcon.className = 'fas fa-exclamation-circle';
+        expiryIconWrap.classList.add('urgent');
+        var total3 = 30 * 24 * 60 * 60 * 1000;
+        var elapsed3 = total3 - (expTime - now);
+        var pct3 = Math.max(0, Math.min(100, (elapsed3 / total3) * 100));
+        if (progressWrap) {
+            progressWrap.style.display = 'block';
+            progressBar.className = 'progress-bar urgent';
+            progressBar.style.width = pct3 + '%';
+        }
+    } else if (daysLeft <= 7) {
+        expiryValue.textContent = 'Còn ' + daysLeft + ' ngày';
+        expiryValue.classList.add('warn');
+        expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b>';
+        expiryIcon.className = 'fas fa-clock';
+        expiryIconWrap.classList.add('warn');
+        var total7 = 30 * 24 * 60 * 60 * 1000;
+        var elapsed7 = total7 - (expTime - now);
+        var pct7 = Math.max(0, Math.min(100, (elapsed7 / total7) * 100));
+        if (progressWrap) {
+            progressWrap.style.display = 'block';
+            progressBar.className = 'progress-bar warn';
+            progressBar.style.width = pct7 + '%';
+        }
+    } else {
+        expiryValue.textContent = 'Còn ' + daysLeft + ' ngày';
+        expiryValue.classList.add('ok');
+        expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b>';
+        expiryIcon.className = 'fas fa-calendar-check';
+        expiryIconWrap.classList.add('ok');
+        var totalOk = 30 * 24 * 60 * 60 * 1000;
+        var elapsedOk = totalOk - (expTime - now);
+        var pctOk = Math.max(0, Math.min(100, (elapsedOk / totalOk) * 100));
+        if (progressWrap) {
+            progressWrap.style.display = 'block';
+            progressBar.className = 'progress-bar ok';
+            progressBar.style.width = pctOk + '%';
+        }
+    }
 }
 
 function refreshApp() {
@@ -2252,9 +2492,11 @@ function initZaloButton() {
     if (!zaloBtn) return;
     
     var phone = (ZALO_PHONE || '').replace(/\D/g, '');
+    var zaloUrl = '#';
     
     if (phone) {
-        zaloBtn.href = 'https://zalo.me/' + phone;
+        zaloUrl = 'https://zalo.me/' + phone;
+        zaloBtn.href = zaloUrl;
         zaloBtn.title = 'Liên hệ Zalo: ' + phone;
         zaloBtn.setAttribute('data-phone', phone);
     } else {
@@ -2267,6 +2509,20 @@ function initZaloButton() {
     
     var nameEl = zaloBtn.querySelector('.zalo-name');
     if (nameEl && ZALO_NAME) nameEl.textContent = ZALO_NAME;
+    
+    // ✅ Zalo trong dropdown
+    var dropdownZalo = $('dropdownZaloBtn');
+    if (dropdownZalo) {
+        if (phone) {
+            dropdownZalo.href = zaloUrl;
+        } else {
+            dropdownZalo.href = '#';
+            dropdownZalo.onclick = function(e) {
+                e.preventDefault();
+                alert('Chưa cấu hình số Zalo.');
+            };
+        }
+    }
 }
 
 function initScrollDetection() {
@@ -2762,9 +3018,6 @@ function smartCheck(userAnswer, correctAnswer) {
     return { status: 'wrong', reason: 'Không khớp' };
 }
 
-/* ============================================================
-   🎯 TÁCH CỤM TỪ THEO PINYIN
-   ============================================================ */
 function countSyllables(pinyinWord) {
     if (!pinyinWord) return 0;
     var cleaned = pinyinWord.replace(/[.,!?;:'"()\[\]{}\-~`@#$%^&*+=|\\/<>。，！？、；：]/g, '').toLowerCase();
@@ -2832,9 +3085,6 @@ function splitByPinyin(zh, pinyin) {
     return result;
 }
 
-/* ============================================================
-   ✅ UPDATE PREVIEW INLINE
-   ============================================================ */
 function updateInlinePreview(input, answer) {
     var wrapper = input.parentElement;
     var preview = wrapper.querySelector('.inline-char-preview');
@@ -3745,7 +3995,6 @@ function initAdminPanel() {
     
     /* ✅ EXPORT EXCEL - CHỈ USER, KHÔNG ADMIN */
     $('exportExcelBtn').addEventListener('click', function() {
-        // ✅ Lọc chỉ lấy user (không lấy admin)
         var usersOnly = usersCache.filter(function(u) { 
             return u.role !== 'admin'; 
         });
@@ -3894,11 +4143,9 @@ function openAdminPanel() {
     loadLogs();
 }
 
-/* ✅ Cache users list 5 phút - có thể force refresh */
 function loadUsers(forceRefresh) {
     var cacheKey = 'admin_users_cache';
     
-    // ✅ Luôn xóa cache cũ khi force refresh
     if (forceRefresh) {
         try { localStorage.removeItem(cacheKey); } catch(e) {}
     }
@@ -4164,14 +4411,13 @@ function processImport(rows) {
         return;
     }
     
-    // Tìm header row
     var headerRowIdx = -1;
     for (var i = 0; i < Math.min(5, rows.length); i++) {
         var r = rows[i].map(function(c) { return String(c || '').toLowerCase().trim(); });
         if (r.indexOf('email') !== -1) { headerRowIdx = i; break; }
     }
     if (headerRowIdx === -1) {
-        alert('❌ Không tìm thấy cột "email"!');
+        alert('❌ Không tìm thấy cột "email"!\n\nFile Excel cần có ít nhất cột "email".');
         return;
     }
     
@@ -4182,7 +4428,34 @@ function processImport(rows) {
     var nameCol = header.indexOf('name');
     var expCol = header.indexOf('expiresat');
     
-    // ✅ Build map email -> user (CHỈ USER, không admin)
+    var warnings = [];
+    if (nameCol === -1) warnings.push('Thiếu cột "name" → sẽ dùng phần trước @ của email làm tên');
+    if (expCol === -1) warnings.push('Thiếu cột "expiresAt" → tài khoản sẽ là vĩnh viễn');
+    
+    var ignoredCols = [];
+    header.forEach(function(h, idx) {
+        if (idx !== emailCol && idx !== nameCol && idx !== expCol && h) {
+            ignoredCols.push(h);
+        }
+    });
+    
+    var colInfo = '📋 Cột đã nhận diện:\n';
+    colInfo += '   • email: ' + (emailCol >= 0 ? '✅ cột ' + (emailCol + 1) : '❌ thiếu') + '\n';
+    colInfo += '   • name: ' + (nameCol >= 0 ? '✅ cột ' + (nameCol + 1) : '⚠️ thiếu (dùng email)') + '\n';
+    colInfo += '   • expiresAt: ' + (expCol >= 0 ? '✅ cột ' + (expCol + 1) : '⚠️ thiếu (vĩnh viễn)') + '\n';
+    
+    if (ignoredCols.length > 0) {
+        colInfo += '\n🗑️ Cột bỏ qua (' + ignoredCols.length + '): ' + ignoredCols.slice(0, 5).join(', ');
+        if (ignoredCols.length > 5) colInfo += ', ...';
+    }
+    
+    if (warnings.length > 0) {
+        colInfo += '\n\n⚠️ Cảnh báo:\n' + warnings.map(function(w) { return '   • ' + w; }).join('\n');
+    }
+    
+    console.log(colInfo);
+    
+    // ✅ Build map: CHỈ USER, KHÔNG ADMIN
     var existingUserMap = {};
     var existingAdminSet = {};
     usersCache.forEach(function(u) { 
@@ -4202,16 +4475,16 @@ function processImport(rows) {
         var row = rows[i];
         if (!row || row.length === 0) continue;
         
-        var email = String(row[emailCol] || '').trim().toLowerCase();
+        var email = emailCol >= 0 ? String(row[emailCol] || '').trim().toLowerCase() : '';
         var name = nameCol >= 0 ? String(row[nameCol] || '').trim() : '';
         var expRaw = expCol >= 0 ? row[expCol] : '';
         
         if (!email && !name) continue;
-        // Bỏ qua dòng chú thích
         if (email.indexOf('←') === 0 || email.indexOf('•') === 0 || 
-            email.indexOf('xóa dòng') !== -1 || email.indexOf('#') === 0) continue;
+            email.indexOf('xóa dòng') !== -1 || email.indexOf('#') === 0 ||
+            email.indexOf('⚠') === 0 || email.indexOf('ví dụ') === 0) continue;
         
-        // ✅ Bỏ qua admin có sẵn (không cho import đè admin)
+        // ✅ Bỏ qua admin có sẵn
         if (existingAdminSet[email]) {
             stats.skippedAdmin++;
             continue;
@@ -4221,7 +4494,6 @@ function processImport(rows) {
         var reason = '';
         var isUpdate = !!existingUserMap[email];
         
-        // Validate
         if (!email) {
             status = 'error'; reason = 'Thiếu email'; stats.invalid++;
         } else if (!email.includes('@') || !email.includes('.')) {
@@ -4236,7 +4508,6 @@ function processImport(rows) {
             seenInFile[email] = true;
         }
         
-        // Default name
         if (!name && email.indexOf('@') > 0) {
             name = email.split('@')[0];
         }
@@ -4247,7 +4518,6 @@ function processImport(rows) {
         if (expRaw) {
             var raw = expRaw;
             if (typeof raw === 'number' && raw > 25569) {
-                // Excel serial date
                 var d = new Date((raw - 25569) * 86400 * 1000);
                 if (!isNaN(d.getTime())) {
                     expDate = d;
@@ -4290,7 +4560,7 @@ function processImport(rows) {
             rowNum: i + 1,
             email: email,
             name: name,
-            role: 'user',  // ✅ Luôn là user
+            role: 'user',
             expDate: expDate,
             expStr: expStr,
             status: status,
@@ -4306,6 +4576,11 @@ function processImport(rows) {
         }
         alert(msg);
         return;
+    }
+    
+    console.log('📊 Import stats:', stats);
+    if (ignoredCols.length > 0) {
+        console.log('🗑️ Cột bỏ qua:', ignoredCols);
     }
     
     renderImportPreview();
@@ -4378,7 +4653,6 @@ function renderImportPreview() {
     
     var totalImportable = countOk + countUpdate + countWarn;
     
-    // ✅ Guard từng element riêng biệt
     var countEl = $('importCount');
     if (countEl) {
         countEl.textContent = totalImportable;
@@ -4424,7 +4698,6 @@ async function doImport() {
     
     btn.disabled = true;
     
-    // ✅ Chỉ đổi icon, KHÔNG ghi đè innerHTML
     var icon = btn.querySelector('i');
     if (icon) icon.className = 'fas fa-spinner fa-pulse';
     
@@ -4432,7 +4705,6 @@ async function doImport() {
     var failed = 0;
     var errors = [];
     
-    // Admin check
     var adminEmails = {};
     usersCache.forEach(function(u) {
         if (u.role === 'admin') adminEmails[(u.email || '').toLowerCase()] = true;
@@ -4442,7 +4714,6 @@ async function doImport() {
     for (var i = 0; i < toImport.length; i += BATCH_SIZE) {
         var chunk = toImport.slice(i, i + BATCH_SIZE);
         
-        // ✅ Double-check: loại bỏ admin
         chunk = chunk.filter(function(r) {
             if (adminEmails[r.email]) {
                 console.warn('Skip admin:', r.email);
@@ -4459,7 +4730,7 @@ async function doImport() {
             var ref = db.collection('allowed_users').doc(r.email);
             var data = {
                 name: r.name,
-                role: 'user',  // ✅ Luôn là user
+                role: 'user',
                 addedBy: currentUser.email
             };
             
@@ -4470,7 +4741,6 @@ async function doImport() {
                 data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
             }
             
-            // ✅ Xử lý expiresAt an toàn
             if (r.expDate) {
                 try {
                     data.expiresAt = firebase.firestore.Timestamp.fromDate(r.expDate);
@@ -4493,7 +4763,6 @@ async function doImport() {
             console.error('Batch error:', err);
         }
         
-        // ✅ Cập nhật counter an toàn
         var countEl = btn.querySelector('#importCount');
         if (countEl) {
             countEl.textContent = success + '/' + toImport.length;
@@ -4504,10 +4773,9 @@ async function doImport() {
     btn.disabled = originalDisabled;
     btn.innerHTML = originalHTML;
     
-    // ✅ Reset importRows để tránh lỗi import lần 2
+    // ✅ Reset importRows
     importRows = [];
     
-    // Invalidate cache
     try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
     toImport.forEach(function(r) {
         try { localStorage.removeItem('user_cache_' + r.email); } catch(e) {}
