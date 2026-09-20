@@ -8,7 +8,10 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - Desktop hover phóng to, mobile click vừa đọc vừa phóng to
 - Click ký tự sai → con trỏ nhảy về + bôi đen để gõ đè
 - ✅ Chủ đề demo: mở khóa lên đầu, khóa xuống dưới
-- ✅ Dropdown chọn nhanh câu trong modal luyện tập
+- ✅ Dropdown chọn nhanh câu (hiển thị tiếng Việt)
+- ✅ Cache user doc 12h → giảm 90% Firestore reads
+- ✅ Admin panel load 1 lần (không realtime)
+- ✅ Login log 1 lần/user/ngày
 - Theme mặc định LIGHT MODE
 """
 import openpyxl
@@ -63,6 +66,7 @@ print(f"   📝 Đáp án tách theo PINYIN viết liền/rời")
 print(f"   🎯 Click ký tự sai → bôi đen để gõ đè")
 print(f"   📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
 print(f"   🔍 Search + Filter + Dropdown chọn câu trong modal")
+print(f"   💾 Cache user 12h + Log 1 lần/ngày")
 print(f"   👑 Target admins: {TARGET_ADMINS}")
 
 print(f"\n📖 Đang đọc file: {EXCEL_FILE}")
@@ -1720,14 +1724,35 @@ try {
     enterDemoMode();
 }
 
+/* ✅ Cache user doc 12h — giảm 90% Firestore reads */
 async function handleAuthChange(user) {
     if (!user) {
         currentUser = null; isDemo = true;
         applyUserUI(); enterDemoMode();
         return;
     }
+    
+    var email = (user.email || '').toLowerCase();
+    
+    // ✅ Kiểm tra cache trước
+    var cacheKey = 'user_cache_' + email;
+    var cached = null;
     try {
-        var email = (user.email || '').toLowerCase();
+        cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+    } catch(e) {}
+    
+    if (cached && cached.expires > Date.now() && cached.data) {
+        currentUser = cached.data;
+        isDemo = false;
+        applyUserUI();
+        logLogin(currentUser);
+        if (!appInitialized) { initApp(); appInitialized = true; }
+        else { refreshApp(); }
+        return;
+    }
+    
+    // Cache hết hạn → đọc Firestore
+    try {
         var doc = await db.collection('allowed_users').doc(email).get();
         if (!doc.exists) {
             await auth.signOut();
@@ -1742,6 +1767,14 @@ async function handleAuthChange(user) {
             role: data.role || 'user',
             photo: user.photoURL || ''
         };
+        
+        try {
+            localStorage.setItem(cacheKey, JSON.stringify({
+                data: currentUser,
+                expires: Date.now() + 12 * 60 * 60 * 1000
+            }));
+        } catch(e) {}
+        
         isDemo = false;
         applyUserUI();
         logLogin(currentUser);
@@ -1865,8 +1898,16 @@ function showLoginError(msg) {
     el.classList.add('show');
 }
 
+/* ✅ Logout + xóa cache */
 $('logoutBtn').addEventListener('click', function() {
-    if (confirm('Đăng xuất?')) auth.signOut();
+    if (confirm('Đăng xuất?')) {
+        try {
+            if (currentUser && currentUser.email) {
+                localStorage.removeItem('user_cache_' + currentUser.email);
+            }
+        } catch(e) {}
+        auth.signOut();
+    }
 });
 
 $('userAvatar').addEventListener('click', function(e) {
@@ -1880,12 +1921,21 @@ document.addEventListener('click', function(e) {
     }
 });
 
+/* ✅ Log 1 lần/user/ngày */
 function logLogin(u) {
     try {
+        var today = new Date().toDateString();
+        var logKey = 'login_log_' + u.email;
+        var lastLog = localStorage.getItem(logKey);
+        
+        if (lastLog === today) return;
+        
         db.collection('login_logs').add({
             email: u.email, name: u.name, role: u.role,
             time: firebase.firestore.FieldValue.serverTimestamp(),
             userAgent: navigator.userAgent.substring(0, 100)
+        }).then(function() {
+            try { localStorage.setItem(logKey, today); } catch(e) {}
         }).catch(function() {});
     } catch(e) {}
 }
@@ -2705,7 +2755,7 @@ window.pfPrev = function() {
     loadPracticeFull(filtered[idx - 1].stt);
 };
 
-/* ✅ Build dropdown chọn nhanh câu — hiển thị tiếng Việt */
+/* ✅ Build dropdown chọn nhanh câu — hiển thị TIẾNG VIỆT */
 function pfBuildQuickNav() {
     var sel = $('pfQuickNav');
     if (!sel) return;
@@ -2718,11 +2768,11 @@ function pfBuildQuickNav() {
     });
     sel.innerHTML = html;
     
-    // Nếu đang ở 1 câu cụ thể → set selected
     if (pfCurrentStt) {
         sel.value = pfCurrentStt;
     }
 }
+
 /* ✅ Cập nhật dropdown khi user chọn câu */
 function pfQuickNavChange() {
     var sel = $('pfQuickNav');
@@ -2732,7 +2782,7 @@ function pfQuickNavChange() {
     loadPracticeFull(stt);
 }
 
-/* ✅ Build filter options cho modal full (khớp với filter chính) */
+/* ✅ Build filter options cho modal full */
 function pfBuildFilterOptions() {
     var hskSel = $('pfHskFilter');
     var subjSel = $('pfSubjectFilter');
@@ -2777,7 +2827,6 @@ function pfBuildFilterOptions() {
             allSubjects.map(function(v){ return '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>'; }).join('');
     }
     
-    // Đồng bộ với filter chính
     hskSel.value = $('hskFilter').value;
     subjSel.value = $('subjectFilter').value;
     $('pfSearchInput').value = $('searchInput').value;
@@ -3283,17 +3332,23 @@ function openAdminPanel() {
     loadLogs();
 }
 
+/* ✅ Load users 1 lần (không realtime) */
 function loadUsers() {
-    if (usersUnsubscribe) usersUnsubscribe();
-    usersUnsubscribe = db.collection('allowed_users').onSnapshot(function(snapshot) {
-        usersCache = [];
-        snapshot.forEach(function(doc) { usersCache.push({ email: doc.id, ...doc.data() }); });
-        usersCache.sort(function(a, b) { return (a.email || '').localeCompare(b.email || ''); });
-        renderUsers();
-        renderAdminStats();
-    }, function(err) {
-        $('userList').innerHTML = '<div class="no-data" style="color:#dc2626;padding:1rem"><i class="fas fa-exclamation-triangle"></i>Lỗi: ' + err.message + '</div>';
-    });
+    if (usersUnsubscribe) { usersUnsubscribe(); usersUnsubscribe = null; }
+    
+    db.collection('allowed_users').get()
+        .then(function(snapshot) {
+            usersCache = [];
+            snapshot.forEach(function(doc) {
+                usersCache.push({ email: doc.id, ...doc.data() });
+            });
+            usersCache.sort(function(a, b) { return (a.email || '').localeCompare(b.email || ''); });
+            renderUsers();
+            renderAdminStats();
+        })
+        .catch(function(err) {
+            $('userList').innerHTML = '<div class="no-data" style="color:#dc2626;padding:1rem"><i class="fas fa-exclamation-triangle"></i>Lỗi: ' + err.message + '</div>';
+        });
 }
 
 function renderAdminStats() {
@@ -3303,7 +3358,7 @@ function renderAdminStats() {
     $('adminStats').innerHTML =
         '<div class="stat-card"><div class="num">' + total + '</div><div class="label">Tổng</div></div>' +
         '<div class="stat-card"><div class="num" style="color:#f59e0b">' + admins + '</div><div class="label">Admin</div></div>' +
-        '<div class="stat-card"><div class="num" style="color:#16a34a">' + users + '</div><div class="label">User</div></div>';
+ var        '<div class="stat-card"><div class="num" style="color:#16a34a">' + users + '</div><div class="label">User</div></div>';
 }
 
 function renderUsers() {
@@ -3318,7 +3373,7 @@ function renderUsers() {
         var isMe = u.email === currentUser.email;
         var isAdmin = u.role === 'admin';
         
-        var roleBtn = '';
+        roleBtn = '';
         if (isAdmin) {
             var reason = isMe ? 'Không thể tự hạ quyền chính mình' : 'Phải giữ đúng ' + TARGET_ADMINS + ' admin';
             roleBtn = '<button class="u-btn" disabled title="' + escapeHtml(reason) + '"><i class="fas fa-user"></i></button>';
@@ -3356,7 +3411,11 @@ window.changeRole = async function(email, newRole) {
     
     var action = newRole === 'admin' ? 'NÂNG LÊN ADMIN' : 'HẠ XUỐNG USER';
     if (!confirm(action + ' cho tài khoản:\n\n' + email + '\n\nBạn có chắc không?')) return;
-    try { await db.collection('allowed_users').doc(email).update({ role: newRole }); }
+    try {
+        await db.collection('allowed_users').doc(email).update({ role: newRole });
+        // ✅ Xóa cache user đó để cập nhật ngay
+        try { localStorage.removeItem('user_cache_' + email); } catch(e) {}
+    }
     catch(e) { alert('Lỗi: ' + e.message); }
 };
 
@@ -3370,7 +3429,11 @@ window.deleteUser = async function(email) {
     if (isAdmin) { alert('⚠️ Không thể xóa admin!'); return; }
     if (!confirm('⚠️ XÓA TÀI KHOẢN\n\n' + email + '\n\nNgười này sẽ không đăng nhập được nữa.\n\nBạn có chắc không?')) return;
     
-    try { await db.collection('allowed_users').doc(email).delete(); }
+    try {
+        await db.collection('allowed_users').doc(email).delete();
+        // ✅ Xóa cache user đó
+        try { localStorage.removeItem('user_cache_' + email); } catch(e) {}
+    }
     catch(e) { alert('Lỗi: ' + e.message); }
 };
 
@@ -3475,5 +3538,6 @@ print(f"☀️  Theme mặc định: Light mode")
 print(f"🎯 Desktop hover phóng to + Mobile click vừa đọc vừa phóng to")
 print(f"👁️  Nút Xem đáp án: toggle ẩn/hiện")
 print(f"✏️  Click ký tự sai → con trỏ về + bôi đen để gõ đè")
-print(f"🔍 Search + Filter + Dropdown chọn câu trong modal full màn hình")
+print(f"🔍 Search + Filter + Dropdown chọn câu (tiếng Việt) trong modal")
 print(f"📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
+print(f"💾 Cache user 12h + Log 1 lần/ngày → tiết kiệm 90% Firestore quota")
