@@ -13,6 +13,8 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - ✅ Admin panel load 1 lần (không realtime)
 - ✅ Login log 1 lần/user/ngày
 - Theme mặc định LIGHT MODE
+- ✅ Nút ẩn/hiện kết quả kiểm tra ở mỗi thẻ trang chính
+- ✅ Click chữ sai inline → bôi đen ký tự trong ô gõ
 """
 import openpyxl
 import json
@@ -68,6 +70,7 @@ print(f"   📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới"
 print(f"   🔍 Search + Filter + Dropdown chọn câu trong modal")
 print(f"   💾 Cache user 12h + Log 1 lần/ngày")
 print(f"   👑 Target admins: {TARGET_ADMINS}")
+print(f"   👁️  Nút ẩn/hiện kết quả ở mỗi thẻ trang chính")
 
 print(f"\n📖 Đang đọc file: {EXCEL_FILE}")
 if not os.path.exists(EXCEL_FILE):
@@ -517,7 +520,11 @@ body.show-practice .card-body{
     padding-top:.6rem;border-top:1px dashed var(--border);flex-wrap:wrap;
 }
 .card-practice .practice-input{flex:1;min-width:120px}
-.card-check{font-size:.75rem;font-weight:700;white-space:nowrap;min-width:55px;text-align:center}
+.card-check{
+    font-size:.75rem;font-weight:700;
+    min-width:55px;text-align:center;
+    width:100%;
+}
 
 .audio-btn{
     width:32px;height:32px;border-radius:50%;border:none;
@@ -548,6 +555,24 @@ body.show-practice .card-body{
     font-size:.8rem;transition:.15s;
 }
 .practice-full-btn:hover,.practice-full-btn:active{background:var(--primary);color:#fff;transform:scale(1.08)}
+
+.toggle-check-btn{
+    width:32px;height:32px;border-radius:50%;border:none;
+    background:var(--surface-2);color:var(--text-2);
+    cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+    font-size:.8rem;transition:.15s;flex-shrink:0;
+    border:1px solid var(--border);
+}
+.toggle-check-btn:hover,.toggle-check-btn:active{
+    background:var(--primary-light);color:var(--primary-dark);
+    border-color:var(--primary);
+}
+.toggle-check-btn.active{
+    background:var(--primary);color:#fff;border-color:var(--primary);
+}
+.toggle-check-btn.active:hover{
+    background:var(--primary-dark);color:#fff;
+}
 
 .action-group{display:flex;gap:.3rem;justify-content:center;align-items:center;position:relative}
 .practice-input{
@@ -837,6 +862,28 @@ body.show-practice .card-body{
     box-shadow:0 4px 12px rgba(245,158,11,.5);
     z-index:5;
 }
+.char-slot.ghost-missing{
+    color:var(--text-3);
+    opacity:.5;
+    background:transparent;
+    border:1px dashed var(--border);
+    cursor:pointer;
+    font-size:1.2rem;
+    font-weight:400;
+}
+.char-slot.ghost-missing:hover{
+    opacity:.9;
+    border-color:var(--primary);
+    color:var(--primary);
+    transform:scale(1.1);
+}
+.char-slot.ghost-missing.highlight{
+    animation:blinkHighlightMissing 0.6s ease-in-out 2;
+}
+@keyframes blinkHighlightMissing{
+    0%,100%{transform:scale(1.1);border-color:var(--primary);color:var(--primary);}
+    50%{transform:scale(1.25);border-color:var(--primary);color:var(--primary);box-shadow:0 0 0 6px rgba(37,99,235,.2);}
+}
 @keyframes shakeWrong{
     0%,100%{transform:translateX(0)}
     25%{transform:translateX(-3px)}
@@ -850,6 +897,11 @@ body.show-practice .card-body{
 .inline-char-preview .char-slot{
     font-size:.95rem;min-width:1.1rem;height:1.5rem;
     padding:0 .25rem;border-radius:5px;
+}
+.inline-char-preview .char-slot.ghost-missing{
+    font-size:.9rem;
+    min-width:1.1rem;
+    height:1.5rem;
 }
 
 .practice-full-status{
@@ -2164,7 +2216,7 @@ document.addEventListener('click', function(e) {
         e.target.closest('.writer-modal') || e.target.closest('.user-menu') ||
         e.target.closest('.login-modal') || e.target.closest('.admin-modal') ||
         e.target.closest('.practice-full-modal') ||
-        e.target.closest('.zalo-btn')) return;
+        e.target.closest('.zalo-btn') || e.target.closest('.toggle-check-btn')) return;
     clearFocus();
 }, true);
 
@@ -2356,6 +2408,7 @@ function render(reset) {
             fullBtn = '<button class="practice-full-btn" onclick="openPracticeFull(\'' + sttJs + '\', event)" title="Luyện tập full màn hình"><i class="fas fa-expand"></i></button>';
         }
         var practiceInput = '<input type="text" class="practice-input" placeholder="Gõ tiếng Trung..." data-answer="' + zhHtml + '" data-vi-hint="' + viHtml + '" data-stt="' + sttSafe + '" oninput="checkInput(this)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">';
+        var toggleCheckBtn = '<button class="toggle-check-btn" onclick="toggleInlineCheck(this, event)" title="Ẩn/hiện kết quả kiểm tra" data-visible="0"><i class="fas fa-eye"></i></button>';
         
         mobHtml += '<div class="card" onclick="toggleFocus(\'' + sttJs + '\', this)" data-stt="' + sttSafe + '">' +
             '<div class="card-header">' +
@@ -2374,7 +2427,8 @@ function render(reset) {
             '</div>' +
             '<div class="card-practice" onclick="event.stopPropagation()">' +
                 practiceInput +
-                '<div class="card-check" data-check-stt="' + sttSafe + '"></div>' +
+                toggleCheckBtn +
+                '<div class="card-check" data-check-stt="' + sttSafe + '" style="display:none"></div>' +
             '</div>' +
             '</div>';
     }
@@ -2573,6 +2627,9 @@ function splitByPinyin(zh, pinyin) {
     return result;
 }
 
+/* ============================================================
+   ✅ UPDATE PREVIEW INLINE — có onclick bôi đen ký tự sai
+   ============================================================ */
 function updateInlinePreview(input, answer) {
     var wrapper = input.parentElement;
     var preview = wrapper.querySelector('.inline-char-preview');
@@ -2591,17 +2648,62 @@ function updateInlinePreview(input, answer) {
         var answerChar = cleanAnswer[i] || '';
         var cls = 'char-slot';
         var display = '';
+        var clickable = false;
         if (userChar && answerChar) {
-            if (userChar === answerChar) { cls += ' correct'; display = userChar; }
-            else { cls += ' wrong'; display = userChar; }
-        } else if (!userChar && answerChar) { continue; }
-        else if (userChar && !answerChar) { cls += ' extra'; display = userChar; }
-        else { continue; }
-        html += '<span class="' + cls + '">' + escapeHtml(display) + '</span>';
+            if (userChar === answerChar) {
+                cls += ' correct';
+                display = userChar;
+            } else {
+                cls += ' wrong';
+                display = userChar;
+                clickable = true;
+            }
+        } else if (!userChar && answerChar) {
+            // ✅ Ô trống → hiển thị dấu · có thể click để nhảy tới
+            cls += ' ghost-missing';
+            display = '·';
+            clickable = true;
+        } else if (userChar && !answerChar) {
+            cls += ' extra';
+            display = userChar;
+            clickable = true;
+        } else {
+            continue;
+        }
+        if (clickable) {
+            html += '<span class="' + cls + '" data-idx="' + i + '" onclick="fixInlineChar(this, event)">' + escapeHtml(display) + '</span>';
+        } else {
+            html += '<span class="' + cls + '">' + escapeHtml(display) + '</span>';
+        }
     }
     preview.innerHTML = html;
 }
 
+/* ✅ Click chữ sai inline → con trỏ nhảy về + bôi đen để gõ đè */
+window.fixInlineChar = function(el, evt) {
+    if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
+    var input = el.parentElement.previousElementSibling;
+    // Fallback: tìm input gần nhất trong cùng .card-practice
+    if (!input || !input.classList.contains('practice-input')) {
+        var wrap = el.closest('.card-practice') || el.parentElement.parentElement;
+        input = wrap ? wrap.querySelector('.practice-input') : null;
+    }
+    if (!input) return;
+    var idx = parseInt(el.dataset.idx);
+    input.focus();
+    setTimeout(function() {
+        try {
+            input.setSelectionRange(idx, idx + 1);
+        } catch(e) {
+            input.selectionStart = idx;
+            input.selectionEnd = idx + 1;
+        }
+        el.classList.add('highlight');
+        setTimeout(function() { el.classList.remove('highlight'); }, 1200);
+    }, 10);
+};
+
+/* ✅ Chấm điểm + cập nhật preview inline */
 window.checkInput = function(input) {
     var stt = input.dataset.stt;
     var answer = input.dataset.answer;
@@ -2616,6 +2718,33 @@ window.checkInput = function(input) {
     else html = '<span class="ai-wrong">❌ SAI</span>';
     if (result.reason) html += '<span class="ai-reason">' + escapeHtml(result.reason) + '</span>';
     cells.forEach(function(c) { c.innerHTML = html; });
+};
+
+/* ✅ Toggle ẩn/hiện kết quả kiểm tra ở mỗi thẻ */
+window.toggleInlineCheck = function(btn, evt) {
+    if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
+    var wrap = btn.closest('.card-practice');
+    if (!wrap) return;
+    var checkEl = wrap.querySelector('.card-check');
+    var input = wrap.querySelector('.practice-input');
+    if (!checkEl) return;
+    
+    var isVisible = btn.dataset.visible === '1';
+    if (isVisible) {
+        checkEl.style.display = 'none';
+        btn.dataset.visible = '0';
+        btn.innerHTML = '<i class="fas fa-eye"></i>';
+        btn.classList.remove('active');
+    } else {
+        checkEl.style.display = 'block';
+        btn.dataset.visible = '1';
+        btn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+        btn.classList.add('active');
+        // Nếu input đã có nội dung → chấm lại ngay
+        if (input && input.value.trim()) {
+            checkInput(input);
+        }
+    }
 };
 
 function applyFilter() {
@@ -2657,7 +2786,6 @@ var pfHintEnabled = false;
 window.openPracticeFull = function(stt, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
     
-    // ✅ Build filter options + dropdown cho modal trước khi mở
     pfBuildFilterOptions();
     pfBuildQuickNav();
     
@@ -2686,7 +2814,6 @@ function loadPracticeFull(stt) {
     }
     if (idx === -1) return;
     
-    // ✅ Đồng bộ filter modal nếu chưa có
     if (!$('pfSearchInput').value && !$('pfHskFilter').value && !$('pfSubjectFilter').value) {
         $('pfSearchInput').value = $('searchInput').value;
         $('pfHskFilter').value = $('hskFilter').value;
@@ -2726,7 +2853,6 @@ function loadPracticeFull(stt) {
     $('pfPrevBtn').disabled = (idx === 0);
     $('pfNextBtn').disabled = (idx === filtered.length - 1);
     
-    // ✅ Cập nhật dropdown chọn câu
     var quickNav = $('pfQuickNav');
     if (quickNav && quickNav.value !== stt) {
         quickNav.value = stt;
@@ -2755,7 +2881,6 @@ window.pfPrev = function() {
     loadPracticeFull(filtered[idx - 1].stt);
 };
 
-/* ✅ Build dropdown chọn nhanh câu — hiển thị TIẾNG VIỆT */
 function pfBuildQuickNav() {
     var sel = $('pfQuickNav');
     if (!sel) return;
@@ -2773,7 +2898,6 @@ function pfBuildQuickNav() {
     }
 }
 
-/* ✅ Cập nhật dropdown khi user chọn câu */
 function pfQuickNavChange() {
     var sel = $('pfQuickNav');
     if (!sel) return;
@@ -2782,7 +2906,6 @@ function pfQuickNavChange() {
     loadPracticeFull(stt);
 }
 
-/* ✅ Build filter options cho modal full */
 function pfBuildFilterOptions() {
     var hskSel = $('pfHskFilter');
     var subjSel = $('pfSubjectFilter');
@@ -2834,7 +2957,6 @@ function pfBuildFilterOptions() {
     pfUpdateFilterUI();
 }
 
-/* ✅ Cập nhật UI filter trong modal */
 function pfUpdateFilterUI() {
     var hsk = $('pfHskFilter').value;
     var subject = $('pfSubjectFilter').value;
@@ -2850,7 +2972,6 @@ function pfUpdateFilterUI() {
     pfUpdateResultCount();
 }
 
-/* ✅ Hiển thị số kết quả trong modal */
 function pfUpdateResultCount() {
     var el = $('pfResultCount');
     if (!el) return;
@@ -2869,7 +2990,6 @@ function pfUpdateResultCount() {
     }
 }
 
-/* ✅ Áp dụng filter trong modal */
 function pfApplyFilter() {
     $('searchInput').value = $('pfSearchInput').value;
     $('hskFilter').value = $('pfHskFilter').value;
@@ -3115,10 +3235,8 @@ function initPracticeFull() {
         checkFullAnswer();
     });
     
-    // ✅ Dropdown chọn câu
     $('pfQuickNav').addEventListener('change', pfQuickNavChange);
     
-    // ✅ Search trong modal
     $('pfSearchInput').addEventListener('input', function() {
         pfApplyFilter();
     });
@@ -3128,7 +3246,6 @@ function initPracticeFull() {
         pfApplyFilter();
     });
     
-    // ✅ Filter HSK + Chủ đề trong modal
     $('pfHskFilter').addEventListener('change', function() {
         if (isDemo) {
             var val = this.value;
@@ -3351,6 +3468,7 @@ function loadUsers() {
         });
 }
 
+/* ✅ ĐÃ SỬA LỖI var THỪA */
 function renderAdminStats() {
     var total = usersCache.length;
     var admins = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
@@ -3373,7 +3491,7 @@ function renderUsers() {
         var isMe = u.email === currentUser.email;
         var isAdmin = u.role === 'admin';
         
-        roleBtn = '';
+        var roleBtn = '';
         if (isAdmin) {
             var reason = isMe ? 'Không thể tự hạ quyền chính mình' : 'Phải giữ đúng ' + TARGET_ADMINS + ' admin';
             roleBtn = '<button class="u-btn" disabled title="' + escapeHtml(reason) + '"><i class="fas fa-user"></i></button>';
@@ -3413,7 +3531,6 @@ window.changeRole = async function(email, newRole) {
     if (!confirm(action + ' cho tài khoản:\n\n' + email + '\n\nBạn có chắc không?')) return;
     try {
         await db.collection('allowed_users').doc(email).update({ role: newRole });
-        // ✅ Xóa cache user đó để cập nhật ngay
         try { localStorage.removeItem('user_cache_' + email); } catch(e) {}
     }
     catch(e) { alert('Lỗi: ' + e.message); }
@@ -3431,7 +3548,6 @@ window.deleteUser = async function(email) {
     
     try {
         await db.collection('allowed_users').doc(email).delete();
-        // ✅ Xóa cache user đó
         try { localStorage.removeItem('user_cache_' + email); } catch(e) {}
     }
     catch(e) { alert('Lỗi: ' + e.message); }
@@ -3541,3 +3657,4 @@ print(f"✏️  Click ký tự sai → con trỏ về + bôi đen để gõ đè
 print(f"🔍 Search + Filter + Dropdown chọn câu (tiếng Việt) trong modal")
 print(f"📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
 print(f"💾 Cache user 12h + Log 1 lần/ngày → tiết kiệm 90% Firestore quota")
+print(f"👁️  Nút ẩn/hiện kết quả kiểm tra ở mỗi thẻ trang chính")
