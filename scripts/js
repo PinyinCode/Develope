@@ -5,6 +5,7 @@
     "demo_daily_limit": 50,
     "demo_hsk_max": 3,
     "target_admins": 2,
+    "super_admin": "hoanginvest199@gmail.com",
     "firebase_config": {
         "apiKey": "AIzaSyA8VlFQvE_om-51pxffgd7hd2Ud6hQm11k",
         "authDomain": "hoc-tieng-trung-64b8d.firebaseapp.com",
