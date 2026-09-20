@@ -37,6 +37,7 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - ✅ MỚI: Chế độ thường hiện Zalo + TikTok; Chế độ luyện tập chỉ hiện TikTok
 - ✅ MỚI: PC hover nút TikTok → hiện card info TikTok (avatar + nickname + username)
 - ✅ MỚI: Avatar TikTok nhập trong config.json
+- ✅ MỚI: Mobile 1 tap TikTok = card info; 2 tap = mở TikTok
 
 Chạy: python scripts/convert.py
 """
@@ -159,7 +160,7 @@ html_template = r'''<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>Học tiếng Trung ·    Văn phòng & Công xưởng</title>
+<title>Học tiếng Trung · Văn phòng & Công xưởng</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
@@ -254,6 +255,7 @@ body{
     font-weight:700;
     margin-top:3px;
     letter-spacing:.01em;
+    padding-left:1.1rem;   /* 👈 Lùi sang phải ~2 ký tự */
 }
 .header-actions{display:flex;gap:.4rem;align-items:center;flex-shrink:0}
 
@@ -595,7 +597,7 @@ body{
 .tiktok-float-btn.compact i{font-size:1.35rem}
 .tiktok-float-btn.compact::before{border-radius:50%}
 
-/* ✅ HOVER CARD thông tin TikTok - chỉ hiện trên PC */
+/* ✅ HOVER CARD thông tin TikTok */
 .tiktok-hover-card{
     position:absolute;
     bottom:calc(100% + 10px);
@@ -617,9 +619,6 @@ body{
     transform:translateY(0) scale(1);
     pointer-events:auto;
 }
-@media(hover:none) and (pointer:coarse){
-    .tiktok-hover-card{display:none;}
-}
 .tiktok-hover-card::after{
     content:'';position:absolute;top:100%;left:32px;
     width:16px;height:16px;
@@ -627,6 +626,23 @@ body{
     border-right:1px solid var(--border);
     border-bottom:1px solid var(--border);
     transform:translateY(-8px) rotate(45deg);
+}
+/* 📱 Mobile: chỉ hiện khi có class .show-mobile */
+@media(hover:none) and (pointer:coarse){
+    .tiktok-float-wrap:hover .tiktok-hover-card{
+        opacity:0;
+        visibility:hidden;
+        transform:translateY(8px) scale(.96);
+        pointer-events:none;
+    }
+    .tiktok-float-wrap.show-mobile .tiktok-hover-card{
+        opacity:1;
+        visibility:visible;
+        transform:translateY(0) scale(1);
+        pointer-events:auto;
+        left:-4px;
+        width:min(300px, calc(100vw - 32px));
+    }
 }
 .thc-header{display:flex;align-items:center;gap:.75rem;margin-bottom:.85rem}
 .thc-avatar-wrap{
@@ -1022,7 +1038,7 @@ body.show-practice .card-body{
 }
 .no-data i{font-size:2.5rem;margin-bottom:.75rem;color:var(--border-strong);display:block}
 
-/* ============ PRACTICE FULL MODAL (KHÔNG CHE HEADER) ============ */
+/* ============ PRACTICE FULL MODAL ============ */
 .practice-full-modal{
     position:fixed;
     left:0;right:0;bottom:0;
@@ -1867,7 +1883,7 @@ body.show-practice .card-body{
     .header-inner{gap:.5rem;margin-bottom:.4rem}
     .logo-icon{width:52px;height:52px;font-size:1.5rem;border-radius:13px}
     .logo-text .title{font-size:1.5rem}
-    .logo-text .subtitle{font-size:.82rem}
+    .logo-text .subtitle{font-size:.82rem;padding-left:.8rem}
     .icon-btn{width:34px;height:34px;font-size:.8rem}
     .main{padding:.15rem 0 2rem}
     .search-bar input{padding:.65rem 2.5rem .65rem 2.4rem;font-size:.88rem}
@@ -1905,12 +1921,18 @@ body.show-practice .card-body{
     .zalo-btn.compact{width:48px;height:48px}
     .zalo-btn.compact i{font-size:1.25rem}
     
-    .tiktok-float-btn{padding:.6rem .9rem;font-size:.8rem;gap:.4rem;}
-    .tiktok-float-btn i{font-size:1.05rem}
-    .tiktok-float-btn .tiktok-label{font-size:.6rem}
-    .tiktok-float-btn .tiktok-name{font-size:.78rem;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .tiktok-float-btn.compact{width:48px;height:48px}
-    .tiktok-float-btn.compact i{font-size:1.25rem}
+    /* ✅ Mobile: TikTok float button chỉ icon tròn nhỏ gọn */
+    .tiktok-float-btn{
+        padding:0;
+        border-radius:50%;
+        width:48px;
+        height:48px;
+        justify-content:center;
+        gap:0;
+    }
+    .tiktok-float-btn i{font-size:1.35rem}
+    .tiktok-float-btn .tiktok-text{display:none}
+    .tiktok-float-btn::before{border-radius:50%}
     
     .tiktok-bar{padding:.4rem .7rem;gap:.5rem;}
     .tiktok-bar-avatar{width:28px;height:28px;}
@@ -1955,9 +1977,7 @@ body.show-practice .card-body{
     .zalo-btn .zalo-text{display:none}
     .zalo-btn{padding:0;border-radius:50%;width:48px;height:48px;justify-content:center}
     .zalo-btn i{font-size:1.2rem}
-    .tiktok-float-btn .tiktok-text{display:none}
-    .tiktok-float-btn{padding:0;border-radius:50%;width:48px;height:48px;justify-content:center}
-    .tiktok-float-btn i{font-size:1.2rem}
+    /* TikTok float button đã được xử lý ở @media 768px */
     .tiktok-bar-link span{display:none}
     .tiktok-bar-link{padding:.4rem .5rem;}
 }
@@ -2114,7 +2134,7 @@ body.show-practice .card-body{
             </div>
         </a>
         
-        <!-- ✅ HOVER CARD TikTok (chỉ hiện trên PC) -->
+        <!-- ✅ HOVER CARD TikTok (PC hover / Mobile tap) -->
         <div class="tiktok-hover-card" id="tiktokHoverCard">
             <div class="thc-header">
                 <div class="thc-avatar-wrap">
@@ -2686,6 +2706,64 @@ function initTikTok() {
     // Dropdown tiktok
     var dropdownTiktokBtn = $('dropdownTiktokBtn');
     if (dropdownTiktokBtn) dropdownTiktokBtn.href = tiktokUrl;
+    
+    /* ✅ MOBILE: 1 tap = hiện hover card, 2 tap (double tap) = mở TikTok */
+    var floatBtn = $('tiktokFloatBtn');
+    var floatWrap = $('tiktokFloatWrap');
+    var hoverCard = $('tiktokHoverCard');
+    if (floatBtn && floatWrap) {
+        var isTouchDevice = ('ontouchstart' in window) || 
+                            (navigator.maxTouchPoints > 0) || 
+                            (window.matchMedia && window.matchMedia('(hover:none) and (pointer:coarse)').matches);
+        
+        if (isTouchDevice) {
+            var lastTapTime = 0;
+            var DOUBLE_TAP_MS = 350;
+            var tapTimer = null;
+            
+            floatBtn.addEventListener('click', function(e) {
+                var now = Date.now();
+                
+                // ✅ Double tap → mở TikTok, đóng card
+                if (now - lastTapTime < DOUBLE_TAP_MS) {
+                    if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; }
+                    lastTapTime = 0;
+                    floatWrap.classList.remove('show-mobile');
+                    // Cho phép mở link (không preventDefault)
+                    return;
+                }
+                
+                // ✅ Single tap → chặn điều hướng, hiện hover card
+                e.preventDefault();
+                e.stopPropagation();
+                lastTapTime = now;
+                
+                var isShowing = floatWrap.classList.toggle('show-mobile');
+                
+                // Tự ẩn sau 5 giây nếu không tương tác
+                if (isShowing) {
+                    if (floatWrap._hideTimer) clearTimeout(floatWrap._hideTimer);
+                    floatWrap._hideTimer = setTimeout(function() {
+                        floatWrap.classList.remove('show-mobile');
+                    }, 5000);
+                }
+            }, true);
+            
+            // Click ra ngoài → đóng card
+            document.addEventListener('click', function(e) {
+                if (!floatWrap.contains(e.target)) {
+                    floatWrap.classList.remove('show-mobile');
+                }
+            });
+            
+            // Ngăn card tự đóng khi click vào trong card
+            if (hoverCard) {
+                hoverCard.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            }
+        }
+    }
 }
 
 /* ============ ZALO HELPERS ============ */
@@ -6216,10 +6294,12 @@ print(f"🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} 
 print(f"🔥 Firebase: {FIREBASE_CONFIG.get('projectId', 'N/A')}")
 print(f"👑 Super admin: {SUPER_ADMIN}")
 print(f"🎵 TikTok: @{TIKTOK_USERNAME} ({TIKTOK_NICKNAME})")
-print(f"   → Header lớn: Học tiếng Trung + Văn phòng & Công xưởng")
+print(f"   → Header: 'Học tiếng Trung' + 'Văn phòng & Công xưởng' (lùi phải)")
 print(f"   → TikTok info bar dưới header (giữ nguyên Thảo nói 中文)")
 print(f"   → Chế độ thường: Zalo + TikTok (floating left)")
 print(f"   → Chế độ luyện tập: CHỈ TikTok")
 print(f"   → PC hover TikTok: card info (avatar + nickname + stats)")
+print(f"   → Mobile 1 tap TikTok: card info; 2 tap: mở TikTok")
+print(f"   → Mobile TikTok button: CHỈ icon tròn nhỏ gọn")
 print(f"   → Avatar TikTok: {'Có' if TIKTOK_AVATAR else 'Fallback SVG'}")
 print(f"✅ Header KHÔNG biến mất khi bật chế độ luyện tập")
