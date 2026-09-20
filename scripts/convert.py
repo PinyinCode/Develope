@@ -38,6 +38,8 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - ✅ MỚI: PC hover nút TikTok → hiện card info TikTok (avatar + nickname + username)
 - ✅ MỚI: Avatar TikTok nhập trong config.json
 - ✅ MỚI: Mobile 1 tap TikTok = card info; 2 tap = mở TikTok
+- ✅ FIX: Bật chế độ luyện tập full màn hình KHÔNG còn trùng lặp search/HSK/chủ đề
+- ✅ FIX: Modal luyện tập set top 1 lần theo chiều cao header, không cập nhật liên tục
 
 Chạy: python scripts/convert.py
 """
@@ -111,6 +113,7 @@ print(f"   ⏰ User có hạn sử dụng (expiresAt)")
 print(f"   👤 Click avatar → hiển thị chi tiết + ngày hết hạn")
 print(f"   ✏️  Nút đổi tên hiển thị (user + admin)")
 print(f"   📅 Quản lý ngày hết hạn trên giao diện admin")
+print(f"   🚫 FIX: Không còn trùng lặp search/HSK/chủ đề khi luyện tập full")
 
 print(f"\n📖 Đang đọc file: {EXCEL_FILE}")
 if not os.path.exists(EXCEL_FILE):
@@ -1044,10 +1047,24 @@ body.show-practice .card-body{
     left:0;right:0;bottom:0;
     background:var(--bg);z-index:2500;
     display:none;flex-direction:column;animation:fadeIn .2s;
+    /* ✅ top sẽ được JS set động bằng chiều cao header thực tế khi mở */
     top:0;
     overflow:hidden;
 }
 .practice-full-modal.show{display:flex}
+
+/* ✅ ẨN search bar + filters + result-count của header khi ở chế độ luyện tập full
+   → Tránh trùng lặp 2 ô tìm kiếm / 2 ô HSK / 2 ô chủ đề */
+body.practice-full-open .search-bar,
+body.practice-full-open .filters,
+body.practice-full-open .result-count {
+    display: none !important;
+}
+/* ✅ Vẫn giữ TikTok bar hiển thị trên header khi luyện tập (theo yêu cầu) */
+body.practice-full-open .demo-banner,
+body.practice-full-open .expiry-banner {
+    display: none !important;
+}
 
 .practice-full-header{
     display:flex;align-items:center;gap:.75rem;
@@ -4256,32 +4273,27 @@ var pfCurrentPinyin = '';
 var pfHintEnabled = false;
 
 function setPracticeFullTop() {
-    // Đặt top của practice-full-modal bằng chiều cao header để không che header
     var stickyTop = $('stickyTop');
     var modal = $('practiceFullModal');
     if (!stickyTop || !modal) return;
+    if (!modal.classList.contains('show') && modal.style.display !== 'flex') {
+        // Vẫn cho phép set trước khi show
+    }
     
-    // Chỉ áp dụng khi modal đang mở
-    if (!modal.classList.contains('show')) return;
-    
+    // Lấy chiều cao thực tế của header (bao gồm cả phần đã scroll)
     var rect = stickyTop.getBoundingClientRect();
-    var height = rect.bottom;
-    // Đảm bảo tối thiểu bằng chiều cao header
-    modal.style.top = Math.max(0, height) + 'px';
+    var height = Math.max(0, rect.bottom);
+    
+    // ✅ Set 1 lần khi mở modal
+    modal.style.top = height + 'px';
 }
 
-// Theo dõi resize để cập nhật top
+// ✅ Chỉ cập nhật top khi resize (không cần theo dõi scroll vì body đã khóa)
 window.addEventListener('resize', function() {
     if ($('practiceFullModal') && $('practiceFullModal').classList.contains('show')) {
         setPracticeFullTop();
     }
 });
-// Theo dõi scroll để cập nhật top (header có thể co giãn)
-window.addEventListener('scroll', function() {
-    if ($('practiceFullModal') && $('practiceFullModal').classList.contains('show')) {
-        setPracticeFullTop();
-    }
-}, { passive: true });
 
 window.openPracticeFull = function(stt, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
@@ -4296,16 +4308,26 @@ window.openPracticeFull = function(stt, evt) {
     if (idx === -1) { alert('Không tìm thấy câu!'); return; }
     pfCurrentStt = stt;
     
-    // ✅ Thêm class vào body để CSS biết đang ở chế độ luyện tập
+    // ✅ Thêm class vào body TRƯỚC KHI hiển thị modal
+    // → CSS sẽ ẩn search bar + filters + result-count của header
+    // → Tránh trùng lặp 2 ô tìm kiếm / 2 ô HSK / 2 ô chủ đề
     document.body.classList.add('practice-full-open');
+    
     // ✅ Cập nhật visibility của floating buttons (ẩn Zalo, hiện TikTok)
     updateFloatingLeftVisibility();
     
-    $('practiceFullModal').classList.add('show');
+    // ✅ Khóa scroll body TRƯỚC khi hiển thị modal
     document.body.style.overflow = 'hidden';
     
-    // ✅ Set top của modal để không che header
-    setTimeout(setPracticeFullTop, 10);
+    // ✅ Set top dựa trên vị trí header hiện tại (trước khi modal show)
+    setPracticeFullTop();
+    
+    $('practiceFullModal').classList.add('show');
+    
+    // ✅ Double-check sau khi modal đã render xong
+    requestAnimationFrame(function() {
+        setPracticeFullTop();
+    });
     
     loadPracticeFull(stt);
 };
@@ -4313,8 +4335,10 @@ window.openPracticeFull = function(stt, evt) {
 window.closePracticeFull = function() {
     $('practiceFullModal').classList.remove('show');
     document.body.style.overflow = '';
-    // ✅ Xóa class khỏi body
+    // ✅ Xóa class khỏi body → khôi phục search bar + filters của header
     document.body.classList.remove('practice-full-open');
+    // ✅ Reset top về 0 để lần sau mở lại tính toán đúng
+    $('practiceFullModal').style.top = '0px';
     // ✅ Cập nhật visibility của floating buttons (hiện cả Zalo + TikTok)
     updateFloatingLeftVisibility();
     pfCurrentStt = null;
@@ -6302,4 +6326,7 @@ print(f"   → PC hover TikTok: card info (avatar + nickname + stats)")
 print(f"   → Mobile 1 tap TikTok: card info; 2 tap: mở TikTok")
 print(f"   → Mobile TikTok button: CHỈ icon tròn nhỏ gọn")
 print(f"   → Avatar TikTok: {'Có' if TIKTOK_AVATAR else 'Fallback SVG'}")
+print(f"🚫 FIX: Đã sửa lỗi TRÙNG LẶP 2 ô tìm kiếm / 2 ô HSK / 2 ô chủ đề")
+print(f"      → Ẩn search bar + filters của header khi mở modal luyện tập")
+print(f"      → Modal set top 1 lần theo chiều cao header, không cập nhật liên tục")
 print(f"✅ Header KHÔNG biến mất khi bật chế độ luyện tập")
