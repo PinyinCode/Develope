@@ -2,7 +2,7 @@
     "zalo_phone": "0922331886",
     "zalo_name": "Hỗ trợ",
     "demo_limit": 50,
-    "demo_daily_limit": 100,
+    "demo_daily_limit": 50,
     "demo_hsk_max": 3,
     "target_admins": 2,
     "firebase_config": {
