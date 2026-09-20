@@ -229,14 +229,32 @@ body{
 .header-inner{display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem}
 .logo{display:flex;align-items:center;gap:.85rem;flex:1;min-width:0}
 .logo-icon{
-    width:56px;height:56px;background:linear-gradient(135deg,#2563eb,#7c3aed);
-    border-radius:14px;display:flex;align-items:center;justify-content:center;
-    color:#fff;font-size:1.7rem;flex-shrink:0;
-    box-shadow:0 6px 18px rgba(37,99,235,.35);
+    width:64px;height:64px;background:linear-gradient(135deg,#2563eb,#7c3aed 60%,#db2777);
+    border-radius:16px;display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:2rem;flex-shrink:0;
+    box-shadow:0 8px 24px rgba(37,99,235,.4), inset 0 1px 0 rgba(255,255,255,.25);
+    position:relative;overflow:hidden;
+}
+.logo-icon::after{
+    content:'';position:absolute;inset:0;
+    background:radial-gradient(circle at 30% 20%, rgba(255,255,255,.35), transparent 60%);
+    pointer-events:none;
 }
 .logo-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;flex-direction:column;line-height:1.15;min-width:0}
-.logo-text .title{font-size:1.6rem;font-weight:800;color:var(--text);letter-spacing:-.02em}
-.logo-text .subtitle{font-size:.92rem;color:var(--text-3);font-weight:600;margin-top:2px}
+.logo-text .title{
+    font-size:2rem;
+    font-weight:900;
+    letter-spacing:-.02em;
+    line-height:1.15;
+    color:var(--text);
+}
+.logo-text .subtitle{
+    font-size:.95rem;
+    color:var(--text-3);
+    font-weight:700;
+    margin-top:3px;
+    letter-spacing:.01em;
+}
 .header-actions{display:flex;gap:.4rem;align-items:center;flex-shrink:0}
 
 /* ============ TIKTOK INFO BAR (dưới header) ============ */
@@ -1847,9 +1865,9 @@ body.show-practice .card-body{
 @media(max-width:768px){
     .container{padding:0 .7rem}
     .header-inner{gap:.5rem;margin-bottom:.4rem}
-    .logo-icon{width:44px;height:44px;font-size:1.3rem;border-radius:12px}
-    .logo-text .title{font-size:1.25rem}
-    .logo-text .subtitle{font-size:.78rem}
+    .logo-icon{width:52px;height:52px;font-size:1.5rem;border-radius:13px}
+    .logo-text .title{font-size:1.5rem}
+    .logo-text .subtitle{font-size:.82rem}
     .icon-btn{width:34px;height:34px;font-size:.8rem}
     .main{padding:.15rem 0 2rem}
     .search-bar input{padding:.65rem 2.5rem .65rem 2.4rem;font-size:.88rem}
@@ -1930,6 +1948,8 @@ body.show-practice .card-body{
     .quick-expiry-btn i{font-size:.8rem;}
 }
 @media(max-width:400px){
+    .logo-icon{width:46px;height:46px;font-size:1.35rem;border-radius:12px}
+    .logo-text .title{font-size:1.35rem}
     .logo-text .subtitle{display:none}
     .icon-btn{width:32px;height:32px;font-size:.75rem}
     .zalo-btn .zalo-text{display:none}
@@ -1957,8 +1977,8 @@ body.show-practice .card-body{
                 <div class="logo">
                     <div class="logo-icon"><i class="fas fa-language"></i></div>
                     <div class="logo-text">
-                        <div class="title">Thảo nói 中文</div>
-                        <div class="subtitle">Học tiếng Trung · Văn phòng & Công xưởng</div>
+                        <div class="title">Học tiếng Trung</div>
+                        <div class="subtitle">Văn phòng &amp; Công xưởng</div>
                     </div>
                 </div>
                 <div class="header-actions">
@@ -6196,7 +6216,8 @@ print(f"🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} 
 print(f"🔥 Firebase: {FIREBASE_CONFIG.get('projectId', 'N/A')}")
 print(f"👑 Super admin: {SUPER_ADMIN}")
 print(f"🎵 TikTok: @{TIKTOK_USERNAME} ({TIKTOK_NICKNAME})")
-print(f"   → Header lớn + TikTok info bar dưới header")
+print(f"   → Header lớn: Học tiếng Trung + Văn phòng & Công xưởng")
+print(f"   → TikTok info bar dưới header (giữ nguyên Thảo nói 中文)")
 print(f"   → Chế độ thường: Zalo + TikTok (floating left)")
 print(f"   → Chế độ luyện tập: CHỈ TikTok")
 print(f"   → PC hover TikTok: card info (avatar + nickname + stats)")
