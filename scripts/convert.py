@@ -23,6 +23,13 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - ✅ Banner cảnh báo sắp hết hạn (≤ 7 ngày)
 - ✅ Click avatar user → hiển thị chi tiết tài khoản + ngày hết hạn + progress bar
 - ✅ Nút Zalo liên hệ trong dropdown user
+- ✅ PHÂN QUYỀN ADMIN:
+    + CHỈ email "hoanginvest@gmail.com" → SUPER ADMIN: full quyền, thấy tất cả,
+      7 ô thống kê, thấy lịch sử đăng nhập
+    + TẤT CẢ admin khác → ADMIN THƯỜNG: full quyền nhưng ẩn admin khác,
+      chỉ thấy 4 ô (Tổng User, Đang hoạt động, Sắp hết hạn, Hết hạn),
+      ẩn lịch sử truy cập
+- ✅ Tổng User KHÔNG tính admin
 
 Chạy: python scripts/convert.py
 """
@@ -47,6 +54,7 @@ DEMO_LIMIT = CONFIG.get("demo_limit", 50)
 DEMO_DAILY_LIMIT = CONFIG.get("demo_daily_limit", 100)
 DEMO_HSK_MAX = CONFIG.get("demo_hsk_max", 3)
 TARGET_ADMINS = CONFIG.get("target_admins", 2)
+SUPER_ADMIN = CONFIG.get("super_admin", "hoanginvest@gmail.com")
 ZALO_PHONE = CONFIG.get("zalo_phone", "")
 ZALO_NAME = CONFIG.get("zalo_name", "Hỗ trợ")
 FIREBASE_CONFIG = CONFIG.get("firebase_config", {})
@@ -79,7 +87,9 @@ print(f"   🎯 Click ký tự sai → bôi đen để gõ đè")
 print(f"   📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
 print(f"   🔍 Search + Filter + Dropdown chọn câu trong modal")
 print(f"   💾 Cache user 12h + Log 1 lần/ngày")
-print(f"   👑 Target admins: {TARGET_ADMINS}")
+print(f"   👑 Super admin: {SUPER_ADMIN}")
+print(f"   🕵️  Admin thường: tất cả admin khác (chỉ thấy 4 ô thống kê)")
+print(f"   👥 Tổng User KHÔNG tính admin")
 print(f"   👁️  Nút ẩn/hiện kết quả + đáp án ở mỗi thẻ trang chính")
 print(f"   📤 Export CHUYÊN NGHIỆP (7 cột + 3 sheet + style)")
 print(f"   📥 Import CHỈ USER, KHÔNG ADMIN")
@@ -2018,7 +2028,7 @@ body.show-practice .card-body{
             <div class="user-list" id="userList">
                 <div class="no-data"><i class="fas fa-spinner fa-pulse"></i>Đang tải...</div>
             </div>
-            <div class="admin-section-title" style="margin-top:1.5rem">
+            <div class="admin-section-title" style="margin-top:1.5rem" id="logsTitle">
                 <span><i class="fas fa-history"></i> Lịch sử đăng nhập (gần đây)</span>
             </div>
             <div class="logs-list" id="logsList">
@@ -2035,6 +2045,7 @@ var DEMO_LIMIT = __DEMO_LIMIT__;
 var DEMO_DAILY_LIMIT = __DEMO_DAILY_LIMIT__;
 var DEMO_HSK_MAX = __DEMO_HSK_MAX__;
 var TARGET_ADMINS = __TARGET_ADMINS__;
+var SUPER_ADMIN = "__SUPER_ADMIN__";
 var ZALO_PHONE = "__ZALO_PHONE__";
 var ZALO_NAME = "__ZALO_NAME__";
 var SYNONYMS = __SYNONYMS__;
@@ -2055,6 +2066,19 @@ var importRows = [];
 
 var $ = function(id) { return document.getElementById(id); };
 var mobileWrapper;
+
+/* ============ HELPER PHÂN QUYỀN ADMIN ============ */
+// ✅ Logic: CHỈ email "hoanginvest@gmail.com" là SUPER ADMIN
+// Tất cả admin khác đều là ADMIN THƯỜNG (ẩn admin khác, ẩn lịch sử)
+function isSuperAdmin() {
+    if (!currentUser || currentUser.role !== 'admin') return false;
+    var email = (currentUser.email || '').toLowerCase().trim();
+    return email === SUPER_ADMIN.toLowerCase().trim();
+}
+function isHiddenAdmin() {
+    if (!currentUser || currentUser.role !== 'admin') return false;
+    return !isSuperAdmin();  // Admin nhưng KHÔNG PHẢI super admin → admin thường
+}
 
 function getDemoData() { return RAW_DATA.slice(0, DEMO_LIMIT); }
 function getDemoHskList() {
@@ -4116,7 +4140,6 @@ function initAdminPanel() {
             var wb = XLSX.utils.book_new();
             var now = Date.now();
             
-            // Sắp xếp: sắp hết hạn lên đầu, vĩnh viễn xuống cuối
             usersOnly.sort(function(a, b) {
                 var da = getExpiryTimestamp(a.expiresAt);
                 var db = getExpiryTimestamp(b.expiresAt);
@@ -4313,7 +4336,6 @@ function initAdminPanel() {
             
             XLSX.utils.book_append_sheet(wb, ws, 'Users');
             
-            // Sheet 2: Thống kê
             var ws2 = XLSX.utils.aoa_to_sheet([
                 ['📊  THỐNG KÊ TÀI KHOẢN', '', ''],
                 ['', '', ''],
@@ -4364,7 +4386,6 @@ function initAdminPanel() {
             
             XLSX.utils.book_append_sheet(wb, ws2, 'Thống kê');
             
-            // Sheet 3: Hướng dẫn
             var ws3 = XLSX.utils.aoa_to_sheet([
                 ['📖  HƯỚNG DẪN SỬ DỤNG FILE EXPORT', '', ''],
                 ['', '', ''],
@@ -4437,7 +4458,6 @@ function initAdminPanel() {
             
             XLSX.utils.book_append_sheet(wb, ws3, 'Hướng dẫn');
             
-            // Xuất file
             var today = new Date();
             var dateStr = today.getFullYear() +
                           String(today.getMonth() + 1).padStart(2, '0') +
@@ -4654,12 +4674,21 @@ function loadUsers(forceRefresh) {
 }
 
 function loadLastLoginMap() {
+    var hidden = isHiddenAdmin();
+    var myEmail = (currentUser && currentUser.email ? currentUser.email.toLowerCase() : '');
+    
     return db.collection('login_logs').orderBy('time', 'desc').limit(500).get()
         .then(function(snapshot) {
             lastLoginMap = {};
             snapshot.forEach(function(doc) {
                 var d = doc.data();
                 var email = (d.email || '').toLowerCase();
+                
+                // ✅ Admin thường: ẩn hết log của admin khác (chỉ giữ log của chính mình)
+                if (hidden && d.role === 'admin' && email !== myEmail) {
+                    return;
+                }
+                
                 if (!lastLoginMap[email] && d.time) {
                     lastLoginMap[email] = d.time.toDate();
                 }
@@ -4669,52 +4698,118 @@ function loadLastLoginMap() {
         .catch(function() {});
 }
 
+/* ================================================================
+   ✅ RENDER ADMIN STATS - PHÂN QUYỀN
+   ================================================================
+   - Super admin "hoanginvest@gmail.com": 7 ô đầy đủ
+     (Tổng User, Đang HĐ, Active 7d, Admin, Chưa login, Sắp hết hạn, Hết hạn)
+   - Admin thường (tất cả admin khác): 4 ô
+     (Tổng User, Đang HĐ, Sắp hết hạn, Hết hạn)
+   - Tổng User KHÔNG tính admin
+   ================================================================ */
 function renderAdminStats() {
-    var total = usersCache.length;
-    var admins = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
-    var users = total - admins;
+    var hidden = isHiddenAdmin();
+    
+    // Đếm user thường (không tính admin)
+    var usersCacheOnly = usersCache.filter(function(u) { 
+        return u.role !== 'admin'; 
+    });
+    var users = usersCacheOnly.length;
+    var admins = usersCache.length - users;
+    
     var now = Date.now();
+    var day1 = 24 * 60 * 60 * 1000;
     var day7 = 7 * 24 * 60 * 60 * 1000;
-    var active = 0, never = 0, expired = 0;
-    usersCache.forEach(function(u) {
+    
+    var active = 0;    // Login trong 7 ngày
+    var online = 0;    // Login trong 24h (đang hoạt động)
+    var never = 0;
+    var expired = 0;   // Đã hết hạn
+    var expiring = 0;  // Sắp hết hạn (≤ 7 ngày)
+    
+    usersCacheOnly.forEach(function(u) {
         var last = lastLoginMap[(u.email || '').toLowerCase()];
-        if (last && (now - last.getTime()) <= day7) active++;
-        else if (!last) never++;
+        if (last) {
+            var diff = now - last.getTime();
+            if (diff <= day7) active++;
+            if (diff <= day1) online++;
+        } else {
+            never++;
+        }
         
-        if (u.expiresAt && u.role !== 'admin') {
-            try {
-                var ea = u.expiresAt;
-                var d;
-                if (typeof ea.toDate === 'function') d = ea.toDate();
-                else if (ea.seconds) d = new Date(ea.seconds * 1000);
-                else d = new Date(ea);
-                if (d && d < new Date()) expired++;
-            } catch(e) {}
+        if (u.expiresAt) {
+            var d = getExpiryDate(u.expiresAt);
+            if (d && !isNaN(d.getTime())) {
+                var daysLeft = Math.ceil((d.getTime() - now) / (24 * 60 * 60 * 1000));
+                if (daysLeft < 0) expired++;
+                else if (daysLeft <= 7) expiring++;
+            }
         }
     });
     
+    // ✅ ADMIN THƯỜNG (không phải hoanginvest) → 4 ô
+    if (hidden) {
+        $('adminStats').innerHTML = 
+            '<div class="stat-card">' +
+                '<div class="num">' + users + '</div>' +
+                '<div class="label">Tổng User</div>' +
+            '</div>' +
+            '<div class="stat-card">' +
+                '<div class="num" style="color:#16a34a">' + online + '</div>' +
+                '<div class="label">Đang hoạt động</div>' +
+            '</div>' +
+            '<div class="stat-card">' +
+                '<div class="num" style="color:#f59e0b">' + expiring + '</div>' +
+                '<div class="label">Sắp hết hạn</div>' +
+            '</div>' +
+            '<div class="stat-card">' +
+                '<div class="num" style="color:#dc2626">' + expired + '</div>' +
+                '<div class="label">Hết hạn</div>' +
+            '</div>';
+        
+        $('adminUserCount').textContent = users;
+        return;
+    }
+    
+    // ✅ SUPER ADMIN (hoanginvest@gmail.com) → 7 ô đầy đủ
     $('adminStats').innerHTML =
-        '<div class="stat-card"><div class="num">' + total + '</div><div class="label">Tổng</div></div>' +
-        '<div class="stat-card"><div class="num" style="color:#16a34a">' + active + '</div><div class="label">Active 7d</div></div>' +
+        '<div class="stat-card"><div class="num">' + users + '</div><div class="label">Tổng User</div></div>' +
+        '<div class="stat-card"><div class="num" style="color:#16a34a">' + online + '</div><div class="label">Đang hoạt động</div></div>' +
+        '<div class="stat-card"><div class="num" style="color:#3b82f6">' + active + '</div><div class="label">Active 7d</div></div>' +
         '<div class="stat-card"><div class="num" style="color:#f59e0b">' + admins + '</div><div class="label">Admin</div></div>' +
         '<div class="stat-card"><div class="num" style="color:#94a3b8">' + never + '</div><div class="label">Chưa login</div></div>' +
+        '<div class="stat-card"><div class="num" style="color:#f59e0b">' + expiring + '</div><div class="label">Sắp hết hạn</div></div>' +
         '<div class="stat-card"><div class="num" style="color:#dc2626">' + expired + '</div><div class="label">Hết hạn</div></div>';
     
-    $('adminUserCount').textContent = total;
+    $('adminUserCount').textContent = users;
 }
 
 function renderUsers(items) {
     var list = $('userList');
-    if (!items.length) {
+    var hidden = isHiddenAdmin();
+    var myEmail = (currentUser && currentUser.email ? currentUser.email.toLowerCase() : '');
+    
+    // ✅ Admin thường: ẩn tất cả admin khác (chỉ thấy chính mình)
+    var displayItems = items;
+    if (hidden) {
+        displayItems = items.filter(function(u) {
+            var uEmail = (u.email || '').toLowerCase();
+            if (u.role === 'admin' && uEmail !== myEmail) return false;
+            return true;
+        });
+    }
+    
+    if (!displayItems.length) {
         list.innerHTML = '<div class="no-data" style="padding:1.5rem;font-size:.85rem"><i class="fas fa-search"></i>Không có user nào</div>';
         return;
     }
+    
     var adminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
     var now = Date.now();
     var day7 = 7 * 24 * 60 * 60 * 1000;
     var day30 = 30 * 24 * 60 * 60 * 1000;
     
-    list.innerHTML = items.map(function(u) {
+    list.innerHTML = displayItems.map(function(u) {
         var isMe = u.email === currentUser.email;
         var isAdmin = u.role === 'admin';
         
@@ -4748,13 +4843,7 @@ function renderUsers(items) {
         } else if (!u.expiresAt) {
             expiryHtml = '<div class="u-expiry permanent"><i class="fas fa-infinity"></i> Vĩnh viễn</div>';
         } else {
-            var expDate;
-            try {
-                var ea = u.expiresAt;
-                if (typeof ea.toDate === 'function') expDate = ea.toDate();
-                else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
-                else expDate = new Date(ea);
-            } catch(e) {}
+            var expDate = getExpiryDate(u.expiresAt);
             
             if (expDate && !isNaN(expDate.getTime())) {
                 var daysLeft = Math.ceil((expDate.getTime() - now) / (24 * 60 * 60 * 1000));
@@ -4835,7 +4924,25 @@ window.deleteUser = async function(email) {
     catch(e) { alert('Lỗi: ' + e.message); }
 };
 
+/* ================================================================
+   ✅ LỊCH SỬ ĐĂNG NHẬP - CHỈ SUPER ADMIN "hoanginvest@gmail.com" thấy
+   ================================================================ */
 function loadLogs() {
+    var hidden = isHiddenAdmin();
+    var logTitleEl = $('logsTitle');
+    
+    // ✅ Admin thường → ẨN toàn bộ phần lịch sử
+    if (hidden) {
+        if (logTitleEl) logTitleEl.style.display = 'none';
+        $('logsList').style.display = 'none';
+        $('logsList').innerHTML = '';
+        return;
+    }
+    
+    // ✅ Super admin → hiển thị bình thường
+    if (logTitleEl) logTitleEl.style.display = 'flex';
+    $('logsList').style.display = 'block';
+    
     db.collection('login_logs').orderBy('time', 'desc').limit(30).get()
         .then(function(snapshot) {
             if (snapshot.empty) {
@@ -5256,6 +5363,7 @@ html_output = (html_template
     .replace("__DEMO_DAILY_LIMIT__", str(DEMO_DAILY_LIMIT))
     .replace("__DEMO_HSK_MAX__", str(DEMO_HSK_MAX))
     .replace("__TARGET_ADMINS__", str(TARGET_ADMINS))
+    .replace("__SUPER_ADMIN__", SUPER_ADMIN)
     .replace("__SYNONYMS__", synonyms_json)
     .replace("__FILLER_WORDS__", fillers_json)
 )
@@ -5268,7 +5376,12 @@ print(f"📦 Kích thước: {size_kb:.1f} KB")
 print(f"📚 Tổng số câu: {len(data)}")
 print(f"🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} lượt")
 print(f"🔥 Firebase: {FIREBASE_CONFIG.get('projectId', 'N/A')}")
-print(f"👑 Chế độ: Đúng {TARGET_ADMINS} admin")
+print(f"👑 Super admin: {SUPER_ADMIN}")
+print(f"   → 7 ô thống kê + thấy tất cả + lịch sử đăng nhập")
+print(f"🕵️  Admin thường (tất cả admin khác)")
+print(f"   → 4 ô: Tổng User / Đang HĐ / Sắp hết hạn / Hết hạn")
+print(f"   → Ẩn admin khác + ẩn lịch sử đăng nhập")
+print(f"👥 Tổng User KHÔNG tính admin")
 print(f"🧠 Chấm điểm: So khớp thông minh")
 print(f"💡 Nút Gợi ý (mặc định TẮT) + Ghost text mờ")
 print(f"📝 Đáp án tách theo PINYIN viết liền/rời")
