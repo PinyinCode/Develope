@@ -8,15 +8,12 @@ Chuyển file Excel → HTML tự chứa dữ liệu
     + Bộ lọc HSK: chỉ HSK1-3 (HSK4-6 hiện 🔒)
     + Bộ lọc chủ đề: hiện TẤT CẢ, chủ đề ngoài 50 câu 🔒
     + Ô luyện tập: ẩn tiếng Trung + Pinyin, chỉ hiện tiếng Việt
-    + Chấm điểm bằng SO KHỚP THÔNG MINH (miễn phí 100%)
+    + Chấm điểm bằng SO KHỚP THÔNG MINH + TÔ ĐỎ TỪNG KÝ TỰ
     + Nghe + Luyện viết: 100 lượt/ngày (chung)
+- ✅ CHẾ ĐỘ LUYỆN TẬP FULL MÀN HÌNH
+- ✅ Theme mặc định LIGHT MODE
 - Hệ thống đăng nhập Firebase + Admin panel
-- BẢO VỆ: Đúng 2 admin (không nâng/hạ/xóa)
-- Nút Zalo: TO khi demo, NHỎ khi đã đăng nhập
-- Dark mode fix: HSK badge + nút nghe dễ đọc
-- Hanzi Writer, font chữ Trung tối ưu, 3 FAB, focus mode
-- ✅ Hiển thị số lượng kết quả theo ô tìm kiếm / bộ lọc
-- ✅ KHÔNG cần API key, KHÔNG giới hạn lượt chấm
+- BẢO VỆ: Đúng 2 admin
 """
 import openpyxl
 import json
@@ -44,7 +41,6 @@ ZALO_PHONE = CONFIG.get("zalo_phone", "")
 ZALO_NAME = CONFIG.get("zalo_name", "Hỗ trợ")
 FIREBASE_CONFIG = CONFIG.get("firebase_config", {})
 
-# Từ điển đồng nghĩa (có thể mở rộng qua config)
 DEFAULT_SYNONYMS = {
     "我": ["俺", "本人", "咱"],
     "你": ["您", "阁下"],
@@ -67,8 +63,6 @@ DEFAULT_SYNONYMS = {
     "请": ["麻烦", "拜托"],
 }
 SYNONYMS = CONFIG.get("synonyms", DEFAULT_SYNONYMS)
-
-# Từ phụ có thể bỏ qua (không ảnh hưởng nghĩa)
 FILLER_WORDS = CONFIG.get("filler_words", ["了", "的", "吗", "呢", "吧", "啊", "呀", "哦", "嘛", "哈", "哪", "着", "过"])
 
 if not FIREBASE_CONFIG.get("apiKey"):
@@ -81,9 +75,9 @@ if not ZALO_PHONE:
 print(f"⚙️  Đã đọc cấu hình từ: {CONFIG_FILE}")
 print(f"   📞 Zalo: {ZALO_PHONE} ({ZALO_NAME})")
 print(f"   🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} lượt nghe/viết mỗi ngày")
-print(f"   🧠 Chấm điểm: So khớp thông minh (miễn phí 100%)")
-print(f"   📚 Từ điển đồng nghĩa: {len(SYNONYMS)} nhóm")
-print(f"   🚫 Từ phụ bỏ qua: {len(FILLER_WORDS)} từ")
+print(f"   🧠 Chấm điểm: So khớp thông minh + Tô đỏ từng ký tự")
+print(f"   🎯 Full màn hình luyện tập: Next/Prev, bấm từng chữ đọc")
+print(f"   ☀️  Theme mặc định: Light mode")
 print(f"   👑 Target admins: {TARGET_ADMINS}")
 
 # ====== ĐỌC EXCEL ======
@@ -170,12 +164,7 @@ body{
     padding-bottom:calc(90px + env(safe-area-inset-bottom));
     transition:background .2s,color .2s;
 }
-.container{
-    max-width:1100px;
-    margin:0 auto;
-    padding:0 1.5rem;
-}
-
+.container{max-width:1100px;margin:0 auto;padding:0 1.5rem}
 @media(min-width:1200px){.container{max-width:1050px}}
 @media(min-width:1600px){.container{max-width:1200px}}
 @media(min-width:2000px){.container{max-width:1300px}}
@@ -191,8 +180,7 @@ body{
 
 .sticky-top{
     position:sticky;top:0;z-index:100;background:var(--bg);
-    padding:.5rem 0 .6rem 0;
-    transition:background .2s, box-shadow .2s, border-color .2s;
+    padding:.5rem 0 .6rem 0;transition:background .2s, box-shadow .2s, border-color .2s;
     border-bottom:1px solid transparent;
 }
 .sticky-top.scrolled{
@@ -345,20 +333,12 @@ body{
 }
 
 .result-count{
-    display:none;
-    align-items:center;
-    gap:.4rem;
-    margin-top:.5rem;
-    padding:.45rem .85rem;
+    display:none;align-items:center;gap:.4rem;
+    margin-top:.5rem;padding:.45rem .85rem;
     border-radius:var(--radius-full);
-    background:var(--surface-2);
-    border:1px solid var(--border);
-    color:var(--text-2);
-    font-size:.8rem;
-    font-weight:600;
-    width:fit-content;
-    box-shadow:var(--shadow-sm);
-    transition:.2s;
+    background:var(--surface-2);border:1px solid var(--border);
+    color:var(--text-2);font-size:.8rem;font-weight:600;
+    width:fit-content;box-shadow:var(--shadow-sm);transition:.2s;
 }
 .result-count.show{display:inline-flex}
 .result-count i{color:var(--primary);font-size:.85rem}
@@ -371,27 +351,15 @@ body{
 [data-theme="dark"] .result-count.empty b{color:#fca5a5}
 
 .zalo-btn{
-    position:fixed;
-    bottom:calc(20px + env(safe-area-inset-bottom));
-    left:20px;
-    z-index:1000;
-    display:flex;
-    align-items:center;
-    gap:.5rem;
-    padding:.7rem 1.1rem;
-    border-radius:50px;
+    position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));
+    left:20px;z-index:1000;display:flex;align-items:center;gap:.5rem;
+    padding:.7rem 1.1rem;border-radius:50px;
     background:linear-gradient(135deg, #0068ff, #0084ff);
-    color:#fff;
-    text-decoration:none;
-    font-weight:700;
-    font-size:.85rem;
+    color:#fff;text-decoration:none;font-weight:700;font-size:.85rem;
     box-shadow:0 8px 24px rgba(0,104,255,.4);
     transition:all .35s cubic-bezier(.34,1.56,.64,1);
-    -webkit-tap-highlight-color:transparent;
-    white-space:nowrap;
-    border:2px solid #fff;
-    font-family:inherit;
-    overflow:hidden;
+    -webkit-tap-highlight-color:transparent;white-space:nowrap;
+    border:2px solid #fff;font-family:inherit;overflow:hidden;
 }
 .zalo-btn:hover,.zalo-btn:active{
     transform:scale(1.05);
@@ -498,56 +466,31 @@ body:not(.show-vi) .card-vi{display:none!important}
 body:not(.show-practice) .col-practice,
 body:not(.show-practice) .card-practice{display:none!important}
 
-/* ✅ Khi BẬT ô luyện tập: ẩn tiếng Trung + Pinyin, chỉ hiện tiếng Việt */
 body.show-practice .card-zh,
-body.show-practice .card-pinyin {
-    display: none !important;
+body.show-practice .card-pinyin{display:none!important}
+body.show-practice .card-vi{
+    display:block!important;font-size:1rem;font-weight:600;
+    color:var(--text);margin-bottom:.55rem;line-height:1.4;
 }
-body.show-practice .card-vi {
-    display: block !important;
-    font-size:1rem;
-    font-weight:600;
-    color:var(--text);
-    margin-bottom:.55rem;
-    line-height:1.4;
-}
-body.show-practice .card-body {
+body.show-practice .card-body{
     background:linear-gradient(135deg, var(--surface-2), rgba(37,99,235,.06));
-    padding:.75rem .85rem;
-    border-radius:10px;
-    border-left:3px solid var(--primary);
+    padding:.75rem .85rem;border-radius:10px;border-left:3px solid var(--primary);
 }
 
-.ai-correct{
-    color:var(--success);
-    font-weight:700;
-}
-.ai-partial{
-    color:var(--amber);
-    font-weight:700;
-}
-.ai-wrong{
-    color:var(--danger);
-    font-weight:700;
-}
+.ai-correct{color:var(--success);font-weight:700}
+.ai-partial{color:var(--amber);font-weight:700}
+.ai-wrong{color:var(--danger);font-weight:700}
 .ai-reason{
-    display:block;
-    font-size:.68rem;
-    color:var(--text-3);
-    font-weight:400;
-    margin-top:.2rem;
-    font-style:italic;
-    line-height:1.3;
+    display:block;font-size:.68rem;color:var(--text-3);
+    font-weight:400;margin-top:.2rem;font-style:italic;line-height:1.3;
 }
 
 .main{padding:.5rem 0 3rem}
 
 .demo-banner{
     background:linear-gradient(135deg, #fef3c7, #fde68a);
-    border:1.5px solid #f59e0b;
-    border-radius:var(--radius);
-    padding:.9rem 1.1rem;
-    margin-bottom:1rem;
+    border:1.5px solid #f59e0b;border-radius:var(--radius);
+    padding:.9rem 1.1rem;margin-bottom:1rem;
     display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;
 }
 [data-theme="dark"] .demo-banner{
@@ -577,23 +520,13 @@ body.show-practice .card-body {
 .demo-banner-btn:hover{background:#d97706;transform:translateY(-1px)}
 
 .mobile-view{
-    display:grid;
-    grid-template-columns:1fr;
-    gap:.8rem;
-    max-width:100%;
+    display:grid;grid-template-columns:1fr;gap:.8rem;max-width:100%;
 }
-
 @media(min-width:769px){
-    .mobile-view{
-        grid-template-columns:1fr 1fr;
-        gap:1.2rem;
-    }
+    .mobile-view{grid-template-columns:1fr 1fr;gap:1.2rem;}
 }
-
 @media(min-width:1800px){
-    .mobile-view{
-        grid-template-columns:1fr 1fr 1fr;
-    }
+    .mobile-view{grid-template-columns:1fr 1fr 1fr;}
 }
 
 .card-header{
@@ -612,7 +545,6 @@ body.show-practice .card-body {
     display:inline-block;padding:.12rem .45rem;border-radius:var(--radius-full);
     background:var(--surface-2);color:var(--text-2);
     font-size:.65rem;font-weight:600;white-space:nowrap;
-    transition:font-size .35s cubic-bezier(.34,1.56,.64,1), padding .35s cubic-bezier(.34,1.56,.64,1);
 }
 .card-tag.hsk{background:var(--primary-light);color:var(--primary-dark)}
 .card-tag.topic{background:var(--amber-light);color:#92400e}
@@ -623,22 +555,19 @@ body.show-practice .card-body {
     font-size:1.2rem;font-weight:500;color:var(--text);
     margin-bottom:.4rem;line-height:1.5;
     font-family:var(--font-zh);letter-spacing:.02em;
-    transition:font-size .3s cubic-bezier(.34,1.56,.64,1), font-weight .3s;
 }
 .card-pinyin{
     font-size:.78rem;font-style:italic;color:var(--primary-dark);
     background:var(--surface-2);padding:.2rem .45rem;border-radius:6px;display:inline-block;
 }
 [data-theme="dark"] .card-pinyin{background:rgba(59,130,246,.18);color:#93c5fd;font-weight:500;font-style:italic}
-.card-practice{display:flex;align-items:center;gap:.4rem;padding-top:.6rem;border-top:1px dashed var(--border);flex-wrap:wrap}
-.card-practice .practice-input{flex:1;min-width:0}
+.card-practice{
+    display:flex;align-items:center;gap:.4rem;
+    padding-top:.6rem;border-top:1px dashed var(--border);flex-wrap:wrap;
+}
+.card-practice .practice-input{flex:1;min-width:120px}
 .card-check{font-size:.75rem;font-weight:700;white-space:nowrap;min-width:55px;text-align:center}
 
-.hsk-badge{
-    display:inline-block;padding:.2rem .5rem;border-radius:var(--radius-full);
-    background:var(--primary-light);color:var(--primary-dark);
-    font-size:.7rem;font-weight:700;white-space:nowrap;
-}
 .audio-btn{
     width:32px;height:32px;border-radius:50%;border:none;
     background:var(--primary-light);color:var(--primary-dark);
@@ -660,21 +589,32 @@ body.show-practice .card-body {
 .write-btn:hover,.write-btn:active{background:var(--amber);color:#fff;transform:scale(1.08)}
 [data-theme="dark"] .write-btn{background:rgba(245,158,11,.25);color:#fcd34d}
 [data-theme="dark"] .write-btn:hover{background:var(--amber);color:#fff}
+
+/* Nút mở full màn hình */
+.practice-full-btn{
+    width:32px;height:32px;border-radius:50%;border:none;
+    background:var(--primary-light);color:var(--primary-dark);
+    cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+    font-size:.8rem;transition:.15s;
+}
+.practice-full-btn:hover,.practice-full-btn:active{
+    background:var(--primary);color:#fff;transform:scale(1.08);
+}
+
 .action-group{display:flex;gap:.3rem;justify-content:center;align-items:center;position:relative}
 .practice-input{
-    width:100%;min-width:140px;padding:.5rem .8rem;
+    width:100%;min-width:120px;padding:.5rem .8rem;
     border-radius:var(--radius-full);border:1.5px solid var(--border);
     background:var(--surface);color:var(--text);font-size:.9rem;
     outline:none;transition:.15s;font-family:var(--font-zh);-webkit-appearance:none;
 }
 .practice-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
-.check-cell{font-weight:700;font-size:.78rem;white-space:nowrap;text-align:center}
 
 .card{
     background:var(--surface);border-radius:var(--radius);
     border:1px solid var(--border);padding:.9rem;
     box-shadow:var(--shadow-sm);
-    transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s, border-color .25s, background .25s;
+    transition:transform .25s, box-shadow .25s, border-color .25s;
     cursor:pointer;user-select:none;
 }
 .card.tapped{animation:tapPulse .6s}
@@ -693,20 +633,11 @@ body.show-practice .card-body {
     background:linear-gradient(135deg, var(--surface) 0%, rgba(59,130,246,.15) 100%);
     box-shadow:0 12px 32px rgba(59,130,246,.3);
 }
-.card.focused .card-zh{
-    font-size:2rem;font-weight:500;letter-spacing:.02em;line-height:1.5;
-    animation:zoomIn .35s cubic-bezier(.34,1.56,.64,1);
-}
-.card.focused .card-tag.topic{
-    font-size:.9rem;padding:.28rem .7rem;font-weight:700;
-    animation:zoomIn .35s cubic-bezier(.34,1.56,.64,1);
-}
-@keyframes zoomIn{0%{transform:scale(.85);opacity:.5}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+.card.focused .card-zh{font-size:2rem;font-weight:500;letter-spacing:.02em;line-height:1.5}
 .practice-input, .audio-btn, .write-btn, .card-practice{cursor:auto}
 
 .load-more{
-    grid-column:1 / -1;
-    display:block;width:100%;padding:.9rem;margin-top:.5rem;
+    grid-column:1 / -1;display:block;width:100%;padding:.9rem;margin-top:.5rem;
     border-radius:var(--radius);border:1.5px dashed var(--border-strong);
     background:var(--surface);color:var(--primary);
     font-weight:700;font-size:.88rem;cursor:pointer;
@@ -716,23 +647,219 @@ body.show-practice .card-body {
 .load-more.locked{border-color:var(--amber);color:#92400e;background:var(--amber-light)}
 [data-theme="dark"] .load-more.locked{color:#fcd34d;background:rgba(245,158,11,.15)}
 .end-note{
-    grid-column:1 / -1;
-    text-align:center;padding:1rem;color:var(--text-3);font-size:.82rem;
+    grid-column:1 / -1;text-align:center;padding:1rem;
+    color:var(--text-3);font-size:.82rem;
 }
 .end-note i{color:var(--success);margin-right:.35rem}
 .no-data{
-    grid-column:1 / -1;
-    text-align:center;padding:3rem 1rem;color:var(--text-3);
+    grid-column:1 / -1;text-align:center;padding:3rem 1rem;color:var(--text-3);
     background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);
 }
 .no-data i{font-size:2.5rem;margin-bottom:.75rem;color:var(--border-strong);display:block}
-.error-box{
-    grid-column:1 / -1;
-    text-align:center;padding:2rem 1rem;color:var(--danger);
-    background:var(--danger-light);border-radius:var(--radius);
-    border:1px solid rgba(220,38,38,.3);
+
+/* ✅ MODAL LUYỆN TẬP FULL MÀN HÌNH */
+.practice-full-modal{
+    position:fixed;inset:0;background:var(--bg);z-index:2500;
+    display:none;flex-direction:column;animation:fadeIn .2s;
 }
-.error-box i{font-size:2rem;margin-bottom:.5rem;display:block}
+.practice-full-modal.show{display:flex}
+
+.practice-full-header{
+    display:flex;align-items:center;gap:.75rem;
+    padding:.85rem 1.25rem;background:var(--surface);
+    border-bottom:1px solid var(--border);
+    flex-shrink:0;box-shadow:0 2px 8px rgba(15,23,42,.04);
+}
+.practice-full-header .pf-counter{
+    font-size:.85rem;font-weight:700;color:var(--text-2);
+    background:var(--surface-2);padding:.35rem .75rem;border-radius:50px;
+    white-space:nowrap;
+}
+.practice-full-header .pf-tags{
+    display:flex;gap:.35rem;flex:1;min-width:0;flex-wrap:wrap;
+}
+.practice-full-header .pf-close{
+    width:38px;height:38px;border-radius:50%;border:none;
+    background:var(--surface-2);color:var(--text-2);cursor:pointer;
+    font-size:1rem;display:flex;align-items:center;justify-content:center;
+    transition:.15s;flex-shrink:0;
+}
+.practice-full-header .pf-close:hover{background:var(--danger-light);color:var(--danger)}
+
+.practice-full-body{
+    flex:1;overflow-y:auto;padding:2rem 1.25rem;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;min-height:0;
+}
+.practice-full-content{
+    width:100%;max-width:700px;
+    display:flex;flex-direction:column;gap:1.5rem;
+}
+
+.practice-full-vi{
+    font-size:1.75rem;font-weight:600;color:var(--text);
+    text-align:center;line-height:1.45;
+    padding:1.25rem 1rem;
+    background:linear-gradient(135deg, var(--surface-2), rgba(37,99,235,.06));
+    border-radius:16px;border-left:4px solid var(--primary);
+}
+@media(min-width:769px){.practice-full-vi{font-size:2.25rem;}}
+
+.practice-full-input-wrap{display:flex;flex-direction:column;gap:.75rem;}
+.practice-full-input{
+    width:100%;padding:1rem 1.25rem;
+    font-size:1.5rem;font-family:var(--font-zh);
+    border-radius:14px;border:2px solid var(--border);
+    background:var(--surface);color:var(--text);
+    outline:none;transition:.15s;
+    text-align:center;letter-spacing:.05em;
+    -webkit-appearance:none;
+}
+.practice-full-input:focus{
+    border-color:var(--primary);
+    box-shadow:0 0 0 4px rgba(37,99,235,.15);
+}
+@media(min-width:769px){.practice-full-input{font-size:1.85rem;padding:1.15rem 1.5rem;}}
+
+/* ✅ PREVIEW TÔ ĐỎ TỪNG KÝ TỰ */
+.char-preview{
+    display:flex;justify-content:center;flex-wrap:wrap;
+    gap:.5rem;min-height:2.5rem;padding:.75rem 1rem;
+    background:var(--surface-2);border-radius:12px;
+    border:1px dashed var(--border);
+}
+.char-preview:empty{display:none}
+.char-slot{
+    font-family:var(--font-zh);font-size:1.6rem;font-weight:500;
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:1.8rem;height:2.4rem;padding:0 .35rem;
+    border-radius:8px;transition:.15s;line-height:1;
+}
+@media(min-width:769px){.char-slot{font-size:2rem;min-width:2.2rem;height:2.8rem;}}
+.char-slot.correct{color:var(--success);background:rgba(22,163,74,.1);}
+.char-slot.wrong{
+    color:#fff;background:var(--danger);
+    animation:shakeWrong .3s;
+    box-shadow:0 2px 8px rgba(220,38,38,.35);
+}
+.char-slot.missing{color:var(--text-3);opacity:.4;background:transparent;}
+.char-slot.extra{
+    color:#fff;background:var(--amber);
+    box-shadow:0 2px 8px rgba(245,158,11,.35);
+}
+@keyframes shakeWrong{
+    0%,100%{transform:translateX(0)}
+    25%{transform:translateX(-3px)}
+    75%{transform:translateX(3px)}
+}
+
+/* Preview nhỏ trong card */
+.inline-char-preview{
+    display:flex;flex-wrap:wrap;gap:.25rem;
+    margin-top:.4rem;width:100%;
+}
+.inline-char-preview .char-slot{
+    font-size:.95rem;min-width:1.1rem;height:1.5rem;
+    padding:0 .25rem;border-radius:5px;
+}
+
+.practice-full-status{
+    text-align:center;font-size:1rem;font-weight:700;min-height:1.5rem;
+}
+.practice-full-status.correct{color:var(--success);}
+.practice-full-status.partial{color:var(--amber);}
+.practice-full-status.wrong{color:var(--danger);}
+
+/* Đáp án reveal */
+.answer-reveal{
+    display:none;flex-direction:column;gap:.75rem;
+    padding:1.25rem;background:var(--surface-2);
+    border-radius:14px;border:1px solid var(--border);
+}
+.answer-reveal.show{display:flex}
+.answer-reveal .ar-label{
+    font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--text-3);font-weight:700;text-align:center;
+}
+.answer-chars{
+    display:flex;justify-content:center;flex-wrap:wrap;gap:.5rem;
+}
+.answer-char-btn{
+    font-family:var(--font-zh);font-size:1.8rem;font-weight:500;
+    min-width:2.6rem;height:3.2rem;padding:0 .6rem;
+    border-radius:12px;border:2px solid var(--border);
+    background:var(--surface);color:var(--text);
+    cursor:pointer;transition:.15s;
+    display:inline-flex;align-items:center;justify-content:center;
+    -webkit-appearance:none;
+}
+.answer-char-btn:hover,.answer-char-btn:active{
+    border-color:var(--primary);background:var(--primary-light);
+    transform:scale(1.05);
+}
+.answer-char-btn.speaking{
+    background:var(--primary);color:#fff;border-color:var(--primary);
+    animation:pulse 1s infinite;
+}
+@media(min-width:769px){
+    .answer-char-btn{font-size:2.2rem;min-width:3.2rem;height:3.8rem;}
+}
+.answer-pinyin{
+    text-align:center;font-size:.95rem;font-style:italic;
+    color:var(--primary-dark);font-weight:500;
+}
+.answer-actions{
+    display:flex;justify-content:center;gap:.5rem;flex-wrap:wrap;
+}
+.answer-actions button{
+    padding:.6rem 1.1rem;border-radius:50px;border:1.5px solid var(--border);
+    background:var(--surface);color:var(--text);
+    font-size:.85rem;font-weight:600;cursor:pointer;
+    transition:.15s;font-family:inherit;
+    display:inline-flex;align-items:center;gap:.4rem;
+}
+.answer-actions button:hover{background:var(--surface-2);border-color:var(--primary);color:var(--primary)}
+.answer-actions button.primary{
+    background:var(--primary);color:#fff;border-color:var(--primary);
+}
+.answer-actions button.primary:hover{background:var(--primary-dark)}
+
+/* Nút xem đáp án */
+.reveal-btn{
+    width:100%;padding:.85rem;
+    border-radius:14px;border:2px dashed var(--border-strong);
+    background:var(--surface);color:var(--text-2);
+    font-size:.9rem;font-weight:600;cursor:pointer;
+    transition:.15s;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;gap:.5rem;
+}
+.reveal-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light)}
+.reveal-btn.hidden{display:none}
+
+/* Navigation Next/Prev */
+.practice-full-nav{
+    display:flex;gap:.75rem;padding:1rem 1.25rem;
+    background:var(--surface);border-top:1px solid var(--border);
+    flex-shrink:0;justify-content:center;
+}
+.pf-nav-btn{
+    flex:1;max-width:220px;padding:.85rem 1rem;
+    border-radius:14px;border:1.5px solid var(--border);
+    background:var(--surface);color:var(--text);
+    font-size:.9rem;font-weight:700;cursor:pointer;
+    transition:.15s;font-family:inherit;
+    display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+}
+.pf-nav-btn:hover:not(:disabled){
+    background:var(--primary-light);border-color:var(--primary);color:var(--primary-dark);
+    transform:translateY(-1px);
+}
+.pf-nav-btn:disabled{opacity:.35;cursor:not-allowed}
+.pf-nav-btn.primary{
+    background:var(--primary);color:#fff;border-color:var(--primary);
+    box-shadow:0 4px 12px rgba(37,99,235,.3);
+}
+.pf-nav-btn.primary:hover:not(:disabled){background:var(--primary-dark)}
 
 .login-modal{
     position:fixed;inset:0;
@@ -868,7 +995,6 @@ body.show-practice .card-body {
     max-height:calc(100vh - 2rem);overflow:hidden;
     box-shadow:0 20px 60px rgba(0,0,0,.3);
     display:flex;flex-direction:column;
-    animation:slideUp .3s cubic-bezier(.34,1.56,.64,1);
 }
 .admin-header{
     padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);
@@ -973,14 +1099,12 @@ body.show-practice .card-body {
 
 [data-theme="dark"] .hsk-badge{
     background:rgba(59,130,246,.25);
-    color:#93c5fd;
-    font-weight:800;
+    color:#93c5fd;font-weight:800;
     border:1px solid rgba(59,130,246,.4);
 }
 [data-theme="dark"] .card-tag.hsk{
     background:rgba(59,130,246,.25);
-    color:#93c5fd;
-    font-weight:700;
+    color:#93c5fd;font-weight:700;
     border:1px solid rgba(59,130,246,.4);
 }
 [data-theme="dark"] .audio-btn{
@@ -990,9 +1114,7 @@ body.show-practice .card-body {
 }
 [data-theme="dark"] .audio-btn:hover,
 [data-theme="dark"] .audio-btn:active{
-    background:#3b82f6;
-    color:#fff;
-    border-color:#3b82f6;
+    background:#3b82f6;color:#fff;border-color:#3b82f6;
 }
 
 @media(max-width:768px){
@@ -1038,6 +1160,17 @@ body.show-practice .card-body {
     .zalo-btn.compact{width:48px;height:48px}
     .zalo-btn.compact i{font-size:1.25rem}
     .zalo-btn.compact::after{display:none}
+    
+    .practice-full-header{padding:.65rem .85rem;gap:.5rem}
+    .practice-full-header .pf-counter{font-size:.75rem;padding:.3rem .6rem}
+    .practice-full-body{padding:1.25rem .85rem}
+    .practice-full-content{gap:1.1rem}
+    .practice-full-vi{font-size:1.35rem;padding:1rem .75rem}
+    .practice-full-input{font-size:1.35rem;padding:.85rem 1rem}
+    .char-slot{font-size:1.4rem;min-width:1.6rem;height:2.1rem}
+    .answer-char-btn{font-size:1.5rem;min-width:2.2rem;height:2.8rem}
+    .pf-nav-btn{padding:.75rem .75rem;font-size:.82rem}
+    .practice-full-nav{padding:.75rem .85rem;gap:.5rem}
 }
 @media(max-width:400px){
     .logo-text .subtitle{display:none}
@@ -1218,6 +1351,55 @@ body.show-practice .card-body {
             <button class="writer-btn" id="writerQuiz"><i class="fas fa-pen"></i> Tự viết</button>
             <button class="writer-btn" id="writerReset"><i class="fas fa-undo-alt"></i> Xóa</button>
         </div>
+    </div>
+</div>
+
+<!-- ✅ MODAL LUYỆN TẬP FULL MÀN HÌNH -->
+<div class="practice-full-modal" id="practiceFullModal">
+    <div class="practice-full-header">
+        <div class="pf-counter" id="pfCounter">Câu 1 / 1</div>
+        <div class="pf-tags" id="pfTags"></div>
+        <button class="pf-close" id="pfClose" aria-label="Đóng">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    
+    <div class="practice-full-body">
+        <div class="practice-full-content">
+            <div class="practice-full-vi" id="pfVi">-</div>
+            
+            <div class="practice-full-input-wrap">
+                <input type="text" class="practice-full-input" id="pfInput" 
+                    placeholder="Gõ tiếng Trung..." autocomplete="off" 
+                    autocorrect="off" autocapitalize="off" spellcheck="false">
+                <div class="char-preview" id="pfPreview"></div>
+                <div class="practice-full-status" id="pfStatus"></div>
+            </div>
+            
+            <button class="reveal-btn" id="pfRevealBtn">
+                <i class="fas fa-eye"></i> Xem đáp án
+            </button>
+            
+            <div class="answer-reveal" id="pfAnswer">
+                <div class="ar-label">Đáp án</div>
+                <div class="answer-chars" id="pfAnswerChars"></div>
+                <div class="answer-pinyin" id="pfAnswerPinyin"></div>
+                <div class="answer-actions">
+                    <button class="primary" onclick="speakFullSentence()">
+                        <i class="fas fa-volume-up"></i> Đọc cả câu
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="practice-full-nav">
+        <button class="pf-nav-btn" id="pfPrevBtn">
+            <i class="fas fa-chevron-left"></i> Câu trước
+        </button>
+        <button class="pf-nav-btn primary" id="pfNextBtn">
+            Câu sau <i class="fas fa-chevron-right"></i>
+        </button>
     </div>
 </div>
 
@@ -1554,6 +1736,7 @@ function initApp() {
     initDisplayState();
     initSpeech();
     initWriter();
+    initPracticeFull();
     
     $('searchInput').addEventListener('input', applyFilter);
     $('resetBtn').addEventListener('click', function() {
@@ -1663,9 +1846,7 @@ function initTheme() {
     try {
         var saved = localStorage.getItem('theme');
         if (saved) document.documentElement.setAttribute('data-theme', saved);
-        else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
+        else document.documentElement.setAttribute('data-theme', 'light'); // ✅ Mặc định LIGHT
     } catch(e) {}
     updateThemeIcon();
     $('themeToggle').addEventListener('click', function() {
@@ -1728,7 +1909,11 @@ function applyDisplayState() {
     
     if (displayState.practice) {
         document.querySelectorAll('.card-check').forEach(function(c) { c.innerHTML = ''; });
-        document.querySelectorAll('.practice-input').forEach(function(i) { i.value = ''; });
+        document.querySelectorAll('.practice-input').forEach(function(i) { 
+            i.value = ''; 
+            var pv = i.parentElement.querySelector('.inline-char-preview');
+            if (pv) pv.innerHTML = '';
+        });
     }
 }
 function saveDisplayState() {
@@ -1761,6 +1946,7 @@ document.addEventListener('click', function(e) {
         e.target.closest('.search-bar') || e.target.closest('.filters') ||
         e.target.closest('.writer-modal') || e.target.closest('.user-menu') ||
         e.target.closest('.login-modal') || e.target.closest('.admin-modal') ||
+        e.target.closest('.practice-full-modal') ||
         e.target.closest('.zalo-btn')) return;
     clearFocus();
 }, true);
@@ -1836,7 +2022,6 @@ function escapeJs(str) {
         .replace(/\n/g, '\\n').replace(/\r/g, '');
 }
 
-/* ✅ BUILD FILTER - Chủ đề hiện TẤT CẢ, chủ đề ngoài demo có 🔒 */
 function buildFilters() {
     var hskSelect = $('hskFilter');
     var subjectSelect = $('subjectFilter');
@@ -1962,6 +2147,10 @@ function render(reset) {
         if (r.zh) {
             writeBtn = '<button class="write-btn" onclick="openWriter(\'' + zhJs + '\', \'' + viJs + '\', \'' + pinyinJs + '\', event)" title="Luyện viết"><i class="fas fa-pen-fancy"></i></button>';
         }
+        var fullBtn = '';
+        if (r.zh) {
+            fullBtn = '<button class="practice-full-btn" onclick="openPracticeFull(\'' + sttJs + '\', event)" title="Luyện tập full màn hình"><i class="fas fa-expand"></i></button>';
+        }
         var practiceInput = '<input type="text" class="practice-input" placeholder="Gõ tiếng Trung..." data-answer="' + zhHtml + '" data-vi-hint="' + viHtml + '" data-stt="' + sttSafe + '" oninput="checkInput(this)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">';
         
         mobHtml += '<div class="card" onclick="toggleFocus(\'' + sttJs + '\', this)" data-stt="' + sttSafe + '">' +
@@ -1972,7 +2161,7 @@ function render(reset) {
                     (r.topic ? '<span class="card-tag topic">' + escapeHtml(r.topic) + '</span>' : '') +
                     (r.subject ? '<span class="card-tag">' + escapeHtml(r.subject) + '</span>' : '') +
                 '</div>' +
-                '<div onclick="event.stopPropagation()" class="action-group">' + audio + writeBtn + '</div>' +
+                '<div onclick="event.stopPropagation()" class="action-group">' + audio + writeBtn + fullBtn + '</div>' +
             '</div>' +
             '<div class="card-body">' +
                 (r.vi ? '<div class="card-vi">' + viHtml + '</div>' : '') +
@@ -2017,24 +2206,18 @@ function render(reset) {
 }
 
 /* ============================================================
-   🧠 SO KHỚP THÔNG MINH - Miễn phí 100%, không cần API
+   🧠 SO KHỚP THÔNG MINH
    ============================================================ */
-
-/* Bước 1: Chuẩn hóa chuỗi (bỏ dấu câu, khoảng trắng, lowercase) */
 function normalizeAnswer(str) {
     if (!str) return '';
     return String(str)
-        // Bỏ dấu câu tiếng Trung
         .replace(/[。，！？、；：""''「」『』（）《》〈〉【】〔〕]/g, '')
-        // Bỏ dấu câu tiếng Anh/Việt
         .replace(/[.,!?;:'"()\[\]{}\-~`@#$%^&*+=|\\/<>]/g, '')
-        // Bỏ khoảng trắng
         .replace(/\s+/g, '')
         .toLowerCase()
         .trim();
 }
 
-/* Bước 2: Bỏ dấu thanh điệu pinyin */
 function removeTones(str) {
     if (!str) return '';
     var map = {
@@ -2050,7 +2233,6 @@ function removeTones(str) {
     });
 }
 
-/* Bước 3: Bỏ từ phụ (了, 的, 吗, 呢...) */
 function removeFillers(str) {
     if (!str) return '';
     var result = str;
@@ -2060,11 +2242,9 @@ function removeFillers(str) {
     return result;
 }
 
-/* Bước 4: Mở rộng từ đồng nghĩa → tạo danh sách biến thể */
 function expandSynonyms(str) {
     var results = [str];
     var keys = Object.keys(SYNONYMS);
-    // Chỉ mở rộng 1 cấp để tránh bùng nổ tổ hợp
     for (var i = 0; i < keys.length; i++) {
         var key = keys[i];
         if (str.indexOf(key) !== -1) {
@@ -2077,7 +2257,6 @@ function expandSynonyms(str) {
     return results;
 }
 
-/* Bước 5: Levenshtein distance - đo độ tương đồng */
 function levenshtein(a, b) {
     if (a === b) return 0;
     if (!a.length) return b.length;
@@ -2109,40 +2288,26 @@ function similarity(a, b) {
     return 1 - (levenshtein(a, b) / maxLen);
 }
 
-/* Bước 6: Hàm chấm điểm tổng hợp */
 function smartCheck(userAnswer, correctAnswer) {
     var user = normalizeAnswer(userAnswer);
     var correct = normalizeAnswer(correctAnswer);
     
     if (!user) return { status: 'wrong', reason: '' };
     
-    // CẤP 1: Khớp tuyệt đối
-    if (user === correct) {
-        return { status: 'correct', reason: 'Chính xác' };
-    }
+    if (user === correct) return { status: 'correct', reason: 'Chính xác' };
     
-    // CẤP 2: Khớp sau khi bỏ dấu thanh pinyin
     var userNoTone = removeTones(user);
     var correctNoTone = removeTones(correct);
-    if (userNoTone === correctNoTone) {
-        return { status: 'correct', reason: 'Đúng (thiếu dấu thanh)' };
-    }
+    if (userNoTone === correctNoTone) return { status: 'correct', reason: 'Đúng (thiếu dấu thanh)' };
     
-    // CẤP 3: Khớp sau khi bỏ từ phụ
     var userNoFill = removeFillers(user);
     var correctNoFill = removeFillers(correct);
-    if (userNoFill === correctNoFill) {
-        return { status: 'correct', reason: 'Đúng (bỏ qua từ phụ)' };
-    }
+    if (userNoFill === correctNoFill) return { status: 'correct', reason: 'Đúng (bỏ qua từ phụ)' };
     
-    // CẤP 4: Khớp sau khi bỏ từ phụ + dấu thanh
     var uNF = removeTones(userNoFill);
     var cNF = removeTones(correctNoFill);
-    if (uNF === cNF) {
-        return { status: 'correct', reason: 'Đúng (từ phụ + dấu thanh)' };
-    }
+    if (uNF === cNF) return { status: 'correct', reason: 'Đúng (từ phụ + dấu thanh)' };
     
-    // CẤP 5: Mở rộng từ đồng nghĩa
     var userVariants = expandSynonyms(userNoFill);
     var correctVariants = expandSynonyms(correctNoFill);
     
@@ -2154,32 +2319,18 @@ function smartCheck(userAnswer, correctAnswer) {
         }
     }
     
-    // CẤP 6: Đo độ tương đồng - Fuzzy matching
     var maxSim = 0;
-    var bestReason = '';
-    
-    // So sánh user với các biến thể của correct
     for (var k = 0; k < correctVariants.length; k++) {
         var sim = similarity(userNoFill, correctVariants[k]);
-        if (sim > maxSim) {
-            maxSim = sim;
-            bestReason = sim >= 0.85 ? 'Gần đúng' : 'Sai';
-        }
+        if (sim > maxSim) maxSim = sim;
     }
-    // So sánh correct với các biến thể của user
     for (var m = 0; m < userVariants.length; m++) {
         var sim2 = similarity(userVariants[m], correctNoFill);
-        if (sim2 > maxSim) {
-            maxSim = sim2;
-            bestReason = sim2 >= 0.85 ? 'Gần đúng' : 'Sai';
-        }
+        if (sim2 > maxSim) maxSim = sim2;
     }
     
-    if (maxSim >= 0.85) {
-        return { status: 'partial', reason: 'Gần đúng (' + Math.round(maxSim * 100) + '%)' };
-    }
+    if (maxSim >= 0.85) return { status: 'partial', reason: 'Gần đúng (' + Math.round(maxSim * 100) + '%)' };
     
-    // CẤP 7: Kiểm tra chứa nhau (substring)
     if (user.indexOf(correct) !== -1 || correct.indexOf(user) !== -1) {
         return { status: 'partial', reason: 'Thiếu/thừa từ' };
     }
@@ -2187,12 +2338,56 @@ function smartCheck(userAnswer, correctAnswer) {
     return { status: 'wrong', reason: 'Không khớp' };
 }
 
-/* ✅ Hàm checkInput - dùng smartCheck */
+/* ✅ Preview tô đỏ cho ô luyện tập thường trong card */
+function updateInlinePreview(input, answer) {
+    var wrapper = input.parentElement;
+    var preview = wrapper.querySelector('.inline-char-preview');
+    if (!preview) {
+        preview = document.createElement('div');
+        preview.className = 'inline-char-preview';
+        input.insertAdjacentElement('afterend', preview);
+    }
+    
+    var userVal = input.value.replace(/\s+/g, '');
+    var cleanAnswer = (answer || '').replace(/\s+/g, '');
+    
+    if (!userVal) {
+        preview.innerHTML = '';
+        return;
+    }
+    
+    var html = '';
+    var maxLen = Math.max(userVal.length, cleanAnswer.length);
+    
+    for (var i = 0; i < maxLen; i++) {
+        var userChar = userVal[i] || '';
+        var answerChar = cleanAnswer[i] || '';
+        var display = userChar || answerChar;
+        
+        var cls = 'char-slot';
+        if (userChar && answerChar) {
+            if (userChar === answerChar) cls += ' correct';
+            else cls += ' wrong';
+        } else if (!userChar && answerChar) {
+            cls += ' missing';
+        } else if (userChar && !answerChar) {
+            cls += ' extra';
+        }
+        
+        html += '<span class="' + cls + '">' + escapeHtml(display) + '</span>';
+    }
+    
+    preview.innerHTML = html;
+}
+
 window.checkInput = function(input) {
     var stt = input.dataset.stt;
     var answer = input.dataset.answer;
     var cells = document.querySelectorAll('[data-check-stt="' + stt + '"]');
     var val = input.value.trim();
+    
+    // ✅ Cập nhật preview tô đỏ từng ký tự
+    updateInlinePreview(input, answer);
     
     if (!val) {
         cells.forEach(function(c) { c.innerHTML = ''; });
@@ -2246,6 +2441,264 @@ function applyFilter() {
     render(true);
 }
 
+/* ============================================================
+   🎯 CHẾ ĐỘ LUYỆN TẬP FULL MÀN HÌNH
+   ============================================================ */
+var pfCurrentStt = null;
+var pfCurrentAnswer = '';
+var pfCurrentVi = '';
+var pfCurrentPinyin = '';
+
+window.openPracticeFull = function(stt, evt) {
+    if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
+    
+    var idx = -1;
+    for (var i = 0; i < filtered.length; i++) {
+        if (String(filtered[i].stt) === String(stt)) { idx = i; break; }
+    }
+    if (idx === -1) { alert('Không tìm thấy câu!'); return; }
+    
+    pfCurrentStt = stt;
+    $('practiceFullModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    loadPracticeFull(stt);
+};
+
+window.closePracticeFull = function() {
+    $('practiceFullModal').classList.remove('show');
+    document.body.style.overflow = '';
+    pfCurrentStt = null;
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+};
+
+function loadPracticeFull(stt) {
+    var idx = -1;
+    for (var i = 0; i < filtered.length; i++) {
+        if (String(filtered[i].stt) === String(stt)) { idx = i; break; }
+    }
+    if (idx === -1) return;
+    
+    var r = filtered[idx];
+    pfCurrentStt = stt;
+    pfCurrentAnswer = r.zh || '';
+    pfCurrentVi = r.vi || '';
+    pfCurrentPinyin = r.pinyin || '';
+    
+    $('pfCounter').textContent = 'Câu ' + (idx + 1) + ' / ' + filtered.length;
+    
+    var tagsHtml = '';
+    if (r.hsk) tagsHtml += '<span class="card-tag hsk">' + escapeHtml(r.hsk) + '</span>';
+    if (r.topic) tagsHtml += '<span class="card-tag topic">' + escapeHtml(r.topic) + '</span>';
+    if (r.subject) tagsHtml += '<span class="card-tag">' + escapeHtml(r.subject) + '</span>';
+    $('pfTags').innerHTML = tagsHtml;
+    
+    $('pfVi').textContent = pfCurrentVi;
+    
+    $('pfInput').value = '';
+    $('pfPreview').innerHTML = '';
+    $('pfStatus').textContent = '';
+    $('pfStatus').className = 'practice-full-status';
+    
+    $('pfAnswer').classList.remove('show');
+    $('pfRevealBtn').classList.remove('hidden');
+    
+    $('pfPrevBtn').disabled = (idx === 0);
+    $('pfNextBtn').disabled = (idx === filtered.length - 1);
+    
+    setTimeout(function() { $('pfInput').focus(); }, 200);
+}
+
+window.pfNext = function() {
+    if (!pfCurrentStt) return;
+    var idx = -1;
+    for (var i = 0; i < filtered.length; i++) {
+        if (String(filtered[i].stt) === String(pfCurrentStt)) { idx = i; break; }
+    }
+    if (idx === -1 || idx >= filtered.length - 1) return;
+    loadPracticeFull(filtered[idx + 1].stt);
+};
+
+window.pfPrev = function() {
+    if (!pfCurrentStt) return;
+    var idx = -1;
+    for (var i = 0; i < filtered.length; i++) {
+        if (String(filtered[i].stt) === String(pfCurrentStt)) { idx = i; break; }
+    }
+    if (idx <= 0) return;
+    loadPracticeFull(filtered[idx - 1].stt);
+};
+
+function updateCharPreview() {
+    var input = $('pfInput');
+    var preview = $('pfPreview');
+    var userVal = input.value;
+    
+    if (!userVal) {
+        preview.innerHTML = '';
+        return;
+    }
+    
+    var cleanUser = userVal.replace(/\s+/g, '');
+    var cleanAnswer = pfCurrentAnswer.replace(/\s+/g, '');
+    
+    var html = '';
+    var maxLen = Math.max(cleanUser.length, cleanAnswer.length);
+    
+    for (var i = 0; i < maxLen; i++) {
+        var userChar = cleanUser[i] || '';
+        var answerChar = cleanAnswer[i] || '';
+        var display = userChar || answerChar;
+        
+        var cls = 'char-slot';
+        if (userChar && answerChar) {
+            if (userChar === answerChar) cls += ' correct';
+            else cls += ' wrong';
+        } else if (!userChar && answerChar) {
+            cls += ' missing';
+        } else if (userChar && !answerChar) {
+            cls += ' extra';
+        }
+        
+        html += '<span class="' + cls + '">' + escapeHtml(display) + '</span>';
+    }
+    
+    preview.innerHTML = html;
+}
+
+function checkFullAnswer() {
+    var input = $('pfInput');
+    var statusEl = $('pfStatus');
+    var val = input.value.trim();
+    
+    if (!val) {
+        statusEl.textContent = '';
+        statusEl.className = 'practice-full-status';
+        return;
+    }
+    
+    var result = smartCheck(val, pfCurrentAnswer);
+    
+    if (result.status === 'correct') {
+        statusEl.textContent = '✅ ĐÚNG';
+        statusEl.className = 'practice-full-status correct';
+    } else if (result.status === 'partial') {
+        statusEl.textContent = '⚠️ ' + (result.reason || 'GẦN ĐÚNG');
+        statusEl.className = 'practice-full-status partial';
+    } else {
+        statusEl.textContent = '❌ SAI';
+        statusEl.className = 'practice-full-status wrong';
+    }
+}
+
+function revealFullAnswer() {
+    var answerEl = $('pfAnswer');
+    var charsEl = $('pfAnswerChars');
+    var pinyinEl = $('pfAnswerPinyin');
+    
+    charsEl.innerHTML = '';
+    var chars = pfCurrentAnswer.split('');
+    
+    chars.forEach(function(c) {
+        if (/[\u4e00-\u9fa5]/.test(c)) {
+            var btn = document.createElement('button');
+            btn.className = 'answer-char-btn';
+            btn.textContent = c;
+            btn.onclick = function(e) {
+                e.stopPropagation();
+                speakSingleChar(c, btn);
+            };
+            charsEl.appendChild(btn);
+        } else {
+            var span = document.createElement('span');
+            span.className = 'answer-char-btn';
+            span.style.cursor = 'default';
+            span.style.borderStyle = 'dashed';
+            span.textContent = c;
+            charsEl.appendChild(span);
+        }
+    });
+    
+    pinyinEl.textContent = pfCurrentPinyin;
+    answerEl.classList.add('show');
+    $('pfRevealBtn').classList.add('hidden');
+}
+
+window.speakSingleChar = function(char, btn) {
+    if (isDemo && !canUseFeature()) {
+        showLimitMessage();
+        return;
+    }
+    if (!('speechSynthesis' in window)) { alert('Trình duyệt không hỗ trợ phát âm.'); return; }
+    if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
+    
+    speechSynthesis.cancel();
+    document.querySelectorAll('.answer-char-btn.speaking').forEach(function(b) {
+        b.classList.remove('speaking');
+    });
+    btn.classList.add('speaking');
+    
+    var utterance = new SpeechSynthesisUtterance(char);
+    utterance.lang = 'zh-CN';
+    utterance.rate = 0.7;
+    var voice = getChineseVoice();
+    if (voice) utterance.voice = voice;
+    utterance.onend = utterance.onerror = function() {
+        btn.classList.remove('speaking');
+    };
+    setTimeout(function(){ speechSynthesis.speak(utterance); }, 30);
+};
+
+window.speakFullSentence = function() {
+    if (isDemo && !canUseFeature()) {
+        showLimitMessage();
+        return;
+    }
+    if (!('speechSynthesis' in window)) return;
+    if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
+    
+    speechSynthesis.cancel();
+    var utterance = new SpeechSynthesisUtterance(pfCurrentAnswer);
+    utterance.lang = 'zh-CN';
+    utterance.rate = 0.85;
+    var voice = getChineseVoice();
+    if (voice) utterance.voice = voice;
+    setTimeout(function(){ speechSynthesis.speak(utterance); }, 30);
+};
+
+function initPracticeFull() {
+    $('pfClose').addEventListener('click', closePracticeFull);
+    $('pfPrevBtn').addEventListener('click', pfPrev);
+    $('pfNextBtn').addEventListener('click', pfNext);
+    $('pfRevealBtn').addEventListener('click', revealFullAnswer);
+    $('pfInput').addEventListener('input', function() {
+        updateCharPreview();
+        checkFullAnswer();
+    });
+    
+    document.addEventListener('keydown', function(e) {
+        if (!$('practiceFullModal').classList.contains('show')) return;
+        if (e.key === 'Escape') closePracticeFull();
+        if (e.key === 'ArrowRight' && e.ctrlKey) pfNext();
+        if (e.key === 'ArrowLeft' && e.ctrlKey) pfPrev();
+    });
+    
+    var modal = $('practiceFullModal');
+    var touchStartX = 0;
+    modal.addEventListener('touchstart', function(e) {
+        touchStartX = e.touches[0].clientX;
+    }, { passive: true });
+    modal.addEventListener('touchend', function(e) {
+        var dx = e.changedTouches[0].clientX - touchStartX;
+        if (Math.abs(dx) > 100) {
+            if (dx < 0) pfNext();
+            else pfPrev();
+        }
+    }, { passive: true });
+}
+
+/* ============================================================
+   ✍️ LUYỆN VIẾT
+   ============================================================ */
 var writerInstance = null;
 var currentWriteZh = '';
 var currentWriteVi = '';
@@ -2378,6 +2831,9 @@ function showWriterChar(char) {
     }, 100);
 }
 
+/* ============================================================
+   👑 ADMIN PANEL
+   ============================================================ */
 $('openAdminBtn').addEventListener('click', function() {
     $('userDropdown').classList.remove('show');
     openAdminPanel();
@@ -2629,7 +3085,6 @@ print(f"🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} 
 print(f"🔥 Firebase: {FIREBASE_CONFIG.get('projectId', 'N/A')}")
 print(f"👑 Chế độ: Đúng {TARGET_ADMINS} admin")
 print(f"📞 Zalo: {ZALO_PHONE} ({ZALO_NAME})")
-print(f"🧠 Chấm điểm: So khớp thông minh (MIỄN PHÍ 100%, không giới hạn)")
-print(f"   - Từ điển đồng nghĩa: {len(SYNONYMS)} nhóm")
-print(f"   - Từ phụ bỏ qua: {len(FILLER_WORDS)} từ")
-print(f"✅ Demo: Chủ đề hiện đầy đủ 🔒, ô luyện tập ẩn tiếng Trung, so khớp thông minh")
+print(f"🧠 Chấm điểm: So khớp thông minh + Tô đỏ từng ký tự")
+print(f"🎯 Full màn hình luyện tập: Next/Prev, bấm từng chữ đọc")
+print(f"☀️  Theme mặc định: Light mode")
