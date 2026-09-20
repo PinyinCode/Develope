@@ -2,8 +2,8 @@
 """
 Chuyển file Excel → HTML tự chứa dữ liệu
 - Demo mode + Full màn hình luyện tập
-- Ghost text mờ cho chữ chưa gõ
-- Đáp án tách theo CỤM TỪ
+- Nút Gợi ý (mặc định TẮT) → bật hiện ghost text mờ
+- Đáp án tách theo PINYIN (đếm âm tiết)
 - So khớp thông minh + Tô đỏ từng ký tự
 - Theme mặc định LIGHT MODE
 """
@@ -45,26 +45,6 @@ DEFAULT_SYNONYMS = {
 SYNONYMS = CONFIG.get("synonyms", DEFAULT_SYNONYMS)
 FILLER_WORDS = CONFIG.get("filler_words", ["了", "的", "吗", "呢", "吧", "啊", "呀", "哦", "嘛", "哈", "哪", "着", "过"])
 
-# ✅ Từ điển cụm từ có nghĩa (dùng để tách đáp án)
-DEFAULT_PHRASES = [
-    "我是","你是","他是","她是","它是","我们是","你们是","他们是",
-    "我有","你有","他有","没有","想要","不要","需要",
-    "我想","你想","他想","我爱","你爱","他爱","喜欢","讨厌",
-    "我去","你去","他去","回来","回去",
-    "我说","你说","他说","回答",
-    "我看","你看","他看",
-    "我吃","你吃","他吃","做饭",
-    "越南人","中国人","美国人","日本人","韩国人",
-    "越南","中国","美国","日本","韩国","台湾","香港","北京","上海",
-    "今天","明天","昨天","现在","以后","以前","早上","中午","晚上",
-    "一个","两个","三个","第一","第二","第三",
-    "什么","怎么","为什么","哪里","这里","那里",
-    "谢谢","对不起","再见","你好","请问",
-    "可以","不可以","不会","不能",
-    "非常","十分","真的","不是","没有",
-]
-KNOWN_PHRASES = CONFIG.get("known_phrases", DEFAULT_PHRASES)
-
 if not FIREBASE_CONFIG.get("apiKey"):
     print(f"❌ Firebase config chưa được cấu hình trong {CONFIG_FILE}")
     sys.exit(1)
@@ -74,7 +54,8 @@ print(f"   📞 Zalo: {ZALO_PHONE} ({ZALO_NAME})")
 print(f"   🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} lượt nghe/viết")
 print(f"   🧠 Chấm điểm: So khớp thông minh")
 print(f"   ☀️  Theme mặc định: Light mode")
-print(f"   🎯 Ghost text mờ + đáp án theo cụm từ")
+print(f"   💡 Nút Gợi ý (mặc định TẮT) + Ghost text mờ")
+print(f"   📝 Đáp án tách theo PINYIN")
 print(f"   👑 Target admins: {TARGET_ADMINS}")
 
 print(f"\n📖 Đang đọc file: {EXCEL_FILE}")
@@ -116,7 +97,6 @@ json_data = json_data.replace('</', '<\\/')
 firebase_config_json = json.dumps(FIREBASE_CONFIG, ensure_ascii=False)
 synonyms_json = json.dumps(SYNONYMS, ensure_ascii=True, separators=(',', ':'))
 fillers_json = json.dumps(FILLER_WORDS, ensure_ascii=True, separators=(',', ':'))
-phrases_json = json.dumps(KNOWN_PHRASES, ensure_ascii=True, separators=(',', ':'))
 
 # ====== TEMPLATE HTML ======
 html_template = r'''<!DOCTYPE html>
@@ -678,7 +658,7 @@ body.show-practice .card-body{
 }
 @media(min-width:769px){.practice-full-input{font-size:1.85rem;padding:1.15rem 1.5rem;}}
 
-/* ✅ GHOST TEXT - Chữ chưa gõ mờ tối gần giống nền */
+/* ✅ Preview tô đỏ + ghost text */
 .char-preview{
     display:flex;justify-content:center;flex-wrap:wrap;
     gap:.5rem;min-height:2.5rem;padding:.75rem 1rem;
@@ -694,19 +674,19 @@ body.show-practice .card-body{
 }
 @media(min-width:769px){.char-slot{font-size:2rem;min-width:2.2rem;height:2.8rem;}}
 
-/* Chữ đã gõ ĐÚNG - đậm rõ */
+/* ✅ Chữ đã gõ ĐÚNG - đậm rõ */
 .char-slot.correct{
     color:var(--text);
     font-weight:700;
     background:rgba(22,163,74,.12);
 }
-/* Chữ gõ SAI - đỏ */
+/* ✅ Chữ gõ SAI - đỏ */
 .char-slot.wrong{
     color:#fff;background:var(--danger);
     animation:shakeWrong .3s;
     box-shadow:0 2px 8px rgba(220,38,38,.35);
 }
-/* ✅ Chữ CHƯA GÕ - ghost text mờ tối gần giống nền */
+/* ✅ Ghost text - chữ chưa gõ mờ tối */
 .char-slot.ghost{
     color:var(--text);
     opacity:.12;
@@ -720,7 +700,7 @@ body.show-practice .card-body{
     color:var(--text);
     opacity:.15;
 }
-/* Chữ gõ THỪA */
+/* ✅ Chữ gõ THỪA */
 .char-slot.extra{
     color:#fff;background:var(--amber);
     box-shadow:0 2px 8px rgba(245,158,11,.35);
@@ -746,6 +726,32 @@ body.show-practice .card-body{
 .practice-full-status.correct{color:var(--success);}
 .practice-full-status.partial{color:var(--amber);}
 .practice-full-status.wrong{color:var(--danger);}
+
+/* ✅ Hàng nút Gợi ý + Xem đáp án */
+.reveal-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:.75rem;
+}
+.reveal-actions button{
+    width:100%;padding:.85rem;
+    border-radius:14px;border:2px dashed var(--border-strong);
+    background:var(--surface);color:var(--text-2);
+    font-size:.9rem;font-weight:600;cursor:pointer;
+    transition:.15s;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;gap:.5rem;
+}
+.reveal-actions button:hover{
+    border-color:var(--primary);color:var(--primary);background:var(--primary-light);
+}
+.reveal-actions button.hidden{display:none}
+
+/* ✅ Nút Gợi ý - trạng thái bật */
+#pfHintBtn.active{
+    background:var(--amber);color:#fff;border-color:var(--amber);border-style:solid;
+    box-shadow:0 4px 12px rgba(245,158,11,.3);
+}
+#pfHintBtn.active:hover{background:#d97706}
 
 /* Đáp án reveal - CỤM TỪ */
 .answer-reveal{
@@ -799,17 +805,6 @@ body.show-practice .card-body{
 .answer-actions button:hover{background:var(--surface-2);border-color:var(--primary);color:var(--primary)}
 .answer-actions button.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
 .answer-actions button.primary:hover{background:var(--primary-dark)}
-
-.reveal-btn{
-    width:100%;padding:.85rem;
-    border-radius:14px;border:2px dashed var(--border-strong);
-    background:var(--surface);color:var(--text-2);
-    font-size:.9rem;font-weight:600;cursor:pointer;
-    transition:.15s;font-family:inherit;
-    display:flex;align-items:center;justify-content:center;gap:.5rem;
-}
-.reveal-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light)}
-.reveal-btn.hidden{display:none}
 
 .practice-full-nav{
     display:flex;gap:.75rem;padding:1rem 1.25rem;
@@ -1138,6 +1133,7 @@ body.show-practice .card-body{
     .answer-phrase-btn{font-size:1.3rem;padding:.45rem .75rem;}
     .pf-nav-btn{padding:.75rem .75rem;font-size:.82rem}
     .practice-full-nav{padding:.75rem .85rem;gap:.5rem}
+    .reveal-actions button{padding:.7rem;font-size:.82rem;}
 }
 @media(max-width:400px){
     .logo-text .subtitle{display:none}
@@ -1343,9 +1339,15 @@ body.show-practice .card-body{
                 <div class="practice-full-status" id="pfStatus"></div>
             </div>
             
-            <button class="reveal-btn" id="pfRevealBtn">
-                <i class="fas fa-eye"></i> Xem đáp án
-            </button>
+            <!-- ✅ Nút Gợi ý + Xem đáp án -->
+            <div class="reveal-actions">
+                <button id="pfHintBtn">
+                    <i class="fas fa-lightbulb"></i> Gợi ý
+                </button>
+                <button id="pfRevealBtn">
+                    <i class="fas fa-eye"></i> Xem đáp án
+                </button>
+            </div>
             
             <div class="answer-reveal" id="pfAnswer">
                 <div class="ar-label">Đáp án</div>
@@ -1432,7 +1434,6 @@ var ZALO_PHONE = "__ZALO_PHONE__";
 var ZALO_NAME = "__ZALO_NAME__";
 var SYNONYMS = __SYNONYMS__;
 var FILLER_WORDS = __FILLER_WORDS__;
-var KNOWN_PHRASES = __KNOWN_PHRASES__;
 
 var currentUser = null;
 var isDemo = true;
@@ -2234,6 +2235,89 @@ function smartCheck(userAnswer, correctAnswer) {
     return { status: 'wrong', reason: 'Không khớp' };
 }
 
+/* ============================================================
+   🎯 TÁCH CỤM TỪ THEO PINYIN
+   ============================================================ */
+/* Đếm số âm tiết trong 1 nhóm pinyin (dựa trên số cụm nguyên âm) */
+function countSyllables(pinyinWord) {
+    if (!pinyinWord) return 0;
+    // Bỏ dấu câu và khoảng trắng
+    var cleaned = pinyinWord.replace(/[.,!?;:'"()\[\]{}\-~`@#$%^&*+=|\\/<>。，！？、；：]/g, '').toLowerCase();
+    if (!cleaned) return 0;
+    // Đếm số lần chuyển từ PHỤ ÂM → NGUYÊN ÂM (bắt đầu âm tiết)
+    // Nguyên âm tiếng Trung: a, e, i, o, u, ü, v (thay ü)
+    var vowels = 'aeiouüv';
+    var count = 0;
+    var prevIsVowel = false;
+    for (var i = 0; i < cleaned.length; i++) {
+        var c = cleaned[i];
+        var isVowel = vowels.indexOf(c) !== -1;
+        // Khi chuyển từ phụ âm → nguyên âm, hoặc bắt đầu bằng nguyên âm
+        if (isVowel && !prevIsVowel) count++;
+        prevIsVowel = isVowel;
+    }
+    return count || 1;
+}
+
+/* Tách câu Hán thành các cụm dựa vào pinyin */
+function splitByPinyin(zh, pinyin) {
+    if (!zh) return [];
+    
+    // Đếm chữ Hán
+    var hanziChars = [];
+    var zhNoPunct = '';
+    for (var i = 0; i < zh.length; i++) {
+        var c = zh[i];
+        if (/[\u4e00-\u9fa5]/.test(c)) {
+            hanziChars.push(c);
+            zhNoPunct += c;
+        }
+    }
+    
+    if (hanziChars.length === 0) return [];
+    
+    // Nếu không có pinyin → tách từng chữ
+    if (!pinyin || !pinyin.trim()) {
+        return hanziChars.map(function(c) { return { text: c, type: 'char' }; });
+    }
+    
+    // Tách pinyin theo dấu cách
+    var pinyinWords = pinyin.trim().split(/\s+/).filter(function(w) { return w.length > 0; });
+    
+    if (pinyinWords.length === 0) {
+        return hanziChars.map(function(c) { return { text: c, type: 'char' }; });
+    }
+    
+    // Đếm số âm tiết mỗi nhóm pinyin
+    var syllableCounts = pinyinWords.map(function(w) { return countSyllables(w); });
+    var totalSyllables = syllableCounts.reduce(function(a, b) { return a + b; }, 0);
+    
+    // Nếu số âm tiết không khớp số chữ Hán → fallback tách từng chữ
+    if (totalSyllables !== hanziChars.length) {
+        return hanziChars.map(function(c) { return { text: c, type: 'char' }; });
+    }
+    
+    // Chia chữ Hán theo từng nhóm pinyin
+    var result = [];
+    var idx = 0;
+    for (var i = 0; i < syllableCounts.length; i++) {
+        var cnt = syllableCounts[i];
+        if (cnt <= 0) continue;
+        var phrase = hanziChars.slice(idx, idx + cnt).join('');
+        if (phrase) result.push({ text: phrase, type: 'phrase' });
+        idx += cnt;
+    }
+    
+    // Còn dư chữ Hán → gộp vào cụm cuối
+    if (idx < hanziChars.length) {
+        var remaining = hanziChars.slice(idx).join('');
+        if (result.length > 0) result[result.length - 1].text += remaining;
+        else result.push({ text: remaining, type: 'phrase' });
+    }
+    
+    return result;
+}
+
 /* ✅ Preview tô đỏ + ghost text cho card */
 function updateInlinePreview(input, answer) {
     var wrapper = input.parentElement;
@@ -2265,7 +2349,8 @@ function updateInlinePreview(input, answer) {
             if (userChar === answerChar) { cls += ' correct'; display = userChar; }
             else { cls += ' wrong'; display = userChar; }
         } else if (!userChar && answerChar) {
-            cls += ' ghost'; display = answerChar;
+            // ✅ Card: ẩn ghost mặc định
+            continue;
         } else if (userChar && !answerChar) {
             cls += ' extra'; display = userChar;
         } else { continue; }
@@ -2330,6 +2415,7 @@ var pfCurrentStt = null;
 var pfCurrentAnswer = '';
 var pfCurrentVi = '';
 var pfCurrentPinyin = '';
+var pfHintEnabled = false; // ✅ Mặc định TẮT
 
 window.openPracticeFull = function(stt, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
@@ -2379,7 +2465,10 @@ function loadPracticeFull(stt) {
     $('pfAnswer').classList.remove('show');
     $('pfRevealBtn').classList.remove('hidden');
     
-    // ✅ Hiện ghost text đáp án ngay từ đầu
+    // ✅ Reset hint về OFF mỗi câu mới
+    pfHintEnabled = false;
+    $('pfHintBtn').classList.remove('active');
+    
     updateCharPreview();
     
     $('pfPrevBtn').disabled = (idx === 0);
@@ -2408,7 +2497,7 @@ window.pfPrev = function() {
     loadPracticeFull(filtered[idx - 1].stt);
 };
 
-/* ✅ Preview + ghost text cho full modal */
+/* ✅ Preview full + ghost text CHỈ KHI BẬT GỢI Ý */
 function updateCharPreview() {
     var input = $('pfInput');
     var preview = $('pfPreview');
@@ -2435,7 +2524,12 @@ function updateCharPreview() {
             if (userChar === answerChar) { cls += ' correct'; display = userChar; }
             else { cls += ' wrong'; display = userChar; }
         } else if (!userChar && answerChar) {
-            cls += ' ghost'; display = answerChar;
+            // ✅ Chỉ hiện ghost KHI BẬT gợi ý
+            if (pfHintEnabled) {
+                cls += ' ghost'; display = answerChar;
+            } else {
+                continue;
+            }
         } else if (userChar && !answerChar) {
             cls += ' extra'; display = userChar;
         } else { continue; }
@@ -2444,6 +2538,15 @@ function updateCharPreview() {
     }
     
     preview.innerHTML = html;
+}
+
+/* ✅ Toggle gợi ý */
+function toggleHint() {
+    pfHintEnabled = !pfHintEnabled;
+    var btn = $('pfHintBtn');
+    if (pfHintEnabled) btn.classList.add('active');
+    else btn.classList.remove('active');
+    updateCharPreview();
 }
 
 function checkFullAnswer() {
@@ -2471,67 +2574,22 @@ function checkFullAnswer() {
     }
 }
 
-/* ✅ Tách câu thành các CỤM TỪ có nghĩa */
-function splitIntoPhrases(zh) {
-    if (!zh) return [];
-    
-    // Sắp xếp cụm từ theo độ dài giảm dần
-    var phrases = KNOWN_PHRASES.slice().sort(function(a, b) { return b.length - a.length; });
-    var phraseSet = {};
-    phrases.forEach(function(p) { phraseSet[p] = 1; });
-    
-    var result = [];
-    var currentChars = '';
-    var i = 0;
-    
-    while (i < zh.length) {
-        var c = zh[i];
-        
-        // Nếu là dấu câu → tách riêng
-        if (!/[\u4e00-\u9fa5]/.test(c)) {
-            if (currentChars) {
-                result.push({ text: currentChars, type: 'chars' });
-                currentChars = '';
-            }
-            result.push({ text: c, type: 'punct' });
-            i++;
-            continue;
-        }
-        
-        // Thử match cụm từ dài nhất
-        var matched = false;
-        for (var len = Math.min(6, zh.length - i); len >= 2; len--) {
-            var candidate = zh.substr(i, len);
-            if (phraseSet[candidate]) {
-                if (currentChars) {
-                    result.push({ text: currentChars, type: 'chars' });
-                    currentChars = '';
-                }
-                result.push({ text: candidate, type: 'phrase' });
-                i += len;
-                matched = true;
-                break;
-            }
-        }
-        
-        if (!matched) {
-            currentChars += c;
-            i++;
-        }
-    }
-    
-    if (currentChars) result.push({ text: currentChars, type: 'chars' });
-    
-    return result;
-}
-
 function revealFullAnswer() {
     var answerEl = $('pfAnswer');
     var charsEl = $('pfAnswerChars');
     var pinyinEl = $('pfAnswerPinyin');
     
     charsEl.innerHTML = '';
-    var phrases = splitIntoPhrases(pfCurrentAnswer);
+    // ✅ Tách cụm theo PINYIN
+    var phrases = splitByPinyin(pfCurrentAnswer, pfCurrentPinyin);
+    
+    if (phrases.length === 0) {
+        // Fallback: tách từng chữ
+        pfCurrentAnswer.split('').forEach(function(c) {
+            if (/[\u4e00-\u9fa5]/.test(c)) phrases.push({ text: c, type: 'char' });
+            else phrases.push({ text: c, type: 'punct' });
+        });
+    }
     
     phrases.forEach(function(item) {
         if (item.type === 'punct') {
@@ -2601,6 +2659,7 @@ function initPracticeFull() {
     $('pfPrevBtn').addEventListener('click', pfPrev);
     $('pfNextBtn').addEventListener('click', pfNext);
     $('pfRevealBtn').addEventListener('click', revealFullAnswer);
+    $('pfHintBtn').addEventListener('click', toggleHint);
     $('pfInput').addEventListener('input', function() {
         updateCharPreview();
         checkFullAnswer();
@@ -2852,8 +2911,8 @@ window.changeRole = async function(email, newRole) {
     var adminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
     
     if (isMe && newRole === 'user') { alert('⚠️ Không thể tự hạ quyền admin của chính mình!'); return; }
-    if (isAdmin && newRole === 'user') { alert('⚠️ Không thể hạ quyền admin!\n\nHệ thống phải giữ đúng ' + TARGET_ADMINS + ' admin.\nHiện tại đang có ' + adminCount + ' admin.'); return; }
-    if (!isAdmin && newRole === 'admin' && adminCount >= TARGET_ADMINS) { alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!\n\nKhông thể nâng thêm.'); return; }
+    if (isAdmin && newRole === 'user') { alert('⚠️ Không thể hạ quyền admin!\n\nHệ thống phải giữ đúng ' + TARGET_ADMINS + ' admin.'); return; }
+    if (!isAdmin && newRole === 'admin' && adminCount >= TARGET_ADMINS) { alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!'); return; }
     
     var action = newRole === 'admin' ? 'NÂNG LÊN ADMIN' : 'HẠ XUỐNG USER';
     if (!confirm(action + ' cho tài khoản:\n\n' + email + '\n\nBạn có chắc không?')) return;
@@ -2868,7 +2927,7 @@ window.deleteUser = async function(email) {
     var isAdmin = target.role === 'admin';
     
     if (isMe) { alert('⚠️ Không thể tự xóa tài khoản của chính mình!'); return; }
-    if (isAdmin) { alert('⚠️ Không thể xóa admin!\n\nHệ thống phải giữ đúng ' + TARGET_ADMINS + ' admin.'); return; }
+    if (isAdmin) { alert('⚠️ Không thể xóa admin!'); return; }
     if (!confirm('⚠️ XÓA TÀI KHOẢN\n\n' + email + '\n\nNgười này sẽ không đăng nhập được nữa.\n\nBạn có chắc không?')) return;
     
     try { await db.collection('allowed_users').doc(email).delete(); }
@@ -2894,7 +2953,7 @@ $('confirmAddUser').addEventListener('click', async function() {
     
     if (role === 'admin') {
         var currentAdminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
-        if (currentAdminCount >= TARGET_ADMINS) { alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!\n\nKhông thể thêm admin mới.'); return; }
+        if (currentAdminCount >= TARGET_ADMINS) { alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!'); return; }
     }
     
     try {
@@ -2958,7 +3017,6 @@ html_output = (html_template
     .replace("__TARGET_ADMINS__", str(TARGET_ADMINS))
     .replace("__SYNONYMS__", synonyms_json)
     .replace("__FILLER_WORDS__", fillers_json)
-    .replace("__KNOWN_PHRASES__", phrases_json)
 )
 with open(OUTPUT_HTML, "w", encoding="utf-8") as f:
     f.write(html_output)
@@ -2971,5 +3029,6 @@ print(f"🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} 
 print(f"🔥 Firebase: {FIREBASE_CONFIG.get('projectId', 'N/A')}")
 print(f"👑 Chế độ: Đúng {TARGET_ADMINS} admin")
 print(f"🧠 Chấm điểm: So khớp thông minh")
-print(f"🎯 Ghost text mờ + đáp án theo cụm từ")
+print(f"💡 Nút Gợi ý (mặc định TẮT) + Ghost text mờ")
+print(f"📝 Đáp án tách theo PINYIN")
 print(f"☀️  Theme mặc định: Light mode")
