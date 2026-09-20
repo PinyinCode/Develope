@@ -25,15 +25,14 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - ✅ Nút Zalo liên hệ trong dropdown user
 - ✅ PHÂN QUYỀN ADMIN:
     + CHỈ email "hoanginvest@gmail.com" → SUPER ADMIN: full quyền, thấy tất cả,
-      7 ô thống kê, thấy lịch sử đăng nhập
+      7 ô thống kê, thấy lịch sử đăng nhập, HẠ QUYỀN / XÓA ADMIN THƯỜNG
     + TẤT CẢ admin khác → ADMIN THƯỜNG: full quyền nhưng ẩn admin khác,
       chỉ thấy 4 ô (Tổng User, Đang hoạt động, Sắp hết hạn, Hết hạn),
-      ẩn lịch sử truy cập
+      ẩn lịch sử truy cập, KHÔNG được hạ quyền / xóa admin khác
 - ✅ Tổng User KHÔNG tính admin
 - ✅ Nút đổi tên hiển thị (user + admin đều có)
 - ✅ Quản lý ngày hết hạn ngay trên giao diện admin
-- ✅ MỚI: Super Admin có thể hạ quyền + xoá admin (quản lý admin khác)
-- ✅ MỚI: Admin thường KHÔNG thể hạ/xoá admin khác
+- ✅ MỚI: Nút chỉnh hạn sử dụng = BIỂU TƯỢNG LỊCH (icon only + tooltip + pulse đỏ khi ≤7 ngày)
 
 Chạy: python scripts/convert.py
 """
@@ -91,7 +90,7 @@ print(f"   🎯 Click ký tự sai → bôi đen để gõ đè")
 print(f"   📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
 print(f"   🔍 Search + Filter + Dropdown chọn câu trong modal")
 print(f"   💾 Cache user 12h + Log 1 lần/ngày")
-print(f"   👑 Super admin: {SUPER_ADMIN}")
+print(f"   👑 Super admin: {SUPER_ADMIN} (có thể HẠ QUYỀN / XÓA admin thường)")
 print(f"   🕵️  Admin thường: tất cả admin khác (chỉ thấy 4 ô thống kê)")
 print(f"   👥 Tổng User KHÔNG tính admin")
 print(f"   👁️  Nút ẩn/hiện kết quả + đáp án ở mỗi thẻ trang chính")
@@ -100,8 +99,7 @@ print(f"   📥 Import CHỈ USER, KHÔNG ADMIN")
 print(f"   ⏰ User có hạn sử dụng (expiresAt) — tự động khóa khi hết hạn")
 print(f"   👤 Click avatar → hiển thị chi tiết + ngày hết hạn")
 print(f"   ✏️  Nút đổi tên hiển thị (user + admin)")
-print(f"   📅 Quản lý ngày hết hạn trên giao diện admin")
-print(f"   🔐 Super Admin có thể hạ/xoá admin khác")
+print(f"   📅 Quản lý ngày hết hạn trên giao diện admin (nút icon lịch)")
 
 print(f"\n📖 Đang đọc file: {EXCEL_FILE}")
 if not os.path.exists(EXCEL_FILE):
@@ -1351,6 +1349,11 @@ body.show-practice .card-body{
 }
 .user-row .u-role.admin{background:var(--amber-light);color:#92400e}
 .user-row .u-role.user{background:var(--primary-light);color:var(--primary-dark)}
+.user-row .u-role.super{
+    background:linear-gradient(135deg, #f59e0b, #d97706);
+    color:#fff;
+    box-shadow:0 2px 6px rgba(245,158,11,.4);
+}
 .user-row .u-actions{display:flex;gap:.3rem}
 .u-btn{
     width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
@@ -1360,10 +1363,58 @@ body.show-practice .card-body{
 }
 .u-btn:hover{background:var(--surface-2);color:var(--primary);border-color:var(--primary)}
 .u-btn.danger:hover{background:var(--danger-light);color:var(--danger);border-color:var(--danger)}
-.u-btn.expiry:hover{background:rgba(245,158,11,.15);color:#d97706;border-color:#f59e0b}
+
+/* ✅ Nút chỉnh hạn sử dụng = BIỂU TƯỢNG LỊCH */
+.u-btn.expiry{
+    background:rgba(245,158,11,.1);
+    color:#d97706;
+    border-color:rgba(245,158,11,.4);
+}
+.u-btn.expiry:hover{
+    background:var(--amber);
+    color:#fff;
+    border-color:var(--amber);
+    transform:scale(1.08);
+}
+.u-btn.expiry:active{
+    transform:scale(.95);
+}
+[data-theme="dark"] .u-btn.expiry{
+    background:rgba(245,158,11,.2);
+    color:#fcd34d;
+    border-color:rgba(245,158,11,.5);
+}
+[data-theme="dark"] .u-btn.expiry:hover{
+    background:var(--amber);
+    color:#fff;
+}
+/* Nhấp nháy đỏ khi user sắp hết hạn (≤ 7 ngày) */
+.u-btn.expiry.urgent{
+    background:rgba(220,38,38,.15);
+    color:var(--danger);
+    border-color:rgba(220,38,38,.5);
+    animation:expiryPulse 2s infinite;
+}
+.u-btn.expiry.urgent:hover{
+    background:var(--danger);
+    color:#fff;
+    border-color:var(--danger);
+}
+[data-theme="dark"] .u-btn.expiry.urgent{
+    background:rgba(220,38,38,.3);
+    color:#fca5a5;
+    border-color:rgba(220,38,38,.6);
+}
+@keyframes expiryPulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.4);}
+    50%{box-shadow:0 0 0 6px rgba(220,38,38,0);}
+}
+
 .u-btn:disabled{opacity:.35;cursor:not-allowed}
-.u-btn:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border)}
-.u-btn.danger:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border)}
+.u-btn:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border);transform:none;}
+.u-btn.danger:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border);}
+.u-btn.expiry:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border);transform:none;}
+
 .admin-close{
     width:34px;height:34px;border-radius:8px;border:1px solid var(--border);
     background:var(--surface);color:var(--text-2);cursor:pointer;
@@ -2201,7 +2252,6 @@ var usersCache = [];
 var lastLoginMap = {};
 var importRows = [];
 var editingEmail = null;
-var editingExpiryEmail = null;
 
 var $ = function(id) { return document.getElementById(id); };
 var mobileWrapper;
@@ -2765,6 +2815,8 @@ $('changeNameConfirm').addEventListener('click', async function() {
 });
 
 /* ✅ Chỉnh hạn sử dụng */
+var editingExpiryEmail = null;
+
 window.openEditExpiry = function(email) {
     var user = usersCache.find(function(u) { return u.email === email; });
     if (!user) { alert('Không tìm thấy user!'); return; }
@@ -4428,6 +4480,7 @@ function initAdminPanel() {
         loadUsers(true);
     });
     
+    /* ✅ EXPORT EXCEL CHUYÊN NGHIỆP - CHỈ USER, KHÔNG ADMIN */
     $('exportExcelBtn').addEventListener('click', function() {
         var usersOnly = usersCache.filter(function(u) { 
             return u.role !== 'admin'; 
@@ -4783,6 +4836,7 @@ function initAdminPanel() {
         }
     });
     
+    /* ✅ IMPORT EXCEL - CHỈ IMPORT USER */
     $('importExcelBtn').addEventListener('click', function() {
         $('importFileInput').click();
     });
@@ -4844,9 +4898,10 @@ function initAdminPanel() {
         if (!email || !email.includes('@')) { alert('Email không hợp lệ'); return; }
         if (!name) name = email.split('@')[0];
         
-        if (role === 'admin') {
-            var currentAdminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
-            if (currentAdminCount >= TARGET_ADMINS) { alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!'); return; }
+        // ✅ Thêm admin: CHỈ Super Admin mới làm được
+        if (role === 'admin' && !isSuperAdmin()) {
+            alert('⚠️ Chỉ Super Admin mới có quyền thêm admin!');
+            return;
         }
         
         try {
@@ -4860,7 +4915,7 @@ function initAdminPanel() {
                 addedBy: currentUser.email
             };
             
-            if (expiresVal) {
+            if (expiresVal && role !== 'admin') {
                 var d = new Date(expiresVal + 'T23:59:59');
                 if (!isNaN(d.getTime())) {
                     setData.expiresAt = firebase.firestore.Timestamp.fromDate(d);
@@ -5075,6 +5130,7 @@ function renderAdminStats() {
 function renderUsers(items) {
     var list = $('userList');
     var hidden = isHiddenAdmin();
+    var superAdmin = isSuperAdmin();
     var myEmail = (currentUser && currentUser.email ? currentUser.email.toLowerCase() : '');
     
     var displayItems = items;
@@ -5099,45 +5155,61 @@ function renderUsers(items) {
     list.innerHTML = displayItems.map(function(u) {
         var isMe = u.email === currentUser.email;
         var isAdmin = u.role === 'admin';
-        var superAdmin = isSuperAdmin();
-        var targetIsSuperAdmin = (u.email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
+        var targetIsSuper = (u.email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
         
-        // ✅ NÚT ĐỔI ROLE
+        // ✅ SUPER ADMIN: có thể hạ quyền/xóa admin thường (trừ chính mình + trừ Super Admin)
+        var canModifyAdmin = superAdmin && isAdmin && !isMe && !targetIsSuper;
+        
         var roleBtn = '';
         if (isAdmin) {
-            if (isMe) {
-                roleBtn = '<button class="u-btn" disabled title="Không thể tự hạ quyền chính mình"><i class="fas fa-user"></i></button>';
-            } else if (targetIsSuperAdmin) {
-                roleBtn = '<button class="u-btn" disabled title="Không thể hạ quyền Super Admin"><i class="fas fa-user"></i></button>';
-            } else if (superAdmin) {
+            if (canModifyAdmin) {
                 roleBtn = '<button class="u-btn" onclick="changeRole(\'' + escapeJs(u.email) + '\', \'user\')" title="Hạ xuống User"><i class="fas fa-user"></i></button>';
             } else {
-                roleBtn = '<button class="u-btn" disabled title="Chỉ Super Admin mới hạ được quyền admin"><i class="fas fa-user"></i></button>';
+                var reason = isMe ? 'Không thể tự hạ quyền chính mình' : (targetIsSuper ? 'Không thể hạ quyền Super Admin' : 'Chỉ Super Admin mới hạ quyền được');
+                roleBtn = '<button class="u-btn" disabled title="' + escapeHtml(reason) + '"><i class="fas fa-user"></i></button>';
             }
         } else {
-            if (adminCount < TARGET_ADMINS) {
+            // Nâng user lên admin: chỉ Super Admin mới được nâng (để kiểm soát)
+            if (superAdmin) {
                 roleBtn = '<button class="u-btn" onclick="changeRole(\'' + escapeJs(u.email) + '\', \'admin\')" title="Nâng lên Admin"><i class="fas fa-shield-alt"></i></button>';
             } else {
-                roleBtn = '<button class="u-btn" disabled title="Đã đủ ' + TARGET_ADMINS + ' admin"><i class="fas fa-shield-alt"></i></button>';
+                roleBtn = '<button class="u-btn" disabled title="Chỉ Super Admin mới nâng quyền được"><i class="fas fa-shield-alt"></i></button>';
             }
         }
         
-        // ✅ NÚT XOÁ
         var deleteBtn = '';
         if (isMe) {
             deleteBtn = '<button class="u-btn danger" disabled title="Không thể tự xóa chính mình"><i class="fas fa-trash"></i></button>';
-        } else if (targetIsSuperAdmin) {
+        } else if (targetIsSuper) {
             deleteBtn = '<button class="u-btn danger" disabled title="Không thể xóa Super Admin"><i class="fas fa-trash"></i></button>';
-        } else if (isAdmin && !superAdmin) {
-            deleteBtn = '<button class="u-btn danger" disabled title="Chỉ Super Admin mới xóa được admin"><i class="fas fa-trash"></i></button>';
+        } else if (isAdmin) {
+            if (canModifyAdmin) {
+                deleteBtn = '<button class="u-btn danger" onclick="deleteUser(\'' + escapeJs(u.email) + '\')" title="Xóa admin"><i class="fas fa-trash"></i></button>';
+            } else {
+                deleteBtn = '<button class="u-btn danger" disabled title="Chỉ Super Admin mới xóa được admin"><i class="fas fa-trash"></i></button>';
+            }
         } else {
             deleteBtn = '<button class="u-btn danger" onclick="deleteUser(\'' + escapeJs(u.email) + '\')" title="Xóa"><i class="fas fa-trash"></i></button>';
         }
         
-        // ✅ NÚT CHỈNH HẠN
+        // ✅ Nút chỉnh hạn sử dụng = BIỂU TƯỢNG LỊCH (icon only, có tooltip, pulse đỏ khi ≤7 ngày)
         var expiryBtn = '';
         if (!isAdmin) {
-            expiryBtn = '<button class="u-btn expiry" onclick="openEditExpiry(\'' + escapeJs(u.email) + '\')" title="Chỉnh hạn sử dụng"><i class="fas fa-calendar-edit"></i></button>';
+            var btnCls = 'u-btn expiry';
+            var tooltip = 'Chỉnh hạn sử dụng';
+            
+            if (u.expiresAt) {
+                var d = getExpiryDate(u.expiresAt);
+                if (d && !isNaN(d.getTime())) {
+                    var daysLeftExp = Math.ceil((d.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+                    tooltip = 'Chỉnh hạn (hiện tại: ' + d.toLocaleDateString('vi-VN') + ', còn ' + Math.max(0, daysLeftExp) + ' ngày)';
+                    if (daysLeftExp <= 7) btnCls += ' urgent';
+                }
+            } else {
+                tooltip = 'Chỉnh hạn (hiện tại: Vĩnh viễn)';
+            }
+            
+            expiryBtn = '<button class="' + btnCls + '" onclick="openEditExpiry(\'' + escapeJs(u.email) + '\')" title="' + escapeHtml(tooltip) + '"><i class="fas fa-calendar-alt"></i></button>';
         }
         
         var lastLoginHtml = '';
@@ -5183,6 +5255,10 @@ function renderUsers(items) {
             }
         }
         
+        var roleBadge = isAdmin 
+            ? '<span class="u-role ' + (targetIsSuper ? 'super' : 'admin') + '">' + (targetIsSuper ? '👑 super' : 'admin') + '</span>'
+            : '<span class="u-role user">user</span>';
+        
         return '<div class="user-row" data-email="' + escapeHtml(u.email) + '">' +
             '<div class="u-info">' +
                 '<div class="u-name">' + escapeHtml(u.name || u.email.split('@')[0]) + (isMe ? ' <span style="color:#94a3b8;font-size:.7rem">(bạn)</span>' : '') + '</div>' +
@@ -5190,13 +5266,13 @@ function renderUsers(items) {
                 lastLoginHtml +
                 expiryHtml +
             '</div>' +
-            '<span class="u-role ' + (isAdmin ? 'admin' : 'user') + '">' + (u.role || 'user') + '</span>' +
+            roleBadge +
             '<div class="u-actions">' + expiryBtn + roleBtn + deleteBtn + '</div>' +
         '</div>';
     }).join('');
 }
 
-/* ✅ HÀM ĐỔI ROLE - ĐÃ SỬA LOGIC PHÂN QUYỀN */
+/* ✅ Đổi vai trò: Super Admin có thể hạ quyền admin thường */
 window.changeRole = async function(email, newRole) {
     var target = usersCache.find(function(u) { return u.email === email; });
     if (!target) { alert('Không tìm thấy user!'); return; }
@@ -5204,55 +5280,52 @@ window.changeRole = async function(email, newRole) {
     var isMe = email === currentUser.email;
     var isAdmin = target.role === 'admin';
     var superAdmin = isSuperAdmin();
-    var targetIsSuperAdmin = (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
-    var adminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
+    var targetIsSuper = (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
     
-    // ❌ Không tự hạ chính mình
+    // ✅ Chặn tự hạ quyền chính mình
     if (isMe && newRole === 'user') { 
-        alert('⚠️ Không thể tự hạ quyền của chính mình!'); 
+        alert('⚠️ Không thể tự hạ quyền admin của chính mình!'); 
         return; 
     }
     
-    // ❌ Không hạ Super Admin
-    if (targetIsSuperAdmin && newRole === 'user') { 
-        alert('⚠️ Không thể hạ quyền Super Admin!'); 
-        return; 
+    // ✅ Chặn đổi quyền Super Admin
+    if (targetIsSuper) {
+        alert('⚠️ Không thể thay đổi quyền của Super Admin!');
+        return;
     }
     
-    // ✅ HẠ ADMIN → USER: chỉ Super Admin mới được
+    // ✅ Hạ quyền admin → user: CHỈ Super Admin mới làm được
     if (isAdmin && newRole === 'user') {
         if (!superAdmin) {
-            alert('⚠️ Chỉ Super Admin mới có quyền hạ admin!\n\nLiên hệ ' + SUPER_ADMIN + ' để được hỗ trợ.');
+            alert('⚠️ Chỉ Super Admin mới có quyền hạ cấp admin khác!');
             return;
         }
-        if (!confirm('⚠️ HẠ QUYỀN ADMIN\n\n' + email + ' sẽ trở thành USER thường.\n\nBạn có chắc không?')) return;
-        try {
-            await db.collection('allowed_users').doc(email).update({ role: 'user' });
-            try { localStorage.removeItem('user_cache_' + email); } catch(e) {}
-            try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
-            loadUsers(true);
-        } catch(e) { alert('Lỗi: ' + e.message); }
-        return;
     }
     
-    // ✅ NÂNG USER → ADMIN: check slot
+    // ✅ Nâng user → admin: CHỈ Super Admin mới làm được
     if (!isAdmin && newRole === 'admin') {
-        if (adminCount >= TARGET_ADMINS) {
-            alert('⚠️ Đã đủ ' + TARGET_ADMINS + ' admin!\n\nBạn cần hạ 1 admin khác xuống user trước khi nâng user này lên.');
+        if (!superAdmin) {
+            alert('⚠️ Chỉ Super Admin mới có quyền nâng cấp lên admin!');
             return;
         }
-        if (!confirm('⚠️ NÂNG LÊN ADMIN\n\n' + email + ' sẽ trở thành ADMIN.\n\nBạn có chắc không?')) return;
-        try {
-            await db.collection('allowed_users').doc(email).update({ role: 'admin' });
-            try { localStorage.removeItem('user_cache_' + email); } catch(e) {}
-            try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
-            loadUsers(true);
-        } catch(e) { alert('Lỗi: ' + e.message); }
-        return;
     }
+    
+    var action;
+    if (newRole === 'admin') action = 'NÂNG LÊN ADMIN';
+    else action = 'HẠ XUỐNG USER';
+    
+    if (!confirm(action + ' cho tài khoản:\n\n' + email + '\n\nBạn có chắc không?')) return;
+    
+    try {
+        await db.collection('allowed_users').doc(email).update({ role: newRole });
+        try { localStorage.removeItem('user_cache_' + email); } catch(e) {}
+        try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
+        loadUsers(true);
+    }
+    catch(e) { alert('Lỗi: ' + e.message); }
 };
 
-/* ✅ HÀM XOÁ USER - ĐÃ SỬA LOGIC PHÂN QUYỀN */
+/* ✅ Xóa user: Super Admin có thể xóa admin thường */
 window.deleteUser = async function(email) {
     var target = usersCache.find(function(u) { return u.email === email; });
     if (!target) { alert('Không tìm thấy user!'); return; }
@@ -5260,38 +5333,39 @@ window.deleteUser = async function(email) {
     var isMe = email === currentUser.email;
     var isAdmin = target.role === 'admin';
     var superAdmin = isSuperAdmin();
-    var targetIsSuperAdmin = (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
+    var targetIsSuper = (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
     
-    // ❌ Không tự xoá chính mình
+    // ✅ Chặn tự xóa chính mình
     if (isMe) { 
         alert('⚠️ Không thể tự xóa tài khoản của chính mình!'); 
         return; 
     }
     
-    // ❌ Không xoá Super Admin
-    if (targetIsSuperAdmin) { 
-        alert('⚠️ Không thể xóa Super Admin!'); 
-        return; 
+    // ✅ Chặn xóa Super Admin
+    if (targetIsSuper) {
+        alert('⚠️ Không thể xóa Super Admin!');
+        return;
     }
     
-    // ✅ XOÁ ADMIN: chỉ Super Admin mới được
-    if (isAdmin) {
-        if (!superAdmin) {
-            alert('⚠️ Chỉ Super Admin mới có quyền xóa admin!\n\nLiên hệ ' + SUPER_ADMIN + ' để được hỗ trợ.');
-            return;
-        }
-        if (!confirm('⚠️ XÓA ADMIN\n\n' + email + '\n\nAdmin này sẽ bị xoá hoàn toàn.\n\nBạn có chắc không?')) return;
-    } else {
-        // Xoá user thường - ai cũng được
-        if (!confirm('⚠️ XÓA TÀI KHOẢN\n\n' + email + '\n\nNgười này sẽ không đăng nhập được nữa.\n\nBạn có chắc không?')) return;
+    // ✅ Xóa admin: CHỈ Super Admin mới làm được
+    if (isAdmin && !superAdmin) {
+        alert('⚠️ Chỉ Super Admin mới có quyền xóa admin khác!');
+        return;
     }
+    
+    var confirmMsg = isAdmin 
+        ? '⚠️ XÓA ADMIN\n\n' + email + '\n\nNgười này sẽ mất quyền quản trị và không đăng nhập được nữa.\n\nBạn có chắc không?'
+        : '⚠️ XÓA TÀI KHOẢN\n\n' + email + '\n\nNgười này sẽ không đăng nhập được nữa.\n\nBạn có chắc không?';
+    
+    if (!confirm(confirmMsg)) return;
     
     try {
         await db.collection('allowed_users').doc(email).delete();
         try { localStorage.removeItem('user_cache_' + email); } catch(e) {}
         try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
         loadUsers(true);
-    } catch(e) { alert('Lỗi: ' + e.message); }
+    }
+    catch(e) { alert('Lỗi: ' + e.message); }
 };
 
 function loadLogs() {
@@ -5743,15 +5817,15 @@ print(f"🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} 
 print(f"🔥 Firebase: {FIREBASE_CONFIG.get('projectId', 'N/A')}")
 print(f"👑 Super admin: {SUPER_ADMIN}")
 print(f"   → 7 ô thống kê + thấy tất cả + lịch sử đăng nhập")
-print(f"   → Có thể HẠ QUYỀN + XOÁ admin khác")
+print(f"   → CÓ THỂ HẠ QUYỀN / XÓA ADMIN THƯỜNG")
 print(f"🕵️  Admin thường (tất cả admin khác)")
 print(f"   → 4 ô: Tổng User / Đang HĐ / Sắp hết hạn / Hết hạn")
 print(f"   → Ẩn admin khác + ẩn lịch sử đăng nhập")
-print(f"   → KHÔNG thể hạ/xoá admin khác")
+print(f"   → KHÔNG được hạ quyền / xóa admin khác")
 print(f"👥 Tổng User KHÔNG tính admin")
 print(f"🧠 Chấm điểm: So khớp thông minh")
-print(f"💡 NútU Gợi ý (mặc định TYẮT) + Ghost text mờ")
-Êprint(f"📝 Đáp án tách theo PINYIN viN Nết liền/rời")
+print(f"💡 Nút Gợi ý (mặc định TẮT) + Ghost text mờ")
+print(f"📝 Đáp án tách theo PINYIN viết liền/rời")
 print(f"☀️  Theme mặc định: Light mode")
 print(f"🎯 Desktop hover phóng to + Mobile click vừa đọc vừa phóng to")
 print(f"👁️  Nút Xem đáp án: toggle ẩn/hiện")
@@ -5761,20 +5835,23 @@ print(f"📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
 print(f"💾 Cache user 12h + Log 1 lần/ngày")
 print(f"👁️  Nút ẩn/hiện kết quả + đáp án ở mỗi thẻ trang chính")
 print(f"✅ Gõ search trong modal KHÔNG nhảy sang ô nhập tiếng Trung")
-print(f"📤 Export CHGHIỆP: 7 cột + 3 sheet + style màu")
+print(f"📤 Export CHUYÊN NGHIỆP: 7 cột + 3 sheet + style màu")
 print(f"📥 Import CHỈ USER, KHÔNG ADMIN + bỏ qua cột dư thừa")
 print(f"🔁 Import lần 2, 3, ... không lỗi null")
 print(f"⏰ User có hạn sử dụng — tự động khóa khi hết hạn")
 print(f"🔔 Banner cảnh báo sắp hết hạn (≤ 7 ngày) với Zalo")
 print(f"👤 Click avatar → hiển thị chi tiết + ngày hết hạn + progress bar")
 print(f"📞 Nút Zalo trong dropdown user")
+print(f"\n✨ TÍNH NĂNG MỚI:")
+print(f"👑 Super Admin có thể HẠ QUYỀN / XÓA admin thường ngay trên UI")
+print(f"   • Nút hạ quyền (icon người) — chỉ Super Admin bấm được với admin khác")
+print(f"   • Nút xóa (icon thùng rác) — chỉ Super Admin xóa được admin khác")
+print(f"   • Chặn tự hạ quyền / tự xóa chính mình")
+print(f"   • Chặn hạ quyền / xóa Super Admin")
+print(f"   • Badge '👑 super' màu vàng cam cho Super Admin")
+print(f"📅 Nút chỉnh hạn sử dụng = BIỂU TƯỢNG LỊCH (icon only)")
+print(f"   • Tooltip hiển thị ngày hết hạn hiện tại khi hover")
+print(f"   • Nhấp nháy đỏ (pulse) khi user còn ≤ 7 ngày")
+print(f"   • Quick buttons: +7d, +30d, +90d, +6m, +1y, vĩnh viễn")
+print(f"   • Chọn ngày cụ thể trực tiếp")
 print(f"✏️  Nút đổi tên hiển thị (user + admin đều có)")
-print(f"📅 Quản lý ngày hết hạn trên giao diện admin")
-print(f"\n✨ PHÂN QUYỀN ADMIN MỚI:")
-print(f"👑 Super Admin ({SUPER_ADMIN}):")
-print(f"   • Hạ quyền admin khác ✅")
-print(f"   • Xoá admin khác ✅")
-print(f"   • Nâng user lên admin (khi còn slot) ✅")
-print(f"🕵️  Admin thường:")
-print(f"   • KHÔNG thể hạ/xoá admin khác ❌")
-print(f"   • Vẫn có thể quản lý user thường ✅")
