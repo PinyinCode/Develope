@@ -13,8 +13,9 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - ✅ Admin panel load 1 lần (không realtime)
 - ✅ Login log 1 lần/user/ngày
 - Theme mặc định LIGHT MODE
-- ✅ Nút ẩn/hiện kết quả ở mỗi thẻ trang chính (hiển thị kèm đáp án tiếng Trung)
-- ✅ Click chữ sai inline → bôi đen ký tự trong ô gõ
+- ✅ Nút ẩn/hiện kết quả ở mỗi thẻ trang chính (kèm đáp án tiếng Trung)
+- ✅ Click chữ sai inline → bôi đen ĐÚNG ký tự trong ô gõ
+- ✅ Gõ search trong modal KHÔNG nhảy sang ô nhập tiếng Trung
 """
 import openpyxl
 import json
@@ -698,7 +699,6 @@ body.show-practice .card-body{
 }
 .practice-full-header .pf-close:hover{background:var(--danger-light);color:var(--danger)}
 
-/* ✅ Search + Filter + Quick nav trong modal full */
 .pf-filters{
     padding:.6rem 1.25rem .5rem 1.25rem;
     background:var(--surface);
@@ -759,7 +759,6 @@ body.show-practice .card-body{
 .pf-result-count.empty{background:var(--danger-light);color:var(--danger)}
 .pf-result-count.empty i,.pf-result-count.empty b{color:var(--danger)}
 
-/* ✅ Dropdown chọn nhanh câu */
 .pf-quick-nav{
     margin-top:.5rem;
     display:flex;
@@ -1578,7 +1577,6 @@ body.show-practice .card-body{
     </div>
 </div>
 
-<!-- ✅ MODAL LUYỆN TẬP FULL MÀN HÌNH -->
 <div class="practice-full-modal" id="practiceFullModal">
     <div class="practice-full-header">
         <div class="pf-counter" id="pfCounter">Câu 1 / 1</div>
@@ -1814,7 +1812,6 @@ try {
     enterDemoMode();
 }
 
-/* ✅ Cache user doc 12h — giảm 90% Firestore reads */
 async function handleAuthChange(user) {
     if (!user) {
         currentUser = null; isDemo = true;
@@ -2322,7 +2319,6 @@ function escapeJs(str) {
         .replace(/\n/g, '\\n').replace(/\r/g, '');
 }
 
-/* ✅ BUILD FILTERS — Chủ đề demo: mở khóa lên đầu, khóa xuống dưới */
 function buildFilters() {
     var hskSelect = $('hskFilter');
     var subjectSelect = $('subjectFilter');
@@ -2712,19 +2708,18 @@ function updateInlinePreview(input, answer) {
     preview.innerHTML = html;
 }
 
-/* ✅ Click chữ sai inline → con trỏ nhảy về + bôi đen đúng ký tự trong ô gõ */
+/* ✅ Click chữ sai inline → con trỏ nhảy về + bôi đen ĐÚNG ký tự trong ô gõ */
 window.fixInlineChar = function(el, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
     
-    // Tìm input chính xác
     var wrap = el.closest('.card-practice');
     var input = wrap ? wrap.querySelector('.practice-input') : null;
     if (!input) return;
     
-    var strippedIdx = parseInt(el.dataset.idx); // vị trí trong chuỗi đã strip space
+    var strippedIdx = parseInt(el.dataset.idx);
     var rawVal = input.value;
     
-    // ✅ Chuyển strippedIdx → rawIdx (vị trí thực trong input gốc, tính cả khoảng trắng)
+    // Chuyển strippedIdx → rawIdx (vị trí thực trong input gốc, tính cả khoảng trắng)
     var rawIdx = -1;
     var strippedCount = -1;
     for (var i = 0; i < rawVal.length; i++) {
@@ -2737,10 +2732,8 @@ window.fixInlineChar = function(el, evt) {
         }
     }
     
-    // Nếu không tìm thấy (VD: user gõ thiếu ký tự), nhảy tới cuối input
     if (rawIdx === -1) rawIdx = rawVal.length;
     
-    // ✅ Nếu vị trí đó là khoảng trắng → nhảy tới ký tự không-space tiếp theo
     while (rawIdx < rawVal.length && /\s/.test(rawVal[rawIdx])) {
         rawIdx++;
     }
@@ -2962,7 +2955,16 @@ function loadPracticeFull(stt) {
         quickNav.value = stt;
     }
     
-    setTimeout(function() { $('pfInput').focus(); }, 200);
+    // ✅ Chỉ focus vào pfInput khi user KHÔNG đang gõ ở ô khác
+    setTimeout(function() {
+        var active = document.activeElement;
+        if (active && (active.tagName === 'INPUT' || 
+                       active.tagName === 'TEXTAREA' || 
+                       active.tagName === 'SELECT')) {
+            return;
+        }
+        $('pfInput').focus();
+    }, 200);
 }
 
 window.pfNext = function() {
@@ -3128,7 +3130,31 @@ function pfApplyFilter() {
     pfBuildQuickNav();
     render(true);
     
+    // ✅ Nếu user đang gõ trong ô search + câu hiện tại vẫn còn → KHÔNG load lại (tránh cướp focus)
+    var activeEl = document.activeElement;
+    var isTypingInSearch = activeEl && activeEl.id === 'pfSearchInput';
+    
+    var currentStillValid = false;
+    if (pfCurrentStt) {
+        for (var i = 0; i < filtered.length; i++) {
+            if (String(filtered[i].stt) === String(pfCurrentStt)) {
+                currentStillValid = true;
+                break;
+            }
+        }
+    }
+    
     if (filtered.length > 0) {
+        if (isTypingInSearch && currentStillValid) {
+            var idx = -1;
+            for (var j = 0; j < filtered.length; j++) {
+                if (String(filtered[j].stt) === String(pfCurrentStt)) { idx = j; break; }
+            }
+            if (idx !== -1) {
+                $('pfCounter').textContent = 'Câu ' + (idx + 1) + ' / ' + filtered.length;
+            }
+            return;
+        }
         loadPracticeFull(filtered[0].stt);
     } else {
         pfCurrentStt = null;
@@ -3377,7 +3403,21 @@ function initPracticeFull() {
     
     document.addEventListener('keydown', function(e) {
         if (!$('practiceFullModal').classList.contains('show')) return;
-        if (e.key === 'Escape') closePracticeFull();
+        
+        var active = document.activeElement;
+        var isTyping = active && (active.tagName === 'INPUT' || 
+                                    active.tagName === 'TEXTAREA' || 
+                                    active.tagName === 'SELECT');
+        
+        // ✅ Escape luôn hoạt động
+        if (e.key === 'Escape') {
+            closePracticeFull();
+            return;
+        }
+        
+        // ✅ Không bắt các phím khác khi đang gõ trong ô input
+        if (isTyping) return;
+        
         if (e.key === 'ArrowRight' && e.ctrlKey) pfNext();
         if (e.key === 'ArrowLeft' && e.ctrlKey) pfPrev();
     });
@@ -3571,7 +3611,6 @@ function loadUsers() {
         });
 }
 
-/* ✅ ĐÃ SỬA LỖI var THỪA */
 function renderAdminStats() {
     var total = usersCache.length;
     var admins = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
@@ -3756,8 +3795,9 @@ print(f"📝 Đáp án tách theo PINYIN viết liền/rời")
 print(f"☀️  Theme mặc định: Light mode")
 print(f"🎯 Desktop hover phóng to + Mobile click vừa đọc vừa phóng to")
 print(f"👁️  Nút Xem đáp án: toggle ẩn/hiện")
-print(f"✏️  Click ký tự sai → con trỏ về + bôi đen để gõ đè")
+print(f"✏️  Click ký tự sai → con trỏ về + bôi đen ĐÚNG ký tự")
 print(f"🔍 Search + Filter + Dropdown chọn câu (tiếng Việt) trong modal")
 print(f"📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
 print(f"💾 Cache user 12h + Log 1 lần/ngày → tiết kiệm 90% Firestore quota")
 print(f"👁️  Nút ẩn/hiện kết quả + đáp án ở mỗi thẻ trang chính")
+print(f"✅ Gõ search trong modal KHÔNG nhảy sang ô nhập tiếng Trung")
