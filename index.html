@@ -331,6 +331,45 @@ body.show-practice .card-body{
     font-weight:400;margin-top:.2rem;font-style:italic;line-height:1.3;
 }
 
+/* ✅ Khung đáp án tiếng Trung inline */
+.answer-inline-display{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:.4rem;
+    margin-top:.35rem;
+    padding:.35rem .6rem;
+    background:linear-gradient(135deg, rgba(37,99,235,.08), rgba(37,99,235,.04));
+    border:1px dashed rgba(37,99,235,.3);
+    border-radius:8px;
+    flex-wrap:wrap;
+}
+[data-theme="dark"] .answer-inline-display{
+    background:linear-gradient(135deg, rgba(59,130,246,.15), rgba(59,130,246,.08));
+    border-color:rgba(59,130,246,.4);
+}
+.answer-inline-label{
+    font-size:.7rem;
+    font-weight:700;
+    color:var(--primary-dark);
+    text-transform:uppercase;
+    letter-spacing:.3px;
+    display:inline-flex;
+    align-items:center;
+    gap:.25rem;
+    white-space:nowrap;
+}
+[data-theme="dark"] .answer-inline-label{color:#93c5fd;}
+.answer-inline-label i{font-size:.75rem;}
+.answer-inline-text{
+    font-family:var(--font-zh);
+    font-size:1.05rem;
+    font-weight:600;
+    color:var(--text);
+    letter-spacing:.03em;
+    word-break:break-all;
+}
+
 .main{padding:.5rem 0 3rem}
 
 .demo-banner{
@@ -1434,7 +1473,6 @@ body.show-practice .card-body{
         </button>
     </div>
     
-    <!-- ✅ Search + Filter + Quick nav trong modal full -->
     <div class="pf-filters">
         <div class="pf-search-wrap">
             <i class="fas fa-search"></i>
@@ -1671,7 +1709,6 @@ async function handleAuthChange(user) {
     
     var email = (user.email || '').toLowerCase();
     
-    // ✅ Kiểm tra cache trước
     var cacheKey = 'user_cache_' + email;
     var cached = null;
     try {
@@ -1688,7 +1725,6 @@ async function handleAuthChange(user) {
         return;
     }
     
-    // Cache hết hạn → đọc Firestore
     try {
         var doc = await db.collection('allowed_users').doc(email).get();
         if (!doc.exists) {
@@ -1835,7 +1871,6 @@ function showLoginError(msg) {
     el.classList.add('show');
 }
 
-/* ✅ Logout + xóa cache */
 $('logoutBtn').addEventListener('click', function() {
     if (confirm('Đăng xuất?')) {
         try {
@@ -1858,7 +1893,6 @@ document.addEventListener('click', function(e) {
     }
 });
 
-/* ✅ Log 1 lần/user/ngày */
 function logLogin(u) {
     try {
         var today = new Date().toDateString();
@@ -2544,7 +2578,6 @@ function updateInlinePreview(input, answer) {
                 clickable = true;
             }
         } else if (!userChar && answerChar) {
-            // ✅ Ô trống → hiển thị dấu · có thể click để nhảy tới
             cls += ' ghost-missing';
             display = '·';
             clickable = true;
@@ -2568,7 +2601,6 @@ function updateInlinePreview(input, answer) {
 window.fixInlineChar = function(el, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
     var input = el.parentElement.previousElementSibling;
-    // Fallback: tìm input gần nhất trong cùng .card-practice
     if (!input || !input.classList.contains('practice-input')) {
         var wrap = el.closest('.card-practice') || el.parentElement.parentElement;
         input = wrap ? wrap.querySelector('.practice-input') : null;
@@ -2588,6 +2620,39 @@ window.fixInlineChar = function(el, evt) {
     }, 10);
 };
 
+/* ✅ Hiển thị kết quả chấm + đáp án tiếng Trung đầy đủ */
+function showInlineCheckWithAnswer(input) {
+    if (!input) return;
+    var stt = input.dataset.stt;
+    var answer = input.dataset.answer;
+    var cells = document.querySelectorAll('[data-check-stt="' + stt + '"]');
+    var val = input.value.trim();
+    if (!answer) {
+        cells.forEach(function(c) { c.innerHTML = ''; });
+        return;
+    }
+    
+    var answerHtml = '<div class="answer-inline-display">' +
+        '<span class="answer-inline-label"><i class="fas fa-check-circle"></i> Đáp án:</span>' +
+        '<span class="answer-inline-text">' + escapeHtml(answer) + '</span>' +
+        '</div>';
+    
+    var resultHtml = '';
+    if (val) {
+        var result = smartCheck(val, answer);
+        if (result.status === 'correct') resultHtml = '<span class="ai-correct">✅ ĐÚNG</span>';
+        else if (result.status === 'partial') resultHtml = '<span class="ai-partial">⚠️ GẦN ĐÚNG</span>';
+        else resultHtml = '<span class="ai-wrong">❌ SAI</span>';
+        if (result.reason) resultHtml += '<span class="ai-reason">' + escapeHtml(result.reason) + '</span>';
+    } else {
+        resultHtml = '<span class="ai-reason">Chưa gõ gì cả</span>';
+    }
+    
+    cells.forEach(function(c) {
+        c.innerHTML = resultHtml + answerHtml;
+    });
+}
+
 /* ✅ Chấm điểm + cập nhật preview inline */
 window.checkInput = function(input) {
     var stt = input.dataset.stt;
@@ -2595,17 +2660,35 @@ window.checkInput = function(input) {
     var cells = document.querySelectorAll('[data-check-stt="' + stt + '"]');
     var val = input.value.trim();
     updateInlinePreview(input, answer);
-    if (!val) { cells.forEach(function(c) { c.innerHTML = ''; }); return; }
-    var result = smartCheck(val, answer);
-    var html = '';
-    if (result.status === 'correct') html = '<span class="ai-correct">✅ ĐÚNG</span>';
-    else if (result.status === 'partial') html = '<span class="ai-partial">⚠️ GẦN ĐÚNG</span>';
-    else html = '<span class="ai-wrong">❌ SAI</span>';
-    if (result.reason) html += '<span class="ai-reason">' + escapeHtml(result.reason) + '</span>';
-    cells.forEach(function(c) { c.innerHTML = html; });
+    
+    var wrap = input.closest('.card-practice');
+    var btn = wrap ? wrap.querySelector('.toggle-check-btn') : null;
+    var isVisible = btn && btn.dataset.visible === '1';
+    
+    if (!isVisible) return;
+    
+    var answerHtml = '<div class="answer-inline-display">' +
+        '<span class="answer-inline-label"><i class="fas fa-check-circle"></i> Đáp án:</span>' +
+        '<span class="answer-inline-text">' + escapeHtml(answer) + '</span>' +
+        '</div>';
+    
+    var resultHtml = '';
+    if (val) {
+        var result = smartCheck(val, answer);
+        if (result.status === 'correct') resultHtml = '<span class="ai-correct">✅ ĐÚNG</span>';
+        else if (result.status === 'partial') resultHtml = '<span class="ai-partial">⚠️ GẦN ĐÚNG</span>';
+        else resultHtml = '<span class="ai-wrong">❌ SAI</span>';
+        if (result.reason) resultHtml += '<span class="ai-reason">' + escapeHtml(result.reason) + '</span>';
+    } else {
+        resultHtml = '<span class="ai-reason">Chưa gõ gì cả</span>';
+    }
+    
+    cells.forEach(function(c) {
+        c.innerHTML = resultHtml + answerHtml;
+    });
 };
 
-/* ✅ Toggle ẩn/hiện kết quả kiểm tra ở mỗi thẻ */
+/* ✅ Toggle ẩn/hiện kết quả + đáp án ở mỗi thẻ */
 window.toggleInlineCheck = function(btn, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
     var wrap = btn.closest('.card-practice');
@@ -2625,10 +2708,7 @@ window.toggleInlineCheck = function(btn, evt) {
         btn.dataset.visible = '1';
         btn.innerHTML = '<i class="fas fa-eye-slash"></i>';
         btn.classList.add('active');
-        // Nếu input đã có nội dung → chấm lại ngay
-        if (input && input.value.trim()) {
-            checkInput(input);
-        }
+        showInlineCheckWithAnswer(input);
     }
 };
 
@@ -3334,7 +3414,6 @@ function openAdminPanel() {
     loadLogs();
 }
 
-/* ✅ Load users 1 lần (không realtime) */
 function loadUsers() {
     if (usersUnsubscribe) { usersUnsubscribe(); usersUnsubscribe = null; }
     
