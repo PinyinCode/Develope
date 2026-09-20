@@ -5,9 +5,10 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - Desktop: card 2 cột | Mobile: card 1 cột
 - Demo mode cho khách chưa đăng nhập:
     + 50 câu đầu
-    + Bộ lọc HSK: chỉ HSK1-HSK3
-    + Bộ lọc chủ đề: chỉ chủ đề có trong 50 câu đầu
-    + Ô luyện tập + Pinyin: mở trong 50 câu
+    + Bộ lọc HSK: chỉ HSK1-3 (HSK4-6 hiện 🔒)
+    + Bộ lọc chủ đề: hiện TẤT CẢ, chủ đề ngoài 50 câu 🔒
+    + Ô luyện tập: ẩn tiếng Trung + Pinyin, chỉ hiện tiếng Việt
+    + Chấm điểm bằng SO KHỚP THÔNG MINH (miễn phí 100%)
     + Nghe + Luyện viết: 100 lượt/ngày (chung)
 - Hệ thống đăng nhập Firebase + Admin panel
 - BẢO VỆ: Đúng 2 admin (không nâng/hạ/xóa)
@@ -15,6 +16,7 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - Dark mode fix: HSK badge + nút nghe dễ đọc
 - Hanzi Writer, font chữ Trung tối ưu, 3 FAB, focus mode
 - ✅ Hiển thị số lượng kết quả theo ô tìm kiếm / bộ lọc
+- ✅ KHÔNG cần API key, KHÔNG giới hạn lượt chấm
 """
 import openpyxl
 import json
@@ -36,11 +38,38 @@ OUTPUT_HTML = CONFIG.get("output_html", "index.html")
 SHEET_INDEX = CONFIG.get("sheet_index", 0)
 DEMO_LIMIT = CONFIG.get("demo_limit", 50)
 DEMO_DAILY_LIMIT = CONFIG.get("demo_daily_limit", 100)
-DEMO_HSK_MAX = CONFIG.get("demo_hsk_max", 3)  # ✅ Demo chỉ cho HSK1-3
+DEMO_HSK_MAX = CONFIG.get("demo_hsk_max", 3)
 TARGET_ADMINS = CONFIG.get("target_admins", 2)
 ZALO_PHONE = CONFIG.get("zalo_phone", "")
 ZALO_NAME = CONFIG.get("zalo_name", "Hỗ trợ")
 FIREBASE_CONFIG = CONFIG.get("firebase_config", {})
+
+# Từ điển đồng nghĩa (có thể mở rộng qua config)
+DEFAULT_SYNONYMS = {
+    "我": ["俺", "本人", "咱"],
+    "你": ["您", "阁下"],
+    "他": ["她", "它"],
+    "是": ["系", "为"],
+    "的": ["之"],
+    "不": ["没", "未"],
+    "很": ["非常", "十分", "特别"],
+    "好": ["棒", "优秀", "不错"],
+    "说": ["讲", "谈"],
+    "看": ["瞧", "望"],
+    "吃": ["食", "用"],
+    "给": ["送", "赠"],
+    "想要": ["想", "要"],
+    "越南": ["越南"],
+    "中国": ["中华"],
+    "谢谢": ["感谢", "多谢"],
+    "对不起": ["抱歉", "不好意思"],
+    "再见": ["拜拜", "再会"],
+    "请": ["麻烦", "拜托"],
+}
+SYNONYMS = CONFIG.get("synonyms", DEFAULT_SYNONYMS)
+
+# Từ phụ có thể bỏ qua (không ảnh hưởng nghĩa)
+FILLER_WORDS = CONFIG.get("filler_words", ["了", "的", "吗", "呢", "吧", "啊", "呀", "哦", "嘛", "哈", "哪", "着", "过"])
 
 if not FIREBASE_CONFIG.get("apiKey"):
     print(f"❌ Firebase config chưa được cấu hình trong {CONFIG_FILE}")
@@ -52,6 +81,9 @@ if not ZALO_PHONE:
 print(f"⚙️  Đã đọc cấu hình từ: {CONFIG_FILE}")
 print(f"   📞 Zalo: {ZALO_PHONE} ({ZALO_NAME})")
 print(f"   🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} lượt nghe/viết mỗi ngày")
+print(f"   🧠 Chấm điểm: So khớp thông minh (miễn phí 100%)")
+print(f"   📚 Từ điển đồng nghĩa: {len(SYNONYMS)} nhóm")
+print(f"   🚫 Từ phụ bỏ qua: {len(FILLER_WORDS)} từ")
 print(f"   👑 Target admins: {TARGET_ADMINS}")
 
 # ====== ĐỌC EXCEL ======
@@ -92,6 +124,8 @@ print(f"✅ Đã đọc {len(data)} câu")
 json_data = json.dumps(data, ensure_ascii=True, separators=(',', ':'))
 json_data = json_data.replace('</', '<\\/')
 firebase_config_json = json.dumps(FIREBASE_CONFIG, ensure_ascii=False)
+synonyms_json = json.dumps(SYNONYMS, ensure_ascii=True, separators=(',', ':'))
+fillers_json = json.dumps(FILLER_WORDS, ensure_ascii=True, separators=(',', ':'))
 
 # ====== TEMPLATE HTML ======
 html_template = r'''<!DOCTYPE html>
@@ -300,7 +334,6 @@ body{
     position:absolute;inset:0;opacity:0;cursor:pointer;font-size:1rem;
     -webkit-appearance:none;appearance:none;width:100%;height:100%;
 }
-/* ✅ Demo: chip có icon khóa nhỏ nhưng vẫn dùng được */
 .chip.demo-limited{border-color:var(--amber)}
 .chip.demo-limited::before{
     content:'\f023';
@@ -465,6 +498,48 @@ body:not(.show-vi) .card-vi{display:none!important}
 body:not(.show-practice) .col-practice,
 body:not(.show-practice) .card-practice{display:none!important}
 
+/* ✅ Khi BẬT ô luyện tập: ẩn tiếng Trung + Pinyin, chỉ hiện tiếng Việt */
+body.show-practice .card-zh,
+body.show-practice .card-pinyin {
+    display: none !important;
+}
+body.show-practice .card-vi {
+    display: block !important;
+    font-size:1rem;
+    font-weight:600;
+    color:var(--text);
+    margin-bottom:.55rem;
+    line-height:1.4;
+}
+body.show-practice .card-body {
+    background:linear-gradient(135deg, var(--surface-2), rgba(37,99,235,.06));
+    padding:.75rem .85rem;
+    border-radius:10px;
+    border-left:3px solid var(--primary);
+}
+
+.ai-correct{
+    color:var(--success);
+    font-weight:700;
+}
+.ai-partial{
+    color:var(--amber);
+    font-weight:700;
+}
+.ai-wrong{
+    color:var(--danger);
+    font-weight:700;
+}
+.ai-reason{
+    display:block;
+    font-size:.68rem;
+    color:var(--text-3);
+    font-weight:400;
+    margin-top:.2rem;
+    font-style:italic;
+    line-height:1.3;
+}
+
 .main{padding:.5rem 0 3rem}
 
 .demo-banner{
@@ -555,7 +630,7 @@ body:not(.show-practice) .card-practice{display:none!important}
     background:var(--surface-2);padding:.2rem .45rem;border-radius:6px;display:inline-block;
 }
 [data-theme="dark"] .card-pinyin{background:rgba(59,130,246,.18);color:#93c5fd;font-weight:500;font-style:italic}
-.card-practice{display:flex;align-items:center;gap:.4rem;padding-top:.6rem;border-top:1px dashed var(--border)}
+.card-practice{display:flex;align-items:center;gap:.4rem;padding-top:.6rem;border-top:1px dashed var(--border);flex-wrap:wrap}
 .card-practice .practice-input{flex:1;min-width:0}
 .card-check{font-size:.75rem;font-weight:700;white-space:nowrap;min-width:55px;text-align:center}
 
@@ -587,9 +662,9 @@ body:not(.show-practice) .card-practice{display:none!important}
 [data-theme="dark"] .write-btn:hover{background:var(--amber);color:#fff}
 .action-group{display:flex;gap:.3rem;justify-content:center;align-items:center;position:relative}
 .practice-input{
-    width:100%;min-width:140px;padding:.45rem .7rem;
+    width:100%;min-width:140px;padding:.5rem .8rem;
     border-radius:var(--radius-full);border:1.5px solid var(--border);
-    background:var(--surface);color:var(--text);font-size:.85rem;
+    background:var(--surface);color:var(--text);font-size:.9rem;
     outline:none;transition:.15s;font-family:var(--font-zh);-webkit-appearance:none;
 }
 .practice-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
@@ -1078,7 +1153,7 @@ body:not(.show-practice) .card-practice{display:none!important}
     <button class="fab-btn fab-sub" id="togglePinyinBtn" data-label="Pinyin" title="Ẩn/hiện Pinyin">
         <i class="fas fa-spell-check"></i>
     </button>
-    <button class="fab-btn fab-sub" id="togglePracticeBtn" data-label="Ô nhập tiếng Trung" title="Ẩn/hiện Ô nhập">
+    <button class="fab-btn fab-sub" id="togglePracticeBtn" data-label="Luyện dịch Việt → Trung" title="Ẩn/hiện Ô luyện dịch">
         <i class="fas fa-keyboard"></i>
     </button>
     <button class="fab-btn fab-main" id="fabMainBtn" title="Tùy chọn hiển thị">
@@ -1093,8 +1168,8 @@ body:not(.show-practice) .card-practice{display:none!important}
             <div class="demo-banner-text">
                 <div class="title">Bạn đang dùng bản Demo</div>
                 <div class="desc">
-                    Xem <b id="demoLimitText">50</b> câu đầu (HSK1-<span id="demoHskMaxText">3</span>). 
-                    Bộ lọc HSK chỉ từ HSK1-<span id="demoHskMaxText2">3</span> và chủ đề giới hạn theo 50 câu đầu.
+                    Xem <b id="demoLimitText">50</b> câu đầu (HSK1-<span id="demoHskMaxText">3</span>).
+                    Bộ lọc HSK chỉ từ HSK1-<span id="demoHskMaxText2">3</span>, chủ đề giới hạn theo 50 câu đầu.
                     Nghe + Luyện viết giới hạn <b id="demoDailyText">100</b> lượt/ngày
                     (còn lại: <b id="demoRemainingText">100</b> lượt).
                     Đăng nhập để mở khóa toàn bộ!
@@ -1206,6 +1281,8 @@ var DEMO_HSK_MAX = __DEMO_HSK_MAX__;
 var TARGET_ADMINS = __TARGET_ADMINS__;
 var ZALO_PHONE = "__ZALO_PHONE__";
 var ZALO_NAME = "__ZALO_NAME__";
+var SYNONYMS = __SYNONYMS__;
+var FILLER_WORDS = __FILLER_WORDS__;
 
 var currentUser = null;
 var isDemo = true;
@@ -1222,24 +1299,20 @@ var usersUnsubscribe = null;
 var $ = function(id) { return document.getElementById(id); };
 var mobileWrapper;
 
-/* ✅ Lấy danh sách 50 câu demo */
 function getDemoData() {
     return RAW_DATA.slice(0, DEMO_LIMIT);
 }
-/* ✅ Lấy danh sách HSK hợp lệ cho demo (HSK1-DEMO_HSK_MAX) */
 function getDemoHskList() {
     var list = [];
     for (var i = 1; i <= DEMO_HSK_MAX; i++) list.push('HSK' + i);
     return list;
 }
-/* ✅ Lấy danh sách chủ đề có trong 50 câu demo */
 function getDemoSubjectList() {
     var set = {};
     getDemoData().forEach(function(r) { if (r.subject) set[r.subject] = 1; });
     return Object.keys(set).sort();
 }
 
-/* ✅ ĐẾM LƯỢT NGHE + VIẾT CHUNG */
 function getDemoUsage() {
     try {
         var today = new Date().toDateString();
@@ -1375,7 +1448,6 @@ function applyUserUI() {
         }
     }
     
-    /* ✅ Chip có class demo-limited nếu demo (vẫn dùng được, chỉ có icon khóa nhỏ) */
     var hskChip = $('hskChip');
     var subjectChip = $('subjectChip');
     if (isDemo) {
@@ -1496,14 +1568,14 @@ function initApp() {
         applyFilter();
     });
     
-    /* ✅ Demo có thể dùng bộ lọc — chỉ giới hạn lựa chọn */
     $('hskFilter').addEventListener('change', function() {
         if (isDemo) {
             var val = this.value;
             var allowed = getDemoHskList();
             if (val && allowed.indexOf(val) === -1) {
-                alert('Bản Demo chỉ cho phép lọc HSK1-' + DEMO_HSK_MAX + '.\n\nĐăng nhập để mở khóa tất cả HSK!');
+                alert('🔒 Bản Demo chỉ cho phép lọc HSK1-' + DEMO_HSK_MAX + '.\n\nĐăng nhập Google để mở khóa tất cả HSK!');
                 this.value = '';
+                applyFilter();
                 return;
             }
         }
@@ -1514,8 +1586,9 @@ function initApp() {
             var val = this.value;
             var allowed = getDemoSubjectList();
             if (val && allowed.indexOf(val) === -1) {
-                alert('Bản Demo chỉ cho phép lọc chủ đề có trong ' + DEMO_LIMIT + ' câu đầu.\n\nĐăng nhập để mở khóa tất cả chủ đề!');
+                alert('🔒 Chủ đề này chưa có trong ' + DEMO_LIMIT + ' câu Demo.\n\nĐăng nhập Google để mở khóa tất cả chủ đề!');
                 this.value = '';
+                applyFilter();
                 return;
             }
         }
@@ -1620,11 +1693,13 @@ function initDisplayState() {
             displayState.practice = !!parsed.practice;
         }
     } catch(e) {}
-    if (displayState.practice) displayState.pinyin = false;
+    if (displayState.practice) {
+        displayState.pinyin = false;
+        displayState.vi = true;
+    }
     applyDisplayState();
     updateToggleButtons();
     
-    /* ✅ Demo: tất cả FAB đều dùng được (không khóa nữa) */
     $('toggleViBtn').addEventListener('click', function(e) {
         e.stopPropagation();
         displayState.vi = !displayState.vi;
@@ -1639,7 +1714,10 @@ function initDisplayState() {
     $('togglePracticeBtn').addEventListener('click', function(e) {
         e.stopPropagation();
         displayState.practice = !displayState.practice;
-        if (displayState.practice && displayState.pinyin) displayState.pinyin = false;
+        if (displayState.practice) {
+            displayState.pinyin = false;
+            displayState.vi = true;
+        }
         applyDisplayState(); saveDisplayState(); updateToggleButtons();
     });
 }
@@ -1647,6 +1725,11 @@ function applyDisplayState() {
     document.body.classList.toggle('show-vi', displayState.vi);
     document.body.classList.toggle('show-pinyin', displayState.pinyin);
     document.body.classList.toggle('show-practice', displayState.practice);
+    
+    if (displayState.practice) {
+        document.querySelectorAll('.card-check').forEach(function(c) { c.innerHTML = ''; });
+        document.querySelectorAll('.practice-input').forEach(function(i) { i.value = ''; });
+    }
 }
 function saveDisplayState() {
     try { localStorage.setItem('displayState', JSON.stringify(displayState)); } catch(e) {}
@@ -1753,33 +1836,43 @@ function escapeJs(str) {
         .replace(/\n/g, '\\n').replace(/\r/g, '');
 }
 
-/* ✅ BUILD FILTER - Demo giới hạn lựa chọn */
+/* ✅ BUILD FILTER - Chủ đề hiện TẤT CẢ, chủ đề ngoài demo có 🔒 */
 function buildFilters() {
     var hskSelect = $('hskFilter');
     var subjectSelect = $('subjectFilter');
     
+    var allSubjectSet = {};
+    RAW_DATA.forEach(function(r) { if (r.subject) allSubjectSet[r.subject] = 1; });
+    var allSubjects = Object.keys(allSubjectSet).sort();
+    
     if (isDemo) {
-        /* Demo: chỉ cho chọn HSK1-HSK3 */
         var demoHsk = getDemoHskList();
         var hskHtml = '<option value="">Tất cả (HSK1-' + DEMO_HSK_MAX + ')</option>';
         demoHsk.forEach(function(h) {
             hskHtml += '<option value="' + h + '">' + h + '</option>';
         });
-        /* Hiển thị các option HSK4-6 nhưng disabled để user biết cần đăng nhập */
-        ['HSK4', 'HSK5', 'HSK6'].forEach(function(h) {
-            hskHtml += '<option value="' + h + '" disabled>🔒 ' + h + ' (đăng nhập)</option>';
+        var allHskList = ['HSK1','HSK2','HSK3','HSK4','HSK5','HSK6'];
+        allHskList.forEach(function(h) {
+            if (demoHsk.indexOf(h) === -1) {
+                hskHtml += '<option value="' + h + '" disabled>🔒 ' + h + ' (đăng nhập)</option>';
+            }
         });
         hskSelect.innerHTML = hskHtml;
         
-        /* Demo: chỉ cho chọn chủ đề trong 50 câu đầu */
         var demoSubjects = getDemoSubjectList();
-        var subjHtml = '<option value="">Tất cả chủ đề (trong demo)</option>';
-        demoSubjects.forEach(function(s) {
-            subjHtml += '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>';
+        var demoSubjectMap = {};
+        demoSubjects.forEach(function(s) { demoSubjectMap[s] = 1; });
+        
+        var subjHtml = '<option value="">Tất cả chủ đề</option>';
+        allSubjects.forEach(function(s) {
+            if (demoSubjectMap[s]) {
+                subjHtml += '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>';
+            } else {
+                subjHtml += '<option value="' + escapeHtml(s) + '" disabled>🔒 ' + escapeHtml(s) + ' (đăng nhập)</option>';
+            }
         });
         subjectSelect.innerHTML = subjHtml;
     } else {
-        /* Đã đăng nhập: full HSK */
         hskSelect.innerHTML = 
             '<option value="">Tất cả</option>' +
             '<option value="HSK1">HSK1</option>' +
@@ -1789,11 +1882,8 @@ function buildFilters() {
             '<option value="HSK5">HSK5</option>' +
             '<option value="HSK6">HSK6</option>';
         
-        /* Đã đăng nhập: full subjects từ RAW_DATA */
-        var subjectSet = {};
-        RAW_DATA.forEach(function(r) { if (r.subject) subjectSet[r.subject] = 1; });
         subjectSelect.innerHTML = '<option value="">Tất cả chủ đề</option>' +
-            Object.keys(subjectSet).sort().map(function(v){ return '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>'; }).join('');
+            allSubjects.map(function(v){ return '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>'; }).join('');
     }
 }
 
@@ -1863,6 +1953,7 @@ function render(reset) {
         var viJs = escapeJs(r.vi);
         var pinyinJs = escapeJs(r.pinyin);
         var zhHtml = escapeHtml(r.zh);
+        var viHtml = escapeHtml(r.vi);
         var sttSafe = escapeHtml(r.stt);
         var sttJs = escapeJs(r.stt);
         
@@ -1871,7 +1962,7 @@ function render(reset) {
         if (r.zh) {
             writeBtn = '<button class="write-btn" onclick="openWriter(\'' + zhJs + '\', \'' + viJs + '\', \'' + pinyinJs + '\', event)" title="Luyện viết"><i class="fas fa-pen-fancy"></i></button>';
         }
-        var practiceInput = '<input type="text" class="practice-input" placeholder="Nhập tiếng Trung..." data-answer="' + zhHtml + '" data-stt="' + sttSafe + '" oninput="checkInput(this)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">';
+        var practiceInput = '<input type="text" class="practice-input" placeholder="Gõ tiếng Trung..." data-answer="' + zhHtml + '" data-vi-hint="' + viHtml + '" data-stt="' + sttSafe + '" oninput="checkInput(this)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">';
         
         mobHtml += '<div class="card" onclick="toggleFocus(\'' + sttJs + '\', this)" data-stt="' + sttSafe + '">' +
             '<div class="card-header">' +
@@ -1884,7 +1975,7 @@ function render(reset) {
                 '<div onclick="event.stopPropagation()" class="action-group">' + audio + writeBtn + '</div>' +
             '</div>' +
             '<div class="card-body">' +
-                (r.vi ? '<div class="card-vi">' + escapeHtml(r.vi) + '</div>' : '') +
+                (r.vi ? '<div class="card-vi">' + viHtml + '</div>' : '') +
                 '<div class="card-zh">' + zhHtml + '</div>' +
                 (r.pinyin ? '<div class="card-pinyin">' + escapeHtml(r.pinyin) + '</div>' : '') +
             '</div>' +
@@ -1925,24 +2016,207 @@ function render(reset) {
     }
 }
 
-/* ✅ Ô luyện tập - Demo vẫn dùng được */
+/* ============================================================
+   🧠 SO KHỚP THÔNG MINH - Miễn phí 100%, không cần API
+   ============================================================ */
+
+/* Bước 1: Chuẩn hóa chuỗi (bỏ dấu câu, khoảng trắng, lowercase) */
+function normalizeAnswer(str) {
+    if (!str) return '';
+    return String(str)
+        // Bỏ dấu câu tiếng Trung
+        .replace(/[。，！？、；：""''「」『』（）《》〈〉【】〔〕]/g, '')
+        // Bỏ dấu câu tiếng Anh/Việt
+        .replace(/[.,!?;:'"()\[\]{}\-~`@#$%^&*+=|\\/<>]/g, '')
+        // Bỏ khoảng trắng
+        .replace(/\s+/g, '')
+        .toLowerCase()
+        .trim();
+}
+
+/* Bước 2: Bỏ dấu thanh điệu pinyin */
+function removeTones(str) {
+    if (!str) return '';
+    var map = {
+        'ā':'a','á':'a','ǎ':'a','à':'a',
+        'ē':'e','é':'e','ě':'e','è':'e',
+        'ī':'i','í':'i','ǐ':'i','ì':'i',
+        'ō':'o','ó':'o','ǒ':'o','ò':'o',
+        'ū':'u','ú':'u','ǔ':'u','ù':'u',
+        'ǖ':'v','ǘ':'v','ǚ':'v','ǜ':'v','ü':'v'
+    };
+    return str.replace(/[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü]/g, function(c) {
+        return map[c] || c;
+    });
+}
+
+/* Bước 3: Bỏ từ phụ (了, 的, 吗, 呢...) */
+function removeFillers(str) {
+    if (!str) return '';
+    var result = str;
+    FILLER_WORDS.forEach(function(w) {
+        result = result.split(w).join('');
+    });
+    return result;
+}
+
+/* Bước 4: Mở rộng từ đồng nghĩa → tạo danh sách biến thể */
+function expandSynonyms(str) {
+    var results = [str];
+    var keys = Object.keys(SYNONYMS);
+    // Chỉ mở rộng 1 cấp để tránh bùng nổ tổ hợp
+    for (var i = 0; i < keys.length; i++) {
+        var key = keys[i];
+        if (str.indexOf(key) !== -1) {
+            var values = SYNONYMS[key];
+            for (var j = 0; j < values.length; j++) {
+                results.push(str.split(key).join(values[j]));
+            }
+        }
+    }
+    return results;
+}
+
+/* Bước 5: Levenshtein distance - đo độ tương đồng */
+function levenshtein(a, b) {
+    if (a === b) return 0;
+    if (!a.length) return b.length;
+    if (!b.length) return a.length;
+    
+    var matrix = [];
+    for (var i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (var j = 0; j <= a.length; j++) matrix[0][j] = j;
+    
+    for (var i = 1; i <= b.length; i++) {
+        for (var j = 1; j <= a.length; j++) {
+            if (b.charAt(i-1) === a.charAt(j-1)) {
+                matrix[i][j] = matrix[i-1][j-1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i-1][j-1] + 1,
+                    matrix[i][j-1] + 1,
+                    matrix[i-1][j] + 1
+                );
+            }
+        }
+    }
+    return matrix[b.length][a.length];
+}
+
+function similarity(a, b) {
+    var maxLen = Math.max(a.length, b.length);
+    if (maxLen === 0) return 1;
+    return 1 - (levenshtein(a, b) / maxLen);
+}
+
+/* Bước 6: Hàm chấm điểm tổng hợp */
+function smartCheck(userAnswer, correctAnswer) {
+    var user = normalizeAnswer(userAnswer);
+    var correct = normalizeAnswer(correctAnswer);
+    
+    if (!user) return { status: 'wrong', reason: '' };
+    
+    // CẤP 1: Khớp tuyệt đối
+    if (user === correct) {
+        return { status: 'correct', reason: 'Chính xác' };
+    }
+    
+    // CẤP 2: Khớp sau khi bỏ dấu thanh pinyin
+    var userNoTone = removeTones(user);
+    var correctNoTone = removeTones(correct);
+    if (userNoTone === correctNoTone) {
+        return { status: 'correct', reason: 'Đúng (thiếu dấu thanh)' };
+    }
+    
+    // CẤP 3: Khớp sau khi bỏ từ phụ
+    var userNoFill = removeFillers(user);
+    var correctNoFill = removeFillers(correct);
+    if (userNoFill === correctNoFill) {
+        return { status: 'correct', reason: 'Đúng (bỏ qua từ phụ)' };
+    }
+    
+    // CẤP 4: Khớp sau khi bỏ từ phụ + dấu thanh
+    var uNF = removeTones(userNoFill);
+    var cNF = removeTones(correctNoFill);
+    if (uNF === cNF) {
+        return { status: 'correct', reason: 'Đúng (từ phụ + dấu thanh)' };
+    }
+    
+    // CẤP 5: Mở rộng từ đồng nghĩa
+    var userVariants = expandSynonyms(userNoFill);
+    var correctVariants = expandSynonyms(correctNoFill);
+    
+    for (var i = 0; i < userVariants.length; i++) {
+        for (var j = 0; j < correctVariants.length; j++) {
+            if (userVariants[i] === correctVariants[j]) {
+                return { status: 'correct', reason: 'Đúng (từ đồng nghĩa)' };
+            }
+        }
+    }
+    
+    // CẤP 6: Đo độ tương đồng - Fuzzy matching
+    var maxSim = 0;
+    var bestReason = '';
+    
+    // So sánh user với các biến thể của correct
+    for (var k = 0; k < correctVariants.length; k++) {
+        var sim = similarity(userNoFill, correctVariants[k]);
+        if (sim > maxSim) {
+            maxSim = sim;
+            bestReason = sim >= 0.85 ? 'Gần đúng' : 'Sai';
+        }
+    }
+    // So sánh correct với các biến thể của user
+    for (var m = 0; m < userVariants.length; m++) {
+        var sim2 = similarity(userVariants[m], correctNoFill);
+        if (sim2 > maxSim) {
+            maxSim = sim2;
+            bestReason = sim2 >= 0.85 ? 'Gần đúng' : 'Sai';
+        }
+    }
+    
+    if (maxSim >= 0.85) {
+        return { status: 'partial', reason: 'Gần đúng (' + Math.round(maxSim * 100) + '%)' };
+    }
+    
+    // CẤP 7: Kiểm tra chứa nhau (substring)
+    if (user.indexOf(correct) !== -1 || correct.indexOf(user) !== -1) {
+        return { status: 'partial', reason: 'Thiếu/thừa từ' };
+    }
+    
+    return { status: 'wrong', reason: 'Không khớp' };
+}
+
+/* ✅ Hàm checkInput - dùng smartCheck */
 window.checkInput = function(input) {
     var stt = input.dataset.stt;
     var answer = input.dataset.answer;
     var cells = document.querySelectorAll('[data-check-stt="' + stt + '"]');
     var val = input.value.trim();
-    var norm = function(s){ return s.replace(/[。，！？、；：""''（）\s.,!?;:'"()\[\]{}]/g, ''); };
-    var result = '';
-    if (val) {
-        if (norm(val) === norm(answer)) result = '<span class="check-correct">✅ ĐÚNG</span>';
-        else result = '<span class="check-wrong">❌ SAI</span>';
+    
+    if (!val) {
+        cells.forEach(function(c) { c.innerHTML = ''; });
+        return;
     }
-    cells.forEach(function(c) { c.innerHTML = result; });
+    
+    var result = smartCheck(val, answer);
+    
+    var html = '';
+    if (result.status === 'correct') {
+        html = '<span class="ai-correct">✅ ĐÚNG</span>';
+    } else if (result.status === 'partial') {
+        html = '<span class="ai-partial">⚠️ GẦN ĐÚNG</span>';
+    } else {
+        html = '<span class="ai-wrong">❌ SAI</span>';
+    }
+    if (result.reason) {
+        html += '<span class="ai-reason">' + escapeHtml(result.reason) + '</span>';
+    }
+    cells.forEach(function(c) { c.innerHTML = html; });
 };
 
 function applyFilter() {
     state.search = $('searchInput').value.trim().toLowerCase();
-    /* ✅ Demo vẫn dùng bộ lọc HSK và chủ đề (đã bị giới hạn lựa chọn) */
     state.hsk = $('hskFilter').value;
     state.subject = $('subjectFilter').value;
     
@@ -2341,6 +2615,8 @@ html_output = (html_template
     .replace("__DEMO_DAILY_LIMIT__", str(DEMO_DAILY_LIMIT))
     .replace("__DEMO_HSK_MAX__", str(DEMO_HSK_MAX))
     .replace("__TARGET_ADMINS__", str(TARGET_ADMINS))
+    .replace("__SYNONYMS__", synonyms_json)
+    .replace("__FILLER_WORDS__", fillers_json)
 )
 with open(OUTPUT_HTML, "w", encoding="utf-8") as f:
     f.write(html_output)
@@ -2353,8 +2629,7 @@ print(f"🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} 
 print(f"🔥 Firebase: {FIREBASE_CONFIG.get('projectId', 'N/A')}")
 print(f"👑 Chế độ: Đúng {TARGET_ADMINS} admin")
 print(f"📞 Zalo: {ZALO_PHONE} ({ZALO_NAME})")
-print(f"💡 Zalo button: TO khi demo, NHỎ khi đã đăng nhập")
-print(f"🌙 Dark mode: HSK badge + nút nghe đã fix")
-print(f"🖥️ Desktop: Card 2 cột | 📱 Mobile: Card 1 cột")
-print(f"🔍 Hiển thị số lượng kết quả theo ô tìm kiếm / bộ lọc")
-print(f"✅ Demo: Bộ lọc HSK1-{DEMO_HSK_MAX}, chủ đề giới hạn, ô luyện tập + Pinyin mở")
+print(f"🧠 Chấm điểm: So khớp thông minh (MIỄN PHÍ 100%, không giới hạn)")
+print(f"   - Từ điển đồng nghĩa: {len(SYNONYMS)} nhóm")
+print(f"   - Từ phụ bỏ qua: {len(FILLER_WORDS)} từ")
+print(f"✅ Demo: Chủ đề hiện đầy đủ 🔒, ô luyện tập ẩn tiếng Trung, so khớp thông minh")
