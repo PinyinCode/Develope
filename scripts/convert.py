@@ -17,6 +17,8 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - ✅ Click chữ sai inline → bôi đen ĐÚNG ký tự trong ô gõ
 - ✅ Gõ search trong modal KHÔNG nhảy sang ô nhập tiếng Trung
 - ✅ Export/Import danh sách user ra/vào file Excel (kèm expiresAt)
+- ✅ Export/Import CHỈ USER, KHÔNG bao gồm ADMIN
+- ✅ Import lần 2, 3, ... không lỗi null
 - ✅ User có hạn sử dụng (expiresAt) — tự động khóa khi hết hạn
 - ✅ Banner cảnh báo sắp hết hạn (≤ 7 ngày)
 """
@@ -75,7 +77,7 @@ print(f"   🔍 Search + Filter + Dropdown chọn câu trong modal")
 print(f"   💾 Cache user 12h + Log 1 lần/ngày")
 print(f"   👑 Target admins: {TARGET_ADMINS}")
 print(f"   👁️  Nút ẩn/hiện kết quả + đáp án ở mỗi thẻ trang chính")
-print(f"   📤 Export/Import danh sách user ra/vào Excel (kèm expiresAt)")
+print(f"   📤 Export/Import user (CHỈ USER, KHÔNG ADMIN)")
 print(f"   ⏰ User có hạn sử dụng (expiresAt) — tự động khóa khi hết hạn")
 
 print(f"\n📖 Đang đọc file: {EXCEL_FILE}")
@@ -509,7 +511,6 @@ body.show-practice .card-body{
 }
 .demo-banner-btn:hover{background:#d97706;transform:translateY(-1px)}
 
-/* ✅ BANNER SẮP HẾT HẠN */
 .expiry-banner{
     background:linear-gradient(135deg, #fef3c7, #fde68a);
     border:1.5px solid #f59e0b;border-radius:var(--radius);
@@ -707,7 +708,6 @@ body.show-practice .card-body{
 }
 .no-data i{font-size:2.5rem;margin-bottom:.75rem;color:var(--border-strong);display:block}
 
-/* ✅ MODAL LUYỆN TẬP FULL MÀN HÌNH */
 .practice-full-modal{
     position:fixed;inset:0;background:var(--bg);z-index:2500;
     display:none;flex-direction:column;animation:fadeIn .2s;
@@ -1305,7 +1305,6 @@ body.show-practice .card-body{
 .log-item .log-time{color:var(--text-3);flex-shrink:0;font-family:monospace;font-size:.7rem}
 .log-item .log-msg{flex:1;word-break:break-word}
 
-/* ✅ Hiển thị hạn sử dụng trong user row */
 .u-last-login{
     font-size:.68rem;color:var(--text-3);
     display:flex;align-items:center;gap:.25rem;margin-top:.2rem;
@@ -1326,7 +1325,6 @@ body.show-practice .card-body{
 .u-expiry.urgent{background:rgba(220,38,38,.15);color:var(--danger);}
 .u-expiry.expired{background:rgba(220,38,38,.25);color:#fff;text-decoration:line-through;}
 
-/* ✅ IMPORT MODAL */
 .import-modal{
     position:fixed;inset:0;background:rgba(15,23,42,.85);
     backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
@@ -1425,7 +1423,7 @@ body.show-practice .card-body{
 .import-info b{font-weight:800;}
 .import-footer{
     padding:1rem 1.5rem;border-top:1px solid var(--border);
-    display:flex;gap:.5rem;justify-content:flex-end;
+    display:flex;gap:.5rem;justify-content:flex-end;align-items:center;
     background:var(--surface);
 }
 
@@ -1840,9 +1838,11 @@ body.show-practice .card-body{
             <div class="import-info">
                 <i class="fas fa-info-circle"></i>
                 <div>
-                    File Excel cần có cột: <b>email</b>, <b>name</b>, <b>role</b>, <b>expiresAt</b>.
+                    File Excel cần có cột: <b>email</b>, <b>name</b>, <b>expiresAt</b>.
                     Cột <b>expiresAt</b> định dạng <b>YYYY-MM-DD</b>, để trống = vĩnh viễn.
-                    User đã tồn tại sẽ được <b>cập nhật</b> (name, role, expiresAt).
+                    User đã tồn tại sẽ được <b>cập nhật</b>.
+                    <br><b>⚠️ Lưu ý:</b> Chỉ import <b>user</b>, KHÔNG import admin.
+                    Admin hiện có sẽ được giữ nguyên.
                 </div>
             </div>
         </div>
@@ -1860,10 +1860,10 @@ body.show-practice .card-body{
         <div class="admin-header">
             <h2><i class="fas fa-shield-alt"></i> Quản lý tài khoản</h2>
             <div class="admin-header-actions">
-                <button class="btn" id="exportExcelBtn" title="Xuất danh sách ra Excel">
+                <button class="btn" id="exportExcelBtn" title="Xuất danh sách USER ra Excel (không gồm admin)">
                     <i class="fas fa-file-export"></i> Export
                 </button>
-                <button class="btn" id="importExcelBtn" title="Import từ Excel">
+                <button class="btn" id="importExcelBtn" title="Import từ Excel (chỉ import user)">
                     <i class="fas fa-file-import"></i> Import
                 </button>
                 <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" style="display:none">
@@ -1943,6 +1943,7 @@ var focusedStt = null;
 var appInitialized = false;
 var usersCache = [];
 var lastLoginMap = {};
+var importRows = [];
 
 var $ = function(id) { return document.getElementById(id); };
 var mobileWrapper;
@@ -2084,7 +2085,6 @@ async function handleAuthChange(user) {
     }
 }
 
-/* ✅ Kiểm tra hạn sử dụng */
 function checkUserExpiration(userData) {
     if (userData.role === 'admin') return true;
     if (!userData.expiresAt) return true;
@@ -2137,7 +2137,6 @@ function applyUserUI() {
     var headerLoginBtn = $('headerLoginBtn');
     var userMenu = $('userMenu');
     
-    // ✅ Banner sắp hết hạn
     var expiryBanner = $('expiryBanner');
     if (expiryBanner) {
         if (!isDemo && currentUser && currentUser.role !== 'admin') {
@@ -3007,7 +3006,6 @@ function updateInlinePreview(input, answer) {
     preview.innerHTML = html;
 }
 
-/* ✅ Click chữ sai inline → bôi đen ĐÚNG ký tự */
 window.fixInlineChar = function(el, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
     
@@ -3868,13 +3866,21 @@ function initAdminPanel() {
         loadUsers(true);
     });
     
-    /* ✅ EXPORT EXCEL */
+    /* ✅ EXPORT EXCEL - CHỈ USER, KHÔNG ADMIN */
     $('exportExcelBtn').addEventListener('click', function() {
-        if (!usersCache.length) { alert('Chưa có user nào!'); return; }
+        // ✅ Lọc chỉ lấy user (không lấy admin)
+        var usersOnly = usersCache.filter(function(u) { 
+            return u.role !== 'admin'; 
+        });
+        
+        if (!usersOnly.length) { 
+            alert('Không có user nào để export!\n(Admin không được export)'); 
+            return; 
+        }
         
         var rows = [['email', 'name', 'role', 'expiresAt']];
         
-        usersCache.forEach(function(u) {
+        usersOnly.forEach(function(u) {
             var expStr = '';
             if (u.expiresAt) {
                 try {
@@ -3891,7 +3897,7 @@ function initAdminPanel() {
                     }
                 } catch(e) {}
             }
-            rows.push([u.email, u.name || '', u.role || 'user', expStr]);
+            rows.push([u.email, u.name || '', 'user', expStr]);
         });
         
         var ws = XLSX.utils.aoa_to_sheet(rows);
@@ -3906,7 +3912,7 @@ function initAdminPanel() {
         XLSX.writeFile(wb, fname);
     });
     
-    /* ✅ IMPORT EXCEL */
+    /* ✅ IMPORT EXCEL - CHỈ IMPORT USER */
     $('importExcelBtn').addEventListener('click', function() {
         $('importFileInput').click();
     });
@@ -3933,12 +3939,17 @@ function initAdminPanel() {
     
     $('importClose').addEventListener('click', function() {
         $('importModal').classList.remove('show');
+        importRows = [];
     });
     $('importCancelBtn').addEventListener('click', function() {
         $('importModal').classList.remove('show');
+        importRows = [];
     });
     $('importModal').addEventListener('click', function(e) {
-        if (e.target === this) $('importModal').classList.remove('show');
+        if (e.target === this) {
+            $('importModal').classList.remove('show');
+            importRows = [];
+        }
     });
     
     $('importConfirmBtn').addEventListener('click', doImport);
@@ -3980,7 +3991,6 @@ function initAdminPanel() {
                 addedBy: currentUser.email
             };
             
-            // ✅ Xử lý expiresAt
             if (expiresVal) {
                 var d = new Date(expiresVal + 'T23:59:59');
                 if (!isNaN(d.getTime())) {
@@ -4007,21 +4017,28 @@ function openAdminPanel() {
     loadLogs();
 }
 
-/* ✅ Cache users list 5 phút */
+/* ✅ Cache users list 5 phút - có thể force refresh */
 function loadUsers(forceRefresh) {
     var cacheKey = 'admin_users_cache';
+    
+    // ✅ Luôn xóa cache cũ khi force refresh
+    if (forceRefresh) {
+        try { localStorage.removeItem(cacheKey); } catch(e) {}
+    }
     
     if (!forceRefresh) {
         try {
             var cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
-            if (cached && cached.expires > Date.now() && cached.data) {
+            if (cached && cached.expires > Date.now() && cached.data && Array.isArray(cached.data)) {
                 usersCache = cached.data;
                 renderUsers(usersCache);
                 renderAdminStats();
                 loadLastLoginMap();
                 return;
             }
-        } catch(e) {}
+        } catch(e) {
+            try { localStorage.removeItem(cacheKey); } catch(e2) {}
+        }
     }
     
     $('userList').innerHTML = '<div class="no-data"><i class="fas fa-spinner fa-pulse"></i>Đang tải...</div>';
@@ -4030,7 +4047,13 @@ function loadUsers(forceRefresh) {
         .then(function(snapshot) {
             usersCache = [];
             snapshot.forEach(function(doc) {
-                usersCache.push({ email: doc.id, ...doc.data() });
+                var data = doc.data() || {};
+                usersCache.push({ 
+                    email: doc.id, 
+                    name: data.name || '',
+                    role: data.role || 'user',
+                    expiresAt: data.expiresAt || null
+                });
             });
             usersCache.sort(function(a, b) { return (a.email || '').localeCompare(b.email || ''); });
             
@@ -4129,7 +4152,6 @@ function renderUsers(items) {
         else if (isAdmin) deleteBtn = '<button class="u-btn danger" disabled title="Phải giữ đúng ' + TARGET_ADMINS + ' admin"><i class="fas fa-trash"></i></button>';
         else deleteBtn = '<button class="u-btn danger" onclick="deleteUser(\'' + escapeJs(u.email) + '\')" title="Xóa"><i class="fas fa-trash"></i></button>';
         
-        // Last login
         var lastLoginHtml = '';
         var last = lastLoginMap[(u.email || '').toLowerCase()];
         if (last) {
@@ -4140,7 +4162,6 @@ function renderUsers(items) {
             lastLoginHtml = '<div class="u-last-login"><i class="fas fa-times-circle"></i> Chưa đăng nhập</div>';
         }
         
-        // ✅ Hạn sử dụng
         var expiryHtml = '';
         if (isAdmin) {
             expiryHtml = '<div class="u-expiry permanent"><i class="fas fa-infinity"></i> Vĩnh viễn</div>';
@@ -4258,10 +4279,8 @@ function loadLogs() {
 }
 
 /* ============================================================
-   📥 XỬ LÝ IMPORT EXCEL
+   📥 XỬ LÝ IMPORT EXCEL - CHỈ USER, KHÔNG ADMIN
    ============================================================ */
-var importRows = [];
-
 function processImport(rows) {
     if (!rows || rows.length < 2) {
         alert('❌ File rỗng hoặc thiếu header!');
@@ -4284,19 +4303,23 @@ function processImport(rows) {
     });
     var emailCol = header.indexOf('email');
     var nameCol = header.indexOf('name');
-    var roleCol = header.indexOf('role');
     var expCol = header.indexOf('expiresat');
     
-    var existingMap = {};
+    // ✅ Build map email -> user (CHỈ USER, không admin)
+    var existingUserMap = {};
+    var existingAdminSet = {};
     usersCache.forEach(function(u) { 
-        existingMap[(u.email || '').toLowerCase()] = u; 
+        var email = (u.email || '').toLowerCase();
+        if (u.role === 'admin') {
+            existingAdminSet[email] = true;
+        } else {
+            existingUserMap[email] = u; 
+        }
     });
     
     importRows = [];
-    var stats = { total: 0, newUser: 0, update: 0, invalid: 0, adminWarn: 0 };
+    var stats = { total: 0, newUser: 0, update: 0, invalid: 0, skippedAdmin: 0 };
     var seenInFile = {};
-    var adminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
-    var pendingAdmins = 0;
     
     for (var i = headerRowIdx + 1; i < rows.length; i++) {
         var row = rows[i];
@@ -4304,15 +4327,22 @@ function processImport(rows) {
         
         var email = String(row[emailCol] || '').trim().toLowerCase();
         var name = nameCol >= 0 ? String(row[nameCol] || '').trim() : '';
-        var role = roleCol >= 0 ? String(row[roleCol] || '').trim().toLowerCase() : '';
         var expRaw = expCol >= 0 ? row[expCol] : '';
         
         if (!email && !name) continue;
-        if (email.indexOf('←') === 0 || email.indexOf('•') === 0 || email.indexOf('xóa dòng') !== -1) continue;
+        // Bỏ qua dòng chú thích
+        if (email.indexOf('←') === 0 || email.indexOf('•') === 0 || 
+            email.indexOf('xóa dòng') !== -1 || email.indexOf('#') === 0) continue;
+        
+        // ✅ Bỏ qua admin có sẵn (không cho import đè admin)
+        if (existingAdminSet[email]) {
+            stats.skippedAdmin++;
+            continue;
+        }
         
         var status = 'ok';
         var reason = '';
-        var isUpdate = !!existingMap[email];
+        var isUpdate = !!existingUserMap[email];
         
         // Validate
         if (!email) {
@@ -4334,39 +4364,24 @@ function processImport(rows) {
             name = email.split('@')[0];
         }
         
-        // Validate role
-        if (role && role !== 'admin' && role !== 'user') role = 'user';
-        if (!role) role = 'user';
-        
-        // Check admin limit
-        if (role === 'admin' && status === 'ok') {
-            var existingRole = isUpdate ? (existingMap[email].role || 'user') : 'user';
-            var isNewAdmin = existingRole !== 'admin';
-            if (isNewAdmin && (adminCount + pendingAdmins >= TARGET_ADMINS)) {
-                status = 'warn';
-                reason = 'Vượt số admin (' + TARGET_ADMINS + ')';
-                stats.adminWarn++;
-            } else if (isNewAdmin) {
-                pendingAdmins++;
-            }
-        }
-        
         // Parse expiresAt
         var expDate = null;
         var expStr = '';
         if (expRaw) {
             var raw = expRaw;
-            // Excel date object
-            if (typeof raw === 'number') {
+            if (typeof raw === 'number' && raw > 25569) {
                 // Excel serial date
                 var d = new Date((raw - 25569) * 86400 * 1000);
                 if (!isNaN(d.getTime())) {
                     expDate = d;
+                    var yy = d.getFullYear();
+                    var mm = String(d.getMonth() + 1).padStart(2, '0');
+                    var dd = String(d.getDate()).padStart(2, '0');
+                    expStr = yy + '-' + mm + '-' + dd;
                 }
             } else {
                 var s = String(raw).trim();
                 if (s) {
-                    // Format YYYY-MM-DD
                     var m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
                     if (m) {
                         var d2 = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]), 23, 59, 59);
@@ -4375,14 +4390,13 @@ function processImport(rows) {
                             expStr = m[1] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[3]).padStart(2, '0');
                         }
                     } else {
-                        // Try parse other format
                         var d3 = new Date(s);
                         if (!isNaN(d3.getTime())) {
                             expDate = d3;
-                            var y = d3.getFullYear();
-                            var mo = String(d3.getMonth() + 1).padStart(2, '0');
-                            var da = String(d3.getDate()).padStart(2, '0');
-                            expStr = y + '-' + mo + '-' + da;
+                            var y3 = d3.getFullYear();
+                            var mo3 = String(d3.getMonth() + 1).padStart(2, '0');
+                            var da3 = String(d3.getDate()).padStart(2, '0');
+                            expStr = y3 + '-' + mo3 + '-' + da3;
                         } else {
                             if (status === 'ok') {
                                 status = 'warn';
@@ -4399,7 +4413,7 @@ function processImport(rows) {
             rowNum: i + 1,
             email: email,
             name: name,
-            role: role,
+            role: 'user',  // ✅ Luôn là user
             expDate: expDate,
             expStr: expStr,
             status: status,
@@ -4409,7 +4423,11 @@ function processImport(rows) {
     }
     
     if (importRows.length === 0) {
-        alert('❌ Không có dòng dữ liệu hợp lệ!');
+        var msg = '❌ Không có dòng dữ liệu hợp lệ!';
+        if (stats.skippedAdmin > 0) {
+            msg += '\n\n(Bỏ qua ' + stats.skippedAdmin + ' admin - không import admin qua Excel)';
+        }
+        alert(msg);
         return;
     }
     
@@ -4419,6 +4437,11 @@ function processImport(rows) {
 
 function renderImportPreview() {
     var tbody = $('importTableBody');
+    if (!tbody) {
+        console.error('[Import] importTableBody không tồn tại');
+        return;
+    }
+    
     var html = '';
     var countOk = 0, countUpdate = 0, countWarn = 0, countErr = 0;
     
@@ -4458,7 +4481,7 @@ function renderImportPreview() {
             '<td>' + r.rowNum + '</td>' +
             '<td><b>' + escapeHtml(r.email) + '</b></td>' +
             '<td>' + escapeHtml(r.name) + '</td>' +
-            '<td><span class="role-badge ' + r.role + '">' + r.role + '</span></td>' +
+            '<td><span class="role-badge user">user</span></td>' +
             '<td>' + expDisplay + '</td>' +
             '<td>' + statusHtml + '</td>' +
         '</tr>';
@@ -4466,16 +4489,28 @@ function renderImportPreview() {
     
     tbody.innerHTML = html;
     
-    $('importSummary').innerHTML =
-        '<div class="import-stat"><div class="num">' + importRows.length + '</div><div class="label">Tổng</div></div>' +
-        '<div class="import-stat ok"><div class="num">' + countOk + '</div><div class="label">Thêm mới</div></div>' +
-        '<div class="import-stat update"><div class="num">' + countUpdate + '</div><div class="label">Cập nhật</div></div>' +
-        '<div class="import-stat warn"><div class="num">' + countWarn + '</div><div class="label">Cảnh báo</div></div>' +
-        '<div class="import-stat err"><div class="num">' + countErr + '</div><div class="label">Lỗi</div></div>';
+    var summaryEl = $('importSummary');
+    if (summaryEl) {
+        summaryEl.innerHTML =
+            '<div class="import-stat"><div class="num">' + importRows.length + '</div><div class="label">Tổng</div></div>' +
+            '<div class="import-stat ok"><div class="num">' + countOk + '</div><div class="label">Thêm mới</div></div>' +
+            '<div class="import-stat update"><div class="num">' + countUpdate + '</div><div class="label">Cập nhật</div></div>' +
+            '<div class="import-stat warn"><div class="num">' + countWarn + '</div><div class="label">Cảnh báo</div></div>' +
+            '<div class="import-stat err"><div class="num">' + countErr + '</div><div class="label">Lỗi</div></div>';
+    }
     
     var totalImportable = countOk + countUpdate + countWarn;
-    $('importCount').textContent = totalImportable;
-    $('importConfirmBtn').disabled = totalImportable === 0;
+    
+    // ✅ Guard từng element riêng biệt
+    var countEl = $('importCount');
+    if (countEl) {
+        countEl.textContent = totalImportable;
+    }
+    
+    var confirmBtn = $('importConfirmBtn');
+    if (confirmBtn) {
+        confirmBtn.disabled = totalImportable === 0;
+    }
 }
 
 async function doImport() {
@@ -4500,26 +4535,54 @@ async function doImport() {
     if (!confirm('📥 IMPORT ' + toImport.length + ' TÀI KHOẢN?\n\n' +
                  '• Thêm mới: ' + totalNew + '\n' +
                  '• Cập nhật: ' + totalUpdate + '\n\n' +
+                 '(Chỉ import user, KHÔNG import admin)\n\n' +
                  'Bạn có chắc không?')) return;
     
     var btn = $('importConfirmBtn');
+    if (!btn) return;
+    
+    // ✅ Lưu cấu trúc gốc để khôi phục sau (tránh lỗi import lần 2, 3...)
+    var originalHTML = btn.innerHTML;
+    var originalDisabled = btn.disabled;
+    
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Đang import...';
+    
+    // ✅ Chỉ đổi icon, KHÔNG ghi đè innerHTML
+    var icon = btn.querySelector('i');
+    if (icon) icon.className = 'fas fa-spinner fa-pulse';
     
     var success = 0;
     var failed = 0;
     var errors = [];
     
+    // Admin check
+    var adminEmails = {};
+    usersCache.forEach(function(u) {
+        if (u.role === 'admin') adminEmails[(u.email || '').toLowerCase()] = true;
+    });
+    
     var BATCH_SIZE = 400;
     for (var i = 0; i < toImport.length; i += BATCH_SIZE) {
         var chunk = toImport.slice(i, i + BATCH_SIZE);
+        
+        // ✅ Double-check: loại bỏ admin
+        chunk = chunk.filter(function(r) {
+            if (adminEmails[r.email]) {
+                console.warn('Skip admin:', r.email);
+                return false;
+            }
+            return true;
+        });
+        
+        if (chunk.length === 0) continue;
+        
         var batch = db.batch();
         
         chunk.forEach(function(r) {
             var ref = db.collection('allowed_users').doc(r.email);
             var data = {
                 name: r.name,
-                role: r.role,
+                role: 'user',  // ✅ Luôn là user
                 addedBy: currentUser.email
             };
             
@@ -4530,8 +4593,13 @@ async function doImport() {
                 data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
             }
             
+            // ✅ Xử lý expiresAt an toàn
             if (r.expDate) {
-                data.expiresAt = firebase.firestore.Timestamp.fromDate(r.expDate);
+                try {
+                    data.expiresAt = firebase.firestore.Timestamp.fromDate(r.expDate);
+                } catch(e) {
+                    data.expiresAt = null;
+                }
             } else {
                 data.expiresAt = null;
             }
@@ -4548,8 +4616,19 @@ async function doImport() {
             console.error('Batch error:', err);
         }
         
-        btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> ' + success + '/' + toImport.length;
+        // ✅ Cập nhật counter an toàn
+        var countEl = btn.querySelector('#importCount');
+        if (countEl) {
+            countEl.textContent = success + '/' + toImport.length;
+        }
     }
+    
+    // ✅ KHÔI PHỤC NÚT VỀ TRẠNG THÁI GỐC
+    btn.disabled = originalDisabled;
+    btn.innerHTML = originalHTML;
+    
+    // ✅ Reset importRows để tránh lỗi import lần 2
+    importRows = [];
     
     // Invalidate cache
     try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
@@ -4564,6 +4643,7 @@ async function doImport() {
     alert(msg);
     
     $('importModal').classList.remove('show');
+    
     loadUsers(true);
 }
 
@@ -4612,6 +4692,7 @@ print(f"📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
 print(f"💾 Cache user 12h + Log 1 lần/ngày → tiết kiệm 90% Firestore quota")
 print(f"👁️  Nút ẩn/hiện kết quả + đáp án ở mỗi thẻ trang chính")
 print(f"✅ Gõ search trong modal KHÔNG nhảy sang ô nhập tiếng Trung")
-print(f"📤 Export/Import danh sách user ra/vào Excel (kèm cột expiresAt)")
+print(f"📤 Export/Import CHỈ USER, KHÔNG bao gồm ADMIN")
+print(f"🔁 Import lần 2, 3, ... không lỗi null")
 print(f"⏰ User có hạn sử dụng — tự động khóa khi hết hạn")
 print(f"🔔 Banner cảnh báo sắp hết hạn (≤ 7 ngày) với Zalo")
