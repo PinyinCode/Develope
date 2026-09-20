@@ -1,27 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 Chuyển file Excel → HTML tự chứa dữ liệu
-- Demo mode + Full màn hình luyện tập (search + filter + dropdown chọn câu)
-- Nút Gợi ý (mặc định TẮT) → bật hiện ghost text mờ
-- Đáp án tách theo PINYIN viết liền/rời
-- Nút Xem đáp án: toggle ẩn/hiện
-- Desktop hover phóng to, mobile click vừa đọc vừa phóng to
-- Click ký tự sai → con trỏ nhảy về + bôi đen để gõ đè
-- ✅ Chủ đề demo: mở khóa lên đầu, khóa xuống dưới
-- ✅ Dropdown chọn nhanh câu (hiển thị tiếng Việt)
-- ✅ Cache user doc 12h → giảm 90% Firestore reads
-- ✅ Admin panel load 1 lần (không realtime)
-- ✅ Login log 1 lần/user/ngày
-- Theme mặc định LIGHT MODE
-- ✅ Nút ẩn/hiện kết quả ở mỗi thẻ trang chính (kèm đáp án tiếng Trung)
-- ✅ Click chữ sai inline → bôi đen ĐÚNG ký tự trong ô gõ
-- ✅ Gõ search trong modal KHÔNG nhảy sang ô nhập tiếng Trung
-- ✅ Export CHUYÊN NGHIỆP: 7 cột, 3 sheet, style màu, sắp xếp theo hạn
-- ✅ Import CHỈ USER, KHÔNG ADMIN + tự động bỏ qua cột dư thừa
+- Demo mode + Full màn hình luyện tập
+- ✅ SUPER ADMIN (tên="Admin") → thấy TẤT CẢ + Lịch sử đăng nhập
+- ✅ ADMIN thường → chỉ thấy chính mình + user, ẩn Lịch sử
+- ✅ Export CHUYÊN NGHIỆP: 7 cột, 3 sheet, style màu
+- ✅ Import CHỈ USER, KHÔNG ADMIN + tự động bỏ qua cột dư
 - ✅ Import lần 2, 3, ... không lỗi null
-- ✅ User có hạn sử dụng (expiresAt) — tự động khóa khi hết hạn
-- ✅ Banner cảnh báo sắp hết hạn (≤ 7 ngày)
-- ✅ Click avatar user → hiển thị chi tiết tài khoản + ngày hết hạn + progress bar
+- ✅ Thống kê chỉ tính user (Super Admin mới thấy thẻ Admin)
+- ✅ Click avatar → hiển thị chi tiết tài khoản + ngày hết hạn
 - ✅ Nút Zalo liên hệ trong dropdown user
 
 Chạy: python scripts/convert.py
@@ -70,20 +57,13 @@ if not FIREBASE_CONFIG.get("apiKey"):
 
 print(f"⚙️  Đã đọc cấu hình từ: {CONFIG_FILE}")
 print(f"   📞 Zalo: {ZALO_PHONE} ({ZALO_NAME})")
-print(f"   🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} lượt nghe/viết")
-print(f"   🧠 Chấm điểm: So khớp thông minh")
-print(f"   ☀️  Theme mặc định: Light mode")
-print(f"   💡 Nút Gợi ý (mặc định TẮT) + Ghost text mờ")
-print(f"   📝 Đáp án tách theo PINYIN viết liền/rời")
-print(f"   🎯 Click ký tự sai → bôi đen để gõ đè")
-print(f"   📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
-print(f"   🔍 Search + Filter + Dropdown chọn câu trong modal")
-print(f"   💾 Cache user 12h + Log 1 lần/ngày")
+print(f"   🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} lượt")
 print(f"   👑 Target admins: {TARGET_ADMINS}")
-print(f"   👁️  Nút ẩn/hiện kết quả + đáp án ở mỗi thẻ trang chính")
+print(f"   👑 Super Admin (tên='Admin') → thấy TẤT CẢ + Lịch sử đăng nhập")
+print(f"   🛡️  Admin thường → chỉ thấy chính mình + user, ẩn Lịch sử")
 print(f"   📤 Export CHUYÊN NGHIỆP (7 cột + 3 sheet + style)")
 print(f"   📥 Import CHỈ USER, KHÔNG ADMIN")
-print(f"   ⏰ User có hạn sử dụng (expiresAt) — tự động khóa khi hết hạn")
+print(f"   ⏰ User có hạn sử dụng (expiresAt)")
 print(f"   👤 Click avatar → hiển thị chi tiết + ngày hết hạn")
 
 print(f"\n📖 Đang đọc file: {EXCEL_FILE}")
@@ -257,6 +237,11 @@ body{
     text-transform:uppercase;letter-spacing:.3px;
 }
 .user-info .role.admin{background:var(--amber-light);color:#92400e}
+.user-info .role.super{
+    background:linear-gradient(135deg, #f59e0b, #d97706);
+    color:#fff;
+    box-shadow:0 2px 6px rgba(245,158,11,.4);
+}
 .dropdown-item{
     display:flex;align-items:center;gap:.5rem;width:100%;
     padding:.65rem .75rem;border:none;border-radius:var(--radius-sm);
@@ -1334,6 +1319,11 @@ body.show-practice .card-body{
 }
 .user-row .u-role.admin{background:var(--amber-light);color:#92400e}
 .user-row .u-role.user{background:var(--primary-light);color:var(--primary-dark)}
+.user-row .u-role.super{
+    background:linear-gradient(135deg, #f59e0b, #d97706);
+    color:#fff;
+    box-shadow:0 2px 6px rgba(245,158,11,.4);
+}
 .user-row .u-actions{display:flex;gap:.3rem}
 .u-btn{
     width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
@@ -1389,6 +1379,14 @@ body.show-practice .card-body{
 .log-item:last-child{border-bottom:none}
 .log-item .log-time{color:var(--text-3);flex-shrink:0;font-family:monospace;font-size:.7rem}
 .log-item .log-msg{flex:1;word-break:break-word}
+
+/* ✅ Section ẩn hoàn toàn với admin thường */
+.admin-section-super-only {
+    display: none;
+}
+.admin-section-super-only.show {
+    display: block;
+}
 
 .u-last-login{
     font-size:.68rem;color:var(--text-3);
@@ -2018,11 +2016,15 @@ body.show-practice .card-body{
             <div class="user-list" id="userList">
                 <div class="no-data"><i class="fas fa-spinner fa-pulse"></i>Đang tải...</div>
             </div>
-            <div class="admin-section-title" style="margin-top:1.5rem">
-                <span><i class="fas fa-history"></i> Lịch sử đăng nhập (gần đây)</span>
-            </div>
-            <div class="logs-list" id="logsList">
-                <div class="no-data" style="padding:1rem;font-size:.8rem"><i class="fas fa-spinner fa-pulse"></i>Đang tải...</div>
+            
+            <!-- ✅ CHỈ SUPER ADMIN THẤY PHẦN LỊCH SỬ ĐĂNG NHẬP -->
+            <div id="logsSection" class="admin-section-super-only">
+                <div class="admin-section-title" style="margin-top:1.5rem">
+                    <span><i class="fas fa-history"></i> Lịch sử đăng nhập (gần đây)</span>
+                </div>
+                <div class="logs-list" id="logsList">
+                    <div class="no-data" style="padding:1rem;font-size:.8rem"><i class="fas fa-spinner fa-pulse"></i>Đang tải...</div>
+                </div>
             </div>
         </div>
     </div>
@@ -2055,6 +2057,13 @@ var importRows = [];
 
 var $ = function(id) { return document.getElementById(id); };
 var mobileWrapper;
+
+/* ✅ Kiểm tra Super Admin (tên = "Admin") */
+function isSuperAdmin() {
+    if (!currentUser || currentUser.role !== 'admin') return false;
+    var name = (currentUser.name || '').trim();
+    return name.toLowerCase() === 'admin';
+}
 
 function getDemoData() { return RAW_DATA.slice(0, DEMO_LIMIT); }
 function getDemoHskList() {
@@ -2296,8 +2305,16 @@ function applyUserUI() {
         
         $('userName').textContent = currentUser.name;
         $('userEmail').textContent = currentUser.email;
-        $('userRole').textContent = currentUser.role;
-        $('userRole').className = 'role' + (currentUser.role === 'admin' ? ' admin' : '');
+        
+        // ✅ Hiển thị role với badge SUPER
+        var isSuper = isSuperAdmin();
+        $('userRole').textContent = isSuper ? 'super admin' : currentUser.role;
+        if (isSuper) {
+            $('userRole').className = 'role super';
+        } else {
+            $('userRole').className = 'role' + (currentUser.role === 'admin' ? ' admin' : '');
+        }
+        
         $('openAdminBtn').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
         
         var avatar = $('userAvatar');
@@ -2363,7 +2380,7 @@ function updateUserDetails() {
     if (currentUser.role === 'admin') {
         expiryValue.textContent = 'Vĩnh viễn';
         expiryValue.className = 'detail-value permanent';
-        expirySub.textContent = 'Tài khoản quản trị viên';
+        expirySub.textContent = isSuperAdmin() ? 'Super Admin' : 'Tài khoản quản trị viên';
         expiryIcon.className = 'fas fa-infinity';
         expiryIconWrap.className = 'detail-icon permanent';
         if (progressWrap) progressWrap.style.display = 'none';
@@ -4116,7 +4133,6 @@ function initAdminPanel() {
             var wb = XLSX.utils.book_new();
             var now = Date.now();
             
-            // Sắp xếp: sắp hết hạn lên đầu, vĩnh viễn xuống cuối
             usersOnly.sort(function(a, b) {
                 var da = getExpiryTimestamp(a.expiresAt);
                 var db = getExpiryTimestamp(b.expiresAt);
@@ -4189,15 +4205,7 @@ function initAdminPanel() {
                 
                 statusTypes.push(statusType);
                 
-                aoa.push([
-                    '',
-                    u.email || '',
-                    u.name || '',
-                    '',
-                    expStr,
-                    statusStr,
-                    ''
-                ]);
+                aoa.push(['', u.email || '', u.name || '', '', expStr, statusStr, '']);
             });
             
             var totalRows = aoa.length;
@@ -4313,7 +4321,6 @@ function initAdminPanel() {
             
             XLSX.utils.book_append_sheet(wb, ws, 'Users');
             
-            // Sheet 2: Thống kê
             var ws2 = XLSX.utils.aoa_to_sheet([
                 ['📊  THỐNG KÊ TÀI KHOẢN', '', ''],
                 ['', '', ''],
@@ -4364,7 +4371,6 @@ function initAdminPanel() {
             
             XLSX.utils.book_append_sheet(wb, ws2, 'Thống kê');
             
-            // Sheet 3: Hướng dẫn
             var ws3 = XLSX.utils.aoa_to_sheet([
                 ['📖  HƯỚNG DẪN SỬ DỤNG FILE EXPORT', '', ''],
                 ['', '', ''],
@@ -4379,7 +4385,7 @@ function initAdminPanel() {
                 ['', '', ''],
                 ['🗑️  CỘT CHỈ ĐỂ THAM KHẢO', '', ''],
                 ['', 'STT', 'Tự động đánh số'],
-                ['', 'phone', 'Không import (chưa có trong hệ thống)'],
+                ['', 'phone', 'Không import'],
                 ['', 'Trạng thái', 'Tự động tính theo ngày hiện tại'],
                 ['', 'Ghi chú', 'Không import'],
                 ['', '', ''],
@@ -4437,7 +4443,6 @@ function initAdminPanel() {
             
             XLSX.utils.book_append_sheet(wb, ws3, 'Hướng dẫn');
             
-            // Xuất file
             var today = new Date();
             var dateStr = today.getFullYear() +
                           String(today.getMonth() + 1).padStart(2, '0') +
@@ -4595,8 +4600,23 @@ function formatDate(d) {
 function openAdminPanel() {
     if (!currentUser || currentUser.role !== 'admin') return;
     $('adminModal').classList.add('show');
+    
+    // ✅ Hiện/ẩn section Lịch sử đăng nhập
+    var logsSection = $('logsSection');
+    if (logsSection) {
+        if (isSuperAdmin()) {
+            logsSection.classList.add('show');
+        } else {
+            logsSection.classList.remove('show');
+        }
+    }
+    
     loadUsers(false);
-    loadLogs();
+    
+    // ✅ Chỉ Super Admin mới load logs
+    if (isSuperAdmin()) {
+        loadLogs();
+    }
 }
 
 function loadUsers(forceRefresh) {
@@ -4669,19 +4689,23 @@ function loadLastLoginMap() {
         .catch(function() {});
 }
 
+/* ✅ CHỈ THỐNG KÊ USER, KHÔNG ADMIN. SUPER ADMIN MỚI THẤY THẺ ADMIN */
 function renderAdminStats() {
-    var total = usersCache.length;
-    var admins = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
-    var users = total - admins;
+    var usersOnly = usersCache.filter(function(u) { 
+        return u.role !== 'admin'; 
+    });
+    
+    var totalUsers = usersOnly.length;
     var now = Date.now();
     var day7 = 7 * 24 * 60 * 60 * 1000;
     var active = 0, never = 0, expired = 0;
-    usersCache.forEach(function(u) {
+    
+    usersOnly.forEach(function(u) {
         var last = lastLoginMap[(u.email || '').toLowerCase()];
         if (last && (now - last.getTime()) <= day7) active++;
         else if (!last) never++;
         
-        if (u.expiresAt && u.role !== 'admin') {
+        if (u.expiresAt) {
             try {
                 var ea = u.expiresAt;
                 var d;
@@ -4693,14 +4717,26 @@ function renderAdminStats() {
         }
     });
     
-    $('adminStats').innerHTML =
-        '<div class="stat-card"><div class="num">' + total + '</div><div class="label">Tổng</div></div>' +
+    var statsHtml = 
+        '<div class="stat-card"><div class="num">' + totalUsers + '</div><div class="label">Tổng user</div></div>' +
         '<div class="stat-card"><div class="num" style="color:#16a34a">' + active + '</div><div class="label">Active 7d</div></div>' +
-        '<div class="stat-card"><div class="num" style="color:#f59e0b">' + admins + '</div><div class="label">Admin</div></div>' +
         '<div class="stat-card"><div class="num" style="color:#94a3b8">' + never + '</div><div class="label">Chưa login</div></div>' +
         '<div class="stat-card"><div class="num" style="color:#dc2626">' + expired + '</div><div class="label">Hết hạn</div></div>';
     
-    $('adminUserCount').textContent = total;
+    // ✅ Super Admin: Thêm thẻ đếm admin
+    if (isSuperAdmin()) {
+        var adminCount = usersCache.filter(function(u) { 
+            return u.role === 'admin'; 
+        }).length;
+        statsHtml += 
+            '<div class="stat-card" style="border-color:#f59e0b">' +
+                '<div class="num" style="color:#f59e0b">' + adminCount + '</div>' +
+                '<div class="label">Admin 👑</div>' +
+            '</div>';
+    }
+    
+    $('adminStats').innerHTML = statsHtml;
+    $('adminUserCount').textContent = totalUsers;
 }
 
 function renderUsers(items) {
@@ -4709,28 +4745,65 @@ function renderUsers(items) {
         list.innerHTML = '<div class="no-data" style="padding:1.5rem;font-size:.85rem"><i class="fas fa-search"></i>Không có user nào</div>';
         return;
     }
+    
+    var currentEmail = currentUser ? currentUser.email : '';
+    var superAdmin = isSuperAdmin();
+    
+    // ✅ LỌC:
+    // - Super Admin (tên "Admin") → thấy TẤT CẢ
+    // - Admin thường → chỉ thấy user + chính mình
+    var displayItems = items.filter(function(u) {
+        if (u.role !== 'admin') return true;
+        if (superAdmin) return true;
+        if (u.email === currentEmail) return true;
+        return false;
+    });
+    
+    if (!displayItems.length) {
+        list.innerHTML = '<div class="no-data" style="padding:1.5rem;font-size:.85rem"><i class="fas fa-search"></i>Không có user nào</div>';
+        return;
+    }
+    
+    // ✅ Sắp xếp: Admin lên đầu, sau đó user
+    displayItems.sort(function(a, b) {
+        var aIsAdmin = a.role === 'admin' ? 0 : 1;
+        var bIsAdmin = b.role === 'admin' ? 0 : 1;
+        if (aIsAdmin !== bIsAdmin) return aIsAdmin - bIsAdmin;
+        return (a.email || '').localeCompare(b.email || '');
+    });
+    
     var adminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
     var now = Date.now();
     var day7 = 7 * 24 * 60 * 60 * 1000;
     var day30 = 30 * 24 * 60 * 60 * 1000;
     
-    list.innerHTML = items.map(function(u) {
-        var isMe = u.email === currentUser.email;
+    list.innerHTML = displayItems.map(function(u) {
+        var isMe = u.email === currentEmail;
         var isAdmin = u.role === 'admin';
+        var isSuper = isAdmin && (u.name || '').trim().toLowerCase() === 'admin';
         
         var roleBtn = '';
-        if (isAdmin) {
-            var reason = isMe ? 'Không thể tự hạ quyền chính mình' : 'Phải giữ đúng ' + TARGET_ADMINS + ' admin';
-            roleBtn = '<button class="u-btn" disabled title="' + escapeHtml(reason) + '"><i class="fas fa-user"></i></button>';
-        } else {
-            if (adminCount < TARGET_ADMINS) roleBtn = '<button class="u-btn" onclick="changeRole(\'' + escapeJs(u.email) + '\', \'admin\')" title="Nâng lên Admin"><i class="fas fa-shield-alt"></i></button>';
-            else roleBtn = '<button class="u-btn" disabled title="Đã đủ ' + TARGET_ADMINS + ' admin"><i class="fas fa-shield-alt"></i></button>';
-        }
-        
         var deleteBtn = '';
-        if (isMe) deleteBtn = '<button class="u-btn danger" disabled title="Không thể tự xóa chính mình"><i class="fas fa-trash"></i></button>';
-        else if (isAdmin) deleteBtn = '<button class="u-btn danger" disabled title="Phải giữ đúng ' + TARGET_ADMINS + ' admin"><i class="fas fa-trash"></i></button>';
-        else deleteBtn = '<button class="u-btn danger" onclick="deleteUser(\'' + escapeJs(u.email) + '\')" title="Xóa"><i class="fas fa-trash"></i></button>';
+        
+        if (isMe) {
+            roleBtn = '<button class="u-btn" disabled title="Bạn không thể tự sửa chính mình"><i class="fas fa-crown"></i></button>';
+            deleteBtn = '<button class="u-btn danger" disabled title="Không thể tự xóa"><i class="fas fa-trash"></i></button>';
+        } else if (isSuper) {
+            roleBtn = '<button class="u-btn" disabled title="Không thể sửa Super Admin"><i class="fas fa-crown" style="color:#f59e0b"></i></button>';
+            deleteBtn = '<button class="u-btn danger" disabled title="Không thể xóa Super Admin"><i class="fas fa-trash"></i></button>';
+        } else if (isAdmin) {
+            var canDemote = superAdmin && adminCount >= TARGET_ADMINS;
+            roleBtn = '<button class="u-btn" ' + (canDemote ? 'onclick="changeRole(\'' + escapeJs(u.email) + '\', \'user\')"' : 'disabled') + 
+                      ' title="' + (canDemote ? 'Hạ xuống User' : 'Không thể hạ quyền') + '"><i class="fas fa-user"></i></button>';
+            deleteBtn = '<button class="u-btn danger" disabled title="Không thể xóa admin"><i class="fas fa-trash"></i></button>';
+        } else {
+            if (adminCount < TARGET_ADMINS) {
+                roleBtn = '<button class="u-btn" onclick="changeRole(\'' + escapeJs(u.email) + '\', \'admin\')" title="Nâng lên Admin"><i class="fas fa-shield-alt"></i></button>';
+            } else {
+                roleBtn = '<button class="u-btn" disabled title="Đã đủ ' + TARGET_ADMINS + ' admin"><i class="fas fa-shield-alt"></i></button>';
+            }
+            deleteBtn = '<button class="u-btn danger" onclick="deleteUser(\'' + escapeJs(u.email) + '\')" title="Xóa"><i class="fas fa-trash"></i></button>';
+        }
         
         var lastLoginHtml = '';
         var last = lastLoginMap[(u.email || '').toLowerCase()];
@@ -4781,14 +4854,25 @@ function renderUsers(items) {
             }
         }
         
+        var badge = '';
+        if (isMe) {
+            badge = isSuper 
+                ? ' <span style="color:#f59e0b;font-size:.7rem;font-weight:700">👑 SUPER ADMIN (BẠN)</span>'
+                : ' <span style="color:#2563eb;font-size:.7rem;font-weight:700">(BẠN)</span>';
+        } else if (isSuper) {
+            badge = ' <span style="color:#f59e0b;font-size:.7rem;font-weight:700">👑 SUPER ADMIN</span>';
+        }
+        
         return '<div class="user-row" data-email="' + escapeHtml(u.email) + '">' +
             '<div class="u-info">' +
-                '<div class="u-name">' + escapeHtml(u.name || u.email.split('@')[0]) + (isMe ? ' <span style="color:#94a3b8;font-size:.7rem">(bạn)</span>' : '') + '</div>' +
+                '<div class="u-name">' + escapeHtml(u.name || u.email.split('@')[0]) + badge + '</div>' +
                 '<div class="u-email">' + escapeHtml(u.email) + '</div>' +
                 lastLoginHtml +
                 expiryHtml +
             '</div>' +
-            '<span class="u-role ' + (isAdmin ? 'admin' : 'user') + '">' + (u.role || 'user') + '</span>' +
+            '<span class="u-role ' + (isSuper ? 'super' : (isAdmin ? 'admin' : 'user')) + '">' + 
+                (isSuper ? 'super' : (u.role || 'user')) + 
+            '</span>' +
             '<div class="u-actions">' + roleBtn + deleteBtn + '</div>' +
         '</div>';
     }).join('');
@@ -4797,33 +4881,63 @@ function renderUsers(items) {
 window.changeRole = async function(email, newRole) {
     var target = usersCache.find(function(u) { return u.email === email; });
     if (!target) { alert('Không tìm thấy user!'); return; }
+    
     var isMe = email === currentUser.email;
     var isAdmin = target.role === 'admin';
+    var isSuper = isAdmin && (target.name || '').trim().toLowerCase() === 'admin';
     var adminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
     
-    if (isMe && newRole === 'user') { alert('⚠️ Không thể tự hạ quyền admin của chính mình!'); return; }
-    if (isAdmin && newRole === 'user') { alert('⚠️ Không thể hạ quyền admin!\n\nHệ thống phải giữ đúng ' + TARGET_ADMINS + ' admin.'); return; }
-    if (!isAdmin && newRole === 'admin' && adminCount >= TARGET_ADMINS) { alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!'); return; }
+    if (isSuper && !isMe) {
+        alert('⚠️ Không thể thay đổi quyền của Super Admin!');
+        return;
+    }
+    
+    if (isMe && newRole === 'user') { 
+        alert('⚠️ Không thể tự hạ quyền admin của chính mình!'); 
+        return; 
+    }
+    
+    if (!isAdmin && newRole === 'admin' && adminCount >= TARGET_ADMINS) { 
+        alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!'); 
+        return; 
+    }
     
     var action = newRole === 'admin' ? 'NÂNG LÊN ADMIN' : 'HẠ XUỐNG USER';
     if (!confirm(action + ' cho tài khoản:\n\n' + email + '\n\nBạn có chắc không?')) return;
+    
     try {
         await db.collection('allowed_users').doc(email).update({ role: newRole });
         try { localStorage.removeItem('user_cache_' + email); } catch(e) {}
         try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
         loadUsers(true);
+    } catch(e) { 
+        alert('Lỗi: ' + e.message); 
     }
-    catch(e) { alert('Lỗi: ' + e.message); }
 };
 
 window.deleteUser = async function(email) {
     var target = usersCache.find(function(u) { return u.email === email; });
     if (!target) { alert('Không tìm thấy user!'); return; }
+    
     var isMe = email === currentUser.email;
     var isAdmin = target.role === 'admin';
+    var isSuper = isAdmin && (target.name || '').trim().toLowerCase() === 'admin';
     
-    if (isMe) { alert('⚠️ Không thể tự xóa tài khoản của chính mình!'); return; }
-    if (isAdmin) { alert('⚠️ Không thể xóa admin!'); return; }
+    if (isMe) { 
+        alert('⚠️ Không thể tự xóa tài khoản của chính mình!'); 
+        return; 
+    }
+    
+    if (isSuper) {
+        alert('⚠️ Không thể xóa Super Admin!');
+        return;
+    }
+    
+    if (isAdmin) { 
+        alert('⚠️ Không thể xóa admin!\n\nPhải hạ quyền xuống User trước.'); 
+        return; 
+    }
+    
     if (!confirm('⚠️ XÓA TÀI KHOẢN\n\n' + email + '\n\nNgười này sẽ không đăng nhập được nữa.\n\nBạn có chắc không?')) return;
     
     try {
@@ -4831,11 +4945,18 @@ window.deleteUser = async function(email) {
         try { localStorage.removeItem('user_cache_' + email); } catch(e) {}
         try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
         loadUsers(true);
+    } catch(e) { 
+        alert('Lỗi: ' + e.message); 
     }
-    catch(e) { alert('Lỗi: ' + e.message); }
 };
 
+/* ✅ CHỈ SUPER ADMIN MỚI GỌI HÀM NÀY */
 function loadLogs() {
+    if (!isSuperAdmin()) {
+        console.warn('Không có quyền xem logs');
+        return;
+    }
+    
     db.collection('login_logs').orderBy('time', 'desc').limit(30).get()
         .then(function(snapshot) {
             if (snapshot.empty) {
@@ -5038,7 +5159,7 @@ function processImport(rows) {
 }
 
 function renderImportPreview() {
-    var tbody = $('importTableBody');
+    var tbody = $(':.importTableBody');
     if (!tbody) return;
     
     var html = '';
@@ -5046,9 +5167,9 @@ function renderImportPreview() {
     
     importRows.forEach(function(r) {
         var rowCls = '';
-        var statusHtml = '';
+        var statusHtml =7 '';
         
-        if (r.status === 'ok' && r.isUpdate) {
+        if (r.status ===rem 'ok' && r.is;font-weightUpdate) {
             rowCls = 'row-update';
             statusHtml = '<span class="status-badge update"><i class="fas fa-sync-alt"></i> Cập nhật</span>';
             countUpdate++;
@@ -5071,7 +5192,7 @@ function renderImportPreview() {
             var d = new Date(r.expStr + 'T23:59:59');
             var daysLeft = Math.ceil((d.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
             var expColor = daysLeft < 0 ? '#dc2626' : (daysLeft <= 7 ? '#f59e0b' : '#16a34a');
-            expDisplay = '<span style="color:' + expColor + ';font-size:.7rem;font-weight:600;">' + r.expStr + '</span>';
+            expDisplay = '<span style="color:' + expColor + ';font-size:600;">' + r.expStr + '</span>';
         } else {
             expDisplay = '<span style="color:#94a3b8;font-size:.7rem;">Vĩnh viễn</span>';
         }
@@ -5153,7 +5274,7 @@ async function doImport() {
     
     var adminEmails = {};
     usersCache.forEach(function(u) {
-        if (u.role === 'admin') adminEmails[(u.email || '').toLowerCase()] = true;
+        if (u.role ===  'admin') adminEmails[(u.email || '').toLowerCase()] = true;
     });
     
     var BATCH_SIZE = 400;
@@ -5225,10 +5346,10 @@ async function doImport() {
         try { localStorage.removeItem('user_cache_' + r.email); } catch(e) {}
     });
     
-    var msg = '✅ Import hoàn tất!\n\n' +
-              '✓ Thành công: ' + success + '\n' +
-              (failed ? '✗ Thất bại: ' + failed + '\n' : '') +
-              (errors.length ? '\nLỗi:\n' + errors.slice(0, 3).join('\n') : '');
+    var msg = '✅ Import hoàn t3ất!\n\n' +
+             ). '✓ Thành công: 'join + success + '\n' +
+              (('\failed ? '✗ Thất bại:n ' + failed + '\n' : '') +
+              (errors.length ? '\nLỗi:\n' + errors.slice(0,') : '');
     alert(msg);
     
     $('importModal').classList.remove('show');
@@ -5270,17 +5391,13 @@ print(f"🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} 
 print(f"🔥 Firebase: {FIREBASE_CONFIG.get('projectId', 'N/A')}")
 print(f"👑 Chế độ: Đúng {TARGET_ADMINS} admin")
 print(f"🧠 Chấm điểm: So khớp thông minh")
-print(f"💡 Nút Gợi ý (mặc định TẮT) + Ghost text mờ")
-print(f"📝 Đáp án tách theo PINYIN viết liền/rời")
 print(f"☀️  Theme mặc định: Light mode")
 print(f"🎯 Desktop hover phóng to + Mobile click vừa đọc vừa phóng to")
 print(f"👁️  Nút Xem đáp án: toggle ẩn/hiện")
 print(f"✏️  Click ký tự sai → con trỏ về + bôi đen ĐÚNG ký tự")
-print(f"🔍 Search + Filter + Dropdown chọn câu (tiếng Việt) trong modal")
+print(f"🔍 Search + Filter + Dropdown chọn câu trong modal")
 print(f"📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
 print(f"💾 Cache user 12h + Log 1 lần/ngày")
-print(f"👁️  Nút ẩn/hiện kết quả + đáp án ở mỗi thẻ trang chính")
-print(f"✅ Gõ search trong modal KHÔNG nhảy sang ô nhập tiếng Trung")
 print(f"📤 Export CHUYÊN NGHIỆP: 7 cột + 3 sheet + style màu")
 print(f"📥 Import CHỈ USER, KHÔNG ADMIN + bỏ qua cột dư thừa")
 print(f"🔁 Import lần 2, 3, ... không lỗi null")
@@ -5288,3 +5405,5 @@ print(f"⏰ User có hạn sử dụng — tự động khóa khi hết hạn")
 print(f"🔔 Banner cảnh báo sắp hết hạn (≤ 7 ngày) với Zalo")
 print(f"👤 Click avatar → hiển thị chi tiết + ngày hết hạn + progress bar")
 print(f"📞 Nút Zalo trong dropdown user")
+print(f"👑 Super Admin (tên='Admin') → thấy TẤT CẢ admin + Lịch sử đăng nhập")
+print(f"🛡️  Admin thường → chỉ thấy chính mình + user, ẩn Lịch sử")
