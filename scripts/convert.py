@@ -1,26 +1,17 @@
 # -*- coding: utf-8 -*-
 """
 Chuyển file Excel → HTML tự chứa dữ liệu
-- Đọc cấu hình từ config.json
-- Desktop: card 2 cột | Mobile: card 1 cột
-- Demo mode cho khách chưa đăng nhập:
-    + 50 câu đầu
-    + Bộ lọc HSK: chỉ HSK1-3 (HSK4-6 hiện 🔒)
-    + Bộ lọc chủ đề: hiện TẤT CẢ, chủ đề ngoài 50 câu 🔒
-    + Ô luyện tập: ẩn tiếng Trung + Pinyin, chỉ hiện tiếng Việt
-    + Chấm điểm bằng SO KHỚP THÔNG MINH + TÔ ĐỎ TỪNG KÝ TỰ
-    + Nghe + Luyện viết: 100 lượt/ngày (chung)
-- ✅ CHẾ ĐỘ LUYỆN TẬP FULL MÀN HÌNH
-- ✅ Theme mặc định LIGHT MODE
-- Hệ thống đăng nhập Firebase + Admin panel
-- BẢO VỆ: Đúng 2 admin
+- Demo mode + Full màn hình luyện tập
+- Ghost text mờ cho chữ chưa gõ
+- Đáp án tách theo CỤM TỪ
+- So khớp thông minh + Tô đỏ từng ký tự
+- Theme mặc định LIGHT MODE
 """
 import openpyxl
 import json
 import os
 import sys
 
-# ====== ĐỌC CONFIG ======
 CONFIG_FILE = "scripts/config.json"
 
 if not os.path.exists(CONFIG_FILE):
@@ -42,45 +33,50 @@ ZALO_NAME = CONFIG.get("zalo_name", "Hỗ trợ")
 FIREBASE_CONFIG = CONFIG.get("firebase_config", {})
 
 DEFAULT_SYNONYMS = {
-    "我": ["俺", "本人", "咱"],
-    "你": ["您", "阁下"],
-    "他": ["她", "它"],
-    "是": ["系", "为"],
-    "的": ["之"],
-    "不": ["没", "未"],
-    "很": ["非常", "十分", "特别"],
-    "好": ["棒", "优秀", "不错"],
-    "说": ["讲", "谈"],
-    "看": ["瞧", "望"],
-    "吃": ["食", "用"],
-    "给": ["送", "赠"],
-    "想要": ["想", "要"],
-    "越南": ["越南"],
-    "中国": ["中华"],
-    "谢谢": ["感谢", "多谢"],
-    "对不起": ["抱歉", "不好意思"],
-    "再见": ["拜拜", "再会"],
-    "请": ["麻烦", "拜托"],
+    "我": ["俺", "本人", "咱"], "你": ["您", "阁下"], "他": ["她", "它"],
+    "是": ["系", "为"], "的": ["之"], "不": ["没", "未"],
+    "很": ["非常", "十分", "特别"], "好": ["棒", "优秀", "不错"],
+    "说": ["讲", "谈"], "看": ["瞧", "望"], "吃": ["食", "用"],
+    "给": ["送", "赠"], "想要": ["想", "要"],
+    "越南": ["越南"], "中国": ["中华"],
+    "谢谢": ["感谢", "多谢"], "对不起": ["抱歉", "不好意思"],
+    "再见": ["拜拜", "再会"], "请": ["麻烦", "拜托"],
 }
 SYNONYMS = CONFIG.get("synonyms", DEFAULT_SYNONYMS)
 FILLER_WORDS = CONFIG.get("filler_words", ["了", "的", "吗", "呢", "吧", "啊", "呀", "哦", "嘛", "哈", "哪", "着", "过"])
+
+# ✅ Từ điển cụm từ có nghĩa (dùng để tách đáp án)
+DEFAULT_PHRASES = [
+    "我是","你是","他是","她是","它是","我们是","你们是","他们是",
+    "我有","你有","他有","没有","想要","不要","需要",
+    "我想","你想","他想","我爱","你爱","他爱","喜欢","讨厌",
+    "我去","你去","他去","回来","回去",
+    "我说","你说","他说","回答",
+    "我看","你看","他看",
+    "我吃","你吃","他吃","做饭",
+    "越南人","中国人","美国人","日本人","韩国人",
+    "越南","中国","美国","日本","韩国","台湾","香港","北京","上海",
+    "今天","明天","昨天","现在","以后","以前","早上","中午","晚上",
+    "一个","两个","三个","第一","第二","第三",
+    "什么","怎么","为什么","哪里","这里","那里",
+    "谢谢","对不起","再见","你好","请问",
+    "可以","不可以","不会","不能",
+    "非常","十分","真的","不是","没有",
+]
+KNOWN_PHRASES = CONFIG.get("known_phrases", DEFAULT_PHRASES)
 
 if not FIREBASE_CONFIG.get("apiKey"):
     print(f"❌ Firebase config chưa được cấu hình trong {CONFIG_FILE}")
     sys.exit(1)
 
-if not ZALO_PHONE:
-    print(f"⚠️  Chưa cấu hình số Zalo trong {CONFIG_FILE}")
-
 print(f"⚙️  Đã đọc cấu hình từ: {CONFIG_FILE}")
 print(f"   📞 Zalo: {ZALO_PHONE} ({ZALO_NAME})")
-print(f"   🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} lượt nghe/viết mỗi ngày")
-print(f"   🧠 Chấm điểm: So khớp thông minh + Tô đỏ từng ký tự")
-print(f"   🎯 Full màn hình luyện tập: Next/Prev, bấm từng chữ đọc")
+print(f"   🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} lượt nghe/viết")
+print(f"   🧠 Chấm điểm: So khớp thông minh")
 print(f"   ☀️  Theme mặc định: Light mode")
+print(f"   🎯 Ghost text mờ + đáp án theo cụm từ")
 print(f"   👑 Target admins: {TARGET_ADMINS}")
 
-# ====== ĐỌC EXCEL ======
 print(f"\n📖 Đang đọc file: {EXCEL_FILE}")
 if not os.path.exists(EXCEL_FILE):
     print(f"❌ Không tìm thấy file {EXCEL_FILE}")
@@ -120,6 +116,7 @@ json_data = json_data.replace('</', '<\\/')
 firebase_config_json = json.dumps(FIREBASE_CONFIG, ensure_ascii=False)
 synonyms_json = json.dumps(SYNONYMS, ensure_ascii=True, separators=(',', ':'))
 fillers_json = json.dumps(FILLER_WORDS, ensure_ascii=True, separators=(',', ':'))
+phrases_json = json.dumps(KNOWN_PHRASES, ensure_ascii=True, separators=(',', ':'))
 
 # ====== TEMPLATE HTML ======
 html_template = r'''<!DOCTYPE html>
@@ -223,8 +220,7 @@ body{
     display:flex;align-items:center;gap:.35rem;
     padding:.35rem .7rem;border-radius:50px;
     background:var(--amber-light);color:#92400e;
-    font-size:.7rem;font-weight:700;
-    text-transform:uppercase;letter-spacing:.3px;
+    font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;
     border:1px solid rgba(245,158,11,.4);
 }
 [data-theme="dark"] .demo-badge{color:#fcd34d}
@@ -268,8 +264,7 @@ body{
     background:var(--primary);color:#fff;border:none;
     font-size:.8rem;font-weight:700;cursor:pointer;
     transition:.15s;font-family:inherit;
-    box-shadow:0 4px 12px rgba(37,99,235,.3);
-    white-space:nowrap;
+    box-shadow:0 4px 12px rgba(37,99,235,.3);white-space:nowrap;
 }
 .btn-login-header:hover,.btn-login-header:active{background:var(--primary-dark);transform:translateY(-1px)}
 
@@ -291,8 +286,7 @@ body{
     position:absolute;right:8px;top:50%;transform:translateY(-50%);
     width:30px;height:30px;border-radius:50%;border:none;
     background:var(--surface-2);color:var(--text-2);
-    cursor:pointer;display:none;align-items:center;justify-content:center;
-    font-size:.8rem;
+    cursor:pointer;display:none;align-items:center;justify-content:center;font-size:.8rem;
 }
 .search-clear.show{display:flex}
 
@@ -307,15 +301,9 @@ body{
     text-align:left;position:relative;overflow:hidden;
 }
 .chip:active{transform:scale(.98)}
-.chip.has-value{
-    background:var(--primary);color:#fff;border-color:var(--primary);
-    box-shadow:0 4px 12px rgba(37,99,235,.3);
-}
+.chip.has-value{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:0 4px 12px rgba(37,99,235,.3)}
 .chip.has-value .chip-label{color:#fff;opacity:.85}
-.chip-label{
-    font-size:.7rem;color:var(--text-3);text-transform:uppercase;
-    letter-spacing:.3px;font-weight:700;flex-shrink:0;
-}
+.chip-label{font-size:.7rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;flex-shrink:0}
 .chip-value{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;color:inherit}
 .chip-arrow{color:inherit;opacity:.5;font-size:.7rem;flex-shrink:0}
 .chip select{
@@ -324,18 +312,14 @@ body{
 }
 .chip.demo-limited{border-color:var(--amber)}
 .chip.demo-limited::before{
-    content:'\f023';
-    font-family:'Font Awesome 6 Free';
-    font-weight:900;
+    content:'\f023';font-family:'Font Awesome 6 Free';font-weight:900;
     position:absolute;top:4px;right:6px;
-    color:var(--amber);font-size:.6rem;
-    pointer-events:none;z-index:2;
+    color:var(--amber);font-size:.6rem;pointer-events:none;z-index:2;
 }
 
 .result-count{
-    display:none;align-items:center;gap:.4rem;
-    margin-top:.5rem;padding:.45rem .85rem;
-    border-radius:var(--radius-full);
+    display:none;align-items:center;gap:.4rem;margin-top:.5rem;
+    padding:.45rem .85rem;border-radius:var(--radius-full);
     background:var(--surface-2);border:1px solid var(--border);
     color:var(--text-2);font-size:.8rem;font-weight:600;
     width:fit-content;box-shadow:var(--shadow-sm);transition:.2s;
@@ -344,11 +328,7 @@ body{
 .result-count i{color:var(--primary);font-size:.85rem}
 .result-count b{color:var(--primary);font-weight:800}
 .result-count.empty{background:var(--danger-light);border-color:rgba(220,38,38,.3);color:var(--danger)}
-.result-count.empty i,
-.result-count.empty b{color:var(--danger)}
-[data-theme="dark"] .result-count.empty{background:rgba(220,38,38,.15);border-color:rgba(220,38,38,.4);color:#fca5a5}
-[data-theme="dark"] .result-count.empty i,
-[data-theme="dark"] .result-count.empty b{color:#fca5a5}
+.result-count.empty i,.result-count.empty b{color:var(--danger)}
 
 .zalo-btn{
     position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));
@@ -361,19 +341,11 @@ body{
     -webkit-tap-highlight-color:transparent;white-space:nowrap;
     border:2px solid #fff;font-family:inherit;overflow:hidden;
 }
-.zalo-btn:hover,.zalo-btn:active{
-    transform:scale(1.05);
-    box-shadow:0 12px 32px rgba(0,104,255,.55);
-    color:#fff;
-}
-.zalo-btn i{
-    font-size:1.2rem;flex-shrink:0;line-height:1;
-    position:relative;z-index:2;transition:font-size .3s;
-}
+.zalo-btn:hover,.zalo-btn:active{transform:scale(1.05);box-shadow:0 12px 32px rgba(0,104,255,.55);color:#fff}
+.zalo-btn i{font-size:1.2rem;flex-shrink:0;line-height:1;position:relative;z-index:2;transition:font-size .3s}
 .zalo-btn .zalo-text{
     line-height:1.15;display:flex;flex-direction:column;
-    position:relative;z-index:2;
-    transition:opacity .2s, max-width .35s;
+    position:relative;z-index:2;transition:opacity .2s, max-width .35s;
     max-width:200px;overflow:hidden;
 }
 .zalo-btn .zalo-label{font-size:.65rem;opacity:.85;font-weight:500;white-space:nowrap}
@@ -388,10 +360,7 @@ body{
     50%{transform:scale(1.08);opacity:0}
     100%{transform:scale(1);opacity:0}
 }
-.zalo-btn.compact{
-    width:52px;height:52px;padding:0;border-radius:50%;
-    justify-content:center;gap:0;
-}
+.zalo-btn.compact{width:52px;height:52px;padding:0;border-radius:50%;justify-content:center;gap:0}
 .zalo-btn.compact .zalo-text{opacity:0;max-width:0}
 .zalo-btn.compact i{font-size:1.35rem}
 .zalo-btn.compact::before{border-radius:50%}
@@ -406,9 +375,7 @@ body{
     transition:opacity .15s, transform .15s;
     font-family:inherit;z-index:3;
 }
-.zalo-btn.compact:hover::after{
-    opacity:1;transform:translateY(-50%) scale(1);
-}
+.zalo-btn.compact:hover::after{opacity:1;transform:translateY(-50%) scale(1)}
 
 .fab-group{
     position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));
@@ -500,8 +467,7 @@ body.show-practice .card-body{
 .demo-banner-icon{
     width:36px;height:36px;border-radius:50%;
     background:var(--amber);color:#fff;
-    display:flex;align-items:center;justify-content:center;
-    font-size:1rem;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;
 }
 .demo-banner-text{flex:1;min-width:200px}
 .demo-banner-text .title{font-weight:700;font-size:.9rem;color:#92400e;margin-bottom:.15rem}
@@ -519,15 +485,9 @@ body.show-practice .card-body{
 }
 .demo-banner-btn:hover{background:#d97706;transform:translateY(-1px)}
 
-.mobile-view{
-    display:grid;grid-template-columns:1fr;gap:.8rem;max-width:100%;
-}
-@media(min-width:769px){
-    .mobile-view{grid-template-columns:1fr 1fr;gap:1.2rem;}
-}
-@media(min-width:1800px){
-    .mobile-view{grid-template-columns:1fr 1fr 1fr;}
-}
+.mobile-view{display:grid;grid-template-columns:1fr;gap:.8rem;max-width:100%}
+@media(min-width:769px){.mobile-view{grid-template-columns:1fr 1fr;gap:1.2rem;}}
+@media(min-width:1800px){.mobile-view{grid-template-columns:1fr 1fr 1fr;}}
 
 .card-header{
     display:flex;align-items:center;gap:.4rem;
@@ -590,16 +550,13 @@ body.show-practice .card-body{
 [data-theme="dark"] .write-btn{background:rgba(245,158,11,.25);color:#fcd34d}
 [data-theme="dark"] .write-btn:hover{background:var(--amber);color:#fff}
 
-/* Nút mở full màn hình */
 .practice-full-btn{
     width:32px;height:32px;border-radius:50%;border:none;
     background:var(--primary-light);color:var(--primary-dark);
     cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
     font-size:.8rem;transition:.15s;
 }
-.practice-full-btn:hover,.practice-full-btn:active{
-    background:var(--primary);color:#fff;transform:scale(1.08);
-}
+.practice-full-btn:hover,.practice-full-btn:active{background:var(--primary);color:#fff;transform:scale(1.08)}
 
 .action-group{display:flex;gap:.3rem;justify-content:center;align-items:center;position:relative}
 .practice-input{
@@ -721,7 +678,7 @@ body.show-practice .card-body{
 }
 @media(min-width:769px){.practice-full-input{font-size:1.85rem;padding:1.15rem 1.5rem;}}
 
-/* ✅ PREVIEW TÔ ĐỎ TỪNG KÝ TỰ */
+/* ✅ GHOST TEXT - Chữ chưa gõ mờ tối gần giống nền */
 .char-preview{
     display:flex;justify-content:center;flex-wrap:wrap;
     gap:.5rem;min-height:2.5rem;padding:.75rem 1rem;
@@ -736,13 +693,34 @@ body.show-practice .card-body{
     border-radius:8px;transition:.15s;line-height:1;
 }
 @media(min-width:769px){.char-slot{font-size:2rem;min-width:2.2rem;height:2.8rem;}}
-.char-slot.correct{color:var(--success);background:rgba(22,163,74,.1);}
+
+/* Chữ đã gõ ĐÚNG - đậm rõ */
+.char-slot.correct{
+    color:var(--text);
+    font-weight:700;
+    background:rgba(22,163,74,.12);
+}
+/* Chữ gõ SAI - đỏ */
 .char-slot.wrong{
     color:#fff;background:var(--danger);
     animation:shakeWrong .3s;
     box-shadow:0 2px 8px rgba(220,38,38,.35);
 }
-.char-slot.missing{color:var(--text-3);opacity:.4;background:transparent;}
+/* ✅ Chữ CHƯA GÕ - ghost text mờ tối gần giống nền */
+.char-slot.ghost{
+    color:var(--text);
+    opacity:.12;
+    font-weight:400;
+    background:transparent;
+    user-select:none;
+    pointer-events:none;
+    filter:blur(0.3px);
+}
+[data-theme="dark"] .char-slot.ghost{
+    color:var(--text);
+    opacity:.15;
+}
+/* Chữ gõ THỪA */
 .char-slot.extra{
     color:#fff;background:var(--amber);
     box-shadow:0 2px 8px rgba(245,158,11,.35);
@@ -753,7 +731,6 @@ body.show-practice .card-body{
     75%{transform:translateX(3px)}
 }
 
-/* Preview nhỏ trong card */
 .inline-char-preview{
     display:flex;flex-wrap:wrap;gap:.25rem;
     margin-top:.4rem;width:100%;
@@ -770,7 +747,7 @@ body.show-practice .card-body{
 .practice-full-status.partial{color:var(--amber);}
 .practice-full-status.wrong{color:var(--danger);}
 
-/* Đáp án reveal */
+/* Đáp án reveal - CỤM TỪ */
 .answer-reveal{
     display:none;flex-direction:column;gap:.75rem;
     padding:1.25rem;background:var(--surface-2);
@@ -784,25 +761,26 @@ body.show-practice .card-body{
 .answer-chars{
     display:flex;justify-content:center;flex-wrap:wrap;gap:.5rem;
 }
-.answer-char-btn{
-    font-family:var(--font-zh);font-size:1.8rem;font-weight:500;
-    min-width:2.6rem;height:3.2rem;padding:0 .6rem;
+/* ✅ Cụm từ trong đáp án */
+.answer-phrase-btn{
+    font-family:var(--font-zh);font-size:1.5rem;font-weight:500;
+    padding:.5rem .9rem;
     border-radius:12px;border:2px solid var(--border);
     background:var(--surface);color:var(--text);
     cursor:pointer;transition:.15s;
     display:inline-flex;align-items:center;justify-content:center;
     -webkit-appearance:none;
 }
-.answer-char-btn:hover,.answer-char-btn:active{
+.answer-phrase-btn:hover,.answer-phrase-btn:active{
     border-color:var(--primary);background:var(--primary-light);
     transform:scale(1.05);
 }
-.answer-char-btn.speaking{
+.answer-phrase-btn.speaking{
     background:var(--primary);color:#fff;border-color:var(--primary);
     animation:pulse 1s infinite;
 }
 @media(min-width:769px){
-    .answer-char-btn{font-size:2.2rem;min-width:3.2rem;height:3.8rem;}
+    .answer-phrase-btn{font-size:1.8rem;padding:.6rem 1.1rem;}
 }
 .answer-pinyin{
     text-align:center;font-size:.95rem;font-style:italic;
@@ -819,12 +797,9 @@ body.show-practice .card-body{
     display:inline-flex;align-items:center;gap:.4rem;
 }
 .answer-actions button:hover{background:var(--surface-2);border-color:var(--primary);color:var(--primary)}
-.answer-actions button.primary{
-    background:var(--primary);color:#fff;border-color:var(--primary);
-}
+.answer-actions button.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
 .answer-actions button.primary:hover{background:var(--primary-dark)}
 
-/* Nút xem đáp án */
 .reveal-btn{
     width:100%;padding:.85rem;
     border-radius:14px;border:2px dashed var(--border-strong);
@@ -836,7 +811,6 @@ body.show-practice .card-body{
 .reveal-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light)}
 .reveal-btn.hidden{display:none}
 
-/* Navigation Next/Prev */
 .practice-full-nav{
     display:flex;gap:.75rem;padding:1rem 1.25rem;
     background:var(--surface);border-top:1px solid var(--border);
@@ -862,8 +836,7 @@ body.show-practice .card-body{
 .pf-nav-btn.primary:hover:not(:disabled){background:var(--primary-dark)}
 
 .login-modal{
-    position:fixed;inset:0;
-    background:rgba(15,23,42,.8);
+    position:fixed;inset:0;background:rgba(15,23,42,.8);
     backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
     z-index:3000;display:none;align-items:center;justify-content:center;
     padding:1.5rem;animation:fadeIn .2s;
@@ -927,7 +900,6 @@ body.show-practice .card-body{
     background:var(--surface);border-radius:20px;padding:1.5rem 1.25rem;
     max-width:420px;width:100%;max-height:calc(100vh - 2rem);overflow-y:auto;
     box-shadow:0 20px 60px rgba(0,0,0,.3);position:relative;
-    animation:slideUp .3s cubic-bezier(.34,1.56,.64,1);
 }
 .writer-close{
     position:absolute;top:10px;right:10px;
@@ -1098,24 +1070,19 @@ body.show-practice .card-body{
 .log-item .log-msg{flex:1;word-break:break-word}
 
 [data-theme="dark"] .hsk-badge{
-    background:rgba(59,130,246,.25);
-    color:#93c5fd;font-weight:800;
+    background:rgba(59,130,246,.25);color:#93c5fd;font-weight:800;
     border:1px solid rgba(59,130,246,.4);
 }
 [data-theme="dark"] .card-tag.hsk{
-    background:rgba(59,130,246,.25);
-    color:#93c5fd;font-weight:700;
+    background:rgba(59,130,246,.25);color:#93c5fd;font-weight:700;
     border:1px solid rgba(59,130,246,.4);
 }
 [data-theme="dark"] .audio-btn{
-    background:rgba(59,130,246,.22);
-    color:#93c5fd;
+    background:rgba(59,130,246,.22);color:#93c5fd;
     border:1px solid rgba(59,130,246,.35);
 }
 [data-theme="dark"] .audio-btn:hover,
-[data-theme="dark"] .audio-btn:active{
-    background:#3b82f6;color:#fff;border-color:#3b82f6;
-}
+[data-theme="dark"] .audio-btn:active{background:#3b82f6;color:#fff;border-color:#3b82f6;}
 
 @media(max-width:768px){
     .container{padding:0 .7rem}
@@ -1168,7 +1135,7 @@ body.show-practice .card-body{
     .practice-full-vi{font-size:1.35rem;padding:1rem .75rem}
     .practice-full-input{font-size:1.35rem;padding:.85rem 1rem}
     .char-slot{font-size:1.4rem;min-width:1.6rem;height:2.1rem}
-    .answer-char-btn{font-size:1.5rem;min-width:2.2rem;height:2.8rem}
+    .answer-phrase-btn{font-size:1.3rem;padding:.45rem .75rem;}
     .pf-nav-btn{padding:.75rem .75rem;font-size:.82rem}
     .practice-full-nav{padding:.75rem .85rem;gap:.5rem}
 }
@@ -1465,6 +1432,7 @@ var ZALO_PHONE = "__ZALO_PHONE__";
 var ZALO_NAME = "__ZALO_NAME__";
 var SYNONYMS = __SYNONYMS__;
 var FILLER_WORDS = __FILLER_WORDS__;
+var KNOWN_PHRASES = __KNOWN_PHRASES__;
 
 var currentUser = null;
 var isDemo = true;
@@ -1481,9 +1449,7 @@ var usersUnsubscribe = null;
 var $ = function(id) { return document.getElementById(id); };
 var mobileWrapper;
 
-function getDemoData() {
-    return RAW_DATA.slice(0, DEMO_LIMIT);
-}
+function getDemoData() { return RAW_DATA.slice(0, DEMO_LIMIT); }
 function getDemoHskList() {
     var list = [];
     for (var i = 1; i <= DEMO_HSK_MAX; i++) list.push('HSK' + i);
@@ -1515,9 +1481,7 @@ function incDemoUsage() {
         localStorage.setItem('demo_usage', JSON.stringify(data));
     } catch(e) {}
 }
-function getDemoRemaining() {
-    return Math.max(0, DEMO_DAILY_LIMIT - getDemoUsage());
-}
+function getDemoRemaining() { return Math.max(0, DEMO_DAILY_LIMIT - getDemoUsage()); }
 function canUseFeature() {
     if (!isDemo) return true;
     return getDemoUsage() < DEMO_DAILY_LIMIT;
@@ -1532,11 +1496,7 @@ function updateDemoRemaining() {
     else el.style.color = '#16a34a';
 }
 function showLimitMessage() {
-    if (confirm(
-        '🔒 Bạn đã dùng hết ' + DEMO_DAILY_LIMIT + ' lượt miễn phí hôm nay.\n\n' +
-        '(Bao gồm cả NGHE và LUYỆN VIẾT)\n\n' +
-        'Đăng nhập Google để dùng KHÔNG GIỚI HẠN!'
-    )) {
+    if (confirm('🔒 Bạn đã dùng hết ' + DEMO_DAILY_LIMIT + ' lượt miễn phí hôm nay.\n\n(Bao gồm cả NGHE và LUYỆN VIẾT)\n\nĐăng nhập Google để dùng KHÔNG GIỚI HẠN!')) {
         showLoginModal();
     }
 }
@@ -1801,9 +1761,7 @@ function initZaloButton() {
     }
     
     var nameEl = zaloBtn.querySelector('.zalo-name');
-    if (nameEl && ZALO_NAME) {
-        nameEl.textContent = ZALO_NAME;
-    }
+    if (nameEl && ZALO_NAME) nameEl.textContent = ZALO_NAME;
 }
 
 function initScrollDetection() {
@@ -1846,7 +1804,7 @@ function initTheme() {
     try {
         var saved = localStorage.getItem('theme');
         if (saved) document.documentElement.setAttribute('data-theme', saved);
-        else document.documentElement.setAttribute('data-theme', 'light'); // ✅ Mặc định LIGHT
+        else document.documentElement.setAttribute('data-theme', 'light');
     } catch(e) {}
     updateThemeIcon();
     $('themeToggle').addEventListener('click', function() {
@@ -1910,9 +1868,9 @@ function applyDisplayState() {
     if (displayState.practice) {
         document.querySelectorAll('.card-check').forEach(function(c) { c.innerHTML = ''; });
         document.querySelectorAll('.practice-input').forEach(function(i) { 
-            i.value = ''; 
-            var pv = i.parentElement.querySelector('.inline-char-preview');
-            if (pv) pv.innerHTML = '';
+            i.value = '';
+            var answer = i.dataset.answer || '';
+            updateInlinePreview(i, answer);
         });
     }
 }
@@ -1981,10 +1939,7 @@ function getChineseVoice() {
 
 window.speakText = function(text, btn, evt) {
     if (evt) evt.stopPropagation();
-    if (isDemo && !canUseFeature()) {
-        showLimitMessage();
-        return;
-    }
+    if (isDemo && !canUseFeature()) { showLimitMessage(); return; }
     if (!('speechSynthesis' in window)) { alert('Trình duyệt không hỗ trợ phát âm.'); return; }
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
     speechSynthesis.cancel();
@@ -2033,14 +1988,10 @@ function buildFilters() {
     if (isDemo) {
         var demoHsk = getDemoHskList();
         var hskHtml = '<option value="">Tất cả (HSK1-' + DEMO_HSK_MAX + ')</option>';
-        demoHsk.forEach(function(h) {
-            hskHtml += '<option value="' + h + '">' + h + '</option>';
-        });
+        demoHsk.forEach(function(h) { hskHtml += '<option value="' + h + '">' + h + '</option>'; });
         var allHskList = ['HSK1','HSK2','HSK3','HSK4','HSK5','HSK6'];
         allHskList.forEach(function(h) {
-            if (demoHsk.indexOf(h) === -1) {
-                hskHtml += '<option value="' + h + '" disabled>🔒 ' + h + ' (đăng nhập)</option>';
-            }
+            if (demoHsk.indexOf(h) === -1) hskHtml += '<option value="' + h + '" disabled>🔒 ' + h + ' (đăng nhập)</option>';
         });
         hskSelect.innerHTML = hskHtml;
         
@@ -2050,11 +2001,8 @@ function buildFilters() {
         
         var subjHtml = '<option value="">Tất cả chủ đề</option>';
         allSubjects.forEach(function(s) {
-            if (demoSubjectMap[s]) {
-                subjHtml += '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>';
-            } else {
-                subjHtml += '<option value="' + escapeHtml(s) + '" disabled>🔒 ' + escapeHtml(s) + ' (đăng nhập)</option>';
-            }
+            if (demoSubjectMap[s]) subjHtml += '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>';
+            else subjHtml += '<option value="' + escapeHtml(s) + '" disabled>🔒 ' + escapeHtml(s) + ' (đăng nhập)</option>';
         });
         subjectSelect.innerHTML = subjHtml;
     } else {
@@ -2092,32 +2040,21 @@ function updateFilterUI() {
     } else {
         resetBtn.classList.add('hidden');
     }
-    
     updateResultCount();
 }
 
 function updateResultCount() {
     var el = $('resultCount');
     if (!el) return;
-    
     var total = filtered ? filtered.length : 0;
     var hasFilter = !!(state.search || state.hsk || state.subject);
-    
-    if (!hasFilter) {
-        el.classList.remove('show', 'empty');
-        return;
-    }
-    
+    if (!hasFilter) { el.classList.remove('show', 'empty'); return; }
     el.classList.add('show');
     el.classList.toggle('empty', total === 0);
-    
     var spanEl = el.querySelector('span');
     if (spanEl) {
-        if (total === 0) {
-            spanEl.innerHTML = 'Không tìm thấy kết quả nào';
-        } else {
-            spanEl.innerHTML = 'Tìm thấy <b>' + total + '</b> kết quả';
-        }
+        if (total === 0) spanEl.innerHTML = 'Không tìm thấy kết quả nào';
+        else spanEl.innerHTML = 'Tìm thấy <b>' + total + '</b> kết quả';
     }
 }
 
@@ -2127,9 +2064,7 @@ function render(reset) {
         mobileWrapper.innerHTML = '<div class="no-data"><i class="fas fa-search"></i>Không tìm thấy câu nào</div>';
         return;
     }
-    if (reset) {
-        mobileWrapper.innerHTML = '';
-    }
+    if (reset) mobileWrapper.innerHTML = '';
     var end = Math.min(renderedCount + PAGE_SIZE, filtered.length);
     var mobHtml = '';
     for (var i = renderedCount; i < end; i++) {
@@ -2217,31 +2152,21 @@ function normalizeAnswer(str) {
         .toLowerCase()
         .trim();
 }
-
 function removeTones(str) {
     if (!str) return '';
     var map = {
-        'ā':'a','á':'a','ǎ':'a','à':'a',
-        'ē':'e','é':'e','ě':'e','è':'e',
-        'ī':'i','í':'i','ǐ':'i','ì':'i',
-        'ō':'o','ó':'o','ǒ':'o','ò':'o',
-        'ū':'u','ú':'u','ǔ':'u','ù':'u',
-        'ǖ':'v','ǘ':'v','ǚ':'v','ǜ':'v','ü':'v'
+        'ā':'a','á':'a','ǎ':'a','à':'a','ē':'e','é':'e','ě':'e','è':'e',
+        'ī':'i','í':'i','ǐ':'i','ì':'i','ō':'o','ó':'o','ǒ':'o','ò':'o',
+        'ū':'u','ú':'u','ǔ':'u','ù':'u','ǖ':'v','ǘ':'v','ǚ':'v','ǜ':'v','ü':'v'
     };
-    return str.replace(/[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü]/g, function(c) {
-        return map[c] || c;
-    });
+    return str.replace(/[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü]/g, function(c) { return map[c] || c; });
 }
-
 function removeFillers(str) {
     if (!str) return '';
     var result = str;
-    FILLER_WORDS.forEach(function(w) {
-        result = result.split(w).join('');
-    });
+    FILLER_WORDS.forEach(function(w) { result = result.split(w).join(''); });
     return result;
 }
-
 function expandSynonyms(str) {
     var results = [str];
     var keys = Object.keys(SYNONYMS);
@@ -2249,76 +2174,52 @@ function expandSynonyms(str) {
         var key = keys[i];
         if (str.indexOf(key) !== -1) {
             var values = SYNONYMS[key];
-            for (var j = 0; j < values.length; j++) {
-                results.push(str.split(key).join(values[j]));
-            }
+            for (var j = 0; j < values.length; j++) results.push(str.split(key).join(values[j]));
         }
     }
     return results;
 }
-
 function levenshtein(a, b) {
     if (a === b) return 0;
     if (!a.length) return b.length;
     if (!b.length) return a.length;
-    
     var matrix = [];
     for (var i = 0; i <= b.length; i++) matrix[i] = [i];
     for (var j = 0; j <= a.length; j++) matrix[0][j] = j;
-    
     for (var i = 1; i <= b.length; i++) {
         for (var j = 1; j <= a.length; j++) {
-            if (b.charAt(i-1) === a.charAt(j-1)) {
-                matrix[i][j] = matrix[i-1][j-1];
-            } else {
-                matrix[i][j] = Math.min(
-                    matrix[i-1][j-1] + 1,
-                    matrix[i][j-1] + 1,
-                    matrix[i-1][j] + 1
-                );
-            }
+            if (b.charAt(i-1) === a.charAt(j-1)) matrix[i][j] = matrix[i-1][j-1];
+            else matrix[i][j] = Math.min(matrix[i-1][j-1] + 1, matrix[i][j-1] + 1, matrix[i-1][j] + 1);
         }
     }
     return matrix[b.length][a.length];
 }
-
 function similarity(a, b) {
     var maxLen = Math.max(a.length, b.length);
     if (maxLen === 0) return 1;
     return 1 - (levenshtein(a, b) / maxLen);
 }
-
 function smartCheck(userAnswer, correctAnswer) {
     var user = normalizeAnswer(userAnswer);
     var correct = normalizeAnswer(correctAnswer);
-    
     if (!user) return { status: 'wrong', reason: '' };
-    
     if (user === correct) return { status: 'correct', reason: 'Chính xác' };
-    
     var userNoTone = removeTones(user);
     var correctNoTone = removeTones(correct);
     if (userNoTone === correctNoTone) return { status: 'correct', reason: 'Đúng (thiếu dấu thanh)' };
-    
     var userNoFill = removeFillers(user);
     var correctNoFill = removeFillers(correct);
     if (userNoFill === correctNoFill) return { status: 'correct', reason: 'Đúng (bỏ qua từ phụ)' };
-    
     var uNF = removeTones(userNoFill);
     var cNF = removeTones(correctNoFill);
     if (uNF === cNF) return { status: 'correct', reason: 'Đúng (từ phụ + dấu thanh)' };
-    
     var userVariants = expandSynonyms(userNoFill);
     var correctVariants = expandSynonyms(correctNoFill);
-    
     for (var i = 0; i < userVariants.length; i++) {
         for (var j = 0; j < correctVariants.length; j++) {
-            if (userVariants[i] === correctVariants[j]) {
-                return { status: 'correct', reason: 'Đúng (từ đồng nghĩa)' };
-            }
+            if (userVariants[i] === correctVariants[j]) return { status: 'correct', reason: 'Đúng (từ đồng nghĩa)' };
         }
     }
-    
     var maxSim = 0;
     for (var k = 0; k < correctVariants.length; k++) {
         var sim = similarity(userNoFill, correctVariants[k]);
@@ -2328,17 +2229,12 @@ function smartCheck(userAnswer, correctAnswer) {
         var sim2 = similarity(userVariants[m], correctNoFill);
         if (sim2 > maxSim) maxSim = sim2;
     }
-    
     if (maxSim >= 0.85) return { status: 'partial', reason: 'Gần đúng (' + Math.round(maxSim * 100) + '%)' };
-    
-    if (user.indexOf(correct) !== -1 || correct.indexOf(user) !== -1) {
-        return { status: 'partial', reason: 'Thiếu/thừa từ' };
-    }
-    
+    if (user.indexOf(correct) !== -1 || correct.indexOf(user) !== -1) return { status: 'partial', reason: 'Thiếu/thừa từ' };
     return { status: 'wrong', reason: 'Không khớp' };
 }
 
-/* ✅ Preview tô đỏ cho ô luyện tập thường trong card */
+/* ✅ Preview tô đỏ + ghost text cho card */
 function updateInlinePreview(input, answer) {
     var wrapper = input.parentElement;
     var preview = wrapper.querySelector('.inline-char-preview');
@@ -2351,7 +2247,7 @@ function updateInlinePreview(input, answer) {
     var userVal = input.value.replace(/\s+/g, '');
     var cleanAnswer = (answer || '').replace(/\s+/g, '');
     
-    if (!userVal) {
+    if (!cleanAnswer) {
         preview.innerHTML = '';
         return;
     }
@@ -2362,17 +2258,17 @@ function updateInlinePreview(input, answer) {
     for (var i = 0; i < maxLen; i++) {
         var userChar = userVal[i] || '';
         var answerChar = cleanAnswer[i] || '';
-        var display = userChar || answerChar;
-        
         var cls = 'char-slot';
+        var display = '';
+        
         if (userChar && answerChar) {
-            if (userChar === answerChar) cls += ' correct';
-            else cls += ' wrong';
+            if (userChar === answerChar) { cls += ' correct'; display = userChar; }
+            else { cls += ' wrong'; display = userChar; }
         } else if (!userChar && answerChar) {
-            cls += ' missing';
+            cls += ' ghost'; display = answerChar;
         } else if (userChar && !answerChar) {
-            cls += ' extra';
-        }
+            cls += ' extra'; display = userChar;
+        } else { continue; }
         
         html += '<span class="' + cls + '">' + escapeHtml(display) + '</span>';
     }
@@ -2386,27 +2282,16 @@ window.checkInput = function(input) {
     var cells = document.querySelectorAll('[data-check-stt="' + stt + '"]');
     var val = input.value.trim();
     
-    // ✅ Cập nhật preview tô đỏ từng ký tự
     updateInlinePreview(input, answer);
     
-    if (!val) {
-        cells.forEach(function(c) { c.innerHTML = ''; });
-        return;
-    }
+    if (!val) { cells.forEach(function(c) { c.innerHTML = ''; }); return; }
     
     var result = smartCheck(val, answer);
-    
     var html = '';
-    if (result.status === 'correct') {
-        html = '<span class="ai-correct">✅ ĐÚNG</span>';
-    } else if (result.status === 'partial') {
-        html = '<span class="ai-partial">⚠️ GẦN ĐÚNG</span>';
-    } else {
-        html = '<span class="ai-wrong">❌ SAI</span>';
-    }
-    if (result.reason) {
-        html += '<span class="ai-reason">' + escapeHtml(result.reason) + '</span>';
-    }
+    if (result.status === 'correct') html = '<span class="ai-correct">✅ ĐÚNG</span>';
+    else if (result.status === 'partial') html = '<span class="ai-partial">⚠️ GẦN ĐÚNG</span>';
+    else html = '<span class="ai-wrong">❌ SAI</span>';
+    if (result.reason) html += '<span class="ai-reason">' + escapeHtml(result.reason) + '</span>';
     cells.forEach(function(c) { c.innerHTML = html; });
 };
 
@@ -2414,14 +2299,12 @@ function applyFilter() {
     state.search = $('searchInput').value.trim().toLowerCase();
     state.hsk = $('hskFilter').value;
     state.subject = $('subjectFilter').value;
-    
     updateFilterUI();
     var clearBtn = $('clearSearchBtn');
     if (state.search) clearBtn.classList.add('show');
     else clearBtn.classList.remove('show');
     
     var baseData = isDemo ? getDemoData() : RAW_DATA;
-    
     filtered = baseData.filter(function(r) {
         if (state.search) {
             var s = state.search;
@@ -2436,7 +2319,6 @@ function applyFilter() {
         if (state.subject && r.subject !== state.subject) return false;
         return true;
     });
-    
     updateResultCount();
     render(true);
 }
@@ -2451,13 +2333,11 @@ var pfCurrentPinyin = '';
 
 window.openPracticeFull = function(stt, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
-    
     var idx = -1;
     for (var i = 0; i < filtered.length; i++) {
         if (String(filtered[i].stt) === String(stt)) { idx = i; break; }
     }
     if (idx === -1) { alert('Không tìm thấy câu!'); return; }
-    
     pfCurrentStt = stt;
     $('practiceFullModal').classList.add('show');
     document.body.style.overflow = 'hidden';
@@ -2493,14 +2373,14 @@ function loadPracticeFull(stt) {
     $('pfTags').innerHTML = tagsHtml;
     
     $('pfVi').textContent = pfCurrentVi;
-    
     $('pfInput').value = '';
-    $('pfPreview').innerHTML = '';
     $('pfStatus').textContent = '';
     $('pfStatus').className = 'practice-full-status';
-    
     $('pfAnswer').classList.remove('show');
     $('pfRevealBtn').classList.remove('hidden');
+    
+    // ✅ Hiện ghost text đáp án ngay từ đầu
+    updateCharPreview();
     
     $('pfPrevBtn').disabled = (idx === 0);
     $('pfNextBtn').disabled = (idx === filtered.length - 1);
@@ -2528,18 +2408,19 @@ window.pfPrev = function() {
     loadPracticeFull(filtered[idx - 1].stt);
 };
 
+/* ✅ Preview + ghost text cho full modal */
 function updateCharPreview() {
     var input = $('pfInput');
     var preview = $('pfPreview');
     var userVal = input.value;
     
-    if (!userVal) {
+    var cleanUser = userVal.replace(/\s+/g, '');
+    var cleanAnswer = pfCurrentAnswer.replace(/\s+/g, '');
+    
+    if (!cleanAnswer) {
         preview.innerHTML = '';
         return;
     }
-    
-    var cleanUser = userVal.replace(/\s+/g, '');
-    var cleanAnswer = pfCurrentAnswer.replace(/\s+/g, '');
     
     var html = '';
     var maxLen = Math.max(cleanUser.length, cleanAnswer.length);
@@ -2547,17 +2428,17 @@ function updateCharPreview() {
     for (var i = 0; i < maxLen; i++) {
         var userChar = cleanUser[i] || '';
         var answerChar = cleanAnswer[i] || '';
-        var display = userChar || answerChar;
-        
         var cls = 'char-slot';
+        var display = '';
+        
         if (userChar && answerChar) {
-            if (userChar === answerChar) cls += ' correct';
-            else cls += ' wrong';
+            if (userChar === answerChar) { cls += ' correct'; display = userChar; }
+            else { cls += ' wrong'; display = userChar; }
         } else if (!userChar && answerChar) {
-            cls += ' missing';
+            cls += ' ghost'; display = answerChar;
         } else if (userChar && !answerChar) {
-            cls += ' extra';
-        }
+            cls += ' extra'; display = userChar;
+        } else { continue; }
         
         html += '<span class="' + cls + '">' + escapeHtml(display) + '</span>';
     }
@@ -2590,31 +2471,91 @@ function checkFullAnswer() {
     }
 }
 
+/* ✅ Tách câu thành các CỤM TỪ có nghĩa */
+function splitIntoPhrases(zh) {
+    if (!zh) return [];
+    
+    // Sắp xếp cụm từ theo độ dài giảm dần
+    var phrases = KNOWN_PHRASES.slice().sort(function(a, b) { return b.length - a.length; });
+    var phraseSet = {};
+    phrases.forEach(function(p) { phraseSet[p] = 1; });
+    
+    var result = [];
+    var currentChars = '';
+    var i = 0;
+    
+    while (i < zh.length) {
+        var c = zh[i];
+        
+        // Nếu là dấu câu → tách riêng
+        if (!/[\u4e00-\u9fa5]/.test(c)) {
+            if (currentChars) {
+                result.push({ text: currentChars, type: 'chars' });
+                currentChars = '';
+            }
+            result.push({ text: c, type: 'punct' });
+            i++;
+            continue;
+        }
+        
+        // Thử match cụm từ dài nhất
+        var matched = false;
+        for (var len = Math.min(6, zh.length - i); len >= 2; len--) {
+            var candidate = zh.substr(i, len);
+            if (phraseSet[candidate]) {
+                if (currentChars) {
+                    result.push({ text: currentChars, type: 'chars' });
+                    currentChars = '';
+                }
+                result.push({ text: candidate, type: 'phrase' });
+                i += len;
+                matched = true;
+                break;
+            }
+        }
+        
+        if (!matched) {
+            currentChars += c;
+            i++;
+        }
+    }
+    
+    if (currentChars) result.push({ text: currentChars, type: 'chars' });
+    
+    return result;
+}
+
 function revealFullAnswer() {
     var answerEl = $('pfAnswer');
     var charsEl = $('pfAnswerChars');
     var pinyinEl = $('pfAnswerPinyin');
     
     charsEl.innerHTML = '';
-    var chars = pfCurrentAnswer.split('');
+    var phrases = splitIntoPhrases(pfCurrentAnswer);
     
-    chars.forEach(function(c) {
-        if (/[\u4e00-\u9fa5]/.test(c)) {
-            var btn = document.createElement('button');
-            btn.className = 'answer-char-btn';
-            btn.textContent = c;
-            btn.onclick = function(e) {
-                e.stopPropagation();
-                speakSingleChar(c, btn);
-            };
-            charsEl.appendChild(btn);
-        } else {
+    phrases.forEach(function(item) {
+        if (item.type === 'punct') {
             var span = document.createElement('span');
-            span.className = 'answer-char-btn';
+            span.className = 'answer-phrase-btn';
             span.style.cursor = 'default';
             span.style.borderStyle = 'dashed';
-            span.textContent = c;
+            span.style.background = 'transparent';
+            span.style.fontSize = '1rem';
+            span.style.padding = '.3rem .5rem';
+            span.textContent = item.text;
             charsEl.appendChild(span);
+        } else {
+            var btn = document.createElement('button');
+            btn.className = 'answer-phrase-btn';
+            btn.textContent = item.text;
+            btn.title = 'Nhấn để đọc: ' + item.text;
+            btn.onclick = (function(text) {
+                return function(e) {
+                    e.stopPropagation();
+                    speakPhrase(text, btn);
+                };
+            })(item.text);
+            charsEl.appendChild(btn);
         }
     });
     
@@ -2623,36 +2564,26 @@ function revealFullAnswer() {
     $('pfRevealBtn').classList.add('hidden');
 }
 
-window.speakSingleChar = function(char, btn) {
-    if (isDemo && !canUseFeature()) {
-        showLimitMessage();
-        return;
-    }
+window.speakPhrase = function(phrase, btn) {
+    if (isDemo && !canUseFeature()) { showLimitMessage(); return; }
     if (!('speechSynthesis' in window)) { alert('Trình duyệt không hỗ trợ phát âm.'); return; }
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
     
     speechSynthesis.cancel();
-    document.querySelectorAll('.answer-char-btn.speaking').forEach(function(b) {
-        b.classList.remove('speaking');
-    });
+    document.querySelectorAll('.answer-phrase-btn.speaking').forEach(function(b) { b.classList.remove('speaking'); });
     btn.classList.add('speaking');
     
-    var utterance = new SpeechSynthesisUtterance(char);
+    var utterance = new SpeechSynthesisUtterance(phrase);
     utterance.lang = 'zh-CN';
-    utterance.rate = 0.7;
+    utterance.rate = 0.75;
     var voice = getChineseVoice();
     if (voice) utterance.voice = voice;
-    utterance.onend = utterance.onerror = function() {
-        btn.classList.remove('speaking');
-    };
+    utterance.onend = utterance.onerror = function() { btn.classList.remove('speaking'); };
     setTimeout(function(){ speechSynthesis.speak(utterance); }, 30);
 };
 
 window.speakFullSentence = function() {
-    if (isDemo && !canUseFeature()) {
-        showLimitMessage();
-        return;
-    }
+    if (isDemo && !canUseFeature()) { showLimitMessage(); return; }
     if (!('speechSynthesis' in window)) return;
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
     
@@ -2753,10 +2684,7 @@ function initWriter() {
 
 window.openWriter = function(zh, vi, pinyin, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
-    if (isDemo && !canUseFeature()) {
-        showLimitMessage();
-        return;
-    }
+    if (isDemo && !canUseFeature()) { showLimitMessage(); return; }
     if (typeof HanziWriter === 'undefined') { alert('Thư viện chưa tải xong.'); return; }
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
     currentWriteZh = zh || '';
@@ -2860,9 +2788,7 @@ function loadUsers() {
     if (usersUnsubscribe) usersUnsubscribe();
     usersUnsubscribe = db.collection('allowed_users').onSnapshot(function(snapshot) {
         usersCache = [];
-        snapshot.forEach(function(doc) {
-            usersCache.push({ email: doc.id, ...doc.data() });
-        });
+        snapshot.forEach(function(doc) { usersCache.push({ email: doc.id, ...doc.data() }); });
         usersCache.sort(function(a, b) { return (a.email || '').localeCompare(b.email || ''); });
         renderUsers();
         renderAdminStats();
@@ -2887,7 +2813,6 @@ function renderUsers() {
         list.innerHTML = '<div class="no-data" style="padding:1.5rem;font-size:.85rem">Chưa có tài khoản</div>';
         return;
     }
-    
     var adminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
     
     list.innerHTML = usersCache.map(function(u) {
@@ -2896,26 +2821,17 @@ function renderUsers() {
         
         var roleBtn = '';
         if (isAdmin) {
-            var reason = isMe 
-                ? 'Không thể tự hạ quyền chính mình' 
-                : 'Phải giữ đúng ' + TARGET_ADMINS + ' admin trong hệ thống';
+            var reason = isMe ? 'Không thể tự hạ quyền chính mình' : 'Phải giữ đúng ' + TARGET_ADMINS + ' admin';
             roleBtn = '<button class="u-btn" disabled title="' + escapeHtml(reason) + '"><i class="fas fa-user"></i></button>';
         } else {
-            if (adminCount < TARGET_ADMINS) {
-                roleBtn = '<button class="u-btn" onclick="changeRole(\'' + escapeJs(u.email) + '\', \'admin\')" title="Nâng lên Admin"><i class="fas fa-shield-alt"></i></button>';
-            } else {
-                roleBtn = '<button class="u-btn" disabled title="Đã đủ ' + TARGET_ADMINS + ' admin, không thể nâng thêm"><i class="fas fa-shield-alt"></i></button>';
-            }
+            if (adminCount < TARGET_ADMINS) roleBtn = '<button class="u-btn" onclick="changeRole(\'' + escapeJs(u.email) + '\', \'admin\')" title="Nâng lên Admin"><i class="fas fa-shield-alt"></i></button>';
+            else roleBtn = '<button class="u-btn" disabled title="Đã đủ ' + TARGET_ADMINS + ' admin"><i class="fas fa-shield-alt"></i></button>';
         }
         
         var deleteBtn = '';
-        if (isMe) {
-            deleteBtn = '<button class="u-btn danger" disabled title="Không thể tự xóa chính mình"><i class="fas fa-trash"></i></button>';
-        } else if (isAdmin) {
-            deleteBtn = '<button class="u-btn danger" disabled title="Phải giữ đúng ' + TARGET_ADMINS + ' admin trong hệ thống"><i class="fas fa-trash"></i></button>';
-        } else {
-            deleteBtn = '<button class="u-btn danger" onclick="deleteUser(\'' + escapeJs(u.email) + '\')" title="Xóa"><i class="fas fa-trash"></i></button>';
-        }
+        if (isMe) deleteBtn = '<button class="u-btn danger" disabled title="Không thể tự xóa chính mình"><i class="fas fa-trash"></i></button>';
+        else if (isAdmin) deleteBtn = '<button class="u-btn danger" disabled title="Phải giữ đúng ' + TARGET_ADMINS + ' admin"><i class="fas fa-trash"></i></button>';
+        else deleteBtn = '<button class="u-btn danger" onclick="deleteUser(\'' + escapeJs(u.email) + '\')" title="Xóa"><i class="fas fa-trash"></i></button>';
         
         return '<div class="user-row">' +
             '<div class="u-info">' +
@@ -2931,60 +2847,32 @@ function renderUsers() {
 window.changeRole = async function(email, newRole) {
     var target = usersCache.find(function(u) { return u.email === email; });
     if (!target) { alert('Không tìm thấy user!'); return; }
-    
     var isMe = email === currentUser.email;
     var isAdmin = target.role === 'admin';
     var adminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
     
-    if (isMe && newRole === 'user') {
-        alert('⚠️ Không thể tự hạ quyền admin của chính mình!');
-        return;
-    }
-    
-    if (isAdmin && newRole === 'user') {
-        alert('⚠️ Không thể hạ quyền admin!\n\nHệ thống phải giữ đúng ' + TARGET_ADMINS + ' admin.\nHiện tại đang có ' + adminCount + ' admin.');
-        return;
-    }
-    
-    if (!isAdmin && newRole === 'admin' && adminCount >= TARGET_ADMINS) {
-        alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!\n\nKhông thể nâng thêm.');
-        return;
-    }
+    if (isMe && newRole === 'user') { alert('⚠️ Không thể tự hạ quyền admin của chính mình!'); return; }
+    if (isAdmin && newRole === 'user') { alert('⚠️ Không thể hạ quyền admin!\n\nHệ thống phải giữ đúng ' + TARGET_ADMINS + ' admin.\nHiện tại đang có ' + adminCount + ' admin.'); return; }
+    if (!isAdmin && newRole === 'admin' && adminCount >= TARGET_ADMINS) { alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!\n\nKhông thể nâng thêm.'); return; }
     
     var action = newRole === 'admin' ? 'NÂNG LÊN ADMIN' : 'HẠ XUỐNG USER';
     if (!confirm(action + ' cho tài khoản:\n\n' + email + '\n\nBạn có chắc không?')) return;
-    
-    try {
-        await db.collection('allowed_users').doc(email).update({ role: newRole });
-    } catch(e) {
-        alert('Lỗi: ' + e.message);
-    }
+    try { await db.collection('allowed_users').doc(email).update({ role: newRole }); }
+    catch(e) { alert('Lỗi: ' + e.message); }
 };
 
 window.deleteUser = async function(email) {
     var target = usersCache.find(function(u) { return u.email === email; });
     if (!target) { alert('Không tìm thấy user!'); return; }
-    
     var isMe = email === currentUser.email;
     var isAdmin = target.role === 'admin';
     
-    if (isMe) {
-        alert('⚠️ Không thể tự xóa tài khoản của chính mình!');
-        return;
-    }
-    
-    if (isAdmin) {
-        alert('⚠️ Không thể xóa admin!\n\nHệ thống phải giữ đúng ' + TARGET_ADMINS + ' admin.\n\nNếu cần thay đổi admin, hãy làm thủ công trong Firebase Console.');
-        return;
-    }
-    
+    if (isMe) { alert('⚠️ Không thể tự xóa tài khoản của chính mình!'); return; }
+    if (isAdmin) { alert('⚠️ Không thể xóa admin!\n\nHệ thống phải giữ đúng ' + TARGET_ADMINS + ' admin.'); return; }
     if (!confirm('⚠️ XÓA TÀI KHOẢN\n\n' + email + '\n\nNgười này sẽ không đăng nhập được nữa.\n\nBạn có chắc không?')) return;
     
-    try {
-        await db.collection('allowed_users').doc(email).delete();
-    } catch(e) {
-        alert('Lỗi: ' + e.message);
-    }
+    try { await db.collection('allowed_users').doc(email).delete(); }
+    catch(e) { alert('Lỗi: ' + e.message); }
 };
 
 $('showAddUserBtn').addEventListener('click', function() {
@@ -3006,10 +2894,7 @@ $('confirmAddUser').addEventListener('click', async function() {
     
     if (role === 'admin') {
         var currentAdminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
-        if (currentAdminCount >= TARGET_ADMINS) {
-            alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!\n\nKhông thể thêm admin mới.\nChỉ có thể thêm User.');
-            return;
-        }
+        if (currentAdminCount >= TARGET_ADMINS) { alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!\n\nKhông thể thêm admin mới.'); return; }
     }
     
     try {
@@ -3073,6 +2958,7 @@ html_output = (html_template
     .replace("__TARGET_ADMINS__", str(TARGET_ADMINS))
     .replace("__SYNONYMS__", synonyms_json)
     .replace("__FILLER_WORDS__", fillers_json)
+    .replace("__KNOWN_PHRASES__", phrases_json)
 )
 with open(OUTPUT_HTML, "w", encoding="utf-8") as f:
     f.write(html_output)
@@ -3081,10 +2967,9 @@ size_kb = os.path.getsize(OUTPUT_HTML) / 1024
 print(f"\n🎉 Đã tạo: {OUTPUT_HTML}")
 print(f"📦 Kích thước: {size_kb:.1f} KB")
 print(f"📚 Tổng số câu: {len(data)}")
-print(f"🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} lượt nghe/viết mỗi ngày")
+print(f"🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} lượt")
 print(f"🔥 Firebase: {FIREBASE_CONFIG.get('projectId', 'N/A')}")
 print(f"👑 Chế độ: Đúng {TARGET_ADMINS} admin")
-print(f"📞 Zalo: {ZALO_PHONE} ({ZALO_NAME})")
-print(f"🧠 Chấm điểm: So khớp thông minh + Tô đỏ từng ký tự")
-print(f"🎯 Full màn hình luyện tập: Next/Prev, bấm từng chữ đọc")
+print(f"🧠 Chấm điểm: So khớp thông minh")
+print(f"🎯 Ghost text mờ + đáp án theo cụm từ")
 print(f"☀️  Theme mặc định: Light mode")
