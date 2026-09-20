@@ -13,6 +13,9 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - ✅ Admin panel load 1 lần (không realtime)
 - ✅ Login log 1 lần/user/ngày
 - Theme mặc định LIGHT MODE
+- ✅ Nút ẩn/hiện kết quả ở mỗi thẻ trang chính (kèm đáp án tiếng Trung)
+- ✅ Click chữ sai inline → bôi đen ĐÚNG ký tự trong ô gõ
+- ✅ Gõ search trong modal KHÔNG nhảy sang ô nhập tiếng Trung
 """
 import openpyxl
 import json
@@ -68,6 +71,7 @@ print(f"   📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới"
 print(f"   🔍 Search + Filter + Dropdown chọn câu trong modal")
 print(f"   💾 Cache user 12h + Log 1 lần/ngày")
 print(f"   👑 Target admins: {TARGET_ADMINS}")
+print(f"   👁️  Nút ẩn/hiện kết quả + đáp án ở mỗi thẻ trang chính")
 
 print(f"\n📖 Đang đọc file: {EXCEL_FILE}")
 if not os.path.exists(EXCEL_FILE):
@@ -443,6 +447,45 @@ body.show-practice .card-body{
     font-weight:400;margin-top:.2rem;font-style:italic;line-height:1.3;
 }
 
+/* ✅ Khung đáp án tiếng Trung inline */
+.answer-inline-display{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:.4rem;
+    margin-top:.35rem;
+    padding:.35rem .6rem;
+    background:linear-gradient(135deg, rgba(37,99,235,.08), rgba(37,99,235,.04));
+    border:1px dashed rgba(37,99,235,.3);
+    border-radius:8px;
+    flex-wrap:wrap;
+}
+[data-theme="dark"] .answer-inline-display{
+    background:linear-gradient(135deg, rgba(59,130,246,.15), rgba(59,130,246,.08));
+    border-color:rgba(59,130,246,.4);
+}
+.answer-inline-label{
+    font-size:.7rem;
+    font-weight:700;
+    color:var(--primary-dark);
+    text-transform:uppercase;
+    letter-spacing:.3px;
+    display:inline-flex;
+    align-items:center;
+    gap:.25rem;
+    white-space:nowrap;
+}
+[data-theme="dark"] .answer-inline-label{color:#93c5fd;}
+.answer-inline-label i{font-size:.75rem;}
+.answer-inline-text{
+    font-family:var(--font-zh);
+    font-size:1.05rem;
+    font-weight:600;
+    color:var(--text);
+    letter-spacing:.03em;
+    word-break:break-all;
+}
+
 .main{padding:.5rem 0 3rem}
 
 .demo-banner{
@@ -517,7 +560,11 @@ body.show-practice .card-body{
     padding-top:.6rem;border-top:1px dashed var(--border);flex-wrap:wrap;
 }
 .card-practice .practice-input{flex:1;min-width:120px}
-.card-check{font-size:.75rem;font-weight:700;white-space:nowrap;min-width:55px;text-align:center}
+.card-check{
+    font-size:.75rem;font-weight:700;
+    min-width:55px;text-align:center;
+    width:100%;
+}
 
 .audio-btn{
     width:32px;height:32px;border-radius:50%;border:none;
@@ -548,6 +595,24 @@ body.show-practice .card-body{
     font-size:.8rem;transition:.15s;
 }
 .practice-full-btn:hover,.practice-full-btn:active{background:var(--primary);color:#fff;transform:scale(1.08)}
+
+.toggle-check-btn{
+    width:32px;height:32px;border-radius:50%;border:none;
+    background:var(--surface-2);color:var(--text-2);
+    cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+    font-size:.8rem;transition:.15s;flex-shrink:0;
+    border:1px solid var(--border);
+}
+.toggle-check-btn:hover,.toggle-check-btn:active{
+    background:var(--primary-light);color:var(--primary-dark);
+    border-color:var(--primary);
+}
+.toggle-check-btn.active{
+    background:var(--primary);color:#fff;border-color:var(--primary);
+}
+.toggle-check-btn.active:hover{
+    background:var(--primary-dark);color:#fff;
+}
 
 .action-group{display:flex;gap:.3rem;justify-content:center;align-items:center;position:relative}
 .practice-input{
@@ -634,7 +699,6 @@ body.show-practice .card-body{
 }
 .practice-full-header .pf-close:hover{background:var(--danger-light);color:var(--danger)}
 
-/* ✅ Search + Filter + Quick nav trong modal full */
 .pf-filters{
     padding:.6rem 1.25rem .5rem 1.25rem;
     background:var(--surface);
@@ -695,7 +759,6 @@ body.show-practice .card-body{
 .pf-result-count.empty{background:var(--danger-light);color:var(--danger)}
 .pf-result-count.empty i,.pf-result-count.empty b{color:var(--danger)}
 
-/* ✅ Dropdown chọn nhanh câu */
 .pf-quick-nav{
     margin-top:.5rem;
     display:flex;
@@ -837,6 +900,28 @@ body.show-practice .card-body{
     box-shadow:0 4px 12px rgba(245,158,11,.5);
     z-index:5;
 }
+.char-slot.ghost-missing{
+    color:var(--text-3);
+    opacity:.5;
+    background:transparent;
+    border:1px dashed var(--border);
+    cursor:pointer;
+    font-size:1.2rem;
+    font-weight:400;
+}
+.char-slot.ghost-missing:hover{
+    opacity:.9;
+    border-color:var(--primary);
+    color:var(--primary);
+    transform:scale(1.1);
+}
+.char-slot.ghost-missing.highlight{
+    animation:blinkHighlightMissing 0.6s ease-in-out 2;
+}
+@keyframes blinkHighlightMissing{
+    0%,100%{transform:scale(1.1);border-color:var(--primary);color:var(--primary);}
+    50%{transform:scale(1.25);border-color:var(--primary);color:var(--primary);box-shadow:0 0 0 6px rgba(37,99,235,.2);}
+}
 @keyframes shakeWrong{
     0%,100%{transform:translateX(0)}
     25%{transform:translateX(-3px)}
@@ -850,6 +935,11 @@ body.show-practice .card-body{
 .inline-char-preview .char-slot{
     font-size:.95rem;min-width:1.1rem;height:1.5rem;
     padding:0 .25rem;border-radius:5px;
+}
+.inline-char-preview .char-slot.ghost-missing{
+    font-size:.9rem;
+    min-width:1.1rem;
+    height:1.5rem;
 }
 
 .practice-full-status{
@@ -1487,7 +1577,6 @@ body.show-practice .card-body{
     </div>
 </div>
 
-<!-- ✅ MODAL LUYỆN TẬP FULL MÀN HÌNH -->
 <div class="practice-full-modal" id="practiceFullModal">
     <div class="practice-full-header">
         <div class="pf-counter" id="pfCounter">Câu 1 / 1</div>
@@ -1497,7 +1586,6 @@ body.show-practice .card-body{
         </button>
     </div>
     
-    <!-- ✅ Search + Filter + Quick nav trong modal full -->
     <div class="pf-filters">
         <div class="pf-search-wrap">
             <i class="fas fa-search"></i>
@@ -1724,7 +1812,6 @@ try {
     enterDemoMode();
 }
 
-/* ✅ Cache user doc 12h — giảm 90% Firestore reads */
 async function handleAuthChange(user) {
     if (!user) {
         currentUser = null; isDemo = true;
@@ -1734,7 +1821,6 @@ async function handleAuthChange(user) {
     
     var email = (user.email || '').toLowerCase();
     
-    // ✅ Kiểm tra cache trước
     var cacheKey = 'user_cache_' + email;
     var cached = null;
     try {
@@ -1751,7 +1837,6 @@ async function handleAuthChange(user) {
         return;
     }
     
-    // Cache hết hạn → đọc Firestore
     try {
         var doc = await db.collection('allowed_users').doc(email).get();
         if (!doc.exists) {
@@ -1898,7 +1983,6 @@ function showLoginError(msg) {
     el.classList.add('show');
 }
 
-/* ✅ Logout + xóa cache */
 $('logoutBtn').addEventListener('click', function() {
     if (confirm('Đăng xuất?')) {
         try {
@@ -1921,7 +2005,6 @@ document.addEventListener('click', function(e) {
     }
 });
 
-/* ✅ Log 1 lần/user/ngày */
 function logLogin(u) {
     try {
         var today = new Date().toDateString();
@@ -2164,7 +2247,7 @@ document.addEventListener('click', function(e) {
         e.target.closest('.writer-modal') || e.target.closest('.user-menu') ||
         e.target.closest('.login-modal') || e.target.closest('.admin-modal') ||
         e.target.closest('.practice-full-modal') ||
-        e.target.closest('.zalo-btn')) return;
+        e.target.closest('.zalo-btn') || e.target.closest('.toggle-check-btn')) return;
     clearFocus();
 }, true);
 
@@ -2236,7 +2319,6 @@ function escapeJs(str) {
         .replace(/\n/g, '\\n').replace(/\r/g, '');
 }
 
-/* ✅ BUILD FILTERS — Chủ đề demo: mở khóa lên đầu, khóa xuống dưới */
 function buildFilters() {
     var hskSelect = $('hskFilter');
     var subjectSelect = $('subjectFilter');
@@ -2356,6 +2438,7 @@ function render(reset) {
             fullBtn = '<button class="practice-full-btn" onclick="openPracticeFull(\'' + sttJs + '\', event)" title="Luyện tập full màn hình"><i class="fas fa-expand"></i></button>';
         }
         var practiceInput = '<input type="text" class="practice-input" placeholder="Gõ tiếng Trung..." data-answer="' + zhHtml + '" data-vi-hint="' + viHtml + '" data-stt="' + sttSafe + '" oninput="checkInput(this)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">';
+        var toggleCheckBtn = '<button class="toggle-check-btn" onclick="toggleInlineCheck(this, event)" title="Ẩn/hiện kết quả kiểm tra" data-visible="0"><i class="fas fa-eye"></i></button>';
         
         mobHtml += '<div class="card" onclick="toggleFocus(\'' + sttJs + '\', this)" data-stt="' + sttSafe + '">' +
             '<div class="card-header">' +
@@ -2374,7 +2457,8 @@ function render(reset) {
             '</div>' +
             '<div class="card-practice" onclick="event.stopPropagation()">' +
                 practiceInput +
-                '<div class="card-check" data-check-stt="' + sttSafe + '"></div>' +
+                toggleCheckBtn +
+                '<div class="card-check" data-check-stt="' + sttSafe + '" style="display:none"></div>' +
             '</div>' +
             '</div>';
     }
@@ -2573,6 +2657,9 @@ function splitByPinyin(zh, pinyin) {
     return result;
 }
 
+/* ============================================================
+   ✅ UPDATE PREVIEW INLINE — có onclick bôi đen ký tự sai
+   ============================================================ */
 function updateInlinePreview(input, answer) {
     var wrapper = input.parentElement;
     var preview = wrapper.querySelector('.inline-char-preview');
@@ -2591,31 +2678,170 @@ function updateInlinePreview(input, answer) {
         var answerChar = cleanAnswer[i] || '';
         var cls = 'char-slot';
         var display = '';
+        var clickable = false;
         if (userChar && answerChar) {
-            if (userChar === answerChar) { cls += ' correct'; display = userChar; }
-            else { cls += ' wrong'; display = userChar; }
-        } else if (!userChar && answerChar) { continue; }
-        else if (userChar && !answerChar) { cls += ' extra'; display = userChar; }
-        else { continue; }
-        html += '<span class="' + cls + '">' + escapeHtml(display) + '</span>';
+            if (userChar === answerChar) {
+                cls += ' correct';
+                display = userChar;
+            } else {
+                cls += ' wrong';
+                display = userChar;
+                clickable = true;
+            }
+        } else if (!userChar && answerChar) {
+            cls += ' ghost-missing';
+            display = '·';
+            clickable = true;
+        } else if (userChar && !answerChar) {
+            cls += ' extra';
+            display = userChar;
+            clickable = true;
+        } else {
+            continue;
+        }
+        if (clickable) {
+            html += '<span class="' + cls + '" data-idx="' + i + '" onclick="fixInlineChar(this, event)">' + escapeHtml(display) + '</span>';
+        } else {
+            html += '<span class="' + cls + '">' + escapeHtml(display) + '</span>';
+        }
     }
     preview.innerHTML = html;
 }
 
+/* ✅ Click chữ sai inline → con trỏ nhảy về + bôi đen ĐÚNG ký tự trong ô gõ */
+window.fixInlineChar = function(el, evt) {
+    if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
+    
+    var wrap = el.closest('.card-practice');
+    var input = wrap ? wrap.querySelector('.practice-input') : null;
+    if (!input) return;
+    
+    var strippedIdx = parseInt(el.dataset.idx);
+    var rawVal = input.value;
+    
+    // Chuyển strippedIdx → rawIdx (vị trí thực trong input gốc, tính cả khoảng trắng)
+    var rawIdx = -1;
+    var strippedCount = -1;
+    for (var i = 0; i < rawVal.length; i++) {
+        if (!/\s/.test(rawVal[i])) {
+            strippedCount++;
+            if (strippedCount === strippedIdx) {
+                rawIdx = i;
+                break;
+            }
+        }
+    }
+    
+    if (rawIdx === -1) rawIdx = rawVal.length;
+    
+    while (rawIdx < rawVal.length && /\s/.test(rawVal[rawIdx])) {
+        rawIdx++;
+    }
+    
+    input.focus();
+    setTimeout(function() {
+        try {
+            var endIdx = Math.min(rawIdx + 1, rawVal.length);
+            input.setSelectionRange(rawIdx, endIdx);
+        } catch(e) {
+            input.selectionStart = rawIdx;
+            input.selectionEnd = Math.min(rawIdx + 1, rawVal.length);
+        }
+        el.classList.add('highlight');
+        setTimeout(function() { el.classList.remove('highlight'); }, 1200);
+    }, 10);
+};
+
+/* ✅ Hiển thị kết quả chấm + đáp án tiếng Trung đầy đủ */
+function showInlineCheckWithAnswer(input) {
+    if (!input) return;
+    var stt = input.dataset.stt;
+    var answer = input.dataset.answer;
+    var cells = document.querySelectorAll('[data-check-stt="' + stt + '"]');
+    var val = input.value.trim();
+    if (!answer) {
+        cells.forEach(function(c) { c.innerHTML = ''; });
+        return;
+    }
+    
+    var answerHtml = '<div class="answer-inline-display">' +
+        '<span class="answer-inline-label"><i class="fas fa-check-circle"></i> Đáp án:</span>' +
+        '<span class="answer-inline-text">' + escapeHtml(answer) + '</span>' +
+        '</div>';
+    
+    var resultHtml = '';
+    if (val) {
+        var result = smartCheck(val, answer);
+        if (result.status === 'correct') resultHtml = '<span class="ai-correct">✅ ĐÚNG</span>';
+        else if (result.status === 'partial') resultHtml = '<span class="ai-partial">⚠️ GẦN ĐÚNG</span>';
+        else resultHtml = '<span class="ai-wrong">❌ SAI</span>';
+        if (result.reason) resultHtml += '<span class="ai-reason">' + escapeHtml(result.reason) + '</span>';
+    } else {
+        resultHtml = '<span class="ai-reason">Chưa gõ gì cả</span>';
+    }
+    
+    cells.forEach(function(c) {
+        c.innerHTML = resultHtml + answerHtml;
+    });
+}
+
+/* ✅ Chấm điểm + cập nhật preview inline */
 window.checkInput = function(input) {
     var stt = input.dataset.stt;
     var answer = input.dataset.answer;
     var cells = document.querySelectorAll('[data-check-stt="' + stt + '"]');
     var val = input.value.trim();
     updateInlinePreview(input, answer);
-    if (!val) { cells.forEach(function(c) { c.innerHTML = ''; }); return; }
-    var result = smartCheck(val, answer);
-    var html = '';
-    if (result.status === 'correct') html = '<span class="ai-correct">✅ ĐÚNG</span>';
-    else if (result.status === 'partial') html = '<span class="ai-partial">⚠️ GẦN ĐÚNG</span>';
-    else html = '<span class="ai-wrong">❌ SAI</span>';
-    if (result.reason) html += '<span class="ai-reason">' + escapeHtml(result.reason) + '</span>';
-    cells.forEach(function(c) { c.innerHTML = html; });
+    
+    var wrap = input.closest('.card-practice');
+    var btn = wrap ? wrap.querySelector('.toggle-check-btn') : null;
+    var isVisible = btn && btn.dataset.visible === '1';
+    
+    if (!isVisible) return;
+    
+    var answerHtml = '<div class="answer-inline-display">' +
+        '<span class="answer-inline-label"><i class="fas fa-check-circle"></i> Đáp án:</span>' +
+        '<span class="answer-inline-text">' + escapeHtml(answer) + '</span>' +
+        '</div>';
+    
+    var resultHtml = '';
+    if (val) {
+        var result = smartCheck(val, answer);
+        if (result.status === 'correct') resultHtml = '<span class="ai-correct">✅ ĐÚNG</span>';
+        else if (result.status === 'partial') resultHtml = '<span class="ai-partial">⚠️ GẦN ĐÚNG</span>';
+        else resultHtml = '<span class="ai-wrong">❌ SAI</span>';
+        if (result.reason) resultHtml += '<span class="ai-reason">' + escapeHtml(result.reason) + '</span>';
+    } else {
+        resultHtml = '<span class="ai-reason">Chưa gõ gì cả</span>';
+    }
+    
+    cells.forEach(function(c) {
+        c.innerHTML = resultHtml + answerHtml;
+    });
+};
+
+/* ✅ Toggle ẩn/hiện kết quả + đáp án ở mỗi thẻ */
+window.toggleInlineCheck = function(btn, evt) {
+    if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
+    var wrap = btn.closest('.card-practice');
+    if (!wrap) return;
+    var checkEl = wrap.querySelector('.card-check');
+    var input = wrap.querySelector('.practice-input');
+    if (!checkEl) return;
+    
+    var isVisible = btn.dataset.visible === '1';
+    if (isVisible) {
+        checkEl.style.display = 'none';
+        btn.dataset.visible = '0';
+        btn.innerHTML = '<i class="fas fa-eye"></i>';
+        btn.classList.remove('active');
+    } else {
+        checkEl.style.display = 'block';
+        btn.dataset.visible = '1';
+        btn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+        btn.classList.add('active');
+        showInlineCheckWithAnswer(input);
+    }
 };
 
 function applyFilter() {
@@ -2657,7 +2883,6 @@ var pfHintEnabled = false;
 window.openPracticeFull = function(stt, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
     
-    // ✅ Build filter options + dropdown cho modal trước khi mở
     pfBuildFilterOptions();
     pfBuildQuickNav();
     
@@ -2686,7 +2911,6 @@ function loadPracticeFull(stt) {
     }
     if (idx === -1) return;
     
-    // ✅ Đồng bộ filter modal nếu chưa có
     if (!$('pfSearchInput').value && !$('pfHskFilter').value && !$('pfSubjectFilter').value) {
         $('pfSearchInput').value = $('searchInput').value;
         $('pfHskFilter').value = $('hskFilter').value;
@@ -2726,13 +2950,21 @@ function loadPracticeFull(stt) {
     $('pfPrevBtn').disabled = (idx === 0);
     $('pfNextBtn').disabled = (idx === filtered.length - 1);
     
-    // ✅ Cập nhật dropdown chọn câu
     var quickNav = $('pfQuickNav');
     if (quickNav && quickNav.value !== stt) {
         quickNav.value = stt;
     }
     
-    setTimeout(function() { $('pfInput').focus(); }, 200);
+    // ✅ Chỉ focus vào pfInput khi user KHÔNG đang gõ ở ô khác
+    setTimeout(function() {
+        var active = document.activeElement;
+        if (active && (active.tagName === 'INPUT' || 
+                       active.tagName === 'TEXTAREA' || 
+                       active.tagName === 'SELECT')) {
+            return;
+        }
+        $('pfInput').focus();
+    }, 200);
 }
 
 window.pfNext = function() {
@@ -2755,7 +2987,6 @@ window.pfPrev = function() {
     loadPracticeFull(filtered[idx - 1].stt);
 };
 
-/* ✅ Build dropdown chọn nhanh câu — hiển thị TIẾNG VIỆT */
 function pfBuildQuickNav() {
     var sel = $('pfQuickNav');
     if (!sel) return;
@@ -2773,7 +3004,6 @@ function pfBuildQuickNav() {
     }
 }
 
-/* ✅ Cập nhật dropdown khi user chọn câu */
 function pfQuickNavChange() {
     var sel = $('pfQuickNav');
     if (!sel) return;
@@ -2782,7 +3012,6 @@ function pfQuickNavChange() {
     loadPracticeFull(stt);
 }
 
-/* ✅ Build filter options cho modal full */
 function pfBuildFilterOptions() {
     var hskSel = $('pfHskFilter');
     var subjSel = $('pfSubjectFilter');
@@ -2834,7 +3063,6 @@ function pfBuildFilterOptions() {
     pfUpdateFilterUI();
 }
 
-/* ✅ Cập nhật UI filter trong modal */
 function pfUpdateFilterUI() {
     var hsk = $('pfHskFilter').value;
     var subject = $('pfSubjectFilter').value;
@@ -2850,7 +3078,6 @@ function pfUpdateFilterUI() {
     pfUpdateResultCount();
 }
 
-/* ✅ Hiển thị số kết quả trong modal */
 function pfUpdateResultCount() {
     var el = $('pfResultCount');
     if (!el) return;
@@ -2869,7 +3096,6 @@ function pfUpdateResultCount() {
     }
 }
 
-/* ✅ Áp dụng filter trong modal */
 function pfApplyFilter() {
     $('searchInput').value = $('pfSearchInput').value;
     $('hskFilter').value = $('pfHskFilter').value;
@@ -2904,7 +3130,31 @@ function pfApplyFilter() {
     pfBuildQuickNav();
     render(true);
     
+    // ✅ Nếu user đang gõ trong ô search + câu hiện tại vẫn còn → KHÔNG load lại (tránh cướp focus)
+    var activeEl = document.activeElement;
+    var isTypingInSearch = activeEl && activeEl.id === 'pfSearchInput';
+    
+    var currentStillValid = false;
+    if (pfCurrentStt) {
+        for (var i = 0; i < filtered.length; i++) {
+            if (String(filtered[i].stt) === String(pfCurrentStt)) {
+                currentStillValid = true;
+                break;
+            }
+        }
+    }
+    
     if (filtered.length > 0) {
+        if (isTypingInSearch && currentStillValid) {
+            var idx = -1;
+            for (var j = 0; j < filtered.length; j++) {
+                if (String(filtered[j].stt) === String(pfCurrentStt)) { idx = j; break; }
+            }
+            if (idx !== -1) {
+                $('pfCounter').textContent = 'Câu ' + (idx + 1) + ' / ' + filtered.length;
+            }
+            return;
+        }
         loadPracticeFull(filtered[0].stt);
     } else {
         pfCurrentStt = null;
@@ -3115,10 +3365,8 @@ function initPracticeFull() {
         checkFullAnswer();
     });
     
-    // ✅ Dropdown chọn câu
     $('pfQuickNav').addEventListener('change', pfQuickNavChange);
     
-    // ✅ Search trong modal
     $('pfSearchInput').addEventListener('input', function() {
         pfApplyFilter();
     });
@@ -3128,7 +3376,6 @@ function initPracticeFull() {
         pfApplyFilter();
     });
     
-    // ✅ Filter HSK + Chủ đề trong modal
     $('pfHskFilter').addEventListener('change', function() {
         if (isDemo) {
             var val = this.value;
@@ -3156,7 +3403,21 @@ function initPracticeFull() {
     
     document.addEventListener('keydown', function(e) {
         if (!$('practiceFullModal').classList.contains('show')) return;
-        if (e.key === 'Escape') closePracticeFull();
+        
+        var active = document.activeElement;
+        var isTyping = active && (active.tagName === 'INPUT' || 
+                                    active.tagName === 'TEXTAREA' || 
+                                    active.tagName === 'SELECT');
+        
+        // ✅ Escape luôn hoạt động
+        if (e.key === 'Escape') {
+            closePracticeFull();
+            return;
+        }
+        
+        // ✅ Không bắt các phím khác khi đang gõ trong ô input
+        if (isTyping) return;
+        
         if (e.key === 'ArrowRight' && e.ctrlKey) pfNext();
         if (e.key === 'ArrowLeft' && e.ctrlKey) pfPrev();
     });
@@ -3332,7 +3593,6 @@ function openAdminPanel() {
     loadLogs();
 }
 
-/* ✅ Load users 1 lần (không realtime) */
 function loadUsers() {
     if (usersUnsubscribe) { usersUnsubscribe(); usersUnsubscribe = null; }
     
@@ -3373,7 +3633,7 @@ function renderUsers() {
         var isMe = u.email === currentUser.email;
         var isAdmin = u.role === 'admin';
         
-        roleBtn = '';
+        var roleBtn = '';
         if (isAdmin) {
             var reason = isMe ? 'Không thể tự hạ quyền chính mình' : 'Phải giữ đúng ' + TARGET_ADMINS + ' admin';
             roleBtn = '<button class="u-btn" disabled title="' + escapeHtml(reason) + '"><i class="fas fa-user"></i></button>';
@@ -3413,7 +3673,6 @@ window.changeRole = async function(email, newRole) {
     if (!confirm(action + ' cho tài khoản:\n\n' + email + '\n\nBạn có chắc không?')) return;
     try {
         await db.collection('allowed_users').doc(email).update({ role: newRole });
-        // ✅ Xóa cache user đó để cập nhật ngay
         try { localStorage.removeItem('user_cache_' + email); } catch(e) {}
     }
     catch(e) { alert('Lỗi: ' + e.message); }
@@ -3431,7 +3690,6 @@ window.deleteUser = async function(email) {
     
     try {
         await db.collection('allowed_users').doc(email).delete();
-        // ✅ Xóa cache user đó
         try { localStorage.removeItem('user_cache_' + email); } catch(e) {}
     }
     catch(e) { alert('Lỗi: ' + e.message); }
@@ -3537,7 +3795,9 @@ print(f"📝 Đáp án tách theo PINYIN viết liền/rời")
 print(f"☀️  Theme mặc định: Light mode")
 print(f"🎯 Desktop hover phóng to + Mobile click vừa đọc vừa phóng to")
 print(f"👁️  Nút Xem đáp án: toggle ẩn/hiện")
-print(f"✏️  Click ký tự sai → con trỏ về + bôi đen để gõ đè")
+print(f"✏️  Click ký tự sai → con trỏ về + bôi đen ĐÚNG ký tự")
 print(f"🔍 Search + Filter + Dropdown chọn câu (tiếng Việt) trong modal")
 print(f"📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
 print(f"💾 Cache user 12h + Log 1 lần/ngày → tiết kiệm 90% Firestore quota")
+print(f"👁️  Nút ẩn/hiện kết quả + đáp án ở mỗi thẻ trang chính")
+print(f"✅ Gõ search trong modal KHÔNG nhảy sang ô nhập tiếng Trung")
