@@ -4,6 +4,8 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - Demo mode + Full màn hình luyện tập
 - Nút Gợi ý (mặc định TẮT) → bật hiện ghost text mờ
 - Đáp án tách theo PINYIN viết liền/rời
+- Nút Xem đáp án: toggle ẩn/hiện
+- Desktop hover phóng to, mobile click vừa đọc vừa phóng to
 - So khớp thông minh + Tô đỏ từng ký tự
 - Theme mặc định LIGHT MODE
 """
@@ -734,7 +736,8 @@ body.show-practice .card-body{
     border-radius:14px;border:2px dashed var(--border-strong);
     background:var(--surface);color:var(--text-2);
     font-size:.9rem;font-weight:600;cursor:pointer;
-    transition:.15s;font-family:inherit;
+    transition:all .2s ease;
+    font-family:inherit;
     display:flex;align-items:center;justify-content:center;gap:.5rem;
 }
 .reveal-actions button:hover{
@@ -742,11 +745,19 @@ body.show-practice .card-body{
 }
 .reveal-actions button.hidden{display:none}
 
+/* ✅ Nút Gợi ý active */
 #pfHintBtn.active{
     background:var(--amber);color:#fff;border-color:var(--amber);border-style:solid;
     box-shadow:0 4px 12px rgba(245,158,11,.3);
 }
 #pfHintBtn.active:hover{background:#d97706}
+
+/* ✅ Nút "Ẩn đáp án" */
+#pfRevealBtn.revealed{
+    background:var(--success);color:#fff;border-color:var(--success);border-style:solid;
+    box-shadow:0 4px 12px rgba(22,163,74,.3);
+}
+#pfRevealBtn.revealed:hover{background:#15803d}
 
 /* Đáp án reveal - CỤM TỪ */
 .answer-reveal{
@@ -762,27 +773,56 @@ body.show-practice .card-body{
 .answer-chars{
     display:flex;justify-content:center;flex-wrap:wrap;gap:.5rem;
 }
+
 /* ✅ Cụm từ trong đáp án */
 .answer-phrase-btn{
     font-family:var(--font-zh);font-size:1.5rem;font-weight:500;
     padding:.5rem .9rem;
     border-radius:12px;border:2px solid var(--border);
     background:var(--surface);color:var(--text);
-    cursor:pointer;transition:.15s;
+    cursor:pointer;
+    transition:transform .25s cubic-bezier(.34,1.56,.64,1),
+               background .2s,
+               color .2s,
+               border-color .2s,
+               box-shadow .2s;
     display:inline-flex;align-items:center;justify-content:center;
     -webkit-appearance:none;
+    transform-origin:center center;
 }
-.answer-phrase-btn:hover,.answer-phrase-btn:active{
-    border-color:var(--primary);background:var(--primary-light);
-    transform:scale(1.05);
+
+/* ✅ Desktop: HOVER phóng to */
+@media(hover:hover) and (pointer:fine){
+    .answer-phrase-btn:hover{
+        transform:scale(1.35);
+        background:var(--primary);
+        color:#fff;
+        border-color:var(--primary);
+        box-shadow:0 8px 24px rgba(37,99,235,.4);
+        z-index:10;
+    }
 }
+
+/* ✅ Mobile: CLICK phóng to */
+.answer-phrase-btn.zoom-in{
+    transform:scale(1.35);
+    background:var(--primary);
+    color:#fff;
+    border-color:var(--primary);
+    box-shadow:0 8px 24px rgba(37,99,235,.4);
+    z-index:10;
+}
+
+/* ✅ Đang đọc thì pulse */
 .answer-phrase-btn.speaking{
     background:var(--primary);color:#fff;border-color:var(--primary);
     animation:pulse 1s infinite;
 }
+
 @media(min-width:769px){
     .answer-phrase-btn{font-size:1.8rem;padding:.6rem 1.1rem;}
 }
+
 .answer-pinyin{
     text-align:center;font-size:.95rem;font-style:italic;
     color:var(--primary-dark);font-weight:500;
@@ -2232,19 +2272,10 @@ function smartCheck(userAnswer, correctAnswer) {
 /* ============================================================
    🎯 TÁCH CỤM TỪ THEO PINYIN
    ============================================================ */
-/* ✅ Đếm số âm tiết trong 1 nhóm pinyin
-   - BƯỚC 1: Bỏ dấu câu
-   - BƯỚC 2: BỎ DẤU THANH (fix lỗi zhǔguǎn)
-   - BƯỚC 3: Đếm cụm nguyên âm liên tiếp
-*/
 function countSyllables(pinyinWord) {
     if (!pinyinWord) return 0;
-    
-    // Bỏ dấu câu
     var cleaned = pinyinWord.replace(/[.,!?;:'"()\[\]{}\-~`@#$%^&*+=|\\/<>。，！？、；：]/g, '').toLowerCase();
     if (!cleaned) return 0;
-    
-    // ✅ BỎ DẤU THANH trước khi đếm
     var map = {
         'ā':'a','á':'a','ǎ':'a','à':'a',
         'ē':'e','é':'e','ě':'e','è':'e',
@@ -2256,8 +2287,6 @@ function countSyllables(pinyinWord) {
     cleaned = cleaned.replace(/[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü]/g, function(c) {
         return map[c] || c;
     });
-    
-    // Đếm cụm nguyên âm liên tiếp (mỗi cụm = 1 âm tiết)
     var vowels = 'aeiou';
     var count = 0;
     var prevIsVowel = false;
@@ -2270,44 +2299,29 @@ function countSyllables(pinyinWord) {
     return count || 1;
 }
 
-/* ✅ Tách câu Hán thành các cụm dựa vào pinyin viết liền/rời */
 function splitByPinyin(zh, pinyin) {
     if (!zh) return [];
-    
-    // 1. Lọc chữ Hán từ zh (bỏ dấu câu + khoảng trắng)
     var hanziChars = [];
     for (var i = 0; i < zh.length; i++) {
         var c = zh[i];
         if (/[\u4e00-\u9fa5]/.test(c)) hanziChars.push(c);
     }
-    
     if (hanziChars.length === 0) return [];
-    
-    // 2. Nếu không có pinyin → tách từng chữ
     if (!pinyin || !pinyin.trim()) {
         return hanziChars.map(function(c) { return { text: c, type: 'phrase' }; });
     }
-    
-    // 3. Tách pinyin theo dấu cách (mỗi nhóm = 1 cụm từ)
     var pinyinGroups = pinyin.trim()
         .replace(/[.,!?;:'"()\[\]{}\-~`@#$%^&*+=|\\/<>。，！？、；：]/g, ' ')
         .split(/\s+/)
         .filter(function(w) { return w.length > 0; });
-    
     if (pinyinGroups.length === 0) {
         return hanziChars.map(function(c) { return { text: c, type: 'phrase' }; });
     }
-    
-    // 4. Đếm số âm tiết mỗi nhóm pinyin
     var syllableCounts = pinyinGroups.map(function(w) { return countSyllables(w); });
     var totalSyllables = syllableCounts.reduce(function(a, b) { return a + b; }, 0);
-    
-    // 5. Nếu tổng âm tiết KHÔNG khớp số chữ Hán → fallback tách từng chữ
     if (totalSyllables !== hanziChars.length) {
         return hanziChars.map(function(c) { return { text: c, type: 'phrase' }; });
     }
-    
-    // 6. ✅ Mỗi nhóm pinyin → 1 cụm Hán (gộp N chữ Hán liền kề)
     var result = [];
     var idx = 0;
     for (var j = 0; j < syllableCounts.length; j++) {
@@ -2317,18 +2331,14 @@ function splitByPinyin(zh, pinyin) {
         if (phrase) result.push({ text: phrase, type: 'phrase' });
         idx += cnt;
     }
-    
-    // 7. Còn dư chữ Hán → gộp vào cụm cuối
     if (idx < hanziChars.length) {
         var remaining = hanziChars.slice(idx).join('');
         if (result.length > 0) result[result.length - 1].text += remaining;
         else result.push({ text: remaining, type: 'phrase' });
     }
-    
     return result;
 }
 
-/* ✅ Preview tô đỏ + ghost text cho card */
 function updateInlinePreview(input, answer) {
     var wrapper = input.parentElement;
     var preview = wrapper.querySelector('.inline-char-preview');
@@ -2337,36 +2347,24 @@ function updateInlinePreview(input, answer) {
         preview.className = 'inline-char-preview';
         input.insertAdjacentElement('afterend', preview);
     }
-    
     var userVal = input.value.replace(/\s+/g, '');
     var cleanAnswer = (answer || '').replace(/\s+/g, '');
-    
-    if (!cleanAnswer) {
-        preview.innerHTML = '';
-        return;
-    }
-    
+    if (!cleanAnswer) { preview.innerHTML = ''; return; }
     var html = '';
     var maxLen = Math.max(userVal.length, cleanAnswer.length);
-    
     for (var i = 0; i < maxLen; i++) {
         var userChar = userVal[i] || '';
         var answerChar = cleanAnswer[i] || '';
         var cls = 'char-slot';
         var display = '';
-        
         if (userChar && answerChar) {
             if (userChar === answerChar) { cls += ' correct'; display = userChar; }
             else { cls += ' wrong'; display = userChar; }
-        } else if (!userChar && answerChar) {
-            continue;
-        } else if (userChar && !answerChar) {
-            cls += ' extra'; display = userChar;
-        } else { continue; }
-        
+        } else if (!userChar && answerChar) { continue; }
+        else if (userChar && !answerChar) { cls += ' extra'; display = userChar; }
+        else { continue; }
         html += '<span class="' + cls + '">' + escapeHtml(display) + '</span>';
     }
-    
     preview.innerHTML = html;
 }
 
@@ -2375,11 +2373,8 @@ window.checkInput = function(input) {
     var answer = input.dataset.answer;
     var cells = document.querySelectorAll('[data-check-stt="' + stt + '"]');
     var val = input.value.trim();
-    
     updateInlinePreview(input, answer);
-    
     if (!val) { cells.forEach(function(c) { c.innerHTML = ''; }); return; }
-    
     var result = smartCheck(val, answer);
     var html = '';
     if (result.status === 'correct') html = '<span class="ai-correct">✅ ĐÚNG</span>';
@@ -2397,7 +2392,6 @@ function applyFilter() {
     var clearBtn = $('clearSearchBtn');
     if (state.search) clearBtn.classList.add('show');
     else clearBtn.classList.remove('show');
-    
     var baseData = isDemo ? getDemoData() : RAW_DATA;
     filtered = baseData.filter(function(r) {
         if (state.search) {
@@ -2471,8 +2465,12 @@ function loadPracticeFull(stt) {
     $('pfInput').value = '';
     $('pfStatus').textContent = '';
     $('pfStatus').className = 'practice-full-status';
+    
+    // ✅ Reset nút toggle đáp án
     $('pfAnswer').classList.remove('show');
-    $('pfRevealBtn').classList.remove('hidden');
+    var revealBtn = $('pfRevealBtn');
+    revealBtn.classList.remove('revealed', 'hidden');
+    revealBtn.innerHTML = '<i class="fas fa-eye"></i> Xem đáp án';
     
     pfHintEnabled = false;
     $('pfHintBtn').classList.remove('active');
@@ -2509,40 +2507,27 @@ function updateCharPreview() {
     var input = $('pfInput');
     var preview = $('pfPreview');
     var userVal = input.value;
-    
     var cleanUser = userVal.replace(/\s+/g, '');
     var cleanAnswer = pfCurrentAnswer.replace(/\s+/g, '');
-    
-    if (!cleanAnswer) {
-        preview.innerHTML = '';
-        return;
-    }
-    
+    if (!cleanAnswer) { preview.innerHTML = ''; return; }
     var html = '';
     var maxLen = Math.max(cleanUser.length, cleanAnswer.length);
-    
     for (var i = 0; i < maxLen; i++) {
         var userChar = cleanUser[i] || '';
         var answerChar = cleanAnswer[i] || '';
         var cls = 'char-slot';
         var display = '';
-        
         if (userChar && answerChar) {
             if (userChar === answerChar) { cls += ' correct'; display = userChar; }
             else { cls += ' wrong'; display = userChar; }
         } else if (!userChar && answerChar) {
-            if (pfHintEnabled) {
-                cls += ' ghost'; display = answerChar;
-            } else {
-                continue;
-            }
+            if (pfHintEnabled) { cls += ' ghost'; display = answerChar; }
+            else { continue; }
         } else if (userChar && !answerChar) {
             cls += ' extra'; display = userChar;
         } else { continue; }
-        
         html += '<span class="' + cls + '">' + escapeHtml(display) + '</span>';
     }
-    
     preview.innerHTML = html;
 }
 
@@ -2558,15 +2543,12 @@ function checkFullAnswer() {
     var input = $('pfInput');
     var statusEl = $('pfStatus');
     var val = input.value.trim();
-    
     if (!val) {
         statusEl.textContent = '';
         statusEl.className = 'practice-full-status';
         return;
     }
-    
     var result = smartCheck(val, pfCurrentAnswer);
-    
     if (result.status === 'correct') {
         statusEl.textContent = '✅ ĐÚNG';
         statusEl.className = 'practice-full-status correct';
@@ -2581,6 +2563,17 @@ function checkFullAnswer() {
 
 function revealFullAnswer() {
     var answerEl = $('pfAnswer');
+    var revealBtn = $('pfRevealBtn');
+    
+    // ✅ Toggle: đang hiện → ẩn
+    if (answerEl.classList.contains('show')) {
+        answerEl.classList.remove('show');
+        revealBtn.classList.remove('revealed');
+        revealBtn.innerHTML = '<i class="fas fa-eye"></i> Xem đáp án';
+        return;
+    }
+    
+    // Hiện đáp án
     var charsEl = $('pfAnswerChars');
     var pinyinEl = $('pfAnswerPinyin');
     
@@ -2598,29 +2591,36 @@ function revealFullAnswer() {
         btn.className = 'answer-phrase-btn';
         btn.textContent = item.text;
         btn.title = 'Nhấn để đọc: ' + item.text;
-        btn.onclick = (function(text) {
+        
+        btn.onclick = (function(text, el) {
             return function(e) {
                 e.stopPropagation();
-                speakPhrase(text, btn);
+                // ✅ Phóng to khi click (mobile)
+                el.classList.add('zoom-in');
+                setTimeout(function() {
+                    el.classList.remove('zoom-in');
+                }, 700);
+                // ✅ Đọc cụm
+                speakPhrase(text, el);
             };
-        })(item.text);
+        })(item.text, btn);
+        
         charsEl.appendChild(btn);
     });
     
     pinyinEl.textContent = pfCurrentPinyin;
     answerEl.classList.add('show');
-    $('pfRevealBtn').classList.add('hidden');
+    revealBtn.classList.add('revealed');
+    revealBtn.innerHTML = '<i class="fas fa-eye-slash"></i> Ẩn đáp án';
 }
 
 window.speakPhrase = function(phrase, btn) {
     if (isDemo && !canUseFeature()) { showLimitMessage(); return; }
     if (!('speechSynthesis' in window)) { alert('Trình duyệt không hỗ trợ phát âm.'); return; }
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
-    
     speechSynthesis.cancel();
     document.querySelectorAll('.answer-phrase-btn.speaking').forEach(function(b) { b.classList.remove('speaking'); });
     btn.classList.add('speaking');
-    
     var utterance = new SpeechSynthesisUtterance(phrase);
     utterance.lang = 'zh-CN';
     utterance.rate = 0.75;
@@ -2634,7 +2634,6 @@ window.speakFullSentence = function() {
     if (isDemo && !canUseFeature()) { showLimitMessage(); return; }
     if (!('speechSynthesis' in window)) return;
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
-    
     speechSynthesis.cancel();
     var utterance = new SpeechSynthesisUtterance(pfCurrentAnswer);
     utterance.lang = 'zh-CN';
@@ -3022,3 +3021,5 @@ print(f"🧠 Chấm điểm: So khớp thông minh")
 print(f"💡 Nút Gợi ý (mặc định TẮT) + Ghost text mờ")
 print(f"📝 Đáp án tách theo PINYIN viết liền/rời")
 print(f"☀️  Theme mặc định: Light mode")
+print(f"🎯 Desktop hover phóng to + Mobile click vừa đọc vừa phóng to")
+print(f"👁️  Nút Xem đáp án: toggle ẩn/hiện")
