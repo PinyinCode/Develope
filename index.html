@@ -2597,23 +2597,47 @@ function updateInlinePreview(input, answer) {
     preview.innerHTML = html;
 }
 
-/* ✅ Click chữ sai inline → con trỏ nhảy về + bôi đen để gõ đè */
+/* ✅ Click chữ sai inline → con trỏ nhảy về + bôi đen đúng ký tự trong ô gõ */
 window.fixInlineChar = function(el, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
-    var input = el.parentElement.previousElementSibling;
-    if (!input || !input.classList.contains('practice-input')) {
-        var wrap = el.closest('.card-practice') || el.parentElement.parentElement;
-        input = wrap ? wrap.querySelector('.practice-input') : null;
-    }
+    
+    // Tìm input chính xác
+    var wrap = el.closest('.card-practice');
+    var input = wrap ? wrap.querySelector('.practice-input') : null;
     if (!input) return;
-    var idx = parseInt(el.dataset.idx);
+    
+    var strippedIdx = parseInt(el.dataset.idx); // vị trí trong chuỗi đã strip space
+    var rawVal = input.value;
+    
+    // ✅ Chuyển strippedIdx → rawIdx (vị trí thực trong input gốc, tính cả khoảng trắng)
+    var rawIdx = -1;
+    var strippedCount = -1;
+    for (var i = 0; i < rawVal.length; i++) {
+        if (!/\s/.test(rawVal[i])) {
+            strippedCount++;
+            if (strippedCount === strippedIdx) {
+                rawIdx = i;
+                break;
+            }
+        }
+    }
+    
+    // Nếu không tìm thấy (VD: user gõ thiếu ký tự), nhảy tới cuối input
+    if (rawIdx === -1) rawIdx = rawVal.length;
+    
+    // ✅ Nếu vị trí đó là khoảng trắng → nhảy tới ký tự không-space tiếp theo
+    while (rawIdx < rawVal.length && /\s/.test(rawVal[rawIdx])) {
+        rawIdx++;
+    }
+    
     input.focus();
     setTimeout(function() {
         try {
-            input.setSelectionRange(idx, idx + 1);
+            var endIdx = Math.min(rawIdx + 1, rawVal.length);
+            input.setSelectionRange(rawIdx, endIdx);
         } catch(e) {
-            input.selectionStart = idx;
-            input.selectionEnd = idx + 1;
+            input.selectionStart = rawIdx;
+            input.selectionEnd = Math.min(rawIdx + 1, rawVal.length);
         }
         el.classList.add('highlight');
         setTimeout(function() { el.classList.remove('highlight'); }, 1200);
