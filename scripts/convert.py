@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 Chuyển file Excel → HTML tự chứa dữ liệu
-- Demo mode + Full màn hình luyện tập
+- Demo mode + Full màn hình luyện tập (có search + filter trong modal)
 - Nút Gợi ý (mặc định TẮT) → bật hiện ghost text mờ
 - Đáp án tách theo PINYIN viết liền/rời
 - Nút Xem đáp án: toggle ẩn/hiện
 - Desktop hover phóng to, mobile click vừa đọc vừa phóng to
 - Click ký tự sai → con trỏ nhảy về + bôi đen để gõ đè
-- ✅ Sticky-top LUÔN hiện khi bật practice
 - ✅ Chủ đề demo: mở khóa lên đầu, khóa xuống dưới
 - Theme mặc định LIGHT MODE
 """
@@ -61,8 +60,8 @@ print(f"   ☀️  Theme mặc định: Light mode")
 print(f"   💡 Nút Gợi ý (mặc định TẮT) + Ghost text mờ")
 print(f"   📝 Đáp án tách theo PINYIN viết liền/rời")
 print(f"   🎯 Click ký tự sai → bôi đen để gõ đè")
-print(f"   🔍 Sticky-top luôn hiện khi bật practice")
 print(f"   📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
+print(f"   🔍 Search + Filter có sẵn trong modal full màn hình")
 print(f"   👑 Target admins: {TARGET_ADMINS}")
 
 print(f"\n📖 Đang đọc file: {EXCEL_FILE}")
@@ -316,22 +315,6 @@ body{
 .result-count b{color:var(--primary);font-weight:800}
 .result-count.empty{background:var(--danger-light);border-color:rgba(220,38,38,.3);color:var(--danger)}
 .result-count.empty i,.result-count.empty b{color:var(--danger)}
-
-/* ✅ Sticky-top LUÔN hiện khi bật practice */
-body.show-practice .sticky-top{
-    display:block !important;
-    z-index:150 !important;
-}
-body.show-practice .search-bar,
-body.show-practice .filters{
-    display:revert;
-}
-body.show-practice .result-count.show{
-    display:inline-flex !important;
-}
-body.show-practice .result-count:not(.show){
-    display:none !important;
-}
 
 .zalo-btn{
     position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));
@@ -646,6 +629,67 @@ body.show-practice .card-body{
 }
 .practice-full-header .pf-close:hover{background:var(--danger-light);color:var(--danger)}
 
+/* ✅ Search + Filter trong modal full */
+.pf-filters{
+    padding:.6rem 1.25rem .5rem 1.25rem;
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    flex-shrink:0;
+}
+.pf-search-wrap{position:relative;margin-bottom:.5rem;}
+.pf-search-wrap i.fa-search{
+    position:absolute;left:14px;top:50%;transform:translateY(-50%);
+    color:var(--text-3);font-size:.85rem;pointer-events:none;
+}
+.pf-search-wrap input{
+    width:100%;padding:.6rem 2.4rem .6rem 2.4rem;
+    border-radius:var(--radius-full);border:1.5px solid var(--border);
+    background:var(--bg);color:var(--text);font-size:.88rem;
+    outline:none;transition:.15s;font-family:inherit;
+    -webkit-appearance:none;
+}
+.pf-search-wrap input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.pf-search-wrap input::placeholder{color:var(--text-3)}
+.pf-search-clear{
+    position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    width:28px;height:28px;border-radius:50%;border:none;
+    background:var(--surface-2);color:var(--text-2);
+    cursor:pointer;display:none;align-items:center;justify-content:center;font-size:.75rem;
+}
+.pf-search-clear.show{display:flex}
+
+.pf-filter-row{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;}
+.pf-chip{
+    display:flex;align-items:center;gap:.4rem;
+    padding:.45rem .8rem;border-radius:var(--radius-full);
+    border:1.5px solid var(--border);background:var(--bg);
+    color:var(--text);font-size:.8rem;font-weight:500;
+    cursor:pointer;transition:.15s;outline:none;font-family:inherit;
+    min-width:0;position:relative;overflow:hidden;
+}
+.pf-chip:active{transform:scale(.98)}
+.pf-chip.has-value{background:var(--primary);color:#fff;border-color:var(--primary)}
+.pf-chip.has-value .pf-chip-label{color:#fff;opacity:.85}
+.pf-chip-label{font-size:.65rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;flex-shrink:0}
+.pf-chip-value{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.pf-chip-arrow{color:inherit;opacity:.5;font-size:.65rem;flex-shrink:0}
+.pf-chip select{
+    position:absolute;inset:0;opacity:0;cursor:pointer;font-size:1rem;
+    -webkit-appearance:none;appearance:none;width:100%;height:100%;
+}
+.pf-result-count{
+    display:none;align-items:center;gap:.4rem;margin-top:.45rem;
+    padding:.35rem .7rem;border-radius:var(--radius-full);
+    background:var(--bg);border:1px solid var(--border);
+    color:var(--text-2);font-size:.75rem;font-weight:600;
+    width:fit-content;
+}
+.pf-result-count.show{display:inline-flex}
+.pf-result-count i{color:var(--primary);font-size:.8rem}
+.pf-result-count b{color:var(--primary);font-weight:800}
+.pf-result-count.empty{background:var(--danger-light);color:var(--danger)}
+.pf-result-count.empty i,.pf-result-count.empty b{color:var(--danger)}
+
 .practice-full-body{
     flex:1;overflow-y:auto;padding:2rem 1.25rem;
     display:flex;flex-direction:column;
@@ -681,7 +725,6 @@ body.show-practice .card-body{
 }
 @media(min-width:769px){.practice-full-input{font-size:1.85rem;padding:1.15rem 1.5rem;}}
 
-/* ✅ Preview tô đỏ + ghost text */
 .char-preview{
     display:flex;justify-content:center;flex-wrap:wrap;
     gap:.5rem;min-height:2.5rem;padding:.75rem 1rem;
@@ -771,7 +814,6 @@ body.show-practice .card-body{
 .practice-full-status.partial{color:var(--amber);}
 .practice-full-status.wrong{color:var(--danger);}
 
-/* ✅ Hàng nút Gợi ý + Xem đáp án */
 .reveal-actions{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -803,7 +845,6 @@ body.show-practice .card-body{
 }
 #pfRevealBtn.revealed:hover{background:#15803d}
 
-/* Đáp án reveal - CỤM TỪ */
 .answer-reveal{
     display:none;flex-direction:column;gap:.75rem;
     padding:1.25rem;background:var(--surface-2);
@@ -1200,6 +1241,13 @@ body.show-practice .card-body{
     
     .practice-full-header{padding:.65rem .85rem;gap:.5rem}
     .practice-full-header .pf-counter{font-size:.75rem;padding:.3rem .6rem}
+    .pf-filters{padding:.5rem .85rem .4rem .85rem}
+    .pf-search-wrap input{padding:.55rem 2.2rem .55rem 2.2rem;font-size:.85rem}
+    .pf-search-wrap i.fa-search{left:12px;font-size:.8rem}
+    .pf-search-clear{width:26px;height:26px;font-size:.7rem}
+    .pf-chip{padding:.4rem .7rem;font-size:.75rem}
+    .pf-chip-label{font-size:.6rem}
+    .pf-result-count{font-size:.7rem;padding:.3rem .6rem}
     .practice-full-body{padding:1.25rem .85rem}
     .practice-full-content{gap:1.1rem}
     .practice-full-vi{font-size:1.35rem;padding:1rem .75rem}
@@ -1400,6 +1448,43 @@ body.show-practice .card-body{
         <button class="pf-close" id="pfClose" aria-label="Đóng">
             <i class="fas fa-times"></i>
         </button>
+    </div>
+    
+    <!-- ✅ Search + Filter trong modal full -->
+    <div class="pf-filters">
+        <div class="pf-search-wrap">
+            <i class="fas fa-search"></i>
+            <input type="text" id="pfSearchInput" placeholder="Tìm kiếm..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <button class="pf-search-clear" id="pfClearSearchBtn" aria-label="Xóa">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="pf-filter-row">
+            <div class="pf-chip" id="pfHskChip">
+                <span class="pf-chip-label">HSK</span>
+                <span class="pf-chip-value" id="pfHskValue">Tất cả</span>
+                <i class="fas fa-chevron-down pf-chip-arrow"></i>
+                <select id="pfHskFilter">
+                    <option value="">Tất cả</option>
+                    <option value="HSK1">HSK1</option>
+                    <option value="HSK2">HSK2</option>
+                    <option value="HSK3">HSK3</option>
+                    <option value="HSK4">HSK4</option>
+                    <option value="HSK5">HSK5</option>
+                    <option value="HSK6">HSK6</option>
+                </select>
+            </div>
+            <div class="pf-chip" id="pfSubjectChip">
+                <span class="pf-chip-label">Chủ đề</span>
+                <span class="pf-chip-value" id="pfSubjectValue">Tất cả</span>
+                <i class="fas fa-chevron-down pf-chip-arrow"></i>
+                <select id="pfSubjectFilter"><option value="">Tất cả chủ đề</option></select>
+            </div>
+        </div>
+        <div class="pf-result-count" id="pfResultCount">
+            <i class="fas fa-list-ul"></i>
+            <span>Tìm thấy <b id="pfResultCountNum">0</b> kết quả</span>
+        </div>
     </div>
     
     <div class="practice-full-body">
@@ -2071,7 +2156,6 @@ function buildFilters() {
         });
         hskSelect.innerHTML = hskHtml;
         
-        // ✅ Chủ đề: TÁCH 2 NHÓM — mở khóa lên đầu, khóa xuống dưới
         var demoSubjects = getDemoSubjectList();
         var demoSubjectMap = {};
         demoSubjects.forEach(function(s) { demoSubjectMap[s] = 1; });
@@ -2084,11 +2168,9 @@ function buildFilters() {
         });
         
         var subjHtml = '<option value="">Tất cả chủ đề</option>';
-        // Nhóm 1: Mở khóa
         unlockedSubjects.forEach(function(s) {
             subjHtml += '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>';
         });
-        // Nhóm 2: Khóa
         lockedSubjects.forEach(function(s) {
             subjHtml += '<option value="' + escapeHtml(s) + '" disabled>🔒 ' + escapeHtml(s) + ' (đăng nhập)</option>';
         });
@@ -2475,6 +2557,10 @@ var pfHintEnabled = false;
 
 window.openPracticeFull = function(stt, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
+    
+    // ✅ Build filter options cho modal trước khi mở
+    pfBuildFilterOptions();
+    
     var idx = -1;
     for (var i = 0; i < filtered.length; i++) {
         if (String(filtered[i].stt) === String(stt)) { idx = i; break; }
@@ -2499,6 +2585,14 @@ function loadPracticeFull(stt) {
         if (String(filtered[i].stt) === String(stt)) { idx = i; break; }
     }
     if (idx === -1) return;
+    
+    // ✅ Đồng bộ filter modal nếu chưa có
+    if (!$('pfSearchInput').value && !$('pfHskFilter').value && !$('pfSubjectFilter').value) {
+        $('pfSearchInput').value = $('searchInput').value;
+        $('pfHskFilter').value = $('hskFilter').value;
+        $('pfSubjectFilter').value = $('subjectFilter').value;
+    }
+    pfUpdateFilterUI();
     
     var r = filtered[idx];
     pfCurrentStt = stt;
@@ -2554,6 +2648,147 @@ window.pfPrev = function() {
     if (idx <= 0) return;
     loadPracticeFull(filtered[idx - 1].stt);
 };
+
+/* ✅ Build filter options cho modal full (khớp với filter chính) */
+function pfBuildFilterOptions() {
+    var hskSel = $('pfHskFilter');
+    var subjSel = $('pfSubjectFilter');
+    
+    var allSubjectSet = {};
+    RAW_DATA.forEach(function(r) { if (r.subject) allSubjectSet[r.subject] = 1; });
+    var allSubjects = Object.keys(allSubjectSet).sort();
+    
+    if (isDemo) {
+        var demoHsk = getDemoHskList();
+        var hskHtml = '<option value="">Tất cả</option>';
+        demoHsk.forEach(function(h) { hskHtml += '<option value="' + h + '">' + h + '</option>'; });
+        var allHskList = ['HSK1','HSK2','HSK3','HSK4','HSK5','HSK6'];
+        allHskList.forEach(function(h) {
+            if (demoHsk.indexOf(h) === -1) hskHtml += '<option value="' + h + '" disabled>🔒 ' + h + '</option>';
+        });
+        hskSel.innerHTML = hskHtml;
+        
+        var demoSubjects = getDemoSubjectList();
+        var demoSubjectMap = {};
+        demoSubjects.forEach(function(s) { demoSubjectMap[s] = 1; });
+        var unlocked = [];
+        var locked = [];
+        allSubjects.forEach(function(s) {
+            if (demoSubjectMap[s]) unlocked.push(s);
+            else locked.push(s);
+        });
+        var subjHtml = '<option value="">Tất cả chủ đề</option>';
+        unlocked.forEach(function(s) { subjHtml += '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>'; });
+        locked.forEach(function(s) { subjHtml += '<option value="' + escapeHtml(s) + '" disabled>🔒 ' + escapeHtml(s) + '</option>'; });
+        subjSel.innerHTML = subjHtml;
+    } else {
+        hskSel.innerHTML = 
+            '<option value="">Tất cả</option>' +
+            '<option value="HSK1">HSK1</option>' +
+            '<option value="HSK2">HSK2</option>' +
+            '<option value="HSK3">HSK3</option>' +
+            '<option value="HSK4">HSK4</option>' +
+            '<option value="HSK5">HSK5</option>' +
+            '<option value="HSK6">HSK6</option>';
+        subjSel.innerHTML = '<option value="">Tất cả chủ đề</option>' +
+            allSubjects.map(function(v){ return '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>'; }).join('');
+    }
+    
+    // Đồng bộ với filter chính
+    hskSel.value = $('hskFilter').value;
+    subjSel.value = $('subjectFilter').value;
+    $('pfSearchInput').value = $('searchInput').value;
+    
+    pfUpdateFilterUI();
+}
+
+/* ✅ Cập nhật UI filter trong modal */
+function pfUpdateFilterUI() {
+    var hsk = $('pfHskFilter').value;
+    var subject = $('pfSubjectFilter').value;
+    $('pfHskValue').textContent = hsk || 'Tất cả';
+    $('pfSubjectValue').textContent = subject || 'Tất cả';
+    $('pfHskChip').classList.toggle('has-value', !!hsk);
+    $('pfSubjectChip').classList.toggle('has-value', !!subject);
+    
+    var search = $('pfSearchInput').value.trim();
+    if (search) $('pfClearSearchBtn').classList.add('show');
+    else $('pfClearSearchBtn').classList.remove('show');
+    
+    pfUpdateResultCount();
+}
+
+/* ✅ Hiển thị số kết quả trong modal */
+function pfUpdateResultCount() {
+    var el = $('pfResultCount');
+    if (!el) return;
+    var total = filtered ? filtered.length : 0;
+    var search = $('pfSearchInput').value.trim();
+    var hsk = $('pfHskFilter').value;
+    var subject = $('pfSubjectFilter').value;
+    var hasFilter = !!(search || hsk || subject);
+    if (!hasFilter) { el.classList.remove('show', 'empty'); return; }
+    el.classList.add('show');
+    el.classList.toggle('empty', total === 0);
+    var spanEl = el.querySelector('span');
+    if (spanEl) {
+        if (total === 0) spanEl.innerHTML = 'Không tìm thấy kết quả';
+        else spanEl.innerHTML = 'Tìm thấy <b>' + total + '</b> kết quả';
+    }
+}
+
+/* ✅ Áp dụng filter trong modal */
+function pfApplyFilter() {
+    $('searchInput').value = $('pfSearchInput').value;
+    $('hskFilter').value = $('pfHskFilter').value;
+    $('subjectFilter').value = $('pfSubjectFilter').value;
+    
+    state.search = $('pfSearchInput').value.trim().toLowerCase();
+    state.hsk = $('pfHskFilter').value;
+    state.subject = $('pfSubjectFilter').value;
+    
+    var baseData = isDemo ? getDemoData() : RAW_DATA;
+    filtered = baseData.filter(function(r) {
+        if (state.search) {
+            var s = state.search;
+            var inVi = (r.vi || '').toLowerCase().indexOf(s) !== -1;
+            var inZh = (r.zh || '').toLowerCase().indexOf(s) !== -1;
+            var inPinyin = (r.pinyin || '').toLowerCase().indexOf(s) !== -1;
+            var inTopic = (r.topic || '').toLowerCase().indexOf(s) !== -1;
+            var inSubject = (r.subject || '').toLowerCase().indexOf(s) !== -1;
+            if (!inVi && !inZh && !inPinyin && !inTopic && !inSubject) return false;
+        }
+        if (state.hsk && r.hsk !== state.hsk) return false;
+        if (state.subject && r.subject !== state.subject) return false;
+        return true;
+    });
+    
+    updateFilterUI();
+    var clearBtn = $('clearSearchBtn');
+    if (state.search) clearBtn.classList.add('show');
+    else clearBtn.classList.remove('show');
+    
+    pfUpdateFilterUI();
+    render(true);
+    
+    if (filtered.length > 0) {
+        loadPracticeFull(filtered[0].stt);
+    } else {
+        pfCurrentStt = null;
+        pfCurrentAnswer = '';
+        pfCurrentVi = 'Không tìm thấy câu nào';
+        pfCurrentPinyin = '';
+        $('pfVi').textContent = 'Không tìm thấy câu nào';
+        $('pfInput').value = '';
+        $('pfCounter').textContent = 'Câu 0 / 0';
+        $('pfTags').innerHTML = '';
+        $('pfAnswer').classList.remove('show');
+        $('pfPreview').innerHTML = '';
+        $('pfStatus').textContent = '';
+        $('pfPrevBtn').disabled = true;
+        $('pfNextBtn').disabled = true;
+    }
+}
 
 function updateCharPreview() {
     var input = $('pfInput');
@@ -2745,6 +2980,42 @@ function initPracticeFull() {
     $('pfInput').addEventListener('input', function() {
         updateCharPreview();
         checkFullAnswer();
+    });
+    
+    // ✅ Search trong modal
+    $('pfSearchInput').addEventListener('input', function() {
+        pfApplyFilter();
+    });
+    $('pfClearSearchBtn').addEventListener('click', function() {
+        $('pfSearchInput').value = '';
+        $('pfSearchInput').focus();
+        pfApplyFilter();
+    });
+    
+    // ✅ Filter HSK + Chủ đề trong modal
+    $('pfHskFilter').addEventListener('change', function() {
+        if (isDemo) {
+            var val = this.value;
+            var allowed = getDemoHskList();
+            if (val && allowed.indexOf(val) === -1) {
+                alert('🔒 Bản Demo chỉ cho phép lọc HSK1-' + DEMO_HSK_MAX + '.');
+                this.value = '';
+                return;
+            }
+        }
+        pfApplyFilter();
+    });
+    $('pfSubjectFilter').addEventListener('change', function() {
+        if (isDemo) {
+            var val = this.value;
+            var allowed = getDemoSubjectList();
+            if (val && allowed.indexOf(val) === -1) {
+                alert('🔒 Chủ đề này chưa có trong Demo.');
+                this.value = '';
+                return;
+            }
+        }
+        pfApplyFilter();
     });
     
     document.addEventListener('keydown', function(e) {
@@ -3117,5 +3388,5 @@ print(f"☀️  Theme mặc định: Light mode")
 print(f"🎯 Desktop hover phóng to + Mobile click vừa đọc vừa phóng to")
 print(f"👁️  Nút Xem đáp án: toggle ẩn/hiện")
 print(f"✏️  Click ký tự sai → con trỏ về + bôi đen để gõ đè")
-print(f"🔍 Sticky-top luôn hiện khi bật practice")
+print(f"🔍 Search + Filter có sẵn trong modal full màn hình")
 print(f"📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
