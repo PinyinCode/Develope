@@ -30,6 +30,8 @@ Chuyển file Excel → HTML tự chứa dữ liệu
       chỉ thấy 4 ô (Tổng User, Đang hoạt động, Sắp hết hạn, Hết hạn),
       ẩn lịch sử truy cập
 - ✅ Tổng User KHÔNG tính admin
+- ✅ MỚI: Nút đổi tên hiển thị (user + admin đều có)
+- ✅ MỚI: Quản lý ngày hết hạn ngay trên giao diện admin
 
 Chạy: python scripts/convert.py
 """
@@ -95,6 +97,8 @@ print(f"   📤 Export CHUYÊN NGHIỆP (7 cột + 3 sheet + style)")
 print(f"   📥 Import CHỈ USER, KHÔNG ADMIN")
 print(f"   ⏰ User có hạn sử dụng (expiresAt) — tự động khóa khi hết hạn")
 print(f"   👤 Click avatar → hiển thị chi tiết + ngày hết hạn")
+print(f"   ✏️  Nút đổi tên hiển thị (user + admin)")
+print(f"   📅 Quản lý ngày hết hạn trên giao diện admin")
 
 print(f"\n📖 Đang đọc file: {EXCEL_FILE}")
 if not os.path.exists(EXCEL_FILE):
@@ -1353,6 +1357,7 @@ body.show-practice .card-body{
 }
 .u-btn:hover{background:var(--surface-2);color:var(--primary);border-color:var(--primary)}
 .u-btn.danger:hover{background:var(--danger-light);color:var(--danger);border-color:var(--danger)}
+.u-btn.expiry:hover{background:rgba(245,158,11,.15);color:#d97706;border-color:#f59e0b}
 .u-btn:disabled{opacity:.35;cursor:not-allowed}
 .u-btn:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border)}
 .u-btn.danger:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border)}
@@ -1411,7 +1416,9 @@ body.show-practice .card-body{
     font-size:.68rem;font-weight:600;
     display:inline-flex;align-items:center;gap:.25rem;
     margin-top:.2rem;padding:.15rem .45rem;border-radius:50px;
+    cursor:pointer;transition:.15s;
 }
+.u-expiry:hover{opacity:.8;}
 .u-expiry i{font-size:.6rem;}
 .u-expiry.permanent{background:rgba(148,163,184,.15);color:var(--text-3);}
 .u-expiry.ok{background:rgba(22,163,74,.12);color:var(--success);}
@@ -1419,6 +1426,61 @@ body.show-practice .card-body{
 [data-theme="dark"] .u-expiry.warn{color:#fcd34d;}
 .u-expiry.urgent{background:rgba(220,38,38,.15);color:var(--danger);}
 .u-expiry.expired{background:rgba(220,38,38,.25);color:#fff;text-decoration:line-through;}
+
+.edit-modal{
+    position:fixed;inset:0;background:rgba(15,23,42,.85);
+    backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+    z-index:4000;display:none;align-items:center;justify-content:center;
+    padding:1rem;animation:fadeIn .2s;
+}
+.edit-modal.show{display:flex}
+.edit-box{
+    background:var(--surface);border-radius:20px;
+    width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.4);
+    padding:1.5rem;position:relative;
+    animation:slideUp .3s cubic-bezier(.34,1.56,.64,1);
+}
+.edit-box h2{
+    font-size:1.1rem;color:var(--text);font-weight:700;
+    display:flex;align-items:center;gap:.5rem;margin-bottom:1.25rem;
+}
+.edit-box h2 i{color:var(--primary);}
+.edit-close{
+    position:absolute;top:12px;right:12px;
+    width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
+    background:var(--surface);color:var(--text-2);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-size:.85rem;transition:.15s;
+}
+.edit-close:hover{background:var(--danger-light);color:var(--danger);border-color:var(--danger)}
+.edit-user-info{
+    padding:.75rem;background:var(--surface-2);
+    border-radius:10px;margin-bottom:1rem;
+    border:1px solid var(--border);
+}
+.edit-user-info .eu-name{font-weight:700;font-size:.9rem;color:var(--text);margin-bottom:.2rem}
+.edit-user-info .eu-email{font-size:.75rem;color:var(--text-3);word-break:break-all}
+
+.quick-expiry-btns{
+    display:grid;grid-template-columns:repeat(3,1fr);
+    gap:.4rem;margin-bottom:1rem;
+}
+.quick-expiry-btn{
+    padding:.5rem .4rem;border-radius:8px;
+    border:1.5px solid var(--border);background:var(--surface);
+    color:var(--text-2);font-size:.72rem;font-weight:600;
+    cursor:pointer;transition:.15s;font-family:inherit;
+    display:flex;flex-direction:column;align-items:center;gap:.2rem;
+    white-space:nowrap;
+}
+.quick-expiry-btn i{font-size:.85rem;}
+.quick-expiry-btn:hover{
+    background:var(--primary-light);border-color:var(--primary);
+    color:var(--primary-dark);transform:translateY(-1px);
+}
+.quick-expiry-btn.danger:hover{
+    background:var(--danger-light);border-color:var(--danger);color:var(--danger);
+}
 
 .import-modal{
     position:fixed;inset:0;background:rgba(15,23,42,.85);
@@ -1605,6 +1667,10 @@ body.show-practice .card-body{
     .import-box{max-height:calc(100vh - 1rem);border-radius:16px;}
     .import-header,.import-body,.import-footer{padding:1rem;}
     .import-table th,.import-table td{padding:.45rem .5rem;font-size:.75rem;}
+    
+    .quick-expiry-btns{grid-template-columns:repeat(3,1fr);gap:.35rem;}
+    .quick-expiry-btn{padding:.45rem .3rem;font-size:.68rem;}
+    .quick-expiry-btn i{font-size:.8rem;}
 }
 @media(max-width:400px){
     .logo-text .subtitle{display:none}
@@ -1674,6 +1740,11 @@ body.show-practice .card-body{
                                     </div>
                                 </div>
                             </div>
+                            
+                            <!-- ✅ MỚI: Nút đổi tên hiển thị -->
+                            <button class="dropdown-item" id="changeNameBtn">
+                                <i class="fas fa-user-edit"></i> Đổi tên hiển thị
+                            </button>
                             
                             <button class="dropdown-item" id="openAdminBtn" style="display:none">
                                 <i class="fas fa-shield-alt"></i> Quản lý tài khoản
@@ -1802,6 +1873,72 @@ body.show-practice .card-body{
         <div class="login-error" id="loginError"></div>
         <div class="login-footer">
             <i class="fas fa-shield-alt"></i> Chỉ tài khoản được cấp phép mới truy cập được.
+        </div>
+    </div>
+</div>
+
+<!-- ✅ MỚI: Modal đổi tên -->
+<div class="edit-modal" id="changeNameModal">
+    <div class="edit-box">
+        <button class="edit-close" id="changeNameClose"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-user-edit"></i> Đổi tên hiển thị</h2>
+        <div class="edit-user-info">
+            <div class="eu-name" id="changeNameCurrent">-</div>
+            <div class="eu-email" id="changeNameEmail">-</div>
+        </div>
+        <div class="form-group">
+            <label>Tên mới</label>
+            <input type="text" id="changeNameInput" placeholder="Nhập tên mới..." maxlength="50">
+        </div>
+        <div class="form-actions">
+            <button class="btn" id="changeNameCancel">Hủy</button>
+            <button class="btn primary" id="changeNameConfirm">
+                <i class="fas fa-check"></i> Lưu
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ✅ MỚI: Modal chỉnh hạn sử dụng -->
+<div class="edit-modal" id="editExpiryModal">
+    <div class="edit-box">
+        <button class="edit-close" id="editExpiryClose"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-calendar-edit"></i> Chỉnh hạn sử dụng</h2>
+        <div class="edit-user-info">
+            <div class="eu-name" id="editExpiryName">-</div>
+            <div class="eu-email" id="editExpiryEmail">-</div>
+        </div>
+        
+        <div class="quick-expiry-btns">
+            <button class="quick-expiry-btn" onclick="setQuickExpiry(7)">
+                <i class="fas fa-calendar-plus"></i> +7 ngày
+            </button>
+            <button class="quick-expiry-btn" onclick="setQuickExpiry(30)">
+                <i class="fas fa-calendar-plus"></i> +30 ngày
+            </button>
+            <button class="quick-expiry-btn" onclick="setQuickExpiry(90)">
+                <i class="fas fa-calendar-plus"></i> +90 ngày
+            </button>
+            <button class="quick-expiry-btn" onclick="setQuickExpiry(180)">
+                <i class="fas fa-calendar-plus"></i> +6 tháng
+            </button>
+            <button class="quick-expiry-btn" onclick="setQuickExpiry(365)">
+                <i class="fas fa-calendar-plus"></i> +1 năm
+            </button>
+            <button class="quick-expiry-btn danger" onclick="setQuickExpiryPermanent()">
+                <i class="fas fa-infinity"></i> Vĩnh viễn
+            </button>
+        </div>
+        
+        <div class="form-group">
+            <label>Hoặc chọn ngày cụ thể</label>
+            <input type="date" id="editExpiryInput">
+        </div>
+        <div class="form-actions">
+            <button class="btn" id="editExpiryCancel">Hủy</button>
+            <button class="btn primary" id="editExpiryConfirm">
+                <i class="fas fa-check"></i> Lưu
+            </button>
         </div>
     </div>
 </div>
@@ -2063,13 +2200,12 @@ var appInitialized = false;
 var usersCache = [];
 var lastLoginMap = {};
 var importRows = [];
+var editingEmail = null;
 
 var $ = function(id) { return document.getElementById(id); };
 var mobileWrapper;
 
 /* ============ HELPER PHÂN QUYỀN ADMIN ============ */
-// ✅ Logic: CHỈ email "hoanginvest@gmail.com" là SUPER ADMIN
-// Tất cả admin khác đều là ADMIN THƯỜNG (ẩn admin khác, ẩn lịch sử)
 function isSuperAdmin() {
     if (!currentUser || currentUser.role !== 'admin') return false;
     var email = (currentUser.email || '').toLowerCase().trim();
@@ -2077,7 +2213,7 @@ function isSuperAdmin() {
 }
 function isHiddenAdmin() {
     if (!currentUser || currentUser.role !== 'admin') return false;
-    return !isSuperAdmin();  // Admin nhưng KHÔNG PHẢI super admin → admin thường
+    return !isSuperAdmin();
 }
 
 function getDemoData() { return RAW_DATA.slice(0, DEMO_LIMIT); }
@@ -2552,6 +2688,173 @@ document.addEventListener('click', function(e) {
     }
 });
 
+/* ✅ MỚI: Đổi tên hiển thị */
+$('changeNameBtn').addEventListener('click', function() {
+    $('userDropdown').classList.remove('show');
+    if (!currentUser) return;
+    editingEmail = currentUser.email;
+    $('changeNameCurrent').textContent = currentUser.name;
+    $('changeNameEmail').textContent = currentUser.email;
+    $('changeNameInput').value = currentUser.name;
+    $('changeNameModal').classList.add('show');
+    setTimeout(function() { $('changeNameInput').focus(); }, 100);
+});
+
+$('changeNameClose').addEventListener('click', function() {
+    $('changeNameModal').classList.remove('show');
+});
+$('changeNameCancel').addEventListener('click', function() {
+    $('changeNameModal').classList.remove('show');
+});
+$('changeNameModal').addEventListener('click', function(e) {
+    if (e.target === this) $('changeNameModal').classList.remove('show');
+});
+
+$('changeNameConfirm').addEventListener('click', async function() {
+    if (!editingEmail) return;
+    var newName = $('changeNameInput').value.trim();
+    if (!newName) { alert('Tên không được để trống!'); return; }
+    if (newName.length > 50) { alert('Tên quá dài!'); return; }
+    
+    var btn = this;
+    btn.disabled = true;
+    var originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Đang lưu...';
+    
+    try {
+        await db.collection('allowed_users').doc(editingEmail).update({ name: newName });
+        
+        try { localStorage.removeItem('user_cache_' + editingEmail); } catch(e) {}
+        try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
+        
+        if (currentUser && currentUser.email === editingEmail) {
+            currentUser.name = newName;
+            $('userName').textContent = newName;
+            var avatar = $('userAvatar');
+            if (!currentUser.photo) {
+                avatar.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+                    '<rect fill="#2563eb" width="100" height="100"/>' +
+                    '<text x="50" y="65" font-size="45" fill="#fff" text-anchor="middle" font-family="sans-serif" font-weight="bold">' +
+                    newName.charAt(0).toUpperCase() +
+                    '</text></svg>'
+                );
+            }
+            
+            try {
+                localStorage.setItem('user_cache_' + editingEmail, JSON.stringify({
+                    data: currentUser,
+                    expires: Date.now() + 12 * 60 * 60 * 1000
+                }));
+            } catch(e) {}
+        }
+        
+        $('changeNameModal').classList.remove('show');
+        alert('✅ Đã đổi tên thành công!');
+        
+        if ($('adminModal').classList.contains('show')) {
+            loadUsers(true);
+        }
+    } catch(err) {
+        alert('❌ Lỗi: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
+});
+
+/* ✅ MỚI: Chỉnh hạn sử dụng */
+var editingExpiryEmail = null;
+
+window.openEditExpiry = function(email) {
+    var user = usersCache.find(function(u) { return u.email === email; });
+    if (!user) { alert('Không tìm thấy user!'); return; }
+    
+    if (user.role === 'admin') {
+        alert('Admin có hạn vĩnh viễn, không cần chỉnh!');
+        return;
+    }
+    
+    editingExpiryEmail = email;
+    $('editExpiryName').textContent = user.name || email.split('@')[0];
+    $('editExpiryEmail').textContent = email;
+    
+    if (user.expiresAt) {
+        var d = getExpiryDate(user.expiresAt);
+        if (d && !isNaN(d.getTime())) {
+            $('editExpiryInput').value = formatDate(d);
+        } else {
+            $('editExpiryInput').value = '';
+        }
+    } else {
+        $('editExpiryInput').value = '';
+    }
+    
+    $('editExpiryModal').classList.add('show');
+};
+
+window.setQuickExpiry = function(days) {
+    var d = new Date();
+    d.setDate(d.getDate() + days);
+    d.setHours(23, 59, 59);
+    $('editExpiryInput').value = formatDate(d);
+};
+
+window.setQuickExpiryPermanent = function() {
+    $('editExpiryInput').value = '';
+};
+
+$('editExpiryClose').addEventListener('click', function() {
+    $('editExpiryModal').classList.remove('show');
+});
+$('editExpiryCancel').addEventListener('click', function() {
+    $('editExpiryModal').classList.remove('show');
+});
+$('editExpiryModal').addEventListener('click', function(e) {
+    if (e.target === this) $('editExpiryModal').classList.remove('show');
+});
+
+$('editExpiryConfirm').addEventListener('click', async function() {
+    if (!editingExpiryEmail) return;
+    
+    var dateVal = $('editExpiryInput').value;
+    var updateData = {};
+    
+    if (dateVal) {
+        var d = new Date(dateVal + 'T23:59:59');
+        if (isNaN(d.getTime())) { alert('Ngày không hợp lệ!'); return; }
+        updateData.expiresAt = firebase.firestore.Timestamp.fromDate(d);
+    } else {
+        updateData.expiresAt = null;
+    }
+    
+    var btn = this;
+    btn.disabled = true;
+    var originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Đang lưu...';
+    
+    try {
+        await db.collection('allowed_users').doc(editingExpiryEmail).update(updateData);
+        
+        try { localStorage.removeItem('user_cache_' + editingExpiryEmail); } catch(e) {}
+        try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
+        
+        $('editExpiryModal').classList.remove('show');
+        
+        var msg = dateVal 
+            ? '✅ Đã cập nhật hạn đến ngày ' + new Date(dateVal).toLocaleDateString('vi-VN')
+            : '✅ Đã đặt thành vĩnh viễn';
+        alert(msg);
+        
+        loadUsers(true);
+    } catch(err) {
+        alert('❌ Lỗi: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
+});
+
 function logLogin(u) {
     try {
         var today = new Date().toDateString();
@@ -2810,7 +3113,8 @@ document.addEventListener('click', function(e) {
         e.target.closest('.writer-modal') || e.target.closest('.user-menu') ||
         e.target.closest('.login-modal') || e.target.closest('.admin-modal') ||
         e.target.closest('.practice-full-modal') || e.target.closest('.import-modal') ||
-        e.target.closest('.zalo-btn') || e.target.closest('.toggle-check-btn')) return;
+        e.target.closest('.edit-modal') || e.target.closest('.zalo-btn') || 
+        e.target.closest('.toggle-check-btn')) return;
     clearFocus();
 }, true);
 
@@ -4684,7 +4988,6 @@ function loadLastLoginMap() {
                 var d = doc.data();
                 var email = (d.email || '').toLowerCase();
                 
-                // ✅ Admin thường: ẩn hết log của admin khác (chỉ giữ log của chính mình)
                 if (hidden && d.role === 'admin' && email !== myEmail) {
                     return;
                 }
@@ -4698,19 +5001,9 @@ function loadLastLoginMap() {
         .catch(function() {});
 }
 
-/* ================================================================
-   ✅ RENDER ADMIN STATS - PHÂN QUYỀN
-   ================================================================
-   - Super admin "hoanginvest@gmail.com": 7 ô đầy đủ
-     (Tổng User, Đang HĐ, Active 7d, Admin, Chưa login, Sắp hết hạn, Hết hạn)
-   - Admin thường (tất cả admin khác): 4 ô
-     (Tổng User, Đang HĐ, Sắp hết hạn, Hết hạn)
-   - Tổng User KHÔNG tính admin
-   ================================================================ */
 function renderAdminStats() {
     var hidden = isHiddenAdmin();
     
-    // Đếm user thường (không tính admin)
     var usersCacheOnly = usersCache.filter(function(u) { 
         return u.role !== 'admin'; 
     });
@@ -4721,11 +5014,11 @@ function renderAdminStats() {
     var day1 = 24 * 60 * 60 * 1000;
     var day7 = 7 * 24 * 60 * 60 * 1000;
     
-    var active = 0;    // Login trong 7 ngày
-    var online = 0;    // Login trong 24h (đang hoạt động)
+    var active = 0;
+    var online = 0;
     var never = 0;
-    var expired = 0;   // Đã hết hạn
-    var expiring = 0;  // Sắp hết hạn (≤ 7 ngày)
+    var expired = 0;
+    var expiring = 0;
     
     usersCacheOnly.forEach(function(u) {
         var last = lastLoginMap[(u.email || '').toLowerCase()];
@@ -4747,7 +5040,6 @@ function renderAdminStats() {
         }
     });
     
-    // ✅ ADMIN THƯỜNG (không phải hoanginvest) → 4 ô
     if (hidden) {
         $('adminStats').innerHTML = 
             '<div class="stat-card">' +
@@ -4771,7 +5063,6 @@ function renderAdminStats() {
         return;
     }
     
-    // ✅ SUPER ADMIN (hoanginvest@gmail.com) → 7 ô đầy đủ
     $('adminStats').innerHTML =
         '<div class="stat-card"><div class="num">' + users + '</div><div class="label">Tổng User</div></div>' +
         '<div class="stat-card"><div class="num" style="color:#16a34a">' + online + '</div><div class="label">Đang hoạt động</div></div>' +
@@ -4789,7 +5080,6 @@ function renderUsers(items) {
     var hidden = isHiddenAdmin();
     var myEmail = (currentUser && currentUser.email ? currentUser.email.toLowerCase() : '');
     
-    // ✅ Admin thường: ẩn tất cả admin khác (chỉ thấy chính mình)
     var displayItems = items;
     if (hidden) {
         displayItems = items.filter(function(u) {
@@ -4827,6 +5117,12 @@ function renderUsers(items) {
         else if (isAdmin) deleteBtn = '<button class="u-btn danger" disabled title="Phải giữ đúng ' + TARGET_ADMINS + ' admin"><i class="fas fa-trash"></i></button>';
         else deleteBtn = '<button class="u-btn danger" onclick="deleteUser(\'' + escapeJs(u.email) + '\')" title="Xóa"><i class="fas fa-trash"></i></button>';
         
+        // ✅ Nút chỉnh hạn sử dụng (chỉ user, không admin)
+        var expiryBtn = '';
+        if (!isAdmin) {
+            expiryBtn = '<button class="u-btn expiry" onclick="openEditExpiry(\'' + escapeJs(u.email) + '\')" title="Chỉnh hạn sử dụng"><i class="fas fa-calendar-edit"></i></button>';
+        }
+        
         var lastLoginHtml = '';
         var last = lastLoginMap[(u.email || '').toLowerCase()];
         if (last) {
@@ -4841,7 +5137,7 @@ function renderUsers(items) {
         if (isAdmin) {
             expiryHtml = '<div class="u-expiry permanent"><i class="fas fa-infinity"></i> Vĩnh viễn</div>';
         } else if (!u.expiresAt) {
-            expiryHtml = '<div class="u-expiry permanent"><i class="fas fa-infinity"></i> Vĩnh viễn</div>';
+            expiryHtml = '<div class="u-expiry permanent" onclick="openEditExpiry(\'' + escapeJs(u.email) + '\')" title="Click để chỉnh"><i class="fas fa-infinity"></i> Vĩnh viễn</div>';
         } else {
             var expDate = getExpiryDate(u.expiresAt);
             
@@ -4865,7 +5161,7 @@ function renderUsers(items) {
                     expText = 'Còn ' + daysLeft + ' ngày';
                 }
                 
-                expiryHtml = '<div class="u-expiry ' + expCls + '"><i class="fas ' + expIcon + '"></i> ' + 
+                expiryHtml = '<div class="u-expiry ' + expCls + '" onclick="openEditExpiry(\'' + escapeJs(u.email) + '\')" title="Click để chỉnh"><i class="fas ' + expIcon + '"></i> ' + 
                              escapeHtml(expText) + ' • ' + expDate.toLocaleDateString('vi-VN') + '</div>';
             }
         }
@@ -4878,7 +5174,7 @@ function renderUsers(items) {
                 expiryHtml +
             '</div>' +
             '<span class="u-role ' + (isAdmin ? 'admin' : 'user') + '">' + (u.role || 'user') + '</span>' +
-            '<div class="u-actions">' + roleBtn + deleteBtn + '</div>' +
+            '<div class="u-actions">' + expiryBtn + roleBtn + deleteBtn + '</div>' +
         '</div>';
     }).join('');
 }
@@ -4924,14 +5220,10 @@ window.deleteUser = async function(email) {
     catch(e) { alert('Lỗi: ' + e.message); }
 };
 
-/* ================================================================
-   ✅ LỊCH SỬ ĐĂNG NHẬP - CHỈ SUPER ADMIN "hoanginvest@gmail.com" thấy
-   ================================================================ */
 function loadLogs() {
     var hidden = isHiddenAdmin();
     var logTitleEl = $('logsTitle');
     
-    // ✅ Admin thường → ẨN toàn bộ phần lịch sử
     if (hidden) {
         if (logTitleEl) logTitleEl.style.display = 'none';
         $('logsList').style.display = 'none';
@@ -4939,7 +5231,6 @@ function loadLogs() {
         return;
     }
     
-    // ✅ Super admin → hiển thị bình thường
     if (logTitleEl) logTitleEl.style.display = 'flex';
     $('logsList').style.display = 'block';
     
@@ -5401,3 +5692,10 @@ print(f"⏰ User có hạn sử dụng — tự động khóa khi hết hạn")
 print(f"🔔 Banner cảnh báo sắp hết hạn (≤ 7 ngày) với Zalo")
 print(f"👤 Click avatar → hiển thị chi tiết + ngày hết hạn + progress bar")
 print(f"📞 Nút Zalo trong dropdown user")
+print(f"\n✨ TÍNH NĂNG MỚI:")
+print(f"✏️  Nút đổi tên hiển thị (user + admin đều có)")
+print(f"📅 Quản lý ngày hết hạn ngay trên giao diện admin:")
+print(f"   • Nút lịch 📅 bên cạnh mỗi user")
+print(f"   • Click vào badge hạn sử dụng cũng mở được")
+print(f"   • Quick buttons: +7d, +30d, +90d, +6m, +1y, vĩnh viễn")
+print(f"   • Chọn ngày cụ thể trực tiếp")
