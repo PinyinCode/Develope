@@ -563,6 +563,8 @@ body.show-practice .card-body{
     gap:.5rem;min-height:2.5rem;padding:.75rem 1rem;
     background:var(--surface-2);border-radius:12px;
     border:1px dashed var(--border);
+    user-select:none;
+    -webkit-user-select:none;
 }
 .char-preview:empty{display:none}
 .char-slot{
@@ -582,6 +584,22 @@ body.show-practice .card-body{
     color:#fff;background:var(--danger);
     animation:shakeWrong .3s;
     box-shadow:0 2px 8px rgba(220,38,38,.35);
+    cursor:pointer;
+    position:relative;
+}
+.char-slot.wrong:hover{
+    transform:scale(1.15);
+    box-shadow:0 4px 12px rgba(220,38,38,.5);
+    z-index:5;
+}
+.char-slot.wrong:active{transform:scale(.95);}
+.char-slot.wrong.highlight{
+    animation:blinkHighlight 0.6s ease-in-out 2;
+    box-shadow:0 0 0 4px rgba(220,38,38,.4);
+}
+@keyframes blinkHighlight{
+    0%,100%{transform:scale(1.15);background:var(--danger);}
+    50%{transform:scale(1.25);background:#ef4444;box-shadow:0 0 0 8px rgba(220,38,38,.3);}
 }
 .char-slot.ghost{
     color:var(--text);
@@ -599,6 +617,13 @@ body.show-practice .card-body{
 .char-slot.extra{
     color:#fff;background:var(--amber);
     box-shadow:0 2px 8px rgba(245,158,11,.35);
+    cursor:pointer;
+    transition:.15s;
+}
+.char-slot.extra:hover{
+    transform:scale(1.15);
+    box-shadow:0 4px 12px rgba(245,158,11,.5);
+    z-index:5;
 }
 @keyframes shakeWrong{
     0%,100%{transform:translateX(0)}
@@ -2406,27 +2431,81 @@ function updateCharPreview() {
     var userVal = input.value;
     var cleanUser = userVal.replace(/\s+/g, '');
     var cleanAnswer = pfCurrentAnswer.replace(/\s+/g, '');
+    
     if (!cleanAnswer) { preview.innerHTML = ''; return; }
+    
     var html = '';
     var maxLen = Math.max(cleanUser.length, cleanAnswer.length);
+    
     for (var i = 0; i < maxLen; i++) {
         var userChar = cleanUser[i] || '';
         var answerChar = cleanAnswer[i] || '';
         var cls = 'char-slot';
         var display = '';
+        var clickable = false;
+        
         if (userChar && answerChar) {
-            if (userChar === answerChar) { cls += ' correct'; display = userChar; }
-            else { cls += ' wrong'; display = userChar; }
+            if (userChar === answerChar) {
+                cls += ' correct';
+                display = userChar;
+            } else {
+                cls += ' wrong';
+                display = userChar;
+                clickable = true;
+            }
         } else if (!userChar && answerChar) {
-            if (pfHintEnabled) { cls += ' ghost'; display = answerChar; }
-            else { continue; }
+            if (pfHintEnabled) {
+                cls += ' ghost';
+                display = answerChar;
+            } else {
+                continue;
+            }
         } else if (userChar && !answerChar) {
-            cls += ' extra'; display = userChar;
-        } else { continue; }
-        html += '<span class="' + cls + '">' + escapeHtml(display) + '</span>';
+            cls += ' extra';
+            display = userChar;
+            clickable = true;
+        } else {
+            continue;
+        }
+        
+        // ✅ Ký tự sai/thừa → có thể click để sửa
+        if (clickable) {
+            html += '<span class="' + cls + '" data-idx="' + i + '" onclick="fixCharAt(' + i + ', this)">' + escapeHtml(display) + '</span>';
+        } else {
+            html += '<span class="' + cls + '">' + escapeHtml(display) + '</span>';
+        }
     }
+    
     preview.innerHTML = html;
 }
+
+/* ✅ Click vào ký tự sai → đưa con trỏ về đó và bôi đen để gõ đè */
+window.fixCharAt = function(idx, el) {
+    var input = $('pfInput');
+    if (!input) return;
+    
+    // Focus vào input trước
+    input.focus();
+    
+    // Đặt con trỏ về vị trí idx và bôi đen 1 ký tự
+    setTimeout(function() {
+        try {
+            input.setSelectionRange(idx, idx + 1);
+        } catch(e) {
+            // Fallback cho trình duyệt cũ
+            input.selectionStart = idx;
+            input.selectionEnd = idx + 1;
+        }
+        
+        // ✅ Highlight animation cho ký tự vừa click
+        if (el) {
+            el.classList.add('highlight');
+            setTimeout(function() {
+                el.classList.remove('highlight');
+            }, 1200);
+        }
+    }, 10);
+};
 
 function toggleHint() {
     pfHintEnabled = !pfHintEnabled;
