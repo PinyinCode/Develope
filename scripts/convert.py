@@ -1240,14 +1240,6 @@ body.show-practice .card-body{
     border-radius:var(--radius-sm);transition:.15s;
 }
 .user-row:hover{border-color:var(--primary)}
-.user-row.selected{
-    background:linear-gradient(135deg, var(--primary-light), rgba(37,99,235,.08));
-    border-color:var(--primary);
-}
-.user-checkbox{
-    width:18px;height:18px;accent-color:var(--primary);
-    cursor:pointer;flex-shrink:0;
-}
 .user-row .u-info{flex:1;min-width:0}
 .user-row .u-name{font-weight:700;font-size:.88rem;color:var(--text);margin-bottom:.15rem}
 .user-row .u-email{font-size:.75rem;color:var(--text-3);word-break:break-all}
@@ -4276,8 +4268,9 @@ function processImport(rows) {
         return;
     }
     
-    var header usersRowIdx = -Cache1;
-    for (var i =.forEach 0; i < Math(function.min(5, rows.length(u); i++) {
+    // Tìm header row
+    var headerRowIdx = -1;
+    for (var i = 0; i < Math.min(5, rows.length); i++) {
         var r = rows[i].map(function(c) { return String(c || '').toLowerCase().trim(); });
         if (r.indexOf('email') !== -1) { headerRowIdx = i; break; }
     }
@@ -4295,7 +4288,7 @@ function processImport(rows) {
     var expCol = header.indexOf('expiresat');
     
     var existingMap = {};
-   ) { 
+    usersCache.forEach(function(u) { 
         existingMap[(u.email || '').toLowerCase()] = u; 
     });
     
@@ -4560,7 +4553,6 @@ async function doImport() {
     
     // Invalidate cache
     try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
-    // Invalidate user caches cho những user vừa update
     toImport.forEach(function(r) {
         try { localStorage.removeItem('user_cache_' + r.email); } catch(e) {}
     });
