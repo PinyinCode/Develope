@@ -2705,15 +2705,15 @@ window.pfPrev = function() {
     loadPracticeFull(filtered[idx - 1].stt);
 };
 
-/* ✅ Build dropdown chọn nhanh câu */
+/* ✅ Build dropdown chọn nhanh câu — hiển thị tiếng Việt */
 function pfBuildQuickNav() {
     var sel = $('pfQuickNav');
     if (!sel) return;
     
     var html = '<option value="">-- Chọn câu (' + filtered.length + ') --</option>';
     filtered.forEach(function(r, i) {
-        var zh = (r.zh || '').substring(0, 30);
-        var label = 'Câu ' + (i + 1) + ': ' + zh;
+        var vi = (r.vi || '').substring(0, 45);
+        var label = 'Câu ' + (i + 1) + ': ' + vi;
         html += '<option value="' + escapeHtml(r.stt) + '">' + escapeHtml(label) + '</option>';
     });
     sel.innerHTML = html;
@@ -2723,7 +2723,6 @@ function pfBuildQuickNav() {
         sel.value = pfCurrentStt;
     }
 }
-
 /* ✅ Cập nhật dropdown khi user chọn câu */
 function pfQuickNavChange() {
     var sel = $('pfQuickNav');
