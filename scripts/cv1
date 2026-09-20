@@ -16,13 +16,23 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - ✅ Nút ẩn/hiện kết quả ở mỗi thẻ trang chính (kèm đáp án tiếng Trung)
 - ✅ Click chữ sai inline → bôi đen ĐÚNG ký tự trong ô gõ
 - ✅ Gõ search trong modal KHÔNG nhảy sang ô nhập tiếng Trung
-- ✅ Export/Import CHỈ USER, KHÔNG bao gồm ADMIN
-- ✅ Import tự động bỏ qua cột dư thừa (chỉ cần email/name/expiresAt)
+- ✅ Export CHUYÊN NGHIỆP: 7 cột, 3 sheet, style màu, sắp xếp theo hạn
+- ✅ Import CHỈ USER, KHÔNG ADMIN + tự động bỏ qua cột dư thừa
 - ✅ Import lần 2, 3, ... không lỗi null
 - ✅ User có hạn sử dụng (expiresAt) — tự động khóa khi hết hạn
 - ✅ Banner cảnh báo sắp hết hạn (≤ 7 ngày)
 - ✅ Click avatar user → hiển thị chi tiết tài khoản + ngày hết hạn + progress bar
 - ✅ Nút Zalo liên hệ trong dropdown user
+- ✅ PHÂN QUYỀN ADMIN:
+    + CHỈ email "hoanginvest@gmail.com" → SUPER ADMIN: full quyền, thấy tất cả,
+      7 ô thống kê, thấy lịch sử đăng nhập, HẠ QUYỀN / XÓA ADMIN THƯỜNG
+    + TẤT CẢ admin khác → ADMIN THƯỜNG: full quyền nhưng ẩn admin khác,
+      chỉ thấy 4 ô (Tổng User, Đang hoạt động, Sắp hết hạn, Hết hạn),
+      ẩn lịch sử truy cập, KHÔNG được hạ quyền / xóa admin khác
+- ✅ Tổng User KHÔNG tính admin
+- ✅ Nút đổi tên hiển thị (user + admin đều có)
+- ✅ Quản lý ngày hết hạn ngay trên giao diện admin
+- ✅ MỚI: Nút chỉnh hạn sử dụng = BIỂU TƯỢNG LỊCH (icon only + tooltip + pulse đỏ khi ≤7 ngày)
 
 Chạy: python scripts/convert.py
 """
@@ -47,6 +57,7 @@ DEMO_LIMIT = CONFIG.get("demo_limit", 50)
 DEMO_DAILY_LIMIT = CONFIG.get("demo_daily_limit", 100)
 DEMO_HSK_MAX = CONFIG.get("demo_hsk_max", 3)
 TARGET_ADMINS = CONFIG.get("target_admins", 2)
+SUPER_ADMIN = CONFIG.get("super_admin", "hoanginvest@gmail.com")
 ZALO_PHONE = CONFIG.get("zalo_phone", "")
 ZALO_NAME = CONFIG.get("zalo_name", "Hỗ trợ")
 FIREBASE_CONFIG = CONFIG.get("firebase_config", {})
@@ -79,11 +90,16 @@ print(f"   🎯 Click ký tự sai → bôi đen để gõ đè")
 print(f"   📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
 print(f"   🔍 Search + Filter + Dropdown chọn câu trong modal")
 print(f"   💾 Cache user 12h + Log 1 lần/ngày")
-print(f"   👑 Target admins: {TARGET_ADMINS}")
+print(f"   👑 Super admin: {SUPER_ADMIN} (có thể HẠ QUYỀN / XÓA admin thường)")
+print(f"   🕵️  Admin thường: tất cả admin khác (chỉ thấy 4 ô thống kê)")
+print(f"   👥 Tổng User KHÔNG tính admin")
 print(f"   👁️  Nút ẩn/hiện kết quả + đáp án ở mỗi thẻ trang chính")
-print(f"   📤 Export/Import user (CHỈ USER, KHÔNG ADMIN)")
+print(f"   📤 Export CHUYÊN NGHIỆP (7 cột + 3 sheet + style)")
+print(f"   📥 Import CHỈ USER, KHÔNG ADMIN")
 print(f"   ⏰ User có hạn sử dụng (expiresAt) — tự động khóa khi hết hạn")
 print(f"   👤 Click avatar → hiển thị chi tiết + ngày hết hạn")
+print(f"   ✏️  Nút đổi tên hiển thị (user + admin)")
+print(f"   📅 Quản lý ngày hết hạn trên giao diện admin (nút icon lịch)")
 
 print(f"\n📖 Đang đọc file: {EXCEL_FILE}")
 if not os.path.exists(EXCEL_FILE):
@@ -266,16 +282,13 @@ body{
 .dropdown-item.danger{color:var(--danger)}
 .dropdown-item.danger:hover{background:var(--danger-light)}
 
-/* ✅ CHI TIẾT TÀI KHOẢN USER */
 .user-details{
     padding:.6rem .75rem .75rem .75rem;
     border-bottom:1px solid var(--border);
     margin-bottom:.5rem;
     display:flex;flex-direction:column;gap:.6rem;
 }
-.detail-row{
-    display:flex;align-items:flex-start;gap:.65rem;
-}
+.detail-row{display:flex;align-items:flex-start;gap:.65rem;}
 .detail-icon{
     width:36px;height:36px;border-radius:10px;
     display:flex;align-items:center;justify-content:center;
@@ -337,7 +350,6 @@ body{
 .progress-bar.urgent{background:linear-gradient(90deg, #dc2626, #ef4444);}
 .progress-bar.permanent{background:linear-gradient(90deg, #2563eb, #3b82f6);}
 
-/* ✅ ZALO CONTACT TRONG DROPDOWN */
 .dropdown-zalo{
     display:flex;align-items:center;gap:.5rem;width:100%;
     padding:.65rem .75rem;border-radius:var(--radius-sm);
@@ -1337,6 +1349,11 @@ body.show-practice .card-body{
 }
 .user-row .u-role.admin{background:var(--amber-light);color:#92400e}
 .user-row .u-role.user{background:var(--primary-light);color:var(--primary-dark)}
+.user-row .u-role.super{
+    background:linear-gradient(135deg, #f59e0b, #d97706);
+    color:#fff;
+    box-shadow:0 2px 6px rgba(245,158,11,.4);
+}
 .user-row .u-actions{display:flex;gap:.3rem}
 .u-btn{
     width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
@@ -1346,9 +1363,58 @@ body.show-practice .card-body{
 }
 .u-btn:hover{background:var(--surface-2);color:var(--primary);border-color:var(--primary)}
 .u-btn.danger:hover{background:var(--danger-light);color:var(--danger);border-color:var(--danger)}
+
+/* ✅ Nút chỉnh hạn sử dụng = BIỂU TƯỢNG LỊCH */
+.u-btn.expiry{
+    background:rgba(245,158,11,.1);
+    color:#d97706;
+    border-color:rgba(245,158,11,.4);
+}
+.u-btn.expiry:hover{
+    background:var(--amber);
+    color:#fff;
+    border-color:var(--amber);
+    transform:scale(1.08);
+}
+.u-btn.expiry:active{
+    transform:scale(.95);
+}
+[data-theme="dark"] .u-btn.expiry{
+    background:rgba(245,158,11,.2);
+    color:#fcd34d;
+    border-color:rgba(245,158,11,.5);
+}
+[data-theme="dark"] .u-btn.expiry:hover{
+    background:var(--amber);
+    color:#fff;
+}
+/* Nhấp nháy đỏ khi user sắp hết hạn (≤ 7 ngày) */
+.u-btn.expiry.urgent{
+    background:rgba(220,38,38,.15);
+    color:var(--danger);
+    border-color:rgba(220,38,38,.5);
+    animation:expiryPulse 2s infinite;
+}
+.u-btn.expiry.urgent:hover{
+    background:var(--danger);
+    color:#fff;
+    border-color:var(--danger);
+}
+[data-theme="dark"] .u-btn.expiry.urgent{
+    background:rgba(220,38,38,.3);
+    color:#fca5a5;
+    border-color:rgba(220,38,38,.6);
+}
+@keyframes expiryPulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.4);}
+    50%{box-shadow:0 0 0 6px rgba(220,38,38,0);}
+}
+
 .u-btn:disabled{opacity:.35;cursor:not-allowed}
-.u-btn:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border)}
-.u-btn.danger:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border)}
+.u-btn:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border);transform:none;}
+.u-btn.danger:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border);}
+.u-btn.expiry:disabled:hover{background:var(--surface);color:var(--text-2);border-color:var(--border);transform:none;}
+
 .admin-close{
     width:34px;height:34px;border-radius:8px;border:1px solid var(--border);
     background:var(--surface);color:var(--text-2);cursor:pointer;
@@ -1404,7 +1470,9 @@ body.show-practice .card-body{
     font-size:.68rem;font-weight:600;
     display:inline-flex;align-items:center;gap:.25rem;
     margin-top:.2rem;padding:.15rem .45rem;border-radius:50px;
+    cursor:pointer;transition:.15s;
 }
+.u-expiry:hover{opacity:.8;}
 .u-expiry i{font-size:.6rem;}
 .u-expiry.permanent{background:rgba(148,163,184,.15);color:var(--text-3);}
 .u-expiry.ok{background:rgba(22,163,74,.12);color:var(--success);}
@@ -1412,6 +1480,61 @@ body.show-practice .card-body{
 [data-theme="dark"] .u-expiry.warn{color:#fcd34d;}
 .u-expiry.urgent{background:rgba(220,38,38,.15);color:var(--danger);}
 .u-expiry.expired{background:rgba(220,38,38,.25);color:#fff;text-decoration:line-through;}
+
+.edit-modal{
+    position:fixed;inset:0;background:rgba(15,23,42,.85);
+    backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+    z-index:4000;display:none;align-items:center;justify-content:center;
+    padding:1rem;animation:fadeIn .2s;
+}
+.edit-modal.show{display:flex}
+.edit-box{
+    background:var(--surface);border-radius:20px;
+    width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.4);
+    padding:1.5rem;position:relative;
+    animation:slideUp .3s cubic-bezier(.34,1.56,.64,1);
+}
+.edit-box h2{
+    font-size:1.1rem;color:var(--text);font-weight:700;
+    display:flex;align-items:center;gap:.5rem;margin-bottom:1.25rem;
+}
+.edit-box h2 i{color:var(--primary);}
+.edit-close{
+    position:absolute;top:12px;right:12px;
+    width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
+    background:var(--surface);color:var(--text-2);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-size:.85rem;transition:.15s;
+}
+.edit-close:hover{background:var(--danger-light);color:var(--danger);border-color:var(--danger)}
+.edit-user-info{
+    padding:.75rem;background:var(--surface-2);
+    border-radius:10px;margin-bottom:1rem;
+    border:1px solid var(--border);
+}
+.edit-user-info .eu-name{font-weight:700;font-size:.9rem;color:var(--text);margin-bottom:.2rem}
+.edit-user-info .eu-email{font-size:.75rem;color:var(--text-3);word-break:break-all}
+
+.quick-expiry-btns{
+    display:grid;grid-template-columns:repeat(3,1fr);
+    gap:.4rem;margin-bottom:1rem;
+}
+.quick-expiry-btn{
+    padding:.5rem .4rem;border-radius:8px;
+    border:1.5px solid var(--border);background:var(--surface);
+    color:var(--text-2);font-size:.72rem;font-weight:600;
+    cursor:pointer;transition:.15s;font-family:inherit;
+    display:flex;flex-direction:column;align-items:center;gap:.2rem;
+    white-space:nowrap;
+}
+.quick-expiry-btn i{font-size:.85rem;}
+.quick-expiry-btn:hover{
+    background:var(--primary-light);border-color:var(--primary);
+    color:var(--primary-dark);transform:translateY(-1px);
+}
+.quick-expiry-btn.danger:hover{
+    background:var(--danger-light);border-color:var(--danger);color:var(--danger);
+}
 
 .import-modal{
     position:fixed;inset:0;background:rgba(15,23,42,.85);
@@ -1598,6 +1721,10 @@ body.show-practice .card-body{
     .import-box{max-height:calc(100vh - 1rem);border-radius:16px;}
     .import-header,.import-body,.import-footer{padding:1rem;}
     .import-table th,.import-table td{padding:.45rem .5rem;font-size:.75rem;}
+    
+    .quick-expiry-btns{grid-template-columns:repeat(3,1fr);gap:.35rem;}
+    .quick-expiry-btn{padding:.45rem .3rem;font-size:.68rem;}
+    .quick-expiry-btn i{font-size:.8rem;}
 }
 @media(max-width:400px){
     .logo-text .subtitle{display:none}
@@ -1667,6 +1794,10 @@ body.show-practice .card-body{
                                     </div>
                                 </div>
                             </div>
+                            
+                            <button class="dropdown-item" id="changeNameBtn">
+                                <i class="fas fa-user-edit"></i> Đổi tên hiển thị
+                            </button>
                             
                             <button class="dropdown-item" id="openAdminBtn" style="display:none">
                                 <i class="fas fa-shield-alt"></i> Quản lý tài khoản
@@ -1795,6 +1926,70 @@ body.show-practice .card-body{
         <div class="login-error" id="loginError"></div>
         <div class="login-footer">
             <i class="fas fa-shield-alt"></i> Chỉ tài khoản được cấp phép mới truy cập được.
+        </div>
+    </div>
+</div>
+
+<div class="edit-modal" id="changeNameModal">
+    <div class="edit-box">
+        <button class="edit-close" id="changeNameClose"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-user-edit"></i> Đổi tên hiển thị</h2>
+        <div class="edit-user-info">
+            <div class="eu-name" id="changeNameCurrent">-</div>
+            <div class="eu-email" id="changeNameEmail">-</div>
+        </div>
+        <div class="form-group">
+            <label>Tên mới</label>
+            <input type="text" id="changeNameInput" placeholder="Nhập tên mới..." maxlength="50">
+        </div>
+        <div class="form-actions">
+            <button class="btn" id="changeNameCancel">Hủy</button>
+            <button class="btn primary" id="changeNameConfirm">
+                <i class="fas fa-check"></i> Lưu
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="edit-modal" id="editExpiryModal">
+    <div class="edit-box">
+        <button class="edit-close" id="editExpiryClose"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-calendar-edit"></i> Chỉnh hạn sử dụng</h2>
+        <div class="edit-user-info">
+            <div class="eu-name" id="editExpiryName">-</div>
+            <div class="eu-email" id="editExpiryEmail">-</div>
+        </div>
+        
+        <div class="quick-expiry-btns">
+            <button class="quick-expiry-btn" onclick="setQuickExpiry(7)">
+                <i class="fas fa-calendar-plus"></i> +7 ngày
+            </button>
+            <button class="quick-expiry-btn" onclick="setQuickExpiry(30)">
+                <i class="fas fa-calendar-plus"></i> +30 ngày
+            </button>
+            <button class="quick-expiry-btn" onclick="setQuickExpiry(90)">
+                <i class="fas fa-calendar-plus"></i> +90 ngày
+            </button>
+            <button class="quick-expiry-btn" onclick="setQuickExpiry(180)">
+                <i class="fas fa-calendar-plus"></i> +6 tháng
+            </button>
+            <button class="quick-expiry-btn" onclick="setQuickExpiry(365)">
+                <i class="fas fa-calendar-plus"></i> +1 năm
+            </button>
+            <button class="quick-expiry-btn danger" onclick="setQuickExpiryPermanent()">
+                <i class="fas fa-infinity"></i> Vĩnh viễn
+            </button>
+        </div>
+        
+        <div class="form-group">
+            <label>Hoặc chọn ngày cụ thể</label>
+            <input type="date" id="editExpiryInput">
+        </div>
+        <div class="form-actions">
+            <button class="btn" id="editExpiryCancel">Hủy</button>
+            <button class="btn primary" id="editExpiryConfirm">
+                <i class="fas fa-check"></i> Lưu
+            </button>
         </div>
     </div>
 </div>
@@ -2021,7 +2216,7 @@ body.show-practice .card-body{
             <div class="user-list" id="userList">
                 <div class="no-data"><i class="fas fa-spinner fa-pulse"></i>Đang tải...</div>
             </div>
-            <div class="admin-section-title" style="margin-top:1.5rem">
+            <div class="admin-section-title" style="margin-top:1.5rem" id="logsTitle">
                 <span><i class="fas fa-history"></i> Lịch sử đăng nhập (gần đây)</span>
             </div>
             <div class="logs-list" id="logsList">
@@ -2038,6 +2233,7 @@ var DEMO_LIMIT = __DEMO_LIMIT__;
 var DEMO_DAILY_LIMIT = __DEMO_DAILY_LIMIT__;
 var DEMO_HSK_MAX = __DEMO_HSK_MAX__;
 var TARGET_ADMINS = __TARGET_ADMINS__;
+var SUPER_ADMIN = "__SUPER_ADMIN__";
 var ZALO_PHONE = "__ZALO_PHONE__";
 var ZALO_NAME = "__ZALO_NAME__";
 var SYNONYMS = __SYNONYMS__;
@@ -2055,9 +2251,21 @@ var appInitialized = false;
 var usersCache = [];
 var lastLoginMap = {};
 var importRows = [];
+var editingEmail = null;
 
 var $ = function(id) { return document.getElementById(id); };
 var mobileWrapper;
+
+/* ============ HELPER PHÂN QUYỀN ADMIN ============ */
+function isSuperAdmin() {
+    if (!currentUser || currentUser.role !== 'admin') return false;
+    var email = (currentUser.email || '').toLowerCase().trim();
+    return email === SUPER_ADMIN.toLowerCase().trim();
+}
+function isHiddenAdmin() {
+    if (!currentUser || currentUser.role !== 'admin') return false;
+    return !isSuperAdmin();
+}
 
 function getDemoData() { return RAW_DATA.slice(0, DEMO_LIMIT); }
 function getDemoHskList() {
@@ -2343,7 +2551,6 @@ function applyUserUI() {
     updateDemoRemaining();
 }
 
-/* ✅ HÀM CẬP NHẬT CHI TIẾT TÀI KHOẢN USER */
 function updateUserDetails() {
     var detailsEl = $('userDetails');
     if (!detailsEl) return;
@@ -2364,7 +2571,6 @@ function updateUserDetails() {
     
     if (!expiryValue || !expirySub) return;
     
-    // ✅ ADMIN = VĨNH VIỄN
     if (currentUser.role === 'admin') {
         expiryValue.textContent = 'Vĩnh viễn';
         expiryValue.className = 'detail-value permanent';
@@ -2375,7 +2581,6 @@ function updateUserDetails() {
         return;
     }
     
-    // ✅ USER KHÔNG CÓ expiresAt = VĨNH VIỄN
     if (!currentUser.expiresAt) {
         expiryValue.textContent = 'Vĩnh viễn';
         expiryValue.className = 'detail-value permanent';
@@ -2386,7 +2591,6 @@ function updateUserDetails() {
         return;
     }
     
-    // ✅ USER CÓ expiresAt
     var expDate;
     try {
         var ea = currentUser.expiresAt;
@@ -2535,6 +2739,173 @@ document.addEventListener('click', function(e) {
     }
 });
 
+/* ✅ Đổi tên hiển thị */
+$('changeNameBtn').addEventListener('click', function() {
+    $('userDropdown').classList.remove('show');
+    if (!currentUser) return;
+    editingEmail = currentUser.email;
+    $('changeNameCurrent').textContent = currentUser.name;
+    $('changeNameEmail').textContent = currentUser.email;
+    $('changeNameInput').value = currentUser.name;
+    $('changeNameModal').classList.add('show');
+    setTimeout(function() { $('changeNameInput').focus(); }, 100);
+});
+
+$('changeNameClose').addEventListener('click', function() {
+    $('changeNameModal').classList.remove('show');
+});
+$('changeNameCancel').addEventListener('click', function() {
+    $('changeNameModal').classList.remove('show');
+});
+$('changeNameModal').addEventListener('click', function(e) {
+    if (e.target === this) $('changeNameModal').classList.remove('show');
+});
+
+$('changeNameConfirm').addEventListener('click', async function() {
+    if (!editingEmail) return;
+    var newName = $('changeNameInput').value.trim();
+    if (!newName) { alert('Tên không được để trống!'); return; }
+    if (newName.length > 50) { alert('Tên quá dài!'); return; }
+    
+    var btn = this;
+    btn.disabled = true;
+    var originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Đang lưu...';
+    
+    try {
+        await db.collection('allowed_users').doc(editingEmail).update({ name: newName });
+        
+        try { localStorage.removeItem('user_cache_' + editingEmail); } catch(e) {}
+        try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
+        
+        if (currentUser && currentUser.email === editingEmail) {
+            currentUser.name = newName;
+            $('userName').textContent = newName;
+            var avatar = $('userAvatar');
+            if (!currentUser.photo) {
+                avatar.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+                    '<rect fill="#2563eb" width="100" height="100"/>' +
+                    '<text x="50" y="65" font-size="45" fill="#fff" text-anchor="middle" font-family="sans-serif" font-weight="bold">' +
+                    newName.charAt(0).toUpperCase() +
+                    '</text></svg>'
+                );
+            }
+            
+            try {
+                localStorage.setItem('user_cache_' + editingEmail, JSON.stringify({
+                    data: currentUser,
+                    expires: Date.now() + 12 * 60 * 60 * 1000
+                }));
+            } catch(e) {}
+        }
+        
+        $('changeNameModal').classList.remove('show');
+        alert('✅ Đã đổi tên thành công!');
+        
+        if ($('adminModal').classList.contains('show')) {
+            loadUsers(true);
+        }
+    } catch(err) {
+        alert('❌ Lỗi: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
+});
+
+/* ✅ Chỉnh hạn sử dụng */
+var editingExpiryEmail = null;
+
+window.openEditExpiry = function(email) {
+    var user = usersCache.find(function(u) { return u.email === email; });
+    if (!user) { alert('Không tìm thấy user!'); return; }
+    
+    if (user.role === 'admin') {
+        alert('Admin có hạn vĩnh viễn, không cần chỉnh!');
+        return;
+    }
+    
+    editingExpiryEmail = email;
+    $('editExpiryName').textContent = user.name || email.split('@')[0];
+    $('editExpiryEmail').textContent = email;
+    
+    if (user.expiresAt) {
+        var d = getExpiryDate(user.expiresAt);
+        if (d && !isNaN(d.getTime())) {
+            $('editExpiryInput').value = formatDate(d);
+        } else {
+            $('editExpiryInput').value = '';
+        }
+    } else {
+        $('editExpiryInput').value = '';
+    }
+    
+    $('editExpiryModal').classList.add('show');
+};
+
+window.setQuickExpiry = function(days) {
+    var d = new Date();
+    d.setDate(d.getDate() + days);
+    d.setHours(23, 59, 59);
+    $('editExpiryInput').value = formatDate(d);
+};
+
+window.setQuickExpiryPermanent = function() {
+    $('editExpiryInput').value = '';
+};
+
+$('editExpiryClose').addEventListener('click', function() {
+    $('editExpiryModal').classList.remove('show');
+});
+$('editExpiryCancel').addEventListener('click', function() {
+    $('editExpiryModal').classList.remove('show');
+});
+$('editExpiryModal').addEventListener('click', function(e) {
+    if (e.target === this) $('editExpiryModal').classList.remove('show');
+});
+
+$('editExpiryConfirm').addEventListener('click', async function() {
+    if (!editingExpiryEmail) return;
+    
+    var dateVal = $('editExpiryInput').value;
+    var updateData = {};
+    
+    if (dateVal) {
+        var d = new Date(dateVal + 'T23:59:59');
+        if (isNaN(d.getTime())) { alert('Ngày không hợp lệ!'); return; }
+        updateData.expiresAt = firebase.firestore.Timestamp.fromDate(d);
+    } else {
+        updateData.expiresAt = null;
+    }
+    
+    var btn = this;
+    btn.disabled = true;
+    var originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Đang lưu...';
+    
+    try {
+        await db.collection('allowed_users').doc(editingExpiryEmail).update(updateData);
+        
+        try { localStorage.removeItem('user_cache_' + editingExpiryEmail); } catch(e) {}
+        try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
+        
+        $('editExpiryModal').classList.remove('show');
+        
+        var msg = dateVal 
+            ? '✅ Đã cập nhật hạn đến ngày ' + new Date(dateVal).toLocaleDateString('vi-VN')
+            : '✅ Đã đặt thành vĩnh viễn';
+        alert(msg);
+        
+        loadUsers(true);
+    } catch(err) {
+        alert('❌ Lỗi: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
+});
+
 function logLogin(u) {
     try {
         var today = new Date().toDateString();
@@ -2638,7 +3009,6 @@ function initZaloButton() {
     var nameEl = zaloBtn.querySelector('.zalo-name');
     if (nameEl && ZALO_NAME) nameEl.textContent = ZALO_NAME;
     
-    // ✅ Zalo trong dropdown
     var dropdownZalo = $('dropdownZaloBtn');
     if (dropdownZalo) {
         if (phone) {
@@ -2794,7 +3164,8 @@ document.addEventListener('click', function(e) {
         e.target.closest('.writer-modal') || e.target.closest('.user-menu') ||
         e.target.closest('.login-modal') || e.target.closest('.admin-modal') ||
         e.target.closest('.practice-full-modal') || e.target.closest('.import-modal') ||
-        e.target.closest('.zalo-btn') || e.target.closest('.toggle-check-btn')) return;
+        e.target.closest('.edit-modal') || e.target.closest('.zalo-btn') || 
+        e.target.closest('.toggle-check-btn')) return;
     clearFocus();
 }, true);
 
@@ -3052,9 +3423,6 @@ function render(reset) {
     }
 }
 
-/* ============================================================
-   🧠 SO KHỚP THÔNG MINH
-   ============================================================ */
 function normalizeAnswer(str) {
     if (!str) return '';
     return String(str)
@@ -3412,9 +3780,6 @@ function applyFilter() {
     render(true);
 }
 
-/* ============================================================
-   🎯 CHẾ ĐỘ LUYỆN TẬP FULL MÀN HÌNH
-   ============================================================ */
 var pfCurrentStt = null;
 var pfCurrentAnswer = '';
 var pfCurrentVi = '';
@@ -3969,9 +4334,6 @@ function initPracticeFull() {
     }, { passive: true });
 }
 
-/* ============================================================
-   ✍️ LUYỆN VIẾT
-   ============================================================ */
 var writerInstance = null;
 var currentWriteZh = '';
 var currentWriteVi = '';
@@ -4101,9 +4463,6 @@ function showWriterChar(char) {
     }, 100);
 }
 
-/* ============================================================
-   👑 ADMIN PANEL
-   ============================================================ */
 function initAdminPanel() {
     $('openAdminBtn').addEventListener('click', function() {
         $('userDropdown').classList.remove('show');
@@ -4121,7 +4480,7 @@ function initAdminPanel() {
         loadUsers(true);
     });
     
-    /* ✅ EXPORT EXCEL - CHỈ USER, KHÔNG ADMIN */
+    /* ✅ EXPORT EXCEL CHUYÊN NGHIỆP - CHỈ USER, KHÔNG ADMIN */
     $('exportExcelBtn').addEventListener('click', function() {
         var usersOnly = usersCache.filter(function(u) { 
             return u.role !== 'admin'; 
@@ -4132,38 +4491,349 @@ function initAdminPanel() {
             return; 
         }
         
-        var rows = [['email', 'name', 'role', 'expiresAt']];
-        
-        usersOnly.forEach(function(u) {
-            var expStr = '';
-            if (u.expiresAt) {
-                try {
-                    var ea = u.expiresAt;
-                    var d;
-                    if (typeof ea.toDate === 'function') d = ea.toDate();
-                    else if (ea.seconds) d = new Date(ea.seconds * 1000);
-                    else d = new Date(ea);
-                    if (d && !isNaN(d.getTime())) {
-                        var y = d.getFullYear();
-                        var m = String(d.getMonth() + 1).padStart(2, '0');
-                        var day = String(d.getDate()).padStart(2, '0');
-                        expStr = y + '-' + m + '-' + day;
+        try {
+            var wb = XLSX.utils.book_new();
+            var now = Date.now();
+            
+            usersOnly.sort(function(a, b) {
+                var da = getExpiryTimestamp(a.expiresAt);
+                var db = getExpiryTimestamp(b.expiresAt);
+                if (da === null && db === null) return 0;
+                if (da === null) return 1;
+                if (db === null) return -1;
+                return da - db;
+            });
+            
+            var COLUMNS = [
+                { header: 'STT', width: 6 },
+                { header: 'email', width: 35 },
+                { header: 'name', width: 25 },
+                { header: 'phone', width: 16 },
+                { header: 'expiresAt', width: 14 },
+                { header: 'Trạng thái', width: 22 },
+                { header: 'Ghi chú', width: 25 },
+            ];
+            
+            var aoa = [COLUMNS.map(function(c) { return c.header; })];
+            
+            var stats = {
+                total: usersOnly.length,
+                permanent: 0,
+                expired: 0,
+                urgent: 0,
+                warning: 0,
+                ok: 0,
+            };
+            
+            var statusTypes = [];
+            
+            usersOnly.forEach(function(u) {
+                var expDate = getExpiryDate(u.expiresAt);
+                var expStr = '';
+                var statusStr = '';
+                var statusType = 'ok';
+                
+                if (!expDate) {
+                    expStr = '';
+                    statusStr = '∞ Vĩnh viễn';
+                    statusType = 'permanent';
+                    stats.permanent++;
+                } else {
+                    expStr = formatDate(expDate);
+                    var daysLeft = Math.ceil((expDate.getTime() - now) / (24 * 60 * 60 * 1000));
+                    
+                    if (daysLeft < 0) {
+                        statusStr = '❌ Hết hạn ' + Math.abs(daysLeft) + ' ngày';
+                        statusType = 'expired';
+                        stats.expired++;
+                    } else if (daysLeft === 0) {
+                        statusStr = '⏰ Hết hạn hôm nay';
+                        statusType = 'urgent';
+                        stats.urgent++;
+                    } else if (daysLeft <= 3) {
+                        statusStr = '🔴 Còn ' + daysLeft + ' ngày';
+                        statusType = 'urgent';
+                        stats.urgent++;
+                    } else if (daysLeft <= 7) {
+                        statusStr = '🟡 Còn ' + daysLeft + ' ngày';
+                        statusType = 'warning';
+                        stats.warning++;
+                    } else {
+                        statusStr = '🟢 Còn ' + daysLeft + ' ngày';
+                        statusType = 'ok';
+                        stats.ok++;
                     }
-                } catch(e) {}
+                }
+                
+                statusTypes.push(statusType);
+                
+                aoa.push([
+                    '',
+                    u.email || '',
+                    u.name || '',
+                    '',
+                    expStr,
+                    statusStr,
+                    ''
+                ]);
+            });
+            
+            var totalRows = aoa.length;
+            var ws = XLSX.utils.aoa_to_sheet(aoa);
+            
+            ws['!cols'] = COLUMNS.map(function(c) { return { wch: c.width }; });
+            ws['!rows'] = [{ hpt: 30 }];
+            for (var r = 1; r < totalRows; r++) {
+                ws['!rows'].push({ hpt: 22 });
             }
-            rows.push([u.email, u.name || '', 'user', expStr]);
-        });
-        
-        var ws = XLSX.utils.aoa_to_sheet(rows);
-        ws['!cols'] = [{ wch: 32 }, { wch: 25 }, { wch: 10 }, { wch: 14 }];
-        var wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Users');
-        
-        var today = new Date();
-        var fname = 'users_' + today.getFullYear() + 
-                    String(today.getMonth() + 1).padStart(2, '0') + 
-                    String(today.getDate()).padStart(2, '0') + '.xlsx';
-        XLSX.writeFile(wb, fname);
+            ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+            ws['!autofilter'] = { ref: 'A1:G' + totalRows };
+            
+            var headerStyle = {
+                font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+                fill: { fgColor: { rgb: '2563EB' } },
+                alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                border: {
+                    top: { style: 'thin', color: { rgb: '1E40AF' } },
+                    bottom: { style: 'thin', color: { rgb: '1E40AF' } },
+                    left: { style: 'thin', color: { rgb: '1E40AF' } },
+                    right: { style: 'thin', color: { rgb: '1E40AF' } }
+                }
+            };
+            
+            ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1'].forEach(function(ref) {
+                if (ws[ref]) ws[ref].s = headerStyle;
+            });
+            
+            for (var r = 2; r <= totalRows; r++) {
+                var statusType = statusTypes[r - 2] || 'ok';
+                
+                var sttRef = 'A' + r;
+                if (!ws[sttRef]) ws[sttRef] = { v: '', t: 's' };
+                ws[sttRef].f = 'IF(B' + r + '<>"",ROW()-1,"")';
+                ws[sttRef].t = 'n';
+                ws[sttRef].s = {
+                    font: { bold: true, color: { rgb: '64748B' }, sz: 10 },
+                    fill: { fgColor: { rgb: 'F1F5F9' } },
+                    alignment: { horizontal: 'center', vertical: 'center' },
+                    border: getBorder()
+                };
+                
+                var emailRef = 'B' + r;
+                if (!ws[emailRef]) ws[emailRef] = { v: '', t: 's' };
+                ws[emailRef].s = {
+                    fill: { fgColor: { rgb: 'DBEAFE' } },
+                    alignment: { horizontal: 'left', vertical: 'center' },
+                    border: getBorder()
+                };
+                
+                var nameRef = 'C' + r;
+                if (!ws[nameRef]) ws[nameRef] = { v: '', t: 's' };
+                ws[nameRef].s = {
+                    fill: { fgColor: { rgb: 'F0F9FF' } },
+                    alignment: { horizontal: 'left', vertical: 'center' },
+                    border: getBorder()
+                };
+                
+                var phoneRef = 'D' + r;
+                if (!ws[phoneRef]) ws[phoneRef] = { v: '', t: 's' };
+                ws[phoneRef].s = {
+                    fill: { fgColor: { rgb: 'FEF3C7' } },
+                    alignment: { horizontal: 'center', vertical: 'center' },
+                    border: getBorder()
+                };
+                ws[phoneRef].t = 's';
+                ws[phoneRef].z = '@';
+                
+                var expRef = 'E' + r;
+                if (!ws[expRef]) ws[expRef] = { v: '', t: 's' };
+                var expBgColor = 'DCFCE7';
+                if (statusType === 'expired') expBgColor = 'FEE2E2';
+                else if (statusType === 'urgent') expBgColor = 'FECACA';
+                else if (statusType === 'warning') expBgColor = 'FEF3C7';
+                else if (statusType === 'permanent') expBgColor = 'F1F5F9';
+                
+                ws[expRef].s = {
+                    fill: { fgColor: { rgb: expBgColor } },
+                    alignment: { horizontal: 'center', vertical: 'center' },
+                    border: getBorder(),
+                    font: { 
+                        bold: statusType === 'expired' || statusType === 'urgent',
+                        color: { rgb: statusType === 'expired' ? 'DC2626' : '0F172A' },
+                        sz: 10
+                    }
+                };
+                
+                var sttStatusRef = 'F' + r;
+                if (!ws[sttStatusRef]) ws[sttStatusRef] = { v: '', t: 's' };
+                var statusBgColor = 'DCFCE7';
+                var statusFontColor = '16A34A';
+                if (statusType === 'expired') { statusBgColor = 'FEE2E2'; statusFontColor = 'DC2626'; }
+                else if (statusType === 'urgent') { statusBgColor = 'FECACA'; statusFontColor = 'DC2626'; }
+                else if (statusType === 'warning') { statusBgColor = 'FEF3C7'; statusFontColor = '92400E'; }
+                else if (statusType === 'permanent') { statusBgColor = 'DBEAFE'; statusFontColor = '1D4ED8'; }
+                
+                ws[sttStatusRef].s = {
+                    fill: { fgColor: { rgb: statusBgColor } },
+                    alignment: { horizontal: 'center', vertical: 'center' },
+                    border: getBorder(),
+                    font: { bold: true, color: { rgb: statusFontColor }, sz: 10 }
+                };
+                
+                var noteRef = 'G' + r;
+                if (!ws[noteRef]) ws[noteRef] = { v: '', t: 's' };
+                ws[noteRef].s = {
+                    fill: { fgColor: { rgb: 'FFFFFF' } },
+                    alignment: { horizontal: 'left', vertical: 'center' },
+                    border: getBorder()
+                };
+            }
+            
+            XLSX.utils.book_append_sheet(wb, ws, 'Users');
+            
+            var ws2 = XLSX.utils.aoa_to_sheet([
+                ['📊  THỐNG KÊ TÀI KHOẢN', '', ''],
+                ['', '', ''],
+                ['Tổng số user', stats.total, ''],
+                ['', '', ''],
+                ['🟢 Còn nhiều thời gian (> 7 ngày)', stats.ok, ''],
+                ['🟡 Sắp hết hạn (4-7 ngày)', stats.warning, ''],
+                ['🔴 Sắp hết hạn (≤ 3 ngày)', stats.urgent, ''],
+                ['❌ Đã hết hạn', stats.expired, ''],
+                ['∞  Vĩnh viễn', stats.permanent, ''],
+                ['', '', ''],
+                ['📅 Ngày export', new Date().toLocaleString('vi-VN'), ''],
+            ]);
+            
+            ws2['!cols'] = [{ wch: 35 }, { wch: 18 }, { wch: 20 }];
+            
+            if (ws2['A1']) {
+                ws2['A1'].s = {
+                    font: { bold: true, sz: 16, color: { rgb: 'FFFFFF' } },
+                    fill: { fgColor: { rgb: '2563EB' } },
+                    alignment: { horizontal: 'center', vertical: 'center' }
+                };
+            }
+            
+            var statRows = [3, 5, 6, 7, 8, 9];
+            statRows.forEach(function(r) {
+                var aRef = 'A' + r;
+                var bRef = 'B' + r;
+                if (ws2[aRef]) {
+                    ws2[aRef].s = {
+                        font: { bold: true, sz: 11, color: { rgb: '0F172A' } },
+                        alignment: { horizontal: 'left', vertical: 'center', indent: 1 }
+                    };
+                }
+                if (ws2[bRef]) {
+                    ws2[bRef].s = {
+                        font: { bold: true, sz: 14 },
+                        alignment: { horizontal: 'center', vertical: 'center' }
+                    };
+                }
+            });
+            
+            if (ws2['B5']) ws2['B5'].s.font = { bold: true, sz: 14, color: { rgb: '16A34A' } };
+            if (ws2['B6']) ws2['B6'].s.font = { bold: true, sz: 14, color: { rgb: 'D97706' } };
+            if (ws2['B7']) ws2['B7'].s.font = { bold: true, sz: 14, color: { rgb: 'DC2626' } };
+            if (ws2['B8']) ws2['B8'].s.font = { bold: true, sz: 14, color: { rgb: 'DC2626' } };
+            if (ws2['B9']) ws2['B9'].s.font = { bold: true, sz: 14, color: { rgb: '2563EB' } };
+            
+            XLSX.utils.book_append_sheet(wb, ws2, 'Thống kê');
+            
+            var ws3 = XLSX.utils.aoa_to_sheet([
+                ['📖  HƯỚNG DẪN SỬ DỤNG FILE EXPORT', '', ''],
+                ['', '', ''],
+                ['🎯  MỤC ĐÍCH', '', ''],
+                ['', 'File này là bản backup danh sách user', ''],
+                ['', 'Có thể import lại để khôi phục', ''],
+                ['', '', ''],
+                ['📌  CỘT QUAN TRỌNG', '', ''],
+                ['', 'email', '✅ BẮT BUỘC khi import lại'],
+                ['', 'name', '⭕ Tùy chọn'],
+                ['', 'expiresAt', '⭕ Định dạng YYYY-MM-DD. Trống = vĩnh viễn'],
+                ['', '', ''],
+                ['🗑️  CỘT CHỈ ĐỂ THAM KHẢO', '', ''],
+                ['', 'STT', 'Tự động đánh số'],
+                ['', 'phone', 'Không import (chưa có trong hệ thống)'],
+                ['', 'Trạng thái', 'Tự động tính theo ngày hiện tại'],
+                ['', 'Ghi chú', 'Không import'],
+                ['', '', ''],
+                ['⚠️  LƯU Ý', '', ''],
+                ['', '🚫 Admin không có trong file', 'Chỉ export user thường'],
+                ['', '📅 Định dạng ngày', 'YYYY-MM-DD'],
+                ['', '🔄 Sắp xếp', 'Sắp hết hạn lên đầu, vĩnh viễn xuống cuối'],
+                ['', '🎨 Màu sắc', 'Đỏ = hết hạn, Cam = gấp, Vàng = sắp hết, Xanh = ổn'],
+                ['', '', ''],
+                ['🚀  CÁCH IMPORT LẠI', '', ''],
+                ['', '1.', 'Mở web, đăng nhập Admin'],
+                ['', '2.', 'Click avatar → Quản lý tài khoản'],
+                ['', '3.', 'Nhấn nút "Import"'],
+                ['', '4.', 'Chọn file này'],
+                ['', '5.', 'Kiểm tra preview → Confirm'],
+            ]);
+            
+            ws3['!cols'] = [{ wch: 4 }, { wch: 30 }, { wch: 60 }];
+            ws3['!rows'] = [{ hpt: 42 }, { hpt: 8 }];
+            
+            if (ws3['A1']) {
+                ws3['A1'].s = {
+                    font: { bold: true, sz: 16, color: { rgb: 'FFFFFF' } },
+                    fill: { fgColor: { rgb: '2563EB' } },
+                    alignment: { horizontal: 'center', vertical: 'center' }
+                };
+            }
+            
+            ['A3', 'A7', 'A12', 'A18', 'A24'].forEach(function(ref) {
+                if (ws3[ref]) {
+                    ws3[ref].s = {
+                        font: { bold: true, sz: 12, color: { rgb: '1E40AF' } },
+                        fill: { fgColor: { rgb: 'DBEAFE' } },
+                        alignment: { horizontal: 'left', vertical: 'center', indent: 1 }
+                    };
+                }
+            });
+            
+            for (var r = 4; r <= 30; r++) {
+                var bRef = 'B' + r;
+                var cRef = 'C' + r;
+                if (ws3[bRef] && ws3[bRef].v) {
+                    ws3[bRef].s = {
+                        font: { bold: true, sz: 10, color: { rgb: '0F172A' } },
+                        alignment: { horizontal: 'left', vertical: 'center' }
+                    };
+                }
+                if (ws3[cRef] && ws3[cRef].v) {
+                    ws3[cRef].s = {
+                        font: { sz: 10, color: { rgb: '475569' } },
+                        alignment: { horizontal: 'left', vertical: 'center', wrapText: true }
+                    };
+                }
+            }
+            
+            XLSX.utils.book_append_sheet(wb, ws3, 'Hướng dẫn');
+            
+            var today = new Date();
+            var dateStr = today.getFullYear() +
+                          String(today.getMonth() + 1).padStart(2, '0') +
+                          String(today.getDate()).padStart(2, '0') + '_' +
+                          String(today.getHours()).padStart(2, '0') +
+                          String(today.getMinutes()).padStart(2, '0');
+            
+            var fname = 'users_export_' + dateStr + '.xlsx';
+            
+            XLSX.writeFile(wb, fname, { 
+                bookType: 'xlsx',
+                cellStyles: true
+            });
+            
+            console.log('✅ Đã export:', fname);
+            console.log('📊 Stats:', stats);
+            
+        } catch(err) {
+            console.error('Lỗi export:', err);
+            alert('❌ Lỗi export: ' + err.message);
+        }
     });
     
     /* ✅ IMPORT EXCEL - CHỈ IMPORT USER */
@@ -4208,7 +4878,6 @@ function initAdminPanel() {
     
     $('importConfirmBtn').addEventListener('click', doImport);
     
-    /* ✅ Thêm user thủ công */
     $('showAddUserBtn').addEventListener('click', function() {
         $('addUserForm').classList.toggle('show');
         if ($('addUserForm').classList.contains('show')) $('newUserEmail').focus();
@@ -4229,9 +4898,10 @@ function initAdminPanel() {
         if (!email || !email.includes('@')) { alert('Email không hợp lệ'); return; }
         if (!name) name = email.split('@')[0];
         
-        if (role === 'admin') {
-            var currentAdminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
-            if (currentAdminCount >= TARGET_ADMINS) { alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!'); return; }
+        // ✅ Thêm admin: CHỈ Super Admin mới làm được
+        if (role === 'admin' && !isSuperAdmin()) {
+            alert('⚠️ Chỉ Super Admin mới có quyền thêm admin!');
+            return;
         }
         
         try {
@@ -4245,7 +4915,7 @@ function initAdminPanel() {
                 addedBy: currentUser.email
             };
             
-            if (expiresVal) {
+            if (expiresVal && role !== 'admin') {
                 var d = new Date(expiresVal + 'T23:59:59');
                 if (!isNaN(d.getTime())) {
                     setData.expiresAt = firebase.firestore.Timestamp.fromDate(d);
@@ -4262,6 +4932,40 @@ function initAdminPanel() {
             loadUsers(true);
         } catch(e) { alert('Lỗi: ' + e.message); }
     });
+}
+
+function getBorder() {
+    return {
+        top:    { style: 'thin', color: { rgb: 'CBD5E1' } },
+        bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        left:   { style: 'thin', color: { rgb: 'CBD5E1' } },
+        right:  { style: 'thin', color: { rgb: 'CBD5E1' } }
+    };
+}
+
+function getExpiryDate(expiresAt) {
+    if (!expiresAt) return null;
+    try {
+        var ea = expiresAt;
+        if (typeof ea.toDate === 'function') return ea.toDate();
+        if (ea.seconds) return new Date(ea.seconds * 1000);
+        return new Date(ea);
+    } catch(e) {
+        return null;
+    }
+}
+
+function getExpiryTimestamp(expiresAt) {
+    var d = getExpiryDate(expiresAt);
+    return d ? d.getTime() : null;
+}
+
+function formatDate(d) {
+    if (!d) return '';
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
 }
 
 function openAdminPanel() {
@@ -4326,12 +5030,20 @@ function loadUsers(forceRefresh) {
 }
 
 function loadLastLoginMap() {
+    var hidden = isHiddenAdmin();
+    var myEmail = (currentUser && currentUser.email ? currentUser.email.toLowerCase() : '');
+    
     return db.collection('login_logs').orderBy('time', 'desc').limit(500).get()
         .then(function(snapshot) {
             lastLoginMap = {};
             snapshot.forEach(function(doc) {
                 var d = doc.data();
                 var email = (d.email || '').toLowerCase();
+                
+                if (hidden && d.role === 'admin' && email !== myEmail) {
+                    return;
+                }
+                
                 if (!lastLoginMap[email] && d.time) {
                     lastLoginMap[email] = d.time.toDate();
                 }
@@ -4342,67 +5054,163 @@ function loadLastLoginMap() {
 }
 
 function renderAdminStats() {
-    var total = usersCache.length;
-    var admins = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
-    var users = total - admins;
+    var hidden = isHiddenAdmin();
+    
+    var usersCacheOnly = usersCache.filter(function(u) { 
+        return u.role !== 'admin'; 
+    });
+    var users = usersCacheOnly.length;
+    var admins = usersCache.length - users;
+    
     var now = Date.now();
+    var day1 = 24 * 60 * 60 * 1000;
     var day7 = 7 * 24 * 60 * 60 * 1000;
-    var active = 0, never = 0, expired = 0;
-    usersCache.forEach(function(u) {
+    
+    var active = 0;
+    var online = 0;
+    var never = 0;
+    var expired = 0;
+    var expiring = 0;
+    
+    usersCacheOnly.forEach(function(u) {
         var last = lastLoginMap[(u.email || '').toLowerCase()];
-        if (last && (now - last.getTime()) <= day7) active++;
-        else if (!last) never++;
+        if (last) {
+            var diff = now - last.getTime();
+            if (diff <= day7) active++;
+            if (diff <= day1) online++;
+        } else {
+            never++;
+        }
         
-        if (u.expiresAt && u.role !== 'admin') {
-            try {
-                var ea = u.expiresAt;
-                var d;
-                if (typeof ea.toDate === 'function') d = ea.toDate();
-                else if (ea.seconds) d = new Date(ea.seconds * 1000);
-                else d = new Date(ea);
-                if (d && d < new Date()) expired++;
-            } catch(e) {}
+        if (u.expiresAt) {
+            var d = getExpiryDate(u.expiresAt);
+            if (d && !isNaN(d.getTime())) {
+                var daysLeft = Math.ceil((d.getTime() - now) / (24 * 60 * 60 * 1000));
+                if (daysLeft < 0) expired++;
+                else if (daysLeft <= 7) expiring++;
+            }
         }
     });
     
+    if (hidden) {
+        $('adminStats').innerHTML = 
+            '<div class="stat-card">' +
+                '<div class="num">' + users + '</div>' +
+                '<div class="label">Tổng User</div>' +
+            '</div>' +
+            '<div class="stat-card">' +
+                '<div class="num" style="color:#16a34a">' + online + '</div>' +
+                '<div class="label">Đang hoạt động</div>' +
+            '</div>' +
+            '<div class="stat-card">' +
+                '<div class="num" style="color:#f59e0b">' + expiring + '</div>' +
+                '<div class="label">Sắp hết hạn</div>' +
+            '</div>' +
+            '<div class="stat-card">' +
+                '<div class="num" style="color:#dc2626">' + expired + '</div>' +
+                '<div class="label">Hết hạn</div>' +
+            '</div>';
+        
+        $('adminUserCount').textContent = users;
+        return;
+    }
+    
     $('adminStats').innerHTML =
-        '<div class="stat-card"><div class="num">' + total + '</div><div class="label">Tổng</div></div>' +
-        '<div class="stat-card"><div class="num" style="color:#16a34a">' + active + '</div><div class="label">Active 7d</div></div>' +
+        '<div class="stat-card"><div class="num">' + users + '</div><div class="label">Tổng User</div></div>' +
+        '<div class="stat-card"><div class="num" style="color:#16a34a">' + online + '</div><div class="label">Đang hoạt động</div></div>' +
+        '<div class="stat-card"><div class="num" style="color:#3b82f6">' + active + '</div><div class="label">Active 7d</div></div>' +
         '<div class="stat-card"><div class="num" style="color:#f59e0b">' + admins + '</div><div class="label">Admin</div></div>' +
         '<div class="stat-card"><div class="num" style="color:#94a3b8">' + never + '</div><div class="label">Chưa login</div></div>' +
+        '<div class="stat-card"><div class="num" style="color:#f59e0b">' + expiring + '</div><div class="label">Sắp hết hạn</div></div>' +
         '<div class="stat-card"><div class="num" style="color:#dc2626">' + expired + '</div><div class="label">Hết hạn</div></div>';
     
-    $('adminUserCount').textContent = total;
+    $('adminUserCount').textContent = users;
 }
 
 function renderUsers(items) {
     var list = $('userList');
-    if (!items.length) {
+    var hidden = isHiddenAdmin();
+    var superAdmin = isSuperAdmin();
+    var myEmail = (currentUser && currentUser.email ? currentUser.email.toLowerCase() : '');
+    
+    var displayItems = items;
+    if (hidden) {
+        displayItems = items.filter(function(u) {
+            var uEmail = (u.email || '').toLowerCase();
+            if (u.role === 'admin' && uEmail !== myEmail) return false;
+            return true;
+        });
+    }
+    
+    if (!displayItems.length) {
         list.innerHTML = '<div class="no-data" style="padding:1.5rem;font-size:.85rem"><i class="fas fa-search"></i>Không có user nào</div>';
         return;
     }
+    
     var adminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
     var now = Date.now();
     var day7 = 7 * 24 * 60 * 60 * 1000;
     var day30 = 30 * 24 * 60 * 60 * 1000;
     
-    list.innerHTML = items.map(function(u) {
+    list.innerHTML = displayItems.map(function(u) {
         var isMe = u.email === currentUser.email;
         var isAdmin = u.role === 'admin';
+        var targetIsSuper = (u.email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
+        
+        // ✅ SUPER ADMIN: có thể hạ quyền/xóa admin thường (trừ chính mình + trừ Super Admin)
+        var canModifyAdmin = superAdmin && isAdmin && !isMe && !targetIsSuper;
         
         var roleBtn = '';
         if (isAdmin) {
-            var reason = isMe ? 'Không thể tự hạ quyền chính mình' : 'Phải giữ đúng ' + TARGET_ADMINS + ' admin';
-            roleBtn = '<button class="u-btn" disabled title="' + escapeHtml(reason) + '"><i class="fas fa-user"></i></button>';
+            if (canModifyAdmin) {
+                roleBtn = '<button class="u-btn" onclick="changeRole(\'' + escapeJs(u.email) + '\', \'user\')" title="Hạ xuống User"><i class="fas fa-user"></i></button>';
+            } else {
+                var reason = isMe ? 'Không thể tự hạ quyền chính mình' : (targetIsSuper ? 'Không thể hạ quyền Super Admin' : 'Chỉ Super Admin mới hạ quyền được');
+                roleBtn = '<button class="u-btn" disabled title="' + escapeHtml(reason) + '"><i class="fas fa-user"></i></button>';
+            }
         } else {
-            if (adminCount < TARGET_ADMINS) roleBtn = '<button class="u-btn" onclick="changeRole(\'' + escapeJs(u.email) + '\', \'admin\')" title="Nâng lên Admin"><i class="fas fa-shield-alt"></i></button>';
-            else roleBtn = '<button class="u-btn" disabled title="Đã đủ ' + TARGET_ADMINS + ' admin"><i class="fas fa-shield-alt"></i></button>';
+            // Nâng user lên admin: chỉ Super Admin mới được nâng (để kiểm soát)
+            if (superAdmin) {
+                roleBtn = '<button class="u-btn" onclick="changeRole(\'' + escapeJs(u.email) + '\', \'admin\')" title="Nâng lên Admin"><i class="fas fa-shield-alt"></i></button>';
+            } else {
+                roleBtn = '<button class="u-btn" disabled title="Chỉ Super Admin mới nâng quyền được"><i class="fas fa-shield-alt"></i></button>';
+            }
         }
         
         var deleteBtn = '';
-        if (isMe) deleteBtn = '<button class="u-btn danger" disabled title="Không thể tự xóa chính mình"><i class="fas fa-trash"></i></button>';
-        else if (isAdmin) deleteBtn = '<button class="u-btn danger" disabled title="Phải giữ đúng ' + TARGET_ADMINS + ' admin"><i class="fas fa-trash"></i></button>';
-        else deleteBtn = '<button class="u-btn danger" onclick="deleteUser(\'' + escapeJs(u.email) + '\')" title="Xóa"><i class="fas fa-trash"></i></button>';
+        if (isMe) {
+            deleteBtn = '<button class="u-btn danger" disabled title="Không thể tự xóa chính mình"><i class="fas fa-trash"></i></button>';
+        } else if (targetIsSuper) {
+            deleteBtn = '<button class="u-btn danger" disabled title="Không thể xóa Super Admin"><i class="fas fa-trash"></i></button>';
+        } else if (isAdmin) {
+            if (canModifyAdmin) {
+                deleteBtn = '<button class="u-btn danger" onclick="deleteUser(\'' + escapeJs(u.email) + '\')" title="Xóa admin"><i class="fas fa-trash"></i></button>';
+            } else {
+                deleteBtn = '<button class="u-btn danger" disabled title="Chỉ Super Admin mới xóa được admin"><i class="fas fa-trash"></i></button>';
+            }
+        } else {
+            deleteBtn = '<button class="u-btn danger" onclick="deleteUser(\'' + escapeJs(u.email) + '\')" title="Xóa"><i class="fas fa-trash"></i></button>';
+        }
+        
+        // ✅ Nút chỉnh hạn sử dụng = BIỂU TƯỢNG LỊCH (icon only, có tooltip, pulse đỏ khi ≤7 ngày)
+        var expiryBtn = '';
+        if (!isAdmin) {
+            var btnCls = 'u-btn expiry';
+            var tooltip = 'Chỉnh hạn sử dụng';
+            
+            if (u.expiresAt) {
+                var d = getExpiryDate(u.expiresAt);
+                if (d && !isNaN(d.getTime())) {
+                    var daysLeftExp = Math.ceil((d.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+                    tooltip = 'Chỉnh hạn (hiện tại: ' + d.toLocaleDateString('vi-VN') + ', còn ' + Math.max(0, daysLeftExp) + ' ngày)';
+                    if (daysLeftExp <= 7) btnCls += ' urgent';
+                }
+            } else {
+                tooltip = 'Chỉnh hạn (hiện tại: Vĩnh viễn)';
+            }
+            
+            expiryBtn = '<button class="' + btnCls + '" onclick="openEditExpiry(\'' + escapeJs(u.email) + '\')" title="' + escapeHtml(tooltip) + '"><i class="fas fa-calendar-alt"></i></button>';
+        }
         
         var lastLoginHtml = '';
         var last = lastLoginMap[(u.email || '').toLowerCase()];
@@ -4418,15 +5226,9 @@ function renderUsers(items) {
         if (isAdmin) {
             expiryHtml = '<div class="u-expiry permanent"><i class="fas fa-infinity"></i> Vĩnh viễn</div>';
         } else if (!u.expiresAt) {
-            expiryHtml = '<div class="u-expiry permanent"><i class="fas fa-infinity"></i> Vĩnh viễn</div>';
+            expiryHtml = '<div class="u-expiry permanent" onclick="openEditExpiry(\'' + escapeJs(u.email) + '\')" title="Click để chỉnh"><i class="fas fa-infinity"></i> Vĩnh viễn</div>';
         } else {
-            var expDate;
-            try {
-                var ea = u.expiresAt;
-                if (typeof ea.toDate === 'function') expDate = ea.toDate();
-                else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
-                else expDate = new Date(ea);
-            } catch(e) {}
+            var expDate = getExpiryDate(u.expiresAt);
             
             if (expDate && !isNaN(expDate.getTime())) {
                 var daysLeft = Math.ceil((expDate.getTime() - now) / (24 * 60 * 60 * 1000));
@@ -4448,10 +5250,14 @@ function renderUsers(items) {
                     expText = 'Còn ' + daysLeft + ' ngày';
                 }
                 
-                expiryHtml = '<div class="u-expiry ' + expCls + '"><i class="fas ' + expIcon + '"></i> ' + 
+                expiryHtml = '<div class="u-expiry ' + expCls + '" onclick="openEditExpiry(\'' + escapeJs(u.email) + '\')" title="Click để chỉnh"><i class="fas ' + expIcon + '"></i> ' + 
                              escapeHtml(expText) + ' • ' + expDate.toLocaleDateString('vi-VN') + '</div>';
             }
         }
+        
+        var roleBadge = isAdmin 
+            ? '<span class="u-role ' + (targetIsSuper ? 'super' : 'admin') + '">' + (targetIsSuper ? '👑 super' : 'admin') + '</span>'
+            : '<span class="u-role user">user</span>';
         
         return '<div class="user-row" data-email="' + escapeHtml(u.email) + '">' +
             '<div class="u-info">' +
@@ -4460,25 +5266,56 @@ function renderUsers(items) {
                 lastLoginHtml +
                 expiryHtml +
             '</div>' +
-            '<span class="u-role ' + (isAdmin ? 'admin' : 'user') + '">' + (u.role || 'user') + '</span>' +
-            '<div class="u-actions">' + roleBtn + deleteBtn + '</div>' +
+            roleBadge +
+            '<div class="u-actions">' + expiryBtn + roleBtn + deleteBtn + '</div>' +
         '</div>';
     }).join('');
 }
 
+/* ✅ Đổi vai trò: Super Admin có thể hạ quyền admin thường */
 window.changeRole = async function(email, newRole) {
     var target = usersCache.find(function(u) { return u.email === email; });
     if (!target) { alert('Không tìm thấy user!'); return; }
+    
     var isMe = email === currentUser.email;
     var isAdmin = target.role === 'admin';
-    var adminCount = usersCache.filter(function(u) { return u.role === 'admin'; }).length;
+    var superAdmin = isSuperAdmin();
+    var targetIsSuper = (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
     
-    if (isMe && newRole === 'user') { alert('⚠️ Không thể tự hạ quyền admin của chính mình!'); return; }
-    if (isAdmin && newRole === 'user') { alert('⚠️ Không thể hạ quyền admin!\n\nHệ thống phải giữ đúng ' + TARGET_ADMINS + ' admin.'); return; }
-    if (!isAdmin && newRole === 'admin' && adminCount >= TARGET_ADMINS) { alert('⚠️ Đã có đủ ' + TARGET_ADMINS + ' admin!'); return; }
+    // ✅ Chặn tự hạ quyền chính mình
+    if (isMe && newRole === 'user') { 
+        alert('⚠️ Không thể tự hạ quyền admin của chính mình!'); 
+        return; 
+    }
     
-    var action = newRole === 'admin' ? 'NÂNG LÊN ADMIN' : 'HẠ XUỐNG USER';
+    // ✅ Chặn đổi quyền Super Admin
+    if (targetIsSuper) {
+        alert('⚠️ Không thể thay đổi quyền của Super Admin!');
+        return;
+    }
+    
+    // ✅ Hạ quyền admin → user: CHỈ Super Admin mới làm được
+    if (isAdmin && newRole === 'user') {
+        if (!superAdmin) {
+            alert('⚠️ Chỉ Super Admin mới có quyền hạ cấp admin khác!');
+            return;
+        }
+    }
+    
+    // ✅ Nâng user → admin: CHỈ Super Admin mới làm được
+    if (!isAdmin && newRole === 'admin') {
+        if (!superAdmin) {
+            alert('⚠️ Chỉ Super Admin mới có quyền nâng cấp lên admin!');
+            return;
+        }
+    }
+    
+    var action;
+    if (newRole === 'admin') action = 'NÂNG LÊN ADMIN';
+    else action = 'HẠ XUỐNG USER';
+    
     if (!confirm(action + ' cho tài khoản:\n\n' + email + '\n\nBạn có chắc không?')) return;
+    
     try {
         await db.collection('allowed_users').doc(email).update({ role: newRole });
         try { localStorage.removeItem('user_cache_' + email); } catch(e) {}
@@ -4488,15 +5325,39 @@ window.changeRole = async function(email, newRole) {
     catch(e) { alert('Lỗi: ' + e.message); }
 };
 
+/* ✅ Xóa user: Super Admin có thể xóa admin thường */
 window.deleteUser = async function(email) {
     var target = usersCache.find(function(u) { return u.email === email; });
     if (!target) { alert('Không tìm thấy user!'); return; }
+    
     var isMe = email === currentUser.email;
     var isAdmin = target.role === 'admin';
+    var superAdmin = isSuperAdmin();
+    var targetIsSuper = (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
     
-    if (isMe) { alert('⚠️ Không thể tự xóa tài khoản của chính mình!'); return; }
-    if (isAdmin) { alert('⚠️ Không thể xóa admin!'); return; }
-    if (!confirm('⚠️ XÓA TÀI KHOẢN\n\n' + email + '\n\nNgười này sẽ không đăng nhập được nữa.\n\nBạn có chắc không?')) return;
+    // ✅ Chặn tự xóa chính mình
+    if (isMe) { 
+        alert('⚠️ Không thể tự xóa tài khoản của chính mình!'); 
+        return; 
+    }
+    
+    // ✅ Chặn xóa Super Admin
+    if (targetIsSuper) {
+        alert('⚠️ Không thể xóa Super Admin!');
+        return;
+    }
+    
+    // ✅ Xóa admin: CHỈ Super Admin mới làm được
+    if (isAdmin && !superAdmin) {
+        alert('⚠️ Chỉ Super Admin mới có quyền xóa admin khác!');
+        return;
+    }
+    
+    var confirmMsg = isAdmin 
+        ? '⚠️ XÓA ADMIN\n\n' + email + '\n\nNgười này sẽ mất quyền quản trị và không đăng nhập được nữa.\n\nBạn có chắc không?'
+        : '⚠️ XÓA TÀI KHOẢN\n\n' + email + '\n\nNgười này sẽ không đăng nhập được nữa.\n\nBạn có chắc không?';
+    
+    if (!confirm(confirmMsg)) return;
     
     try {
         await db.collection('allowed_users').doc(email).delete();
@@ -4508,6 +5369,19 @@ window.deleteUser = async function(email) {
 };
 
 function loadLogs() {
+    var hidden = isHiddenAdmin();
+    var logTitleEl = $('logsTitle');
+    
+    if (hidden) {
+        if (logTitleEl) logTitleEl.style.display = 'none';
+        $('logsList').style.display = 'none';
+        $('logsList').innerHTML = '';
+        return;
+    }
+    
+    if (logTitleEl) logTitleEl.style.display = 'flex';
+    $('logsList').style.display = 'block';
+    
     db.collection('login_logs').orderBy('time', 'desc').limit(30).get()
         .then(function(snapshot) {
             if (snapshot.empty) {
@@ -4530,9 +5404,6 @@ function loadLogs() {
         });
 }
 
-/* ============================================================
-   📥 XỬ LÝ IMPORT EXCEL - CHỈ USER, KHÔNG ADMIN
-   ============================================================ */
 function processImport(rows) {
     if (!rows || rows.length < 2) {
         alert('❌ File rỗng hoặc thiếu header!');
@@ -4583,7 +5454,6 @@ function processImport(rows) {
     
     console.log(colInfo);
     
-    // ✅ Build map: CHỈ USER, KHÔNG ADMIN
     var existingUserMap = {};
     var existingAdminSet = {};
     usersCache.forEach(function(u) { 
@@ -4612,7 +5482,6 @@ function processImport(rows) {
             email.indexOf('xóa dòng') !== -1 || email.indexOf('#') === 0 ||
             email.indexOf('⚠') === 0 || email.indexOf('ví dụ') === 0) continue;
         
-        // ✅ Bỏ qua admin có sẵn
         if (existingAdminSet[email]) {
             stats.skippedAdmin++;
             continue;
@@ -4640,7 +5509,6 @@ function processImport(rows) {
             name = email.split('@')[0];
         }
         
-        // Parse expiresAt
         var expDate = null;
         var expStr = '';
         if (expRaw) {
@@ -4717,10 +5585,7 @@ function processImport(rows) {
 
 function renderImportPreview() {
     var tbody = $('importTableBody');
-    if (!tbody) {
-        console.error('[Import] importTableBody không tồn tại');
-        return;
-    }
+    if (!tbody) return;
     
     var html = '';
     var countOk = 0, countUpdate = 0, countWarn = 0, countErr = 0;
@@ -4820,7 +5685,6 @@ async function doImport() {
     var btn = $('importConfirmBtn');
     if (!btn) return;
     
-    // ✅ Lưu cấu trúc gốc để khôi phục sau (tránh lỗi import lần 2, 3...)
     var originalHTML = btn.innerHTML;
     var originalDisabled = btn.disabled;
     
@@ -4897,11 +5761,9 @@ async function doImport() {
         }
     }
     
-    // ✅ KHÔI PHỤC NÚT VỀ TRẠNG THÁI GỐC
     btn.disabled = originalDisabled;
     btn.innerHTML = originalHTML;
     
-    // ✅ Reset importRows
     importRows = [];
     
     try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
@@ -4940,6 +5802,7 @@ html_output = (html_template
     .replace("__DEMO_DAILY_LIMIT__", str(DEMO_DAILY_LIMIT))
     .replace("__DEMO_HSK_MAX__", str(DEMO_HSK_MAX))
     .replace("__TARGET_ADMINS__", str(TARGET_ADMINS))
+    .replace("__SUPER_ADMIN__", SUPER_ADMIN)
     .replace("__SYNONYMS__", synonyms_json)
     .replace("__FILLER_WORDS__", fillers_json)
 )
@@ -4952,7 +5815,14 @@ print(f"📦 Kích thước: {size_kb:.1f} KB")
 print(f"📚 Tổng số câu: {len(data)}")
 print(f"🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} lượt")
 print(f"🔥 Firebase: {FIREBASE_CONFIG.get('projectId', 'N/A')}")
-print(f"👑 Chế độ: Đúng {TARGET_ADMINS} admin")
+print(f"👑 Super admin: {SUPER_ADMIN}")
+print(f"   → 7 ô thống kê + thấy tất cả + lịch sử đăng nhập")
+print(f"   → CÓ THỂ HẠ QUYỀN / XÓA ADMIN THƯỜNG")
+print(f"🕵️  Admin thường (tất cả admin khác)")
+print(f"   → 4 ô: Tổng User / Đang HĐ / Sắp hết hạn / Hết hạn")
+print(f"   → Ẩn admin khác + ẩn lịch sử đăng nhập")
+print(f"   → KHÔNG được hạ quyền / xóa admin khác")
+print(f"👥 Tổng User KHÔNG tính admin")
 print(f"🧠 Chấm điểm: So khớp thông minh")
 print(f"💡 Nút Gợi ý (mặc định TẮT) + Ghost text mờ")
 print(f"📝 Đáp án tách theo PINYIN viết liền/rời")
@@ -4962,16 +5832,26 @@ print(f"👁️  Nút Xem đáp án: toggle ẩn/hiện")
 print(f"✏️  Click ký tự sai → con trỏ về + bôi đen ĐÚNG ký tự")
 print(f"🔍 Search + Filter + Dropdown chọn câu (tiếng Việt) trong modal")
 print(f"📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
-print(f"💾 Cache user 12h + Log 1 lần/ngày → tiết kiệm 90% Firestore quota")
+print(f"💾 Cache user 12h + Log 1 lần/ngày")
 print(f"👁️  Nút ẩn/hiện kết quả + đáp án ở mỗi thẻ trang chính")
 print(f"✅ Gõ search trong modal KHÔNG nhảy sang ô nhập tiếng Trung")
-print(f"📤 Export/Import CHỈ USER,ạo KHÔNG bao gồm ADMIN")
+print(f"📤 Export CHUYÊN NGHIỆP: 7 cột + 3 sheet + style màu")
+print(f"📥 Import CHỈ USER, KHÔNG ADMIN + bỏ qua cột dư thừa")
 print(f"🔁 Import lần 2, 3, ... không lỗi null")
 print(f"⏰ User có hạn sử dụng — tự động khóa khi hết hạn")
-print(f"🔔 Banner cả `nh báo sắp hết hạn (≤ 7 ngày) với Zalo")
+print(f"🔔 Banner cảnh báo sắp hết hạn (≤ 7 ngày) với Zalo")
 print(f"👤 Click avatar → hiển thị chi tiết + ngày hết hạn + progress bar")
 print(f"📞 Nút Zalo trong dropdown user")
-
-print(f"\n💡 Gợi ý:")
-print(f"   • Tạo file Excel mẫu:  python scripts/create_template.py")
-print(f"   • Convert dữ liệu:     python scripts/convert.py")
+print(f"\n✨ TÍNH NĂNG MỚI:")
+print(f"👑 Super Admin có thể HẠ QUYỀN / XÓA admin thường ngay trên UI")
+print(f"   • Nút hạ quyền (icon người) — chỉ Super Admin bấm được với admin khác")
+print(f"   • Nút xóa (icon thùng rác) — chỉ Super Admin xóa được admin khác")
+print(f"   • Chặn tự hạ quyền / tự xóa chính mình")
+print(f"   • Chặn hạ quyền / xóa Super Admin")
+print(f"   • Badge '👑 super' màu vàng cam cho Super Admin")
+print(f"📅 Nút chỉnh hạn sử dụng = BIỂU TƯỢNG LỊCH (icon only)")
+print(f"   • Tooltip hiển thị ngày hết hạn hiện tại khi hover")
+print(f"   • Nhấp nháy đỏ (pulse) khi user còn ≤ 7 ngày")
+print(f"   • Quick buttons: +7d, +30d, +90d, +6m, +1y, vĩnh viễn")
+print(f"   • Chọn ngày cụ thể trực tiếp")
+print(f"✏️  Nút đổi tên hiển thị (user + admin đều có)")
