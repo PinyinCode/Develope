@@ -16,8 +16,8 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - ✅ Nút ẩn/hiện kết quả ở mỗi thẻ trang chính (kèm đáp án tiếng Trung)
 - ✅ Click chữ sai inline → bôi đen ĐÚNG ký tự trong ô gõ
 - ✅ Gõ search trong modal KHÔNG nhảy sang ô nhập tiếng Trung
-- ✅ Export/Import CHỈ USER, KHÔNG bao gồm ADMIN
-- ✅ Import tự động bỏ qua cột dư thừa (chỉ cần email/name/expiresAt)
+- ✅ Export CHUYÊN NGHIỆP: 7 cột, 3 sheet, style màu, sắp xếp theo hạn
+- ✅ Import CHỈ USER, KHÔNG ADMIN + tự động bỏ qua cột dư thừa
 - ✅ Import lần 2, 3, ... không lỗi null
 - ✅ User có hạn sử dụng (expiresAt) — tự động khóa khi hết hạn
 - ✅ Banner cảnh báo sắp hết hạn (≤ 7 ngày)
@@ -81,7 +81,8 @@ print(f"   🔍 Search + Filter + Dropdown chọn câu trong modal")
 print(f"   💾 Cache user 12h + Log 1 lần/ngày")
 print(f"   👑 Target admins: {TARGET_ADMINS}")
 print(f"   👁️  Nút ẩn/hiện kết quả + đáp án ở mỗi thẻ trang chính")
-print(f"   📤 Export/Import user (CHỈ USER, KHÔNG ADMIN)")
+print(f"   📤 Export CHUYÊN NGHIỆP (7 cột + 3 sheet + style)")
+print(f"   📥 Import CHỈ USER, KHÔNG ADMIN")
 print(f"   ⏰ User có hạn sử dụng (expiresAt) — tự động khóa khi hết hạn")
 print(f"   👤 Click avatar → hiển thị chi tiết + ngày hết hạn")
 
@@ -266,16 +267,13 @@ body{
 .dropdown-item.danger{color:var(--danger)}
 .dropdown-item.danger:hover{background:var(--danger-light)}
 
-/* ✅ CHI TIẾT TÀI KHOẢN USER */
 .user-details{
     padding:.6rem .75rem .75rem .75rem;
     border-bottom:1px solid var(--border);
     margin-bottom:.5rem;
     display:flex;flex-direction:column;gap:.6rem;
 }
-.detail-row{
-    display:flex;align-items:flex-start;gap:.65rem;
-}
+.detail-row{display:flex;align-items:flex-start;gap:.65rem;}
 .detail-icon{
     width:36px;height:36px;border-radius:10px;
     display:flex;align-items:center;justify-content:center;
@@ -337,7 +335,6 @@ body{
 .progress-bar.urgent{background:linear-gradient(90deg, #dc2626, #ef4444);}
 .progress-bar.permanent{background:linear-gradient(90deg, #2563eb, #3b82f6);}
 
-/* ✅ ZALO CONTACT TRONG DROPDOWN */
 .dropdown-zalo{
     display:flex;align-items:center;gap:.5rem;width:100%;
     padding:.65rem .75rem;border-radius:var(--radius-sm);
@@ -2343,7 +2340,6 @@ function applyUserUI() {
     updateDemoRemaining();
 }
 
-/* ✅ HÀM CẬP NHẬT CHI TIẾT TÀI KHOẢN USER */
 function updateUserDetails() {
     var detailsEl = $('userDetails');
     if (!detailsEl) return;
@@ -2364,7 +2360,6 @@ function updateUserDetails() {
     
     if (!expiryValue || !expirySub) return;
     
-    // ✅ ADMIN = VĨNH VIỄN
     if (currentUser.role === 'admin') {
         expiryValue.textContent = 'Vĩnh viễn';
         expiryValue.className = 'detail-value permanent';
@@ -2375,7 +2370,6 @@ function updateUserDetails() {
         return;
     }
     
-    // ✅ USER KHÔNG CÓ expiresAt = VĨNH VIỄN
     if (!currentUser.expiresAt) {
         expiryValue.textContent = 'Vĩnh viễn';
         expiryValue.className = 'detail-value permanent';
@@ -2386,7 +2380,6 @@ function updateUserDetails() {
         return;
     }
     
-    // ✅ USER CÓ expiresAt
     var expDate;
     try {
         var ea = currentUser.expiresAt;
@@ -2638,7 +2631,6 @@ function initZaloButton() {
     var nameEl = zaloBtn.querySelector('.zalo-name');
     if (nameEl && ZALO_NAME) nameEl.textContent = ZALO_NAME;
     
-    // ✅ Zalo trong dropdown
     var dropdownZalo = $('dropdownZaloBtn');
     if (dropdownZalo) {
         if (phone) {
@@ -3052,9 +3044,6 @@ function render(reset) {
     }
 }
 
-/* ============================================================
-   🧠 SO KHỚP THÔNG MINH
-   ============================================================ */
 function normalizeAnswer(str) {
     if (!str) return '';
     return String(str)
@@ -3412,9 +3401,6 @@ function applyFilter() {
     render(true);
 }
 
-/* ============================================================
-   🎯 CHẾ ĐỘ LUYỆN TẬP FULL MÀN HÌNH
-   ============================================================ */
 var pfCurrentStt = null;
 var pfCurrentAnswer = '';
 var pfCurrentVi = '';
@@ -3969,9 +3955,6 @@ function initPracticeFull() {
     }, { passive: true });
 }
 
-/* ============================================================
-   ✍️ LUYỆN VIẾT
-   ============================================================ */
 var writerInstance = null;
 var currentWriteZh = '';
 var currentWriteVi = '';
@@ -4101,9 +4084,6 @@ function showWriterChar(char) {
     }, 100);
 }
 
-/* ============================================================
-   👑 ADMIN PANEL
-   ============================================================ */
 function initAdminPanel() {
     $('openAdminBtn').addEventListener('click', function() {
         $('userDropdown').classList.remove('show');
@@ -4121,7 +4101,7 @@ function initAdminPanel() {
         loadUsers(true);
     });
     
-    /* ✅ EXPORT EXCEL - CHỈ USER, KHÔNG ADMIN */
+    /* ✅ EXPORT EXCEL CHUYÊN NGHIỆP - CHỈ USER, KHÔNG ADMIN */
     $('exportExcelBtn').addEventListener('click', function() {
         var usersOnly = usersCache.filter(function(u) { 
             return u.role !== 'admin'; 
@@ -4132,38 +4112,353 @@ function initAdminPanel() {
             return; 
         }
         
-        var rows = [['email', 'name', 'role', 'expiresAt']];
-        
-        usersOnly.forEach(function(u) {
-            var expStr = '';
-            if (u.expiresAt) {
-                try {
-                    var ea = u.expiresAt;
-                    var d;
-                    if (typeof ea.toDate === 'function') d = ea.toDate();
-                    else if (ea.seconds) d = new Date(ea.seconds * 1000);
-                    else d = new Date(ea);
-                    if (d && !isNaN(d.getTime())) {
-                        var y = d.getFullYear();
-                        var m = String(d.getMonth() + 1).padStart(2, '0');
-                        var day = String(d.getDate()).padStart(2, '0');
-                        expStr = y + '-' + m + '-' + day;
+        try {
+            var wb = XLSX.utils.book_new();
+            var now = Date.now();
+            
+            // Sắp xếp: sắp hết hạn lên đầu, vĩnh viễn xuống cuối
+            usersOnly.sort(function(a, b) {
+                var da = getExpiryTimestamp(a.expiresAt);
+                var db = getExpiryTimestamp(b.expiresAt);
+                if (da === null && db === null) return 0;
+                if (da === null) return 1;
+                if (db === null) return -1;
+                return da - db;
+            });
+            
+            var COLUMNS = [
+                { header: 'STT', width: 6 },
+                { header: 'email', width: 35 },
+                { header: 'name', width: 25 },
+                { header: 'phone', width: 16 },
+                { header: 'expiresAt', width: 14 },
+                { header: 'Trạng thái', width: 22 },
+                { header: 'Ghi chú', width: 25 },
+            ];
+            
+            var aoa = [COLUMNS.map(function(c) { return c.header; })];
+            
+            var stats = {
+                total: usersOnly.length,
+                permanent: 0,
+                expired: 0,
+                urgent: 0,
+                warning: 0,
+                ok: 0,
+            };
+            
+            var statusTypes = [];
+            
+            usersOnly.forEach(function(u) {
+                var expDate = getExpiryDate(u.expiresAt);
+                var expStr = '';
+                var statusStr = '';
+                var statusType = 'ok';
+                
+                if (!expDate) {
+                    expStr = '';
+                    statusStr = '∞ Vĩnh viễn';
+                    statusType = 'permanent';
+                    stats.permanent++;
+                } else {
+                    expStr = formatDate(expDate);
+                    var daysLeft = Math.ceil((expDate.getTime() - now) / (24 * 60 * 60 * 1000));
+                    
+                    if (daysLeft < 0) {
+                        statusStr = '❌ Hết hạn ' + Math.abs(daysLeft) + ' ngày';
+                        statusType = 'expired';
+                        stats.expired++;
+                    } else if (daysLeft === 0) {
+                        statusStr = '⏰ Hết hạn hôm nay';
+                        statusType = 'urgent';
+                        stats.urgent++;
+                    } else if (daysLeft <= 3) {
+                        statusStr = '🔴 Còn ' + daysLeft + ' ngày';
+                        statusType = 'urgent';
+                        stats.urgent++;
+                    } else if (daysLeft <= 7) {
+                        statusStr = '🟡 Còn ' + daysLeft + ' ngày';
+                        statusType = 'warning';
+                        stats.warning++;
+                    } else {
+                        statusStr = '🟢 Còn ' + daysLeft + ' ngày';
+                        statusType = 'ok';
+                        stats.ok++;
                     }
-                } catch(e) {}
+                }
+                
+                statusTypes.push(statusType);
+                
+                aoa.push([
+                    '',
+                    u.email || '',
+                    u.name || '',
+                    '',
+                    expStr,
+                    statusStr,
+                    ''
+                ]);
+            });
+            
+            var totalRows = aoa.length;
+            var ws = XLSX.utils.aoa_to_sheet(aoa);
+            
+            ws['!cols'] = COLUMNS.map(function(c) { return { wch: c.width }; });
+            ws['!rows'] = [{ hpt: 30 }];
+            for (var r = 1; r < totalRows; r++) {
+                ws['!rows'].push({ hpt: 22 });
             }
-            rows.push([u.email, u.name || '', 'user', expStr]);
-        });
-        
-        var ws = XLSX.utils.aoa_to_sheet(rows);
-        ws['!cols'] = [{ wch: 32 }, { wch: 25 }, { wch: 10 }, { wch: 14 }];
-        var wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Users');
-        
-        var today = new Date();
-        var fname = 'users_' + today.getFullYear() + 
-                    String(today.getMonth() + 1).padStart(2, '0') + 
-                    String(today.getDate()).padStart(2, '0') + '.xlsx';
-        XLSX.writeFile(wb, fname);
+            ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+            ws['!autofilter'] = { ref: 'A1:G' + totalRows };
+            
+            var headerStyle = {
+                font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+                fill: { fgColor: { rgb: '2563EB' } },
+                alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                border: {
+                    top: { style: 'thin', color: { rgb: '1E40AF' } },
+                    bottom: { style: 'thin', color: { rgb: '1E40AF' } },
+                    left: { style: 'thin', color: { rgb: '1E40AF' } },
+                    right: { style: 'thin', color: { rgb: '1E40AF' } }
+                }
+            };
+            
+            ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1'].forEach(function(ref) {
+                if (ws[ref]) ws[ref].s = headerStyle;
+            });
+            
+            for (var r = 2; r <= totalRows; r++) {
+                var statusType = statusTypes[r - 2] || 'ok';
+                
+                var sttRef = 'A' + r;
+                if (!ws[sttRef]) ws[sttRef] = { v: '', t: 's' };
+                ws[sttRef].f = 'IF(B' + r + '<>"",ROW()-1,"")';
+                ws[sttRef].t = 'n';
+                ws[sttRef].s = {
+                    font: { bold: true, color: { rgb: '64748B' }, sz: 10 },
+                    fill: { fgColor: { rgb: 'F1F5F9' } },
+                    alignment: { horizontal: 'center', vertical: 'center' },
+                    border: getBorder()
+                };
+                
+                var emailRef = 'B' + r;
+                if (!ws[emailRef]) ws[emailRef] = { v: '', t: 's' };
+                ws[emailRef].s = {
+                    fill: { fgColor: { rgb: 'DBEAFE' } },
+                    alignment: { horizontal: 'left', vertical: 'center' },
+                    border: getBorder()
+                };
+                
+                var nameRef = 'C' + r;
+                if (!ws[nameRef]) ws[nameRef] = { v: '', t: 's' };
+                ws[nameRef].s = {
+                    fill: { fgColor: { rgb: 'F0F9FF' } },
+                    alignment: { horizontal: 'left', vertical: 'center' },
+                    border: getBorder()
+                };
+                
+                var phoneRef = 'D' + r;
+                if (!ws[phoneRef]) ws[phoneRef] = { v: '', t: 's' };
+                ws[phoneRef].s = {
+                    fill: { fgColor: { rgb: 'FEF3C7' } },
+                    alignment: { horizontal: 'center', vertical: 'center' },
+                    border: getBorder()
+                };
+                ws[phoneRef].t = 's';
+                ws[phoneRef].z = '@';
+                
+                var expRef = 'E' + r;
+                if (!ws[expRef]) ws[expRef] = { v: '', t: 's' };
+                var expBgColor = 'DCFCE7';
+                if (statusType === 'expired') expBgColor = 'FEE2E2';
+                else if (statusType === 'urgent') expBgColor = 'FECACA';
+                else if (statusType === 'warning') expBgColor = 'FEF3C7';
+                else if (statusType === 'permanent') expBgColor = 'F1F5F9';
+                
+                ws[expRef].s = {
+                    fill: { fgColor: { rgb: expBgColor } },
+                    alignment: { horizontal: 'center', vertical: 'center' },
+                    border: getBorder(),
+                    font: { 
+                        bold: statusType === 'expired' || statusType === 'urgent',
+                        color: { rgb: statusType === 'expired' ? 'DC2626' : '0F172A' },
+                        sz: 10
+                    }
+                };
+                
+                var sttStatusRef = 'F' + r;
+                if (!ws[sttStatusRef]) ws[sttStatusRef] = { v: '', t: 's' };
+                var statusBgColor = 'DCFCE7';
+                var statusFontColor = '16A34A';
+                if (statusType === 'expired') { statusBgColor = 'FEE2E2'; statusFontColor = 'DC2626'; }
+                else if (statusType === 'urgent') { statusBgColor = 'FECACA'; statusFontColor = 'DC2626'; }
+                else if (statusType === 'warning') { statusBgColor = 'FEF3C7'; statusFontColor = '92400E'; }
+                else if (statusType === 'permanent') { statusBgColor = 'DBEAFE'; statusFontColor = '1D4ED8'; }
+                
+                ws[sttStatusRef].s = {
+                    fill: { fgColor: { rgb: statusBgColor } },
+                    alignment: { horizontal: 'center', vertical: 'center' },
+                    border: getBorder(),
+                    font: { bold: true, color: { rgb: statusFontColor }, sz: 10 }
+                };
+                
+                var noteRef = 'G' + r;
+                if (!ws[noteRef]) ws[noteRef] = { v: '', t: 's' };
+                ws[noteRef].s = {
+                    fill: { fgColor: { rgb: 'FFFFFF' } },
+                    alignment: { horizontal: 'left', vertical: 'center' },
+                    border: getBorder()
+                };
+            }
+            
+            XLSX.utils.book_append_sheet(wb, ws, 'Users');
+            
+            // Sheet 2: Thống kê
+            var ws2 = XLSX.utils.aoa_to_sheet([
+                ['📊  THỐNG KÊ TÀI KHOẢN', '', ''],
+                ['', '', ''],
+                ['Tổng số user', stats.total, ''],
+                ['', '', ''],
+                ['🟢 Còn nhiều thời gian (> 7 ngày)', stats.ok, ''],
+                ['🟡 Sắp hết hạn (4-7 ngày)', stats.warning, ''],
+                ['🔴 Sắp hết hạn (≤ 3 ngày)', stats.urgent, ''],
+                ['❌ Đã hết hạn', stats.expired, ''],
+                ['∞  Vĩnh viễn', stats.permanent, ''],
+                ['', '', ''],
+                ['📅 Ngày export', new Date().toLocaleString('vi-VN'), ''],
+            ]);
+            
+            ws2['!cols'] = [{ wch: 35 }, { wch: 18 }, { wch: 20 }];
+            
+            if (ws2['A1']) {
+                ws2['A1'].s = {
+                    font: { bold: true, sz: 16, color: { rgb: 'FFFFFF' } },
+                    fill: { fgColor: { rgb: '2563EB' } },
+                    alignment: { horizontal: 'center', vertical: 'center' }
+                };
+            }
+            
+            var statRows = [3, 5, 6, 7, 8, 9];
+            statRows.forEach(function(r) {
+                var aRef = 'A' + r;
+                var bRef = 'B' + r;
+                if (ws2[aRef]) {
+                    ws2[aRef].s = {
+                        font: { bold: true, sz: 11, color: { rgb: '0F172A' } },
+                        alignment: { horizontal: 'left', vertical: 'center', indent: 1 }
+                    };
+                }
+                if (ws2[bRef]) {
+                    ws2[bRef].s = {
+                        font: { bold: true, sz: 14 },
+                        alignment: { horizontal: 'center', vertical: 'center' }
+                    };
+                }
+            });
+            
+            if (ws2['B5']) ws2['B5'].s.font = { bold: true, sz: 14, color: { rgb: '16A34A' } };
+            if (ws2['B6']) ws2['B6'].s.font = { bold: true, sz: 14, color: { rgb: 'D97706' } };
+            if (ws2['B7']) ws2['B7'].s.font = { bold: true, sz: 14, color: { rgb: 'DC2626' } };
+            if (ws2['B8']) ws2['B8'].s.font = { bold: true, sz: 14, color: { rgb: 'DC2626' } };
+            if (ws2['B9']) ws2['B9'].s.font = { bold: true, sz: 14, color: { rgb: '2563EB' } };
+            
+            XLSX.utils.book_append_sheet(wb, ws2, 'Thống kê');
+            
+            // Sheet 3: Hướng dẫn
+            var ws3 = XLSX.utils.aoa_to_sheet([
+                ['📖  HƯỚNG DẪN SỬ DỤNG FILE EXPORT', '', ''],
+                ['', '', ''],
+                ['🎯  MỤC ĐÍCH', '', ''],
+                ['', 'File này là bản backup danh sách user', ''],
+                ['', 'Có thể import lại để khôi phục', ''],
+                ['', '', ''],
+                ['📌  CỘT QUAN TRỌNG', '', ''],
+                ['', 'email', '✅ BẮT BUỘC khi import lại'],
+                ['', 'name', '⭕ Tùy chọn'],
+                ['', 'expiresAt', '⭕ Định dạng YYYY-MM-DD. Trống = vĩnh viễn'],
+                ['', '', ''],
+                ['🗑️  CỘT CHỈ ĐỂ THAM KHẢO', '', ''],
+                ['', 'STT', 'Tự động đánh số'],
+                ['', 'phone', 'Không import (chưa có trong hệ thống)'],
+                ['', 'Trạng thái', 'Tự động tính theo ngày hiện tại'],
+                ['', 'Ghi chú', 'Không import'],
+                ['', '', ''],
+                ['⚠️  LƯU Ý', '', ''],
+                ['', '🚫 Admin không có trong file', 'Chỉ export user thường'],
+                ['', '📅 Định dạng ngày', 'YYYY-MM-DD'],
+                ['', '🔄 Sắp xếp', 'Sắp hết hạn lên đầu, vĩnh viễn xuống cuối'],
+                ['', '🎨 Màu sắc', 'Đỏ = hết hạn, Cam = gấp, Vàng = sắp hết, Xanh = ổn'],
+                ['', '', ''],
+                ['🚀  CÁCH IMPORT LẠI', '', ''],
+                ['', '1.', 'Mở web, đăng nhập Admin'],
+                ['', '2.', 'Click avatar → Quản lý tài khoản'],
+                ['', '3.', 'Nhấn nút "Import"'],
+                ['', '4.', 'Chọn file này'],
+                ['', '5.', 'Kiểm tra preview → Confirm'],
+            ]);
+            
+            ws3['!cols'] = [{ wch: 4 }, { wch: 30 }, { wch: 60 }];
+            ws3['!rows'] = [{ hpt: 42 }, { hpt: 8 }];
+            
+            if (ws3['A1']) {
+                ws3['A1'].s = {
+                    font: { bold: true, sz: 16, color: { rgb: 'FFFFFF' } },
+                    fill: { fgColor: { rgb: '2563EB' } },
+                    alignment: { horizontal: 'center', vertical: 'center' }
+                };
+            }
+            
+            ['A3', 'A7', 'A12', 'A18', 'A24'].forEach(function(ref) {
+                if (ws3[ref]) {
+                    ws3[ref].s = {
+                        font: { bold: true, sz: 12, color: { rgb: '1E40AF' } },
+                        fill: { fgColor: { rgb: 'DBEAFE' } },
+                        alignment: { horizontal: 'left', vertical: 'center', indent: 1 }
+                    };
+                }
+            });
+            
+            for (var r = 4; r <= 30; r++) {
+                var bRef = 'B' + r;
+                var cRef = 'C' + r;
+                if (ws3[bRef] && ws3[bRef].v) {
+                    ws3[bRef].s = {
+                        font: { bold: true, sz: 10, color: { rgb: '0F172A' } },
+                        alignment: { horizontal: 'left', vertical: 'center' }
+                    };
+                }
+                if (ws3[cRef] && ws3[cRef].v) {
+                    ws3[cRef].s = {
+                        font: { sz: 10, color: { rgb: '475569' } },
+                        alignment: { horizontal: 'left', vertical: 'center', wrapText: true }
+                    };
+                }
+            }
+            
+            XLSX.utils.book_append_sheet(wb, ws3, 'Hướng dẫn');
+            
+            // Xuất file
+            var today = new Date();
+            var dateStr = today.getFullYear() +
+                          String(today.getMonth() + 1).padStart(2, '0') +
+                          String(today.getDate()).padStart(2, '0') + '_' +
+                          String(today.getHours()).padStart(2, '0') +
+                          String(today.getMinutes()).padStart(2, '0');
+            
+            var fname = 'users_export_' + dateStr + '.xlsx';
+            
+            XLSX.writeFile(wb, fname, { 
+                bookType: 'xlsx',
+                cellStyles: true
+            });
+            
+            console.log('✅ Đã export:', fname);
+            console.log('📊 Stats:', stats);
+            
+        } catch(err) {
+            console.error('Lỗi export:', err);
+            alert('❌ Lỗi export: ' + err.message);
+        }
     });
     
     /* ✅ IMPORT EXCEL - CHỈ IMPORT USER */
@@ -4208,7 +4503,6 @@ function initAdminPanel() {
     
     $('importConfirmBtn').addEventListener('click', doImport);
     
-    /* ✅ Thêm user thủ công */
     $('showAddUserBtn').addEventListener('click', function() {
         $('addUserForm').classList.toggle('show');
         if ($('addUserForm').classList.contains('show')) $('newUserEmail').focus();
@@ -4262,6 +4556,40 @@ function initAdminPanel() {
             loadUsers(true);
         } catch(e) { alert('Lỗi: ' + e.message); }
     });
+}
+
+function getBorder() {
+    return {
+        top:    { style: 'thin', color: { rgb: 'CBD5E1' } },
+        bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        left:   { style: 'thin', color: { rgb: 'CBD5E1' } },
+        right:  { style: 'thin', color: { rgb: 'CBD5E1' } }
+    };
+}
+
+function getExpiryDate(expiresAt) {
+    if (!expiresAt) return null;
+    try {
+        var ea = expiresAt;
+        if (typeof ea.toDate === 'function') return ea.toDate();
+        if (ea.seconds) return new Date(ea.seconds * 1000);
+        return new Date(ea);
+    } catch(e) {
+        return null;
+    }
+}
+
+function getExpiryTimestamp(expiresAt) {
+    var d = getExpiryDate(expiresAt);
+    return d ? d.getTime() : null;
+}
+
+function formatDate(d) {
+    if (!d) return '';
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
 }
 
 function openAdminPanel() {
@@ -4530,9 +4858,6 @@ function loadLogs() {
         });
 }
 
-/* ============================================================
-   📥 XỬ LÝ IMPORT EXCEL - CHỈ USER, KHÔNG ADMIN
-   ============================================================ */
 function processImport(rows) {
     if (!rows || rows.length < 2) {
         alert('❌ File rỗng hoặc thiếu header!');
@@ -4583,7 +4908,6 @@ function processImport(rows) {
     
     console.log(colInfo);
     
-    // ✅ Build map: CHỈ USER, KHÔNG ADMIN
     var existingUserMap = {};
     var existingAdminSet = {};
     usersCache.forEach(function(u) { 
@@ -4612,7 +4936,6 @@ function processImport(rows) {
             email.indexOf('xóa dòng') !== -1 || email.indexOf('#') === 0 ||
             email.indexOf('⚠') === 0 || email.indexOf('ví dụ') === 0) continue;
         
-        // ✅ Bỏ qua admin có sẵn
         if (existingAdminSet[email]) {
             stats.skippedAdmin++;
             continue;
@@ -4640,7 +4963,6 @@ function processImport(rows) {
             name = email.split('@')[0];
         }
         
-        // Parse expiresAt
         var expDate = null;
         var expStr = '';
         if (expRaw) {
@@ -4717,10 +5039,7 @@ function processImport(rows) {
 
 function renderImportPreview() {
     var tbody = $('importTableBody');
-    if (!tbody) {
-        console.error('[Import] importTableBody không tồn tại');
-        return;
-    }
+    if (!tbody) return;
     
     var html = '';
     var countOk = 0, countUpdate = 0, countWarn = 0, countErr = 0;
@@ -4820,7 +5139,6 @@ async function doImport() {
     var btn = $('importConfirmBtn');
     if (!btn) return;
     
-    // ✅ Lưu cấu trúc gốc để khôi phục sau (tránh lỗi import lần 2, 3...)
     var originalHTML = btn.innerHTML;
     var originalDisabled = btn.disabled;
     
@@ -4897,11 +5215,9 @@ async function doImport() {
         }
     }
     
-    // ✅ KHÔI PHỤC NÚT VỀ TRẠNG THÁI GỐC
     btn.disabled = originalDisabled;
     btn.innerHTML = originalHTML;
     
-    // ✅ Reset importRows
     importRows = [];
     
     try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
@@ -4962,16 +5278,13 @@ print(f"👁️  Nút Xem đáp án: toggle ẩn/hiện")
 print(f"✏️  Click ký tự sai → con trỏ về + bôi đen ĐÚNG ký tự")
 print(f"🔍 Search + Filter + Dropdown chọn câu (tiếng Việt) trong modal")
 print(f"📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
-print(f"💾 Cache user 12h + Log 1 lần/ngày → tiết kiệm 90% Firestore quota")
+print(f"💾 Cache user 12h + Log 1 lần/ngày")
 print(f"👁️  Nút ẩn/hiện kết quả + đáp án ở mỗi thẻ trang chính")
 print(f"✅ Gõ search trong modal KHÔNG nhảy sang ô nhập tiếng Trung")
-print(f"📤 Export/Import CHỈ USER,ạo KHÔNG bao gồm ADMIN")
+print(f"📤 Export CHUYÊN NGHIỆP: 7 cột + 3 sheet + style màu")
+print(f"📥 Import CHỈ USER, KHÔNG ADMIN + bỏ qua cột dư thừa")
 print(f"🔁 Import lần 2, 3, ... không lỗi null")
 print(f"⏰ User có hạn sử dụng — tự động khóa khi hết hạn")
-print(f"🔔 Banner cả `nh báo sắp hết hạn (≤ 7 ngày) với Zalo")
+print(f"🔔 Banner cảnh báo sắp hết hạn (≤ 7 ngày) với Zalo")
 print(f"👤 Click avatar → hiển thị chi tiết + ngày hết hạn + progress bar")
 print(f"📞 Nút Zalo trong dropdown user")
-
-print(f"\n💡 Gợi ý:")
-print(f"   • Tạo file Excel mẫu:  python scripts/create_template.py")
-print(f"   • Convert dữ liệu:     python scripts/convert.py")
