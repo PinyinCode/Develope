@@ -16,11 +16,6 @@ def clean(s):
             .replace('\t', ' ').replace('\\', '\\\\'))
 
 
-# ═══════════════════════════════════════════════════════════════════
-#  CHỈ SỬA HÀM NÀY KHI ĐỔI CẤU TRÚC EXCEL
-#  Đầu vào : đường dẫn file, chỉ số sheet
-#  Đầu ra  : list dict có các key: stt, hsk, topic, subject, vi, zh, pinyin
-# ═══════════════════════════════════════════════════════════════════
 def read_excel(excel_file, sheet_index=0):
     print(f"\n📖 Đang đọc file: {excel_file}")
     if not os.path.exists(excel_file):
@@ -32,14 +27,14 @@ def read_excel(excel_file, sheet_index=0):
     print(f"📊 Sheet: {ws.title} - {ws.max_row} dòng")
 
     # ↓↓↓ CẤU HÌNH CỘT Ở ĐÂY (đổi khi Excel đổi cấu trúc) ↓↓↓
-    COL_STT     = 0   # cột A
-    COL_HSK     = 1   # cột B
-    COL_TOPIC   = 2   # cột C
-    COL_SUBJECT = 3   # cột D
-    COL_VI      = 4   # cột E
-    COL_ZH      = 5   # cột F
-    COL_PINYIN  = 6   # cột G
-    DATA_START  = 2   # dòng bắt đầu dữ liệu (1 = header)
+    COL_STT = 0
+    COL_HSK = 1
+    COL_TOPIC = 2
+    COL_SUBJECT = 3
+    COL_VI = 4
+    COL_ZH = 5
+    COL_PINYIN = 6
+    DATA_START = 2
     # ↑↑↑ HẾT PHẦN CẦN SỬA ↑↑↑
 
     data = []
