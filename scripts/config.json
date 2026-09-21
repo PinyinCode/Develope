@@ -21,7 +21,7 @@
         "messagingSenderId": "614326539390",
         "appId": "1:614326539390:web:57344a021d7cbc7b18b42f"
     },
-    "trial_days": 7,
+    "trial_days": 3,
     "bank_config": {
         "bank_id": "970418",
         "bank_name": "BIDV",
