@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 """
 Chuyển file Excel → HTML tự chứa dữ liệu.
-Ghép 4 template: ui + accounts + social + data.
+Ghép 5 template: ui + social + accounts + renewal + data.
 """
 import json
 import os
 import sys
 
 # ═══════════════════════════════════════════════════════════════════
-#  IMPORT 5 MODULE
+#  IMPORT MODULES
 # ═══════════════════════════════════════════════════════════════════
-# Thêm thư mục scripts/ vào sys.path để import được
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config_loader import load_config, print_banner, CONFIG_FILE
@@ -20,6 +19,9 @@ from accounts_template import build_accounts_css, build_accounts_html, build_acc
 from social_template import (
     build_social_css, build_social_html, build_social_js,
     build_tiktok_bar_html
+)
+from renewal_template import (
+    build_renewal_css, build_renewal_html, build_renewal_js
 )
 
 
@@ -33,10 +35,8 @@ EXCEL_FILE = CONFIG["excel_file"]
 OUTPUT_HTML = CONFIG["output_html"]
 SHEET_INDEX = CONFIG["sheet_index"]
 
-# Đọc Excel
 data = read_excel(EXCEL_FILE, SHEET_INDEX)
 
-# Serialize JSON
 json_data = json.dumps(data, ensure_ascii=True, separators=(',', ':'))
 json_data = json_data.replace('</', '<\\/')
 firebase_config_json = json.dumps(CONFIG["firebase_config"], ensure_ascii=False)
@@ -45,48 +45,55 @@ fillers_json = json.dumps(CONFIG["filler_words"], ensure_ascii=True, separators=
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  GHÉP HTML
+#  GHÉP CSS
 # ═══════════════════════════════════════════════════════════════════
-
-# 1) CSS = ui_css + social_css + accounts_css
 full_css = (
     build_ui_css()
-    + "\n/* ==== SOCIAL CSS ==== */\n"
-    + build_social_css()
-    + "\n/* ==== ACCOUNTS CSS ==== */\n"
-    + build_accounts_css()
+    + "\n/* ==== SOCIAL CSS ==== */\n" + build_social_css()
+    + "\n/* ==== ACCOUNTS CSS ==== */\n" + build_accounts_css()
+    + "\n/* ==== RENEWAL CSS ==== */\n" + build_renewal_css()
 )
 
-# 2) HTML body
-#    - ui_html có placeholder <!-- __TIKTOK_BAR__ --> và __SOCIAL_FLOATING__
+
+# ═══════════════════════════════════════════════════════════════════
+#  GHÉP HTML BODY
+# ═══════════════════════════════════════════════════════════════════
 ui_html = build_ui_html()
 ui_html = ui_html.replace("<!-- __TIKTOK_BAR__ -->", build_tiktok_bar_html())
 
-# Chèn social HTML (Zalo + TikTok floating) sau </main> (trước writer-modal)
 social_html = build_social_html()
-# ui_html có <div class="writer-modal"...> → chèn social_html trước nó
 ui_html = ui_html.replace(
     '<div class="writer-modal" id="writerModal">',
     social_html + '\n<div class="writer-modal" id="writerModal">'
 )
 
-# Chèn accounts HTML (login/admin/edit modals) trước </body>
 accounts_html = build_accounts_html()
+renewal_html = build_renewal_html()
 
-full_body = ui_html + "\n" + accounts_html
+full_body = ui_html + "\n" + renewal_html + "\n" + accounts_html
 
-# 3) JS = ui_js + social_js + accounts_js
+
+# ═══════════════════════════════════════════════════════════════════
+#  GHÉP JS + REPLACE PLACEHOLDER RENEWAL
+# ═══════════════════════════════════════════════════════════════════
 full_js = (
     build_ui_js()
-    + "\n/* ==== SOCIAL JS ==== */\n"
-    + build_social_js()
-    + "\n/* ==== ACCOUNTS JS ==== */\n"
-    + build_accounts_js()
+    + "\n/* ==== SOCIAL JS ==== */\n" + build_social_js()
+    + "\n/* ==== ACCOUNTS JS ==== */\n" + build_accounts_js()
+    + "\n/* ==== RENEWAL JS ==== */\n" + build_renewal_js()
+)
+
+# Replace placeholder trong renewal_js
+full_js = (full_js
+    .replace("__TRIAL_DAYS__", str(CONFIG["trial_days"]))
+    .replace("__BANK_CONFIG__", json.dumps(CONFIG["bank_config"], ensure_ascii=False))
+    .replace("__PACKAGES__", json.dumps(CONFIG["packages"], ensure_ascii=False))
+    .replace("__RENEWAL_SUPPORT_ZALO__", CONFIG["renewal_support_zalo"])
 )
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  TEMPLATE HTML VỎ (head + body + script)
+#  HTML SHELL
 # ═══════════════════════════════════════════════════════════════════
 HTML_SHELL = r'''<!DOCTYPE html>
 <html lang="vi">
@@ -141,9 +148,9 @@ __JS__
 #  RENDER + GHI FILE
 # ═══════════════════════════════════════════════════════════════════
 html_output = (HTML_SHELL
-    .replace("__CSS__", full_css)
-    .replace("__BODY__", full_body)
-    .replace("__JS__", full_js)
+    .HEreplace("__CSS__", full_css và)
+    .replace("__BODY__ LU", full_body)
+    .replace("__YJS__", full_js)
     .replace("__DATA__", json_data)
     .replace("__FIREBASE_CONFIG__", firebase_config_json)
     .replace("__DEMO_LIMIT__", str(CONFIG["demo_limit"]))
@@ -171,5 +178,6 @@ print(f"📚 Tổng số câu: {len(data)}")
 print(f"🎁 Demo: {CONFIG['demo_limit']} câu + HSK1-{CONFIG['demo_hsk_max']} + {CONFIG['demo_daily_limit']} lượt")
 print(f"🔥 Firebase: {CONFIG['firebase_config'].get('projectId', 'N/A')}")
 print(f"👑 Super admin: {CONFIG['super_admin']}")
-print(f"🎵 TikTok: @{CONFIG['tiktok_username']} ({CONFIG['tiktok_nickname']})")
-print(f"✅ Đã ghép 4 template: UI + Social + Accounts + Data")
+print(f"🎉 Trial: {CONFIG['trial_days']} ngày cho user mới")
+print(f"🏦 Bank: {CONFIG['bank_config']['bank_name']} - {CONFIG['bank_config']['account_no']}")
+print(f"✅ Đã ghép 5 template: UI + Social + Accounts + Renewal + Data")
