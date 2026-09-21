@@ -654,6 +654,13 @@ function getDaysRemaining(userData) {
 }
 
 /* ============ TRIAL: TẶNG NGÀY DÙNG THỬ (ATOMIC) ============ */
+/* 
+ * ⚠️ QUAN TRỌNG: 
+ * - Đã THÊM field `email` để khớp với rules mới
+ * - Set TRỰC TIẾP (không dùng merge) → Firestore sẽ tính là CREATE rule
+ * - Rules mới cho phép: email, name, role, expiresAt, isTrial, trialDays,
+ *   registeredAt, trialStartedAt (không chặn các field này)
+ */
 async function grantTrialIfNew(user, userData) {
     if (!user || !user.email) return false;
     var email = user.email.toLowerCase();
@@ -674,8 +681,9 @@ async function grantTrialIfNew(user, userData) {
             var expiresAt = new Date(Date.now() + days * 86400000);
             expiresAt.setHours(23, 59, 59, 0);
 
-            /* ⚠️ Trong transaction chỉ dùng set KHÔNG có option merge */
+            /* ⚠️ Set đầy đủ field — rules mới cho phép hết */
             transaction.set(userRef, {
+                email: email,                         // ← BẮT BUỘC cho rules
                 name: (userData && userData.name) ? userData.name
                      : (user.displayName || email.split('@')[0]),
                 role: 'user',
@@ -1238,6 +1246,7 @@ async function doAddUser() {
         if (doc.exists) { alert('Email này đã tồn tại!'); return; }
 
         var setData = {
+            email: email,                              // ← thêm cho nhất quán
             name: name, role: role,
             addedAt: firebase.firestore.FieldValue.serverTimestamp(),
             addedBy: currentUser.email
@@ -1892,7 +1901,7 @@ async function doImport() {
         var batch = db.batch();
         chunk.forEach(function(r) {
             var ref = db.collection('allowed_users').doc(r.email);
-            var data = { name: r.name, role: 'user', addedBy: currentUser.email };
+            var data = { email: r.email, name: r.name, role: 'user', addedBy: currentUser.email };
             if (!r.isUpdate) {
                 data.addedAt = firebase.firestore.FieldValue.serverTimestamp();
                 data.importedFromExcel = true;
