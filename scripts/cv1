@@ -32,7 +32,16 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - ✅ Tổng User KHÔNG tính admin
 - ✅ Nút đổi tên hiển thị (user + admin đều có)
 - ✅ Quản lý ngày hết hạn ngay trên giao diện admin
-- ✅ MỚI: Nút chỉnh hạn sử dụng = BIỂU TƯỢNG LỊCH (icon only + tooltip + pulse đỏ khi ≤7 ngày)
+- ✅ Nút chỉnh hạn sử dụng = BIỂU TƯỢNG LỊCH (icon only + tooltip + pulse đỏ khi ≤7 ngày)
+- ✅ MỚI: Header LỚN + TikTok info bar + Header KHÔNG biến mất khi luyện tập
+- ✅ MỚI: Chế độ thường hiện Zalo + TikTok; Chế độ luyện tập chỉ hiện TikTok
+- ✅ MỚI: PC hover nút TikTok → hiện card info TikTok (avatar + nickname + username)
+- ✅ MỚI: Avatar TikTok nhập trong config.json
+- ✅ MỚI: Mobile 1 tap TikTok = card info; 2 tap = mở TikTok
+- ✅ MỚI: Nút FAB "Tập trung học" ẩn/hiện Zalo + TikTok + TikTok bar
+         (CHỈ áp dụng cho user/admin, KHÔNG áp dụng demo)
+- ✅ FIX: Bật chế độ luyện tập full màn hình KHÔNG còn trùng lặp search/HSK/chủ đề
+- ✅ FIX: Modal luyện tập set top 1 lần theo chiều cao header, không cập nhật liên tục
 
 Chạy: python scripts/convert.py
 """
@@ -60,6 +69,10 @@ TARGET_ADMINS = CONFIG.get("target_admins", 2)
 SUPER_ADMIN = CONFIG.get("super_admin", "hoanginvest@gmail.com")
 ZALO_PHONE = CONFIG.get("zalo_phone", "")
 ZALO_NAME = CONFIG.get("zalo_name", "Hỗ trợ")
+TIKTOK_USERNAME = CONFIG.get("tiktok_username", "thaonoizhongwen")
+TIKTOK_NICKNAME = CONFIG.get("tiktok_nickname", "Thảo nói 中文")
+TIKTOK_AVATAR = CONFIG.get("tiktok_avatar", "")
+TIKTOK_URL = CONFIG.get("tiktok_url", f"https://www.tiktok.com/@{TIKTOK_USERNAME}")
 FIREBASE_CONFIG = CONFIG.get("firebase_config", {})
 
 DEFAULT_SYNONYMS = {
@@ -81,6 +94,8 @@ if not FIREBASE_CONFIG.get("apiKey"):
 
 print(f"⚙️  Đã đọc cấu hình từ: {CONFIG_FILE}")
 print(f"   📞 Zalo: {ZALO_PHONE} ({ZALO_NAME})")
+print(f"   🎵 TikTok: @{TIKTOK_USERNAME} ({TIKTOK_NICKNAME})")
+print(f"   🖼️  TikTok Avatar: {'Có' if TIKTOK_AVATAR else 'Không (dùng fallback)'}")
 print(f"   🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} lượt nghe/viết")
 print(f"   🧠 Chấm điểm: So khớp thông minh")
 print(f"   ☀️  Theme mặc định: Light mode")
@@ -90,16 +105,18 @@ print(f"   🎯 Click ký tự sai → bôi đen để gõ đè")
 print(f"   📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
 print(f"   🔍 Search + Filter + Dropdown chọn câu trong modal")
 print(f"   💾 Cache user 12h + Log 1 lần/ngày")
-print(f"   👑 Super admin: {SUPER_ADMIN} (có thể HẠ QUYỀN / XÓA admin thường)")
-print(f"   🕵️  Admin thường: tất cả admin khác (chỉ thấy 4 ô thống kê)")
+print(f"   👑 Super admin: {SUPER_ADMIN}")
+print(f"   🕵️  Admin thường: 4 ô thống kê + ẩn admin khác")
 print(f"   👥 Tổng User KHÔNG tính admin")
 print(f"   👁️  Nút ẩn/hiện kết quả + đáp án ở mỗi thẻ trang chính")
 print(f"   📤 Export CHUYÊN NGHIỆP (7 cột + 3 sheet + style)")
 print(f"   📥 Import CHỈ USER, KHÔNG ADMIN")
-print(f"   ⏰ User có hạn sử dụng (expiresAt) — tự động khóa khi hết hạn")
+print(f"   ⏰ User có hạn sử dụng (expiresAt)")
 print(f"   👤 Click avatar → hiển thị chi tiết + ngày hết hạn")
 print(f"   ✏️  Nút đổi tên hiển thị (user + admin)")
-print(f"   📅 Quản lý ngày hết hạn trên giao diện admin (nút icon lịch)")
+print(f"   📅 Quản lý ngày hết hạn trên giao diện admin")
+print(f"   🎯 Nút FAB 'Tập trung học' ẩn/hiện Zalo+TikTok+TikTokBar (chỉ user/admin)")
+print(f"   🚫 FIX: Không còn trùng lặp search/HSK/chủ đề khi luyện tập full")
 
 print(f"\n📖 Đang đọc file: {EXCEL_FILE}")
 if not os.path.exists(EXCEL_FILE):
@@ -149,7 +166,7 @@ html_template = r'''<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>Học tiếng Trung · VP & CX</title>
+<title>Học tiếng Trung · Văn phòng & Công xưởng</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
@@ -165,6 +182,9 @@ html_template = r'''<!DOCTYPE html>
     --success:#16a34a;--danger:#dc2626;--danger-light:#fee2e2;
     --amber:#f59e0b;--amber-light:#fef3c7;
     --zalo:#0068ff;
+    --tiktok:#000;
+    --tiktok-pink:#fe2c55;
+    --tiktok-cyan:#25f4ee;
     --shadow-sm:0 1px 2px rgba(15,23,42,.04);--shadow:0 4px 12px rgba(15,23,42,.06);
     --shadow-fab:0 8px 24px rgba(15,23,42,.18);
     --radius:14px;--radius-sm:10px;--radius-full:999px;
@@ -175,6 +195,7 @@ html_template = r'''<!DOCTYPE html>
     --text:#f1f5f9;--text-2:#cbd5e1;--text-3:#94a3b8;
     --primary:#3b82f6;--primary-dark:#2563eb;--primary-light:#1e3a8a;
     --danger-light:#7f1d1d;--amber-light:#78350f;
+    --tiktok:#fff;
     --shadow-sm:0 1px 2px rgba(0,0,0,.3);--shadow:0 4px 12px rgba(0,0,0,.3);
     --shadow-fab:0 8px 24px rgba(0,0,0,.5);
 }
@@ -201,7 +222,7 @@ body{
 
 .sticky-top{
     position:sticky;top:0;z-index:150;background:var(--bg);
-    padding:.5rem 0 .6rem 0;transition:background .2s, box-shadow .2s, border-color .2s;
+    padding:.6rem 0 .7rem 0;transition:background .2s, box-shadow .2s, border-color .2s;
     border-bottom:1px solid transparent;
 }
 .sticky-top.scrolled{
@@ -210,23 +231,81 @@ body{
 }
 [data-theme="dark"] .sticky-top.scrolled{box-shadow:0 4px 16px -8px rgba(0,0,0,.5)}
 
+/* ============ HEADER LỚN ============ */
 .header{background:transparent;border:none}
-.header-inner{display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem}
-.logo{display:flex;align-items:center;gap:.5rem;font-weight:700;flex:1;min-width:0}
+.header-inner{display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem}
+.logo{display:flex;align-items:center;gap:.85rem;flex:1;min-width:0}
 .logo-icon{
-    width:34px;height:34px;background:linear-gradient(135deg,#2563eb,#7c3aed);
-    border-radius:10px;display:flex;align-items:center;justify-content:center;
-    color:#fff;font-size:.95rem;flex-shrink:0;box-shadow:0 4px 10px rgba(37,99,235,.25);
+    width:64px;height:64px;background:linear-gradient(135deg,#2563eb,#7c3aed 60%,#db2777);
+    border-radius:16px;display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:2rem;flex-shrink:0;
+    box-shadow:0 8px 24px rgba(37,99,235,.4), inset 0 1px 0 rgba(255,255,255,.25);
+    position:relative;overflow:hidden;
 }
-.logo-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;flex-direction:column;line-height:1.15}
-.logo-text .title{font-size:.9rem;font-weight:700;color:var(--text)}
-.logo-text .subtitle{font-size:.68rem;color:var(--text-3);font-weight:500}
-.header-actions{display:flex;gap:.35rem;align-items:center;flex-shrink:0}
+.logo-icon::after{
+    content:'';position:absolute;inset:0;
+    background:radial-gradient(circle at 30% 20%, rgba(255,255,255,.35), transparent 60%);
+    pointer-events:none;
+}
+.logo-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.logo-text .title{
+    font-size:2rem;
+    font-weight:900;
+    letter-spacing:-.02em;
+    line-height:1.15;
+    color:var(--text);
+}
+.logo-text .subtitle{
+    font-size:.95rem;
+    color:var(--text-3);
+    font-weight:700;
+    margin-top:3px;
+    letter-spacing:.01em;
+    padding-left:1.1rem;
+}
+.header-actions{display:flex;gap:.4rem;align-items:center;flex-shrink:0}
+
+/* ============ TIKTOK INFO BAR (dưới header) ============ */
+.tiktok-bar{
+    display:flex;align-items:center;gap:.6rem;
+    padding:.5rem .85rem;margin-bottom:.6rem;
+    background:linear-gradient(135deg, rgba(254,44,85,.06), rgba(37,244,238,.06));
+    border:1.5px solid var(--border);border-radius:var(--radius-full);
+    font-size:.8rem;color:var(--text-2);
+    width:fit-content;max-width:100%;
+    transition:.15s;box-shadow:var(--shadow-sm);
+    text-decoration:none;
+}
+[data-theme="dark"] .tiktok-bar{
+    background:linear-gradient(135deg, rgba(254,44,85,.1), rgba(37,244,238,.1));
+}
+.tiktok-bar:hover{border-color:var(--text-2);box-shadow:0 4px 12px rgba(0,0,0,.08);transform:translateY(-1px);}
+.tiktok-bar-avatar{
+    width:32px;height:32px;border-radius:50%;
+    object-fit:cover;flex-shrink:0;
+    border:2px solid var(--border);
+    background:linear-gradient(135deg,#fe2c55,#25f4ee);
+}
+.tiktok-bar-info{display:flex;flex-direction:column;line-height:1.2;min-width:0;flex:1}
+.tiktok-bar-info .tiktok-nick{font-weight:800;color:var(--text);font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tiktok-bar-info .tiktok-user{font-size:.75rem;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:.25rem}
+.tiktok-bar-info .tiktok-user i{font-size:.7rem;}
+.tiktok-bar-link{
+    display:inline-flex;align-items:center;gap:.35rem;
+    padding:.4rem .8rem;border-radius:50px;
+    background:linear-gradient(135deg,#000,#333);color:#fff !important;
+    font-size:.75rem;font-weight:700;text-decoration:none;
+    white-space:nowrap;transition:.15s;flex-shrink:0;
+    box-shadow:0 2px 8px rgba(0,0,0,.2);
+}
+[data-theme="dark"] .tiktok-bar-link{background:linear-gradient(135deg,#fff,#e5e5e5);color:#000 !important;}
+.tiktok-bar-link:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,.3);}
+.tiktok-bar-link i{font-size:.85rem;}
 
 .icon-btn{
-    width:34px;height:34px;border-radius:8px;border:1px solid var(--border);
+    width:38px;height:38px;border-radius:10px;border:1px solid var(--border);
     background:var(--surface);color:var(--text-3);cursor:pointer;
-    display:flex;align-items:center;justify-content:center;font-size:.85rem;
+    display:flex;align-items:center;justify-content:center;font-size:.9rem;
     transition:.15s;position:relative;flex-shrink:0;
 }
 .icon-btn:hover,.icon-btn:active{background:var(--surface-2);color:var(--primary);border-color:var(--primary)}
@@ -242,16 +321,16 @@ body{
 
 .demo-badge{
     display:flex;align-items:center;gap:.35rem;
-    padding:.35rem .7rem;border-radius:50px;
+    padding:.4rem .75rem;border-radius:50px;
     background:var(--amber-light);color:#92400e;
-    font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;
+    font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;
     border:1px solid rgba(245,158,11,.4);
 }
 [data-theme="dark"] .demo-badge{color:#fcd34d}
 
 .user-menu{position:relative}
 .user-avatar{
-    width:34px;height:34px;border-radius:50%;border:2px solid var(--border);
+    width:38px;height:38px;border-radius:50%;border:2px solid var(--border);
     cursor:pointer;object-fit:cover;transition:.15s;display:block;
 }
 .user-avatar:hover{border-color:var(--primary);transform:scale(1.05)}
@@ -361,11 +440,23 @@ body{
 .dropdown-zalo:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,104,255,.3);color:#fff !important;}
 .dropdown-zalo i{font-size:1rem;}
 
+.dropdown-tiktok{
+    display:flex;align-items:center;gap:.5rem;width:100%;
+    padding:.65rem .75rem;border-radius:var(--radius-sm);
+    background:linear-gradient(135deg, #000, #333);
+    color:#fff !important;font-size:.85rem;font-weight:700;
+    text-decoration:none;transition:.15s;
+    margin-top:.25rem;
+}
+[data-theme="dark"] .dropdown-tiktok{background:linear-gradient(135deg,#fff,#e5e5e5);color:#000 !important;}
+.dropdown-tiktok:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.3);}
+.dropdown-tiktok i{font-size:1rem;}
+
 .btn-login-header{
     display:flex;align-items:center;gap:.4rem;
-    padding:.5rem .9rem;border-radius:50px;
+    padding:.55rem 1rem;border-radius:50px;
     background:var(--primary);color:#fff;border:none;
-    font-size:.8rem;font-weight:700;cursor:pointer;
+    font-size:.85rem;font-weight:700;cursor:pointer;
     transition:.15s;font-family:inherit;
     box-shadow:0 4px 12px rgba(37,99,235,.3);white-space:nowrap;
 }
@@ -433,9 +524,15 @@ body{
 .result-count.empty{background:var(--danger-light);border-color:rgba(220,38,38,.3);color:var(--danger)}
 .result-count.empty i,.result-count.empty b{color:var(--danger)}
 
-.zalo-btn{
+/* ============ FLOATING LEFT GROUP (Zalo + TikTok) ============ */
+.floating-left-group{
     position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));
-    left:20px;z-index:1000;display:flex;align-items:center;gap:.5rem;
+    left:20px;z-index:1000;display:flex;flex-direction:column;
+    gap:.5rem;align-items:flex-start;
+}
+
+.zalo-btn{
+    display:flex;align-items:center;gap:.5rem;
     padding:.7rem 1.1rem;border-radius:50px;
     background:linear-gradient(135deg, #0068ff, #0084ff);
     color:#fff;text-decoration:none;font-weight:700;font-size:.85rem;
@@ -443,9 +540,10 @@ body{
     transition:all .35s cubic-bezier(.34,1.56,.64,1);
     -webkit-tap-highlight-color:transparent;white-space:nowrap;
     border:2px solid #fff;font-family:inherit;overflow:hidden;
+    position:relative;
 }
 .zalo-btn:hover,.zalo-btn:active{transform:scale(1.05);box-shadow:0 12px 32px rgba(0,104,255,.55);color:#fff}
-.zalo-btn i{font-size:1.2rem;flex-shrink:0;line-height:1;position:relative;z-index:2;transition:font-size .3s}
+.zalo-btn i{font-size:1.2rem;flex-shrink:0;line-height:1;position:relative;z-index:2}
 .zalo-btn .zalo-text{
     line-height:1.15;display:flex;flex-direction:column;
     position:relative;z-index:2;transition:opacity .2s, max-width .35s;
@@ -467,19 +565,157 @@ body{
 .zalo-btn.compact .zalo-text{opacity:0;max-width:0}
 .zalo-btn.compact i{font-size:1.35rem}
 .zalo-btn.compact::before{border-radius:50%}
-.zalo-btn.compact::after{
-    content:'Zalo: ' attr(data-phone);
-    position:absolute;left:calc(100% + 10px);top:50%;
-    transform:translateY(-50%) scale(.9);
-    background:var(--text);color:var(--surface);
-    padding:.4rem .7rem;border-radius:8px;
-    font-size:.75rem;font-weight:600;white-space:nowrap;
-    opacity:0;pointer-events:none;
-    transition:opacity .15s, transform .15s;
-    font-family:inherit;z-index:3;
-}
-.zalo-btn.compact:hover::after{opacity:1;transform:translateY(-50%) scale(1)}
 
+/* ============ TIKTOK FLOAT BUTTON + HOVER CARD ============ */
+.tiktok-float-wrap{position:relative;}
+.tiktok-float-btn{
+    display:flex;align-items:center;gap:.5rem;
+    padding:.7rem 1.1rem;border-radius:50px;
+    background:linear-gradient(135deg, #000, #2d2d2d);
+    color:#fff;text-decoration:none;font-weight:700;font-size:.85rem;
+    box-shadow:0 8px 24px rgba(0,0,0,.4), 0 0 0 2px rgba(254,44,85,.4);
+    transition:all .35s cubic-bezier(.34,1.56,.64,1);
+    -webkit-tap-highlight-color:transparent;white-space:nowrap;
+    border:2px solid #fff;font-family:inherit;overflow:hidden;
+    position:relative;cursor:pointer;
+}
+.tiktok-float-btn:hover,.tiktok-float-btn:active{transform:scale(1.05);box-shadow:0 12px 32px rgba(0,0,0,.5), 0 0 0 3px rgba(254,44,85,.6);color:#fff}
+.tiktok-float-btn i{font-size:1.2rem;flex-shrink:0;line-height:1;position:relative;z-index:2}
+.tiktok-float-btn .tiktok-text{
+    line-height:1.15;display:flex;flex-direction:column;
+    position:relative;z-index:2;transition:opacity .2s, max-width .35s;
+    max-width:200px;overflow:hidden;
+}
+.tiktok-float-btn .tiktok-label{font-size:.65rem;opacity:.85;font-weight:500;white-space:nowrap}
+.tiktok-float-btn .tiktok-name{font-size:.85rem;font-weight:700;white-space:nowrap}
+.tiktok-float-btn::before{
+    content:'';position:absolute;inset:0;border-radius:50px;
+    background:linear-gradient(135deg, #fe2c55, #25f4ee);
+    opacity:.35;z-index:1;animation:tiktokPulse 2s infinite;
+}
+@keyframes tiktokPulse{
+    0%{transform:scale(1);opacity:.35}
+    50%{transform:scale(1.1);opacity:0}
+    100%{transform:scale(1);opacity:0}
+}
+.tiktok-float-btn.compact{width:52px;height:52px;padding:0;border-radius:50%;justify-content:center;gap:0}
+.tiktok-float-btn.compact .tiktok-text{opacity:0;max-width:0}
+.tiktok-float-btn.compact i{font-size:1.35rem}
+.tiktok-float-btn.compact::before{border-radius:50%}
+
+/* ✅ HOVER CARD thông tin TikTok */
+.tiktok-hover-card{
+    position:absolute;
+    bottom:calc(100% + 10px);
+    left:0;
+    width:300px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px;
+    box-shadow:0 20px 50px rgba(0,0,0,.25);
+    padding:1rem;
+    opacity:0;visibility:hidden;
+    transform:translateY(8px) scale(.96);
+    transition:opacity .25s, visibility .25s, transform .25s cubic-bezier(.34,1.56,.64,1);
+    pointer-events:none;
+    z-index:2000;
+}
+.tiktok-float-wrap:hover .tiktok-hover-card{
+    opacity:1;visibility:visible;
+    transform:translateY(0) scale(1);
+    pointer-events:auto;
+}
+.tiktok-hover-card::after{
+    content:'';position:absolute;top:100%;left:32px;
+    width:16px;height:16px;
+    background:var(--surface);
+    border-right:1px solid var(--border);
+    border-bottom:1px solid var(--border);
+    transform:translateY(-8px) rotate(45deg);
+}
+/* 📱 Mobile: chỉ hiện khi có class .show-mobile */
+@media(hover:none) and (pointer:coarse){
+    .tiktok-float-wrap:hover .tiktok-hover-card{
+        opacity:0;
+        visibility:hidden;
+        transform:translateY(8px) scale(.96);
+        pointer-events:none;
+    }
+    .tiktok-float-wrap.show-mobile .tiktok-hover-card{
+        opacity:1;
+        visibility:visible;
+        transform:translateY(0) scale(1);
+        pointer-events:auto;
+        left:-4px;
+        width:min(300px, calc(100vw - 32px));
+    }
+}
+.thc-header{display:flex;align-items:center;gap:.75rem;margin-bottom:.85rem}
+.thc-avatar-wrap{
+    position:relative;flex-shrink:0;
+}
+.thc-avatar{
+    width:60px;height:60px;border-radius:50%;
+    object-fit:cover;
+    border:3px solid transparent;
+    background:linear-gradient(var(--surface),var(--surface)) padding-box,
+               linear-gradient(135deg,#fe2c55,#25f4ee) border-box;
+    box-shadow:0 4px 12px rgba(0,0,0,.15);
+}
+.thc-avatar-fallback{
+    width:60px;height:60px;border-radius:50%;
+    background:linear-gradient(135deg,#fe2c55,#25f4ee);
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:1.7rem;font-weight:800;flex-shrink:0;
+    border:3px solid var(--surface);
+    box-shadow:0 4px 12px rgba(0,0,0,.15);
+}
+.thc-verified{
+    position:absolute;bottom:-2px;right:-2px;
+    width:20px;height:20px;border-radius:50%;
+    background:#20d5ec;color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:.65rem;border:2.5px solid var(--surface);
+}
+.thc-info{flex:1;min-width:0}
+.thc-nick{
+    font-size:1rem;font-weight:800;color:var(--text);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    margin-bottom:.15rem;line-height:1.2;
+}
+.thc-user{
+    font-size:.78rem;color:var(--text-3);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    display:flex;align-items:center;gap:.25rem;
+}
+.thc-user i{font-size:.72rem;color:var(--tiktok-pink)}
+.thc-desc{
+    font-size:.75rem;color:var(--text-2);
+    padding:.6rem 0;border-top:1px solid var(--border);
+    border-bottom:1px solid var(--border);
+    margin-bottom:.75rem;line-height:1.5;
+}
+.thc-stats{
+    display:flex;gap:1rem;margin-bottom:.75rem;
+    padding-bottom:.75rem;border-bottom:1px solid var(--border);
+}
+.thc-stat{text-align:center;flex:1}
+.thc-stat .num{font-size:.95rem;font-weight:800;color:var(--text);line-height:1;}
+.thc-stat .label{font-size:.65rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.3px;margin-top:.25rem;font-weight:600;}
+.thc-btn{
+    display:flex;align-items:center;justify-content:center;gap:.4rem;
+    width:100%;padding:.7rem;
+    border-radius:10px;border:none;
+    background:linear-gradient(135deg,#fe2c55,#ff0050);
+    color:#fff;font-size:.85rem;font-weight:700;
+    text-decoration:none;cursor:pointer;
+    transition:.15s;font-family:inherit;
+    box-shadow:0 4px 12px rgba(254,44,85,.3);
+}
+.thc-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(254,44,85,.45);color:#fff}
+.thc-btn i{font-size:.95rem}
+
+/* ============ FAB GROUP (right) ============ */
 .fab-group{
     position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));
     right:20px;z-index:1000;display:flex;flex-direction:column;
@@ -528,6 +764,26 @@ body{
 .fab-group.open .fab-sub:nth-child(1){transition-delay:.05s}
 .fab-group.open .fab-sub:nth-child(2){transition-delay:.1s}
 .fab-group.open .fab-sub:nth-child(3){transition-delay:.15s}
+.fab-group.open .fab-sub:nth-child(4){transition-delay:.2s}
+
+/* ✅ Nút FAB "Tập trung học" - highlight cam khi đang ẩn floating */
+.fab-focus.active {
+    background: var(--amber) !important;
+    color: #fff !important;
+    border-color: var(--amber) !important;
+    box-shadow: 0 8px 24px rgba(245,158,11,.5) !important;
+}
+.fab-focus.active:hover,
+.fab-focus.active:active {
+    background: #d97706 !important;
+    color: #fff !important;
+}
+
+/* ✅ Ẩn floating buttons + TikTok bar khi user bật chế độ tập trung */
+body.hide-floating .floating-left-group,
+body.hide-floating .tiktok-bar {
+    display: none !important;
+}
 
 body:not(.show-pinyin) .col-pinyin,
 body:not(.show-pinyin) .card-pinyin{display:none!important}
@@ -808,11 +1064,28 @@ body.show-practice .card-body{
 }
 .no-data i{font-size:2.5rem;margin-bottom:.75rem;color:var(--border-strong);display:block}
 
+/* ============ PRACTICE FULL MODAL ============ */
 .practice-full-modal{
-    position:fixed;inset:0;background:var(--bg);z-index:2500;
+    position:fixed;
+    left:0;right:0;bottom:0;
+    background:var(--bg);z-index:2500;
     display:none;flex-direction:column;animation:fadeIn .2s;
+    top:0;
+    overflow:hidden;
 }
 .practice-full-modal.show{display:flex}
+
+/* ✅ Ẩn search bar + filters + result-count của header khi ở chế độ luyện tập full
+   → Tránh trùng lặp 2 ô tìm kiếm / 2 ô HSK / 2 ô chủ đề */
+body.practice-full-open .search-bar,
+body.practice-full-open .filters,
+body.practice-full-open .result-count {
+    display: none !important;
+}
+body.practice-full-open .demo-banner,
+body.practice-full-open .expiry-banner {
+    display: none !important;
+}
 
 .practice-full-header{
     display:flex;align-items:center;gap:.75rem;
@@ -1364,7 +1637,6 @@ body.show-practice .card-body{
 .u-btn:hover{background:var(--surface-2);color:var(--primary);border-color:var(--primary)}
 .u-btn.danger:hover{background:var(--danger-light);color:var(--danger);border-color:var(--danger)}
 
-/* ✅ Nút chỉnh hạn sử dụng = BIỂU TƯỢNG LỊCH */
 .u-btn.expiry{
     background:rgba(245,158,11,.1);
     color:#d97706;
@@ -1376,30 +1648,20 @@ body.show-practice .card-body{
     border-color:var(--amber);
     transform:scale(1.08);
 }
-.u-btn.expiry:active{
-    transform:scale(.95);
-}
+.u-btn.expiry:active{transform:scale(.95);}
 [data-theme="dark"] .u-btn.expiry{
     background:rgba(245,158,11,.2);
     color:#fcd34d;
     border-color:rgba(245,158,11,.5);
 }
-[data-theme="dark"] .u-btn.expiry:hover{
-    background:var(--amber);
-    color:#fff;
-}
-/* Nhấp nháy đỏ khi user sắp hết hạn (≤ 7 ngày) */
+[data-theme="dark"] .u-btn.expiry:hover{background:var(--amber);color:#fff;}
 .u-btn.expiry.urgent{
     background:rgba(220,38,38,.15);
     color:var(--danger);
     border-color:rgba(220,38,38,.5);
     animation:expiryPulse 2s infinite;
 }
-.u-btn.expiry.urgent:hover{
-    background:var(--danger);
-    color:#fff;
-    border-color:var(--danger);
-}
+.u-btn.expiry.urgent:hover{background:var(--danger);color:#fff;border-color:var(--danger);}
 [data-theme="dark"] .u-btn.expiry.urgent{
     background:rgba(220,38,38,.3);
     color:#fca5a5;
@@ -1653,13 +1915,14 @@ body.show-practice .card-body{
 [data-theme="dark"] .audio-btn:hover,
 [data-theme="dark"] .audio-btn:active{background:#3b82f6;color:#fff;border-color:#3b82f6;}
 
+/* ============ RESPONSIVE ============ */
 @media(max-width:768px){
     .container{padding:0 .7rem}
-    .header-inner{gap:.35rem;margin-bottom:.5rem}
-    .logo-icon{width:30px;height:30px;font-size:.85rem}
-    .logo-text .title{font-size:.82rem}
-    .logo-text .subtitle{font-size:.6rem}
-    .icon-btn{width:32px;height:32px;font-size:.8rem}
+    .header-inner{gap:.5rem;margin-bottom:.4rem}
+    .logo-icon{width:52px;height:52px;font-size:1.5rem;border-radius:13px}
+    .logo-text .title{font-size:1.5rem}
+    .logo-text .subtitle{font-size:.82rem;padding-left:.8rem}
+    .icon-btn{width:34px;height:34px;font-size:.8rem}
     .main{padding:.15rem 0 2rem}
     .search-bar input{padding:.65rem 2.5rem .65rem 2.4rem;font-size:.88rem}
     .filters{max-width:100%}
@@ -1685,17 +1948,34 @@ body.show-practice .card-body{
     .btn-login-header{padding:.45rem .7rem;font-size:.75rem}
     .btn-login-header span{display:none}
     
-    .zalo-btn{
+    .floating-left-group{
         left:16px;bottom:calc(16px + env(safe-area-inset-bottom));
-        padding:.6rem .9rem;font-size:.8rem;gap:.4rem;
+        gap:.45rem;
     }
+    .zalo-btn{padding:.6rem .9rem;font-size:.8rem;gap:.4rem;}
     .zalo-btn i{font-size:1.05rem}
     .zalo-btn .zalo-label{font-size:.6rem}
     .zalo-btn .zalo-name{font-size:.78rem;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    
     .zalo-btn.compact{width:48px;height:48px}
     .zalo-btn.compact i{font-size:1.25rem}
-    .zalo-btn.compact::after{display:none}
+    
+    .tiktok-float-btn{
+        padding:0;
+        border-radius:50%;
+        width:48px;
+        height:48px;
+        justify-content:center;
+        gap:0;
+    }
+    .tiktok-float-btn i{font-size:1.35rem}
+    .tiktok-float-btn .tiktok-text{display:none}
+    .tiktok-float-btn::before{border-radius:50%}
+    
+    .tiktok-bar{padding:.4rem .7rem;gap:.5rem;}
+    .tiktok-bar-avatar{width:28px;height:28px;}
+    .tiktok-bar-info .tiktok-nick{font-size:.85rem;}
+    .tiktok-bar-info .tiktok-user{font-size:.7rem;}
+    .tiktok-bar-link{padding:.35rem .65rem;font-size:.7rem;}
     
     .practice-full-header{padding:.65rem .85rem;gap:.5rem}
     .practice-full-header .pf-counter{font-size:.75rem;padding:.3rem .6rem}
@@ -1727,11 +2007,15 @@ body.show-practice .card-body{
     .quick-expiry-btn i{font-size:.8rem;}
 }
 @media(max-width:400px){
+    .logo-icon{width:46px;height:46px;font-size:1.35rem;border-radius:12px}
+    .logo-text .title{font-size:1.35rem}
     .logo-text .subtitle{display:none}
-    .icon-btn{width:30px;height:30px;font-size:.75rem}
-    .zalo-btn:not(.compact) .zalo-text{display:none}
-    .zalo-btn:not(.compact){padding:0;border-radius:50%;width:48px;height:48px;justify-content:center}
-    .zalo-btn:not(.compact) i{font-size:1.2rem}
+    .icon-btn{width:32px;height:32px;font-size:.75rem}
+    .zalo-btn .zalo-text{display:none}
+    .zalo-btn{padding:0;border-radius:50%;width:48px;height:48px;justify-content:center}
+    .zalo-btn i{font-size:1.2rem}
+    .tiktok-bar-link span{display:none}
+    .tiktok-bar-link{padding:.4rem .5rem;}
 }
 </style>
 </head>
@@ -1750,7 +2034,7 @@ body.show-practice .card-body{
                     <div class="logo-icon"><i class="fas fa-language"></i></div>
                     <div class="logo-text">
                         <div class="title">Học tiếng Trung</div>
-                        <div class="subtitle">Văn phòng & Công xưởng</div>
+                        <div class="subtitle">Văn phòng &amp; Công xưởng</div>
                     </div>
                 </div>
                 <div class="header-actions">
@@ -1805,6 +2089,9 @@ body.show-practice .card-body{
                             <a class="dropdown-zalo" id="dropdownZaloBtn" href="#" target="_blank" rel="noopener noreferrer">
                                 <i class="fas fa-comment-dots"></i> Liên hệ Zalo hỗ trợ
                             </a>
+                            <a class="dropdown-tiktok" id="dropdownTiktokBtn" href="#" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-tiktok"></i> Theo dõi TikTok
+                            </a>
                             <button class="dropdown-item danger" id="logoutBtn">
                                 <i class="fas fa-sign-out-alt"></i> Đăng xuất
                             </button>
@@ -1813,6 +2100,18 @@ body.show-practice .card-body{
                 </div>
             </div>
         </header>
+
+        <!-- ✅ TIKTOK INFO BAR (dưới header) -->
+        <a class="tiktok-bar" id="tiktokBar" href="#" target="_blank" rel="noopener noreferrer" title="Theo dõi TikTok">
+            <img class="tiktok-bar-avatar" id="tiktokBarAvatar" src="" alt="TikTok">
+            <div class="tiktok-bar-info">
+                <div class="tiktok-nick" id="tiktokBarNick">Thảo nói 中文</div>
+                <div class="tiktok-user"><i class="fab fa-tiktok"></i> <span id="tiktokBarUser">@thaonoizhongwen</span></div>
+            </div>
+            <span class="tiktok-bar-link">
+                <i class="fab fa-tiktok"></i> <span>Theo dõi</span>
+            </span>
+        </a>
 
         <div class="search-bar">
             <i class="fas fa-search"></i>
@@ -1852,13 +2151,59 @@ body.show-practice .card-body{
     </div>
 </div>
 
-<a class="zalo-btn" id="zaloBtn" href="#" target="_blank" rel="noopener noreferrer" title="Liên hệ Zalo hỗ trợ">
-    <i class="fas fa-comment-dots"></i>
-    <div class="zalo-text">
-        <span class="zalo-label">Liên hệ Zalo</span>
-        <span class="zalo-name">Hỗ trợ</span>
+<!-- ✅ FLOATING LEFT GROUP: Zalo + TikTok -->
+<div class="floating-left-group" id="floatingLeftGroup">
+    <a class="zalo-btn" id="zaloBtn" href="#" target="_blank" rel="noopener noreferrer" title="Liên hệ Zalo hỗ trợ">
+        <i class="fas fa-comment-dots"></i>
+        <div class="zalo-text">
+            <span class="zalo-label">Liên hệ Zalo</span>
+            <span class="zalo-name">Hỗ trợ</span>
+        </div>
+    </a>
+    
+    <div class="tiktok-float-wrap" id="tiktokFloatWrap">
+        <a class="tiktok-float-btn" id="tiktokFloatBtn" href="#" target="_blank" rel="noopener noreferrer" title="Theo dõi TikTok">
+            <i class="fab fa-tiktok"></i>
+            <div class="tiktok-text">
+                <span class="tiktok-label">Theo dõi TikTok</span>
+                <span class="tiktok-name" id="tiktokFloatName">Thảo nói 中文</span>
+            </div>
+        </a>
+        
+        <!-- ✅ HOVER CARD TikTok (PC hover / Mobile tap) -->
+        <div class="tiktok-hover-card" id="tiktokHoverCard">
+            <div class="thc-header">
+                <div class="thc-avatar-wrap">
+                    <img class="thc-avatar" id="thcAvatar" src="" alt="TikTok" style="display:none">
+                    <div class="thc-avatar-fallback" id="thcAvatarFallback">T</div>
+                    <div class="thc-verified"><i class="fas fa-check"></i></div>
+                </div>
+                <div class="thc-info">
+                    <div class="thc-nick" id="thcNick">Thảo nói 中文</div>
+                    <div class="thc-user"><i class="fab fa-tiktok"></i> <span id="thcUser">@thaonoizhongwen</span></div>
+                </div>
+            </div>
+            <div class="thc-desc">Học tiếng Trung mỗi ngày cùng Thảo · Văn phòng & Công xưởng 🇨🇳</div>
+            <div class="thc-stats">
+                <div class="thc-stat">
+                    <div class="num" id="thcFollowers">1.2K</div>
+                    <div class="label">Followers</div>
+                </div>
+                <div class="thc-stat">
+                    <div class="num" id="thcLikes">15.6K</div>
+                    <div class="label">Likes</div>
+                </div>
+                <div class="thc-stat">
+                    <div class="num" id="thcVideos">128</div>
+                    <div class="label">Videos</div>
+                </div>
+            </div>
+            <a class="thc-btn" id="thcFollowBtn" href="#" target="_blank" rel="noopener noreferrer">
+                <i class="fab fa-tiktok"></i> Theo dõi ngay
+            </a>
+        </div>
     </div>
-</a>
+</div>
 
 <div class="fab-group" id="fabGroup" style="display:none">
     <button class="fab-btn fab-sub" id="toggleViBtn" data-label="Tiếng Việt" title="Ẩn/hiện Tiếng Việt">
@@ -1869,6 +2214,10 @@ body.show-practice .card-body{
     </button>
     <button class="fab-btn fab-sub" id="togglePracticeBtn" data-label="Luyện dịch Việt → Trung" title="Ẩn/hiện Ô luyện dịch">
         <i class="fas fa-keyboard"></i>
+    </button>
+    <!-- ✅ NÚT MỚI: Ẩn/hiện Zalo + TikTok + TikTok bar (chỉ user/admin) -->
+    <button class="fab-btn fab-sub fab-focus" id="toggleFocusBtn" data-label="Tập trung học" title="Ẩn/hiện Zalo, TikTok, TikTok bar">
+        <i class="fas fa-eye"></i>
     </button>
     <button class="fab-btn fab-main" id="fabMainBtn" title="Tùy chọn hiển thị">
         <i class="fas fa-sliders-h"></i>
@@ -2236,6 +2585,10 @@ var TARGET_ADMINS = __TARGET_ADMINS__;
 var SUPER_ADMIN = "__SUPER_ADMIN__";
 var ZALO_PHONE = "__ZALO_PHONE__";
 var ZALO_NAME = "__ZALO_NAME__";
+var TIKTOK_USERNAME = "__TIKTOK_USERNAME__";
+var TIKTOK_NICKNAME = "__TIKTOK_NICKNAME__";
+var TIKTOK_AVATAR = "__TIKTOK_AVATAR__";
+var TIKTOK_URL = "__TIKTOK_URL__";
 var SYNONYMS = __SYNONYMS__;
 var FILLER_WORDS = __FILLER_WORDS__;
 
@@ -2316,6 +2669,180 @@ function updateDemoRemaining() {
 function showLimitMessage() {
     if (confirm('🔒 Bạn đã dùng hết ' + DEMO_DAILY_LIMIT + ' lượt miễn phí hôm nay.\n\n(Bao gồm cả NGHE và LUYỆN VIẾT)\n\nĐăng nhập Google để dùng KHÔNG GIỚI HẠN!')) {
         showLoginModal();
+    }
+}
+
+/* ============ TIKTOK HELPERS ============ */
+function getTikTokAvatarUrl() {
+    if (TIKTOK_AVATAR && TIKTOK_AVATAR.trim()) return TIKTOK_AVATAR;
+    var initial = (TIKTOK_NICKNAME || 'T').charAt(0).toUpperCase();
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+        '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+        '<stop offset="0%" stop-color="#fe2c55"/><stop offset="100%" stop-color="#25f4ee"/>' +
+        '</linearGradient></defs>' +
+        '<rect fill="url(#g)" width="100" height="100"/>' +
+        '<text x="50" y="68" font-size="50" fill="#fff" text-anchor="middle" ' +
+        'font-family="sans-serif" font-weight="bold">' + initial + '</text></svg>'
+    );
+}
+
+function initTikTok() {
+    var tiktokUrl = TIKTOK_URL || ('https://www.tiktok.com/@' + TIKTOK_USERNAME);
+    var avatarUrl = getTikTokAvatarUrl();
+    
+    var tiktokBar = $('tiktokBar');
+    if (tiktokBar) tiktokBar.href = tiktokUrl;
+    
+    var tiktokBarAvatar = $('tiktokBarAvatar');
+    if (tiktokBarAvatar) tiktokBarAvatar.src = avatarUrl;
+    
+    var tiktokBarNick = $('tiktokBarNick');
+    if (tiktokBarNick) tiktokBarNick.textContent = TIKTOK_NICKNAME;
+    
+    var tiktokBarUser = $('tiktokBarUser');
+    if (tiktokBarUser) tiktokBarUser.textContent = '@' + TIKTOK_USERNAME;
+    
+    var tiktokFloatBtn = $('tiktokFloatBtn');
+    if (tiktokFloatBtn) {
+        tiktokFloatBtn.href = tiktokUrl;
+        tiktokFloatBtn.setAttribute('data-username', TIKTOK_USERNAME);
+    }
+    
+    var tiktokFloatName = $('tiktokFloatName');
+    if (tiktokFloatName) tiktokFloatName.textContent = TIKTOK_NICKNAME;
+    
+    var thcAvatar = $('thcAvatar');
+    var thcAvatarFallback = $('thcAvatarFallback');
+    if (thcAvatar && thcAvatarFallback) {
+        var testImg = new Image();
+        testImg.onload = function() {
+            thcAvatar.src = avatarUrl;
+            thcAvatar.style.display = 'block';
+            thcAvatarFallback.style.display = 'none';
+        };
+        testImg.onerror = function() {
+            thcAvatar.style.display = 'none';
+            thcAvatarFallback.style.display = 'flex';
+            thcAvatarFallback.textContent = (TIKTOK_NICKNAME || 'T').charAt(0).toUpperCase();
+        };
+        testImg.src = avatarUrl;
+    }
+    
+    var thcNick = $('thcNick');
+    if (thcNick) thcNick.textContent = TIKTOK_NICKNAME;
+    
+    var thcUser = $('thcUser');
+    if (thcUser) thcUser.textContent = '@' + TIKTOK_USERNAME;
+    
+    var thcFollowBtn = $('thcFollowBtn');
+    if (thcFollowBtn) thcFollowBtn.href = tiktokUrl;
+    
+    var dropdownTiktokBtn = $('dropdownTiktokBtn');
+    if (dropdownTiktokBtn) dropdownTiktokBtn.href = tiktokUrl;
+    
+    var floatBtn = $('tiktokFloatBtn');
+    var floatWrap = $('tiktokFloatWrap');
+    var hoverCard = $('tiktokHoverCard');
+    if (floatBtn && floatWrap) {
+        var isTouchDevice = ('ontouchstart' in window) || 
+                            (navigator.maxTouchPoints > 0) || 
+                            (window.matchMedia && window.matchMedia('(hover:none) and (pointer:coarse)').matches);
+        
+        if (isTouchDevice) {
+            var lastTapTime = 0;
+            var DOUBLE_TAP_MS = 350;
+            var tapTimer = null;
+            
+            floatBtn.addEventListener('click', function(e) {
+                var now = Date.now();
+                
+                if (now - lastTapTime < DOUBLE_TAP_MS) {
+                    if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; }
+                    lastTapTime = 0;
+                    floatWrap.classList.remove('show-mobile');
+                    return;
+                }
+                
+                e.preventDefault();
+                e.stopPropagation();
+                lastTapTime = now;
+                
+                var isShowing = floatWrap.classList.toggle('show-mobile');
+                
+                if (isShowing) {
+                    if (floatWrap._hideTimer) clearTimeout(floatWrap._hideTimer);
+                    floatWrap._hideTimer = setTimeout(function() {
+                        floatWrap.classList.remove('show-mobile');
+                    }, 5000);
+                }
+            }, true);
+            
+            document.addEventListener('click', function(e) {
+                if (!floatWrap.contains(e.target)) {
+                    floatWrap.classList.remove('show-mobile');
+                }
+            });
+            
+            if (hoverCard) {
+                hoverCard.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            }
+        }
+    }
+}
+
+/* ============ ZALO HELPERS ============ */
+function initZaloButton() {
+    var zaloBtn = $('zaloBtn');
+    if (!zaloBtn) return;
+    
+    var phone = (ZALO_PHONE || '').replace(/\D/g, '');
+    var zaloUrl = '#';
+    
+    if (phone) {
+        zaloUrl = 'https://zalo.me/' + phone;
+        zaloBtn.href = zaloUrl;
+        zaloBtn.title = 'Liên hệ Zalo: ' + phone;
+        zaloBtn.setAttribute('data-phone', phone);
+    } else {
+        zaloBtn.href = '#';
+        zaloBtn.onclick = function(e) {
+            e.preventDefault();
+            alert('Chưa cấu hình số Zalo.');
+        };
+    }
+    
+    var nameEl = zaloBtn.querySelector('.zalo-name');
+    if (nameEl && ZALO_NAME) nameEl.textContent = ZALO_NAME;
+    
+    var dropdownZalo = $('dropdownZaloBtn');
+    if (dropdownZalo) {
+        if (phone) {
+            dropdownZalo.href = zaloUrl;
+        } else {
+            dropdownZalo.href = '#';
+            dropdownZalo.onclick = function(e) {
+                e.preventDefault();
+                alert('Chưa cấu hình số Zalo.');
+            };
+        }
+    }
+}
+
+/* ============ FLOATING LEFT GROUP VISIBILITY ============ */
+function updateFloatingLeftVisibility() {
+    var zaloBtn = $('zaloBtn');
+    var tiktokFloatWrap = $('tiktokFloatWrap');
+    var isPracticeMode = document.body.classList.contains('practice-full-open');
+    
+    if (isPracticeMode) {
+        if (zaloBtn) zaloBtn.style.display = 'none';
+        if (tiktokFloatWrap) tiktokFloatWrap.style.display = 'block';
+    } else {
+        if (zaloBtn) zaloBtn.style.display = 'flex';
+        if (tiktokFloatWrap) tiktokFloatWrap.style.display = 'block';
     }
 }
 
@@ -2549,6 +3076,17 @@ function applyUserUI() {
     if (hskMaxEl1) hskMaxEl1.textContent = DEMO_HSK_MAX;
     if (hskMaxEl2) hskMaxEl2.textContent = DEMO_HSK_MAX;
     updateDemoRemaining();
+    
+    /* ✅ Nút "Tập trung học" chỉ hiển thị cho user/admin, KHÔNG hiển thị cho demo */
+    var toggleFocusBtn = $('toggleFocusBtn');
+    if (toggleFocusBtn) {
+        toggleFocusBtn.style.display = isDemo ? 'none' : 'flex';
+    }
+    
+    /* ✅ Nếu là demo mode, reset trạng thái ẩn floating */
+    if (isDemo) {
+        document.body.classList.remove('hide-floating');
+    }
 }
 
 function updateUserDetails() {
@@ -2739,7 +3277,7 @@ document.addEventListener('click', function(e) {
     }
 });
 
-/* ✅ Đổi tên hiển thị */
+/* Đổi tên hiển thị */
 $('changeNameBtn').addEventListener('click', function() {
     $('userDropdown').classList.remove('show');
     if (!currentUser) return;
@@ -2814,7 +3352,7 @@ $('changeNameConfirm').addEventListener('click', async function() {
     }
 });
 
-/* ✅ Chỉnh hạn sử dụng */
+/* Chỉnh hạn sử dụng */
 var editingExpiryEmail = null;
 
 window.openEditExpiry = function(email) {
@@ -2933,6 +3471,8 @@ function initApp() {
     $('mainContent').style.display = 'block';
     
     initZaloButton();
+    initTikTok();
+    updateFloatingLeftVisibility();
     initScrollDetection();
     initFabGroup();
     initTheme();
@@ -2984,43 +3524,6 @@ function initApp() {
     
     try { buildFilters(); applyFilter(); }
     catch(e) { console.error('Init error:', e); }
-}
-
-function initZaloButton() {
-    var zaloBtn = $('zaloBtn');
-    if (!zaloBtn) return;
-    
-    var phone = (ZALO_PHONE || '').replace(/\D/g, '');
-    var zaloUrl = '#';
-    
-    if (phone) {
-        zaloUrl = 'https://zalo.me/' + phone;
-        zaloBtn.href = zaloUrl;
-        zaloBtn.title = 'Liên hệ Zalo: ' + phone;
-        zaloBtn.setAttribute('data-phone', phone);
-    } else {
-        zaloBtn.href = '#';
-        zaloBtn.onclick = function(e) {
-            e.preventDefault();
-            alert('Chưa cấu hình số Zalo.');
-        };
-    }
-    
-    var nameEl = zaloBtn.querySelector('.zalo-name');
-    if (nameEl && ZALO_NAME) nameEl.textContent = ZALO_NAME;
-    
-    var dropdownZalo = $('dropdownZaloBtn');
-    if (dropdownZalo) {
-        if (phone) {
-            dropdownZalo.href = zaloUrl;
-        } else {
-            dropdownZalo.href = '#';
-            dropdownZalo.onclick = function(e) {
-                e.preventDefault();
-                alert('Chưa cấu hình số Zalo.');
-            };
-        }
-    }
 }
 
 function initScrollDetection() {
@@ -3091,6 +3594,17 @@ function initDisplayState() {
             displayState.practice = !!parsed.practice;
         }
     } catch(e) {}
+    
+    /* ✅ Load trạng thái ẩn floating (tập trung học) */
+    var focusHidden = false;
+    try {
+        focusHidden = localStorage.getItem('focusHidden') === 'true';
+    } catch(e) {}
+    if (focusHidden) {
+        document.body.classList.add('hide-floating');
+    }
+    updateFocusBtnIcon();
+    
     if (displayState.practice) {
         displayState.pinyin = false;
         displayState.vi = true;
@@ -3118,7 +3632,44 @@ function initDisplayState() {
         }
         applyDisplayState(); saveDisplayState(); updateToggleButtons();
     });
+    
+    /* ✅ Nút "Tập trung học": Ẩn/hiện Zalo + TikTok + TikTok bar */
+    var toggleFocusBtn = $('toggleFocusBtn');
+    if (toggleFocusBtn) {
+        toggleFocusBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var isHidden = document.body.classList.toggle('hide-floating');
+            try {
+                localStorage.setItem('focusHidden', isHidden ? 'true' : 'false');
+            } catch(e) {}
+            updateFocusBtnIcon();
+        });
+    }
 }
+
+/* ✅ Cập nhật icon cho nút "Tập trung học" */
+function updateFocusBtnIcon() {
+    var btn = $('toggleFocusBtn');
+    if (!btn) return;
+    
+    var isHidden = document.body.classList.contains('hide-floating');
+    var icon = btn.querySelector('i');
+    
+    if (isHidden) {
+        /* Đang ẩn → hiện icon "mắt gạch chéo" + label "Hiện Zalo/TikTok" */
+        icon.className = 'fas fa-eye-slash';
+        btn.setAttribute('data-label', 'Hiện Zalo/TikTok');
+        btn.setAttribute('title', 'Hiện Zalo, TikTok, TikTok bar');
+        btn.classList.add('active');
+    } else {
+        /* Đang hiện → icon "mắt" + label "Tập trung học" */
+        icon.className = 'fas fa-eye';
+        btn.setAttribute('data-label', 'Tập trung học');
+        btn.setAttribute('title', 'Ẩn Zalo, TikTok, TikTok bar');
+        btn.classList.remove('active');
+    }
+}
+
 function applyDisplayState() {
     document.body.classList.toggle('show-vi', displayState.vi);
     document.body.classList.toggle('show-pinyin', displayState.pinyin);
@@ -3140,6 +3691,8 @@ function updateToggleButtons() {
     $('toggleViBtn').classList.toggle('active', displayState.vi);
     $('togglePinyinBtn').classList.toggle('active', displayState.pinyin);
     $('togglePracticeBtn').classList.toggle('active', displayState.practice);
+    /* ✅ Cập nhật nút focus */
+    updateFocusBtnIcon();
 }
 
 window.toggleFocus = function(stt, element) {
@@ -3165,6 +3718,7 @@ document.addEventListener('click', function(e) {
         e.target.closest('.login-modal') || e.target.closest('.admin-modal') ||
         e.target.closest('.practice-full-modal') || e.target.closest('.import-modal') ||
         e.target.closest('.edit-modal') || e.target.closest('.zalo-btn') || 
+        e.target.closest('.tiktok-float-wrap') || e.target.closest('.tiktok-bar') ||
         e.target.closest('.toggle-check-btn')) return;
     clearFocus();
 }, true);
@@ -3780,11 +4334,29 @@ function applyFilter() {
     render(true);
 }
 
+/* ============ PRACTICE FULL MODE ============ */
 var pfCurrentStt = null;
 var pfCurrentAnswer = '';
 var pfCurrentVi = '';
 var pfCurrentPinyin = '';
 var pfHintEnabled = false;
+
+function setPracticeFullTop() {
+    var stickyTop = $('stickyTop');
+    var modal = $('practiceFullModal');
+    if (!stickyTop || !modal) return;
+    
+    var rect = stickyTop.getBoundingClientRect();
+    var height = Math.max(0, rect.bottom);
+    
+    modal.style.top = height + 'px';
+}
+
+window.addEventListener('resize', function() {
+    if ($('practiceFullModal') && $('practiceFullModal').classList.contains('show')) {
+        setPracticeFullTop();
+    }
+});
 
 window.openPracticeFull = function(stt, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
@@ -3798,14 +4370,28 @@ window.openPracticeFull = function(stt, evt) {
     }
     if (idx === -1) { alert('Không tìm thấy câu!'); return; }
     pfCurrentStt = stt;
-    $('practiceFullModal').classList.add('show');
+    
+    document.body.classList.add('practice-full-open');
+    updateFloatingLeftVisibility();
     document.body.style.overflow = 'hidden';
+    
+    setPracticeFullTop();
+    
+    $('practiceFullModal').classList.add('show');
+    
+    requestAnimationFrame(function() {
+        setPracticeFullTop();
+    });
+    
     loadPracticeFull(stt);
 };
 
 window.closePracticeFull = function() {
     $('practiceFullModal').classList.remove('show');
     document.body.style.overflow = '';
+    document.body.classList.remove('practice-full-open');
+    $('practiceFullModal').style.top = '0px';
+    updateFloatingLeftVisibility();
     pfCurrentStt = null;
     if ('speechSynthesis' in window) speechSynthesis.cancel();
 };
@@ -4334,6 +4920,7 @@ function initPracticeFull() {
     }, { passive: true });
 }
 
+/* ============ WRITER ============ */
 var writerInstance = null;
 var currentWriteZh = '';
 var currentWriteVi = '';
@@ -4463,6 +5050,7 @@ function showWriterChar(char) {
     }, 100);
 }
 
+/* ============ ADMIN PANEL ============ */
 function initAdminPanel() {
     $('openAdminBtn').addEventListener('click', function() {
         $('userDropdown').classList.remove('show');
@@ -4480,7 +5068,6 @@ function initAdminPanel() {
         loadUsers(true);
     });
     
-    /* ✅ EXPORT EXCEL CHUYÊN NGHIỆP - CHỈ USER, KHÔNG ADMIN */
     $('exportExcelBtn').addEventListener('click', function() {
         var usersOnly = usersCache.filter(function(u) { 
             return u.role !== 'admin'; 
@@ -4826,17 +5413,12 @@ function initAdminPanel() {
                 bookType: 'xlsx',
                 cellStyles: true
             });
-            
-            console.log('✅ Đã export:', fname);
-            console.log('📊 Stats:', stats);
-            
         } catch(err) {
             console.error('Lỗi export:', err);
             alert('❌ Lỗi export: ' + err.message);
         }
     });
     
-    /* ✅ IMPORT EXCEL - CHỈ IMPORT USER */
     $('importExcelBtn').addEventListener('click', function() {
         $('importFileInput').click();
     });
@@ -4898,7 +5480,6 @@ function initAdminPanel() {
         if (!email || !email.includes('@')) { alert('Email không hợp lệ'); return; }
         if (!name) name = email.split('@')[0];
         
-        // ✅ Thêm admin: CHỈ Super Admin mới làm được
         if (role === 'admin' && !isSuperAdmin()) {
             alert('⚠️ Chỉ Super Admin mới có quyền thêm admin!');
             return;
@@ -5157,7 +5738,6 @@ function renderUsers(items) {
         var isAdmin = u.role === 'admin';
         var targetIsSuper = (u.email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
         
-        // ✅ SUPER ADMIN: có thể hạ quyền/xóa admin thường (trừ chính mình + trừ Super Admin)
         var canModifyAdmin = superAdmin && isAdmin && !isMe && !targetIsSuper;
         
         var roleBtn = '';
@@ -5169,7 +5749,6 @@ function renderUsers(items) {
                 roleBtn = '<button class="u-btn" disabled title="' + escapeHtml(reason) + '"><i class="fas fa-user"></i></button>';
             }
         } else {
-            // Nâng user lên admin: chỉ Super Admin mới được nâng (để kiểm soát)
             if (superAdmin) {
                 roleBtn = '<button class="u-btn" onclick="changeRole(\'' + escapeJs(u.email) + '\', \'admin\')" title="Nâng lên Admin"><i class="fas fa-shield-alt"></i></button>';
             } else {
@@ -5192,7 +5771,6 @@ function renderUsers(items) {
             deleteBtn = '<button class="u-btn danger" onclick="deleteUser(\'' + escapeJs(u.email) + '\')" title="Xóa"><i class="fas fa-trash"></i></button>';
         }
         
-        // ✅ Nút chỉnh hạn sử dụng = BIỂU TƯỢNG LỊCH (icon only, có tooltip, pulse đỏ khi ≤7 ngày)
         var expiryBtn = '';
         if (!isAdmin) {
             var btnCls = 'u-btn expiry';
@@ -5272,7 +5850,6 @@ function renderUsers(items) {
     }).join('');
 }
 
-/* ✅ Đổi vai trò: Super Admin có thể hạ quyền admin thường */
 window.changeRole = async function(email, newRole) {
     var target = usersCache.find(function(u) { return u.email === email; });
     if (!target) { alert('Không tìm thấy user!'); return; }
@@ -5282,19 +5859,16 @@ window.changeRole = async function(email, newRole) {
     var superAdmin = isSuperAdmin();
     var targetIsSuper = (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
     
-    // ✅ Chặn tự hạ quyền chính mình
     if (isMe && newRole === 'user') { 
         alert('⚠️ Không thể tự hạ quyền admin của chính mình!'); 
         return; 
     }
     
-    // ✅ Chặn đổi quyền Super Admin
     if (targetIsSuper) {
         alert('⚠️ Không thể thay đổi quyền của Super Admin!');
         return;
     }
     
-    // ✅ Hạ quyền admin → user: CHỈ Super Admin mới làm được
     if (isAdmin && newRole === 'user') {
         if (!superAdmin) {
             alert('⚠️ Chỉ Super Admin mới có quyền hạ cấp admin khác!');
@@ -5302,7 +5876,6 @@ window.changeRole = async function(email, newRole) {
         }
     }
     
-    // ✅ Nâng user → admin: CHỈ Super Admin mới làm được
     if (!isAdmin && newRole === 'admin') {
         if (!superAdmin) {
             alert('⚠️ Chỉ Super Admin mới có quyền nâng cấp lên admin!');
@@ -5325,7 +5898,6 @@ window.changeRole = async function(email, newRole) {
     catch(e) { alert('Lỗi: ' + e.message); }
 };
 
-/* ✅ Xóa user: Super Admin có thể xóa admin thường */
 window.deleteUser = async function(email) {
     var target = usersCache.find(function(u) { return u.email === email; });
     if (!target) { alert('Không tìm thấy user!'); return; }
@@ -5335,19 +5907,16 @@ window.deleteUser = async function(email) {
     var superAdmin = isSuperAdmin();
     var targetIsSuper = (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
     
-    // ✅ Chặn tự xóa chính mình
     if (isMe) { 
         alert('⚠️ Không thể tự xóa tài khoản của chính mình!'); 
         return; 
     }
     
-    // ✅ Chặn xóa Super Admin
     if (targetIsSuper) {
         alert('⚠️ Không thể xóa Super Admin!');
         return;
     }
     
-    // ✅ Xóa admin: CHỈ Super Admin mới làm được
     if (isAdmin && !superAdmin) {
         alert('⚠️ Chỉ Super Admin mới có quyền xóa admin khác!');
         return;
@@ -5437,22 +6006,6 @@ function processImport(rows) {
             ignoredCols.push(h);
         }
     });
-    
-    var colInfo = '📋 Cột đã nhận diện:\n';
-    colInfo += '   • email: ' + (emailCol >= 0 ? '✅ cột ' + (emailCol + 1) : '❌ thiếu') + '\n';
-    colInfo += '   • name: ' + (nameCol >= 0 ? '✅ cột ' + (nameCol + 1) : '⚠️ thiếu (dùng email)') + '\n';
-    colInfo += '   • expiresAt: ' + (expCol >= 0 ? '✅ cột ' + (expCol + 1) : '⚠️ thiếu (vĩnh viễn)') + '\n';
-    
-    if (ignoredCols.length > 0) {
-        colInfo += '\n🗑️ Cột bỏ qua (' + ignoredCols.length + '): ' + ignoredCols.slice(0, 5).join(', ');
-        if (ignoredCols.length > 5) colInfo += ', ...';
-    }
-    
-    if (warnings.length > 0) {
-        colInfo += '\n\n⚠️ Cảnh báo:\n' + warnings.map(function(w) { return '   • ' + w; }).join('\n');
-    }
-    
-    console.log(colInfo);
     
     var existingUserMap = {};
     var existingAdminSet = {};
@@ -5572,11 +6125,6 @@ function processImport(rows) {
         }
         alert(msg);
         return;
-    }
-    
-    console.log('📊 Import stats:', stats);
-    if (ignoredCols.length > 0) {
-        console.log('🗑️ Cột bỏ qua:', ignoredCols);
     }
     
     renderImportPreview();
@@ -5798,6 +6346,10 @@ html_output = (html_template
     .replace("__FIREBASE_CONFIG__", firebase_config_json)
     .replace("__ZALO_PHONE__", ZALO_PHONE)
     .replace("__ZALO_NAME__", ZALO_NAME)
+    .replace("__TIKTOK_USERNAME__", TIKTOK_USERNAME)
+    .replace("__TIKTOK_NICKNAME__", TIKTOK_NICKNAME)
+    .replace("__TIKTOK_AVATAR__", TIKTOK_AVATAR)
+    .replace("__TIKTOK_URL__", TIKTOK_URL)
     .replace("__DEMO_LIMIT__", str(DEMO_LIMIT))
     .replace("__DEMO_DAILY_LIMIT__", str(DEMO_DAILY_LIMIT))
     .replace("__DEMO_HSK_MAX__", str(DEMO_HSK_MAX))
@@ -5816,42 +6368,20 @@ print(f"📚 Tổng số câu: {len(data)}")
 print(f"🎁 Demo: {DEMO_LIMIT} câu + HSK1-{DEMO_HSK_MAX} + {DEMO_DAILY_LIMIT} lượt")
 print(f"🔥 Firebase: {FIREBASE_CONFIG.get('projectId', 'N/A')}")
 print(f"👑 Super admin: {SUPER_ADMIN}")
-print(f"   → 7 ô thống kê + thấy tất cả + lịch sử đăng nhập")
-print(f"   → CÓ THỂ HẠ QUYỀN / XÓA ADMIN THƯỜNG")
-print(f"🕵️  Admin thường (tất cả admin khác)")
-print(f"   → 4 ô: Tổng User / Đang HĐ / Sắp hết hạn / Hết hạn")
-print(f"   → Ẩn admin khác + ẩn lịch sử đăng nhập")
-print(f"   → KHÔNG được hạ quyền / xóa admin khác")
-print(f"👥 Tổng User KHÔNG tính admin")
-print(f"🧠 Chấm điểm: So khớp thông minh")
-print(f"💡 Nút Gợi ý (mặc định TẮT) + Ghost text mờ")
-print(f"📝 Đáp án tách theo PINYIN viết liền/rời")
-print(f"☀️  Theme mặc định: Light mode")
-print(f"🎯 Desktop hover phóng to + Mobile click vừa đọc vừa phóng to")
-print(f"👁️  Nút Xem đáp án: toggle ẩn/hiện")
-print(f"✏️  Click ký tự sai → con trỏ về + bôi đen ĐÚNG ký tự")
-print(f"🔍 Search + Filter + Dropdown chọn câu (tiếng Việt) trong modal")
-print(f"📂 Chủ đề demo: mở khóa lên đầu, khóa xuống dưới")
-print(f"💾 Cache user 12h + Log 1 lần/ngày")
-print(f"👁️  Nút ẩn/hiện kết quả + đáp án ở mỗi thẻ trang chính")
-print(f"✅ Gõ search trong modal KHÔNG nhảy sang ô nhập tiếng Trung")
-print(f"📤 Export CHUYÊN NGHIỆP: 7 cột + 3 sheet + style màu")
-print(f"📥 Import CHỈ USER, KHÔNG ADMIN + bỏ qua cột dư thừa")
-print(f"🔁 Import lần 2, 3, ... không lỗi null")
-print(f"⏰ User có hạn sử dụng — tự động khóa khi hết hạn")
-print(f"🔔 Banner cảnh báo sắp hết hạn (≤ 7 ngày) với Zalo")
-print(f"👤 Click avatar → hiển thị chi tiết + ngày hết hạn + progress bar")
-print(f"📞 Nút Zalo trong dropdown user")
-print(f"\n✨ TÍNH NĂNG MỚI:")
-print(f"👑 Super Admin có thể HẠ QUYỀN / XÓA admin thường ngay trên UI")
-print(f"   • Nút hạ quyền (icon người) — chỉ Super Admin bấm được với admin khác")
-print(f"   • Nút xóa (icon thùng rác) — chỉ Super Admin xóa được admin khác")
-print(f"   • Chặn tự hạ quyền / tự xóa chính mình")
-print(f"   • Chặn hạ quyền / xóa Super Admin")
-print(f"   • Badge '👑 super' màu vàng cam cho Super Admin")
-print(f"📅 Nút chỉnh hạn sử dụng = BIỂU TƯỢNG LỊCH (icon only)")
-print(f"   • Tooltip hiển thị ngày hết hạn hiện tại khi hover")
-print(f"   • Nhấp nháy đỏ (pulse) khi user còn ≤ 7 ngày")
-print(f"   • Quick buttons: +7d, +30d, +90d, +6m, +1y, vĩnh viễn")
-print(f"   • Chọn ngày cụ thể trực tiếp")
-print(f"✏️  Nút đổi tên hiển thị (user + admin đều có)")
+print(f"🎵 TikTok: @{TIKTOK_USERNAME} ({TIKTOK_NICKNAME})")
+print(f"   → Header: 'Học tiếng Trung' + 'Văn phòng & Công xưởng' (lùi phải)")
+print(f"   → TikTok info bar dưới header (giữ nguyên Thảo nói 中文)")
+print(f"   → Chế độ thường: Zalo + TikTok (floating left)")
+print(f"   → Chế độ luyện tập: CHỈ TikTok")
+print(f"   → PC hover TikTok: card info (avatar + nickname + stats)")
+print(f"   → Mobile 1 tap TikTok: card info; 2 tap: mở TikTok")
+print(f"   → Mobile TikTok button: CHỈ icon tròn nhỏ gọn")
+print(f"   → Avatar TikTok: {'Có' if TIKTOK_AVATAR else 'Fallback SVG'}")
+print(f"🚫 FIX: Đã sửa lỗi TRÙNG LẶP 2 ô tìm kiếm / 2 ô HSK / 2 ô chủ đề")
+print(f"      → Ẩn search bar + filters của header khi mở modal luyện tập")
+print(f"      → Modal set top 1 lần theo chiều cao header, không cập nhật liên tục")
+print(f"✅ Header KHÔNG biến mất khi bật chế độ luyện tập")
+print(f"🎯 Nút FAB 'Tập trung học': ẩn/hiện Zalo+TikTok+TikTokBar")
+print(f"      → CHỈ hiển thị cho user/admin (KHÔNG hiển thị demo)")
+print(f"      → Lưu trạng thái vào localStorage (focusHidden)")
+print(f"      → Icon đổi màu cam + icon mắt gạch chéo khi đang ẩn")
