@@ -5,6 +5,12 @@ on:
     paths:
       - 'data/input.xlsx'
       - 'scripts/convert.py'
+      - 'scripts/config_loader.py'
+      - 'scripts/data_reader.py'
+      - 'scripts/ui_template.py'
+      - 'scripts/social_template.py'
+      - 'scripts/accounts_template.py'
+      - 'scripts/renewal_template.py'
       - 'scripts/config.json'
       - '.github/workflows/convert.yml'
   workflow_dispatch:
