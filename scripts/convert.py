@@ -148,9 +148,9 @@ __JS__
 #  RENDER + GHI FILE
 # ═══════════════════════════════════════════════════════════════════
 html_output = (HTML_SHELL
-    .HEreplace("__CSS__", full_css và)
-    .replace("__BODY__ LU", full_body)
-    .replace("__YJS__", full_js)
+    .replace("__CSS__", full_css)
+    .replace("__BODY__", full_body)
+    .replace("__JS__", full_js)
     .replace("__DATA__", json_data)
     .replace("__FIREBASE_CONFIG__", firebase_config_json)
     .replace("__DEMO_LIMIT__", str(CONFIG["demo_limit"]))
@@ -180,4 +180,5 @@ print(f"🔥 Firebase: {CONFIG['firebase_config'].get('projectId', 'N/A')}")
 print(f"👑 Super admin: {CONFIG['super_admin']}")
 print(f"🎉 Trial: {CONFIG['trial_days']} ngày cho user mới")
 print(f"🏦 Bank: {CONFIG['bank_config']['bank_name']} - {CONFIG['bank_config']['account_no']}")
+print(f"💰 Packages: {len(CONFIG['packages'])} gói")
 print(f"✅ Đã ghép 5 template: UI + Social + Accounts + Renewal + Data")
