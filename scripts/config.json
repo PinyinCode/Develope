@@ -23,10 +23,10 @@
     },
     "trial_days": 7,
     "bank_config": {
-        "bank_id": "970422",
-        "bank_name": "MbBank",
-        "account_no": "8875578668",
-        "account_name": "HOANG VAN LUONG"
+        "bank_id": "970418",
+        "bank_name": "BIDV",
+        "account_no": "8897014076",
+        "account_name": "NGUYEN THI THAO"
     },
     "packages": [
         {
