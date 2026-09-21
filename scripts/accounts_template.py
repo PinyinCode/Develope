@@ -1257,16 +1257,31 @@ async function refreshCurrentUser() {
         var data = doc.data();
         currentUser.expiresAt = data.expiresAt || null;
         currentUser.name = data.name || currentUser.name;
+
+        // ✅ Cập nhật lại isDemo khi user vừa được gia hạn
+        if (currentUser.role !== 'admin' && currentUser.expiresAt) {
+            var expDate = getExpiryDate(currentUser.expiresAt);
+            if (expDate && !isNaN(expDate.getTime())) {
+                var isExpired = expDate.getTime() < Date.now();
+                currentUser.isExpiredOnly = isExpired;
+                isDemo = isExpired;
+                console.log('🔄 refreshCurrentUser: hết hạn =', isExpired);
+            }
+        } else if (currentUser.role === 'admin' || !currentUser.expiresAt) {
+            currentUser.isExpiredOnly = false;
+            isDemo = false;
+        }
+
         try { localStorage.removeItem('user_cache_' + currentUser.email); } catch(e) {}
         try {
             localStorage.setItem('user_cache_' + currentUser.email, JSON.stringify({
                 data: currentUser, expires: Date.now() + 12 * 60 * 60 * 1000
             }));
         } catch(e) {}
+
         if (typeof applyUserUI === 'function') applyUserUI();
     } catch(e) { console.error('refreshCurrentUser error:', e); }
 }
-
 /* ============ ADMIN PANEL ============ */
 function initAdminPanel() {
     if ($('openAdminBtn')) $('openAdminBtn').addEventListener('click', function() {
