@@ -40,7 +40,8 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - ✅ Mobile 1 tap TikTok = card info; 2 tap = mở TikTok
 - ✅ Nút FAB "Silent mode" (CHUÔNG BẬT 🔔 / CHUÔNG TẮT 🔕) ẩn/hiện Zalo + TikTok + TikTok bar
          (CHỈ áp dụng cho user/admin, KHÔNG áp dụng demo)
-         → Màu sắc GIỐNG các nút FAB khác (xanh primary khi active)
+         → Bình thường: 🔔 XANH (active) — đang BẬT thông báo
+         → Silent mode: 🔕 XÁM (chưa active) — đang TẮT thông báo
 - ✅ FIX: Bật chế độ luyện tập full màn hình KHÔNG còn trùng lặp search/HSK/chủ đề
 - ✅ FIX: Modal luyện tập set top 1 lần theo chiều cao header, không cập nhật liên tục
 - ✅ FIX: Bỏ tooltip ::after của FAB → không còn chấm đen khi hover/nhấn
@@ -118,7 +119,8 @@ print(f"   👤 Click avatar → hiển thị chi tiết + ngày hết hạn")
 print(f"   ✏️  Nút đổi tên hiển thị (user + admin)")
 print(f"   📅 Quản lý ngày hết hạn trên giao diện admin")
 print(f"   🔔🔕 Nút FAB 'Silent mode' (chuông BẬT/TẮT) ẩn/hiện Zalo+TikTok+TikTokBar")
-print(f"   🎨 Màu nút Silent GIỐNG các nút FAB khác (xanh primary)")
+print(f"      → Bình thường: 🔔 XANH (active)")
+print(f"      → Silent mode: 🔕 XÁM (chưa active)")
 print(f"   🚫 FIX: Không còn trùng lặp search/HSK/chủ đề khi luyện tập full")
 print(f"   🚫 FIX: Không còn chấm đen tooltip trên FAB")
 
@@ -773,7 +775,9 @@ body{
 }
 
 /* ✅ Nút Silent khi active DÙNG MÀU XANH GIỐNG các nút FAB khác
-   (đã tự kế thừa từ .fab-btn.active phía trên, không cần override) */
+   (đã tự kế thừa từ .fab-btn.active phía trên, không cần override)
+   → Bình thường: 🔔 XANH (active)
+   → Silent mode: 🔕 XÁM (chưa active) */
 
 /* ✅ Ẩn floating buttons + TikTok bar khi user bật chế độ Silent */
 body.hide-floating .floating-left-group,
@@ -2209,7 +2213,7 @@ body.practice-full-open .expiry-banner {
     <button class="fab-btn fab-sub" id="togglePracticeBtn" title="Ẩn/hiện Ô luyện dịch">
         <i class="fas fa-keyboard"></i>
     </button>
-    <!-- ✅ Nút Silent: CHUÔNG BẬT 🔔 / CHUÔNG TẮT 🔕 - Ẩn/hiện Zalo + TikTok + TikTok bar -->
+    <!-- ✅ Nút Silent: CHUÔNG BẬT 🔔 (XANH) / CHUÔNG TẮT 🔕 (XÁM) -->
     <button class="fab-btn fab-sub fab-focus" id="toggleFocusBtn" title="Click để tắt Zalo/TikTok (Silent mode)">
         <i class="fas fa-bell"></i>
     </button>
@@ -3641,7 +3645,9 @@ function initDisplayState() {
     }
 }
 
-/* ✅ Cập nhật icon cho nút Silent: CHUÔNG BẬT 🔔 / CHUÔNG TẮT 🔕 */
+/* ✅ Cập nhật icon nút Silent: 
+   - Bình thường → 🔔 chuông BẬT → nút XANH (active)
+   - Silent mode → 🔕 chuông TẮT → nút XÁM (chưa active) */
 function updateFocusBtnIcon() {
     var btn = $('toggleFocusBtn');
     if (!btn) return;
@@ -3650,15 +3656,15 @@ function updateFocusBtnIcon() {
     var icon = btn.querySelector('i');
     
     if (isHidden) {
-        /* Đang SILENT → chuông TẮT 🔕 */
+        /* Đang SILENT → chuông TẮT 🔕 → nút XÁM (chưa active) */
         icon.className = 'fas fa-bell-slash';
         btn.setAttribute('title', 'Đang tắt thông báo — Click để bật lại Zalo/TikTok');
-        btn.classList.add('active');
+        btn.classList.remove('active');
     } else {
-        /* Bình thường → chuông BẬT 🔔 */
+        /* Bình thường → chuông BẬT 🔔 → nút XANH (active) */
         icon.className = 'fas fa-bell';
         btn.setAttribute('title', 'Click để tắt Zalo/TikTok (Silent mode)');
-        btn.classList.remove('active');
+        btn.classList.add('active');
     }
 }
 
@@ -6374,9 +6380,9 @@ print(f"      → Ẩn search bar + filters của header khi mở modal luyện 
 print(f"      → Modal set top 1 lần theo chiều cao header, không cập nhật liên tục")
 print(f"✅ Header KHÔNG biến mất khi bật chế độ luyện tập")
 print(f"🔔🔕 Nút FAB 'Silent mode' - ICON CHUÔNG BẬT / CHUÔNG TẮT:")
-print(f"      → Bình thường: 🔔 fa-bell (chuông bật, màu xám)")
-print(f"      → Đang silent: 🔕 fa-bell-slash (chuông tắt, màu xanh primary)")
-print(f"      → Màu GIỐNG các nút FAB khác, KHÔNG dùng cam/đỏ riêng")
+print(f"      → Bình thường: 🔔 fa-bell + nút XANH primary (active)")
+print(f"      → Silent mode: 🔕 fa-bell-slash + nút XÁM (chưa active)")
+print(f"      → Màu GIỐNG các nút FAB khác")
 print(f"      → Ẩn/hiện Zalo + TikTok + TikTok bar")
 print(f"      → CHỈ hiển thị cho user/admin (KHÔNG hiển thị demo)")
 print(f"      → Lưu trạng thái vào localStorage (focusHidden)")
