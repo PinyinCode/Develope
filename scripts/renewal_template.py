@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Template cho tính năng GIA HẠN + TRIAL tự động.
-- Đăng ký lần đầu → tặng 7 ngày (xử lý ở accounts_template.py)
+- Đăng ký lần đầu → tặng 7 ngày (ATOMIC transaction, chống race condition)
 - User chọn gói → tạo renewal_request → hiện QR ngân hàng
 - User bấm "Đã thanh toán" → status user_paid
 - Admin xác nhận thủ công → status confirmed
@@ -119,7 +119,7 @@ def build_renewal_css():
 .qr-wrap{
     display:flex;flex-direction:column;align-items:center;gap:.75rem;
     padding:1rem;background:linear-gradient(135deg,#f0f4f8,#e2e8f0);
-    border-radius:14px;border:1.5px dashed var(--border-strong);
+    border-radius:14px;border:1.5px dashed var(--border);
 }
 [data-theme="dark"] .qr-wrap{
     background:linear-gradient(135deg,#1e293b,#0f172a);border-color:#475569;
@@ -351,7 +351,7 @@ def build_renewal_html():
 def build_renewal_js():
     return r"""
 /* ═══════════════════════════════════════════════════════════════
-   GIA HẠN TÀI KHOẢN - TỰ ĐỘNG + XÁC NHẬN THỦ CÔNG
+   GIA HẠN TÀI KHOẢN - TRIAL TỰ ĐỘNG + XÁC NHẬN THỦ CÔNG
    ═══════════════════════════════════════════════════════════════ */
 
 var TRIAL_DAYS = __TRIAL_DAYS__;
@@ -363,30 +363,55 @@ var renewalSelectedPkg = null;
 var renewalCurrentReq = null;
 var renewalListener = null;
 
-/* ─── ĐĂNG KÝ TRIAL: TỰ ĐỘNG TẶNG 7 NGÀY ─────────────────────── */
+/* ─── ĐĂNG KÝ TRIAL: TỰ ĐỘNG TẶNG 7 NGÀY (ATOMIC) ─────────────── */
 async function grantTrialIfNew(user, userData) {
     if (!user || !user.email) return false;
-    if (userData && userData.registeredAt) return false;
 
     var email = user.email.toLowerCase();
-    var trialMs = TRIAL_DAYS * 24 * 60 * 60 * 1000;
-    var expiresAt = new Date(Date.now() + trialMs);
+    var userRef = db.collection('allowed_users').doc(email);
 
     try {
-        await db.collection('allowed_users').doc(email).set({
-            name: userData && userData.name
-                ? userData.name
-                : (user.displayName || email.split('@')[0]),
-            role: 'user',
-            expiresAt: firebase.firestore.Timestamp.fromDate(expiresAt),
-            registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
-            isTrial: true,
-            trialDays: TRIAL_DAYS
-        }, { merge: true });
+        /* ✅ Dùng transaction để tránh race condition (2 tab login cùng lúc) */
+        var result = await db.runTransaction(async function(transaction) {
+            var doc = await transaction.get(userRef);
 
-        console.log('✅ Trial granted:', TRIAL_DAYS, 'days for', email);
-        return true;
-    } catch(e) {
+            if (doc.exists) {
+                var data = doc.data() || {};
+                /* Doc tồn tại và đã có dấu hiệu đăng ký → KHÔNG tặng trial */
+                if (data.registeredAt || data.expiresAt || data.role === 'admin') {
+                    return { granted: false, reason: 'already_exists' };
+                }
+                /* Doc tồn tại nhưng hoàn toàn rỗng → vẫn coi như user mới */
+            }
+
+            var trialMs = TRIAL_DAYS * 24 * 60 * 60 * 1000;
+            var expiresAt = new Date(Date.now() + trialMs);
+            expiresAt.setHours(23, 59, 59, 0);
+
+            var setData = {
+                name: (userData && userData.name)
+                    ? userData.name
+                    : (user.displayName || email.split('@')[0]),
+                role: 'user',
+                expiresAt: firebase.firestore.Timestamp.fromDate(expiresAt),
+                registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
+                isTrial: true,
+                trialDays: TRIAL_DAYS,
+                trialStartedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            transaction.set(userRef, setData, { merge: false });
+
+            return { granted: true, expiresAt: expiresAt };
+        });
+
+        if (result.granted) {
+            console.log('✅ Trial granted:', TRIAL_DAYS, 'days for', email);
+        } else {
+            console.log('ℹ️ Trial skipped (already exists):', email);
+        }
+        return result.granted;
+    } catch (e) {
         console.error('❌ Grant trial error:', e);
         return false;
     }
