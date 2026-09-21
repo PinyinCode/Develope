@@ -608,7 +608,9 @@ body{
 }
 
 /* ✅ Nút Silent khi active DÙNG MÀU XANH GIỐNG các nút FAB khác
-   (đã tự kế thừa từ .fab-btn.active phía trên, không cần override) */
+   (đã tự kế thừa từ .fab-btn.active phía trên, không cần override)
+   → Bình thường: 🔔 XANH (active)
+   → Silent mode: 🔕 XÁM (chưa active) */
 
 /* ✅ Ẩn floating buttons + TikTok bar khi user bật chế độ Silent */
 body.hide-floating .floating-left-group,
@@ -2044,7 +2046,7 @@ body.practice-full-open .expiry-banner {
     <button class="fab-btn fab-sub" id="togglePracticeBtn" title="Ẩn/hiện Ô luyện dịch">
         <i class="fas fa-keyboard"></i>
     </button>
-    <!-- ✅ Nút Silent: CHUÔNG BẬT 🔔 / CHUÔNG TẮT 🔕 - Ẩn/hiện Zalo + TikTok + TikTok bar -->
+    <!-- ✅ Nút Silent: CHUÔNG BẬT 🔔 (XANH) / CHUÔNG TẮT 🔕 (XÁM) -->
     <button class="fab-btn fab-sub fab-focus" id="toggleFocusBtn" title="Click để tắt Zalo/TikTok (Silent mode)">
         <i class="fas fa-bell"></i>
     </button>
@@ -3476,7 +3478,9 @@ function initDisplayState() {
     }
 }
 
-/* ✅ Cập nhật icon cho nút Silent: CHUÔNG BẬT 🔔 / CHUÔNG TẮT 🔕 */
+/* ✅ Cập nhật icon nút Silent: 
+   - Bình thường → 🔔 chuông BẬT → nút XANH (active)
+   - Silent mode → 🔕 chuông TẮT → nút XÁM (chưa active) */
 function updateFocusBtnIcon() {
     var btn = $('toggleFocusBtn');
     if (!btn) return;
@@ -3485,15 +3489,15 @@ function updateFocusBtnIcon() {
     var icon = btn.querySelector('i');
     
     if (isHidden) {
-        /* Đang SILENT → chuông TẮT 🔕 */
+        /* Đang SILENT → chuông TẮT 🔕 → nút XÁM (chưa active) */
         icon.className = 'fas fa-bell-slash';
         btn.setAttribute('title', 'Đang tắt thông báo — Click để bật lại Zalo/TikTok');
-        btn.classList.add('active');
+        btn.classList.remove('active');
     } else {
-        /* Bình thường → chuông BẬT 🔔 */
+        /* Bình thường → chuông BẬT 🔔 → nút XANH (active) */
         icon.className = 'fas fa-bell';
         btn.setAttribute('title', 'Click để tắt Zalo/TikTok (Silent mode)');
-        btn.classList.remove('active');
+        btn.classList.add('active');
     }
 }
 
