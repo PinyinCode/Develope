@@ -90,16 +90,16 @@ if "scripts/renewal_template.py" in existing_optional:
 else:
     print("\n🔍 Bỏ qua renewal_template.py (không có file)")
 
-# 6. Kiểm tra accounts_template đã sửa chưa
+# 6. Kiểm tra accounts_template
 print("\n🔍 Kiểm tra accounts_template.py...")
 with open("scripts/accounts_template.py", "r", encoding="utf-8") as f:
     acc_content = f.read()
 
 checks = [
     ("grantTrialIfNew", "Trial tự động"),
-    ("renewalsList", "Section Yêu cầu gia hạn"),
-    ("initRenewalUI", "Init renewal"),
-    ("loadRenewals", "Load renewals"),
+    ("renewalsList",     "Section Yêu cầu gia hạn"),
+    ("loadRenewals",     "Load renewals"),
+    # ("initRenewalUI", "Init renewal"),  # ← ĐÃ BỎ
 ]
 for fn, label in checks:
     if fn not in acc_content:
