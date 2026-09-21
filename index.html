@@ -2093,19 +2093,32 @@ function incDemoUsage() {
 }
 function getDemoRemaining() { return Math.max(0, DEMO_DAILY_LIMIT - getDemoUsage()); }
 
-/* ✅ FIX: Chặn tính năng khi hết hạn */
-function canUseFeature() {
-    // Demo mode → giới hạn theo ngày
-    if (isDemo) return getDemoUsage() < DEMO_DAILY_LIMIT;
+/* ✅ HÀM MỚI: Kiểm tra user có bị giới hạn không (demo HOẶC hết hạn) */
+function isUserLimited() {
+    // Khách chưa login → bị giới hạn
+    if (isDemo) return true;
 
-    // User đã login → kiểm tra hạn
+    // User hết hạn → bị giới hạn
     if (currentUser && currentUser.role !== 'admin') {
         var daysLeft = getDaysRemaining(currentUser);
-        if (daysLeft !== null && daysLeft <= 0) {
-            return false;   // Đã hết hạn → chặn
-        }
+        if (daysLeft !== null && daysLeft <= 0) return true;
     }
 
+    return false;
+}
+
+/* ✅ FIX: Chặn tính năng khi hết hạn */
+function canUseFeature() {
+    // Nếu bị giới hạn (demo OR hết hạn)
+    if (isUserLimited()) {
+        // Với user hết hạn → chặn hẳn
+        if (!isDemo && currentUser && currentUser.role !== 'admin') {
+            var daysLeft = getDaysRemaining(currentUser);
+            if (daysLeft !== null && daysLeft <= 0) return false;
+        }
+        // Với khách demo → giới hạn theo ngày
+        return getDemoUsage() < DEMO_DAILY_LIMIT;
+    }
     return true;
 }
 
@@ -2456,8 +2469,7 @@ function getChineseVoice() {
 
 window.speakText = function(text, btn, evt) {
     if (evt) evt.stopPropagation();
-    if (isDemo && !canUseFeature()) { showLimitMessage(); return; }
-    if (!isDemo && !canUseFeature()) { showLimitMessage(); return; }
+    if (isUserLimited() && !canUseFeature()) { showLimitMessage(); return; }
     if (!('speechSynthesis' in window)) { alert('Trình duyệt không hỗ trợ phát âm.'); return; }
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
     speechSynthesis.cancel();
@@ -2636,7 +2648,7 @@ function render(reset) {
     if (oldEndNote) oldEndNote.remove();
 
     if (renderedCount < filtered.length) {
-        var isDemoLock = isDemo && renderedCount >= DEMO_LIMIT;
+        var isDemoLock = isUserLimited() && renderedCount >= DEMO_LIMIT;
         if (!isDemoLock) {
             var btnMobile = document.createElement('button');
             btnMobile.className = 'load-more';
@@ -2646,8 +2658,15 @@ function render(reset) {
         } else {
             var lockedBtn = document.createElement('button');
             lockedBtn.className = 'load-more locked';
-            lockedBtn.innerHTML = '<i class="fas fa-lock"></i> Đăng nhập để xem toàn bộ ' + RAW_DATA.length + ' câu';
-            lockedBtn.onclick = function() { showLoginModal(); };
+            lockedBtn.innerHTML = '<i class="fas fa-lock"></i> ' + 
+                (!isDemo ? 'Tài khoản hết hạn — Gia hạn để xem tiếp' : 'Đăng nhập để xem toàn bộ ' + RAW_DATA.length + ' câu');
+            lockedBtn.onclick = function() {
+                if (!isDemo && typeof openRenewalModal === 'function') {
+                    openRenewalModal();
+                } else {
+                    showLoginModal();
+                }
+            };
             mobileWrapper.appendChild(lockedBtn);
         }
     } else if (filtered.length > PAGE_SIZE) {
@@ -2992,6 +3011,20 @@ window.toggleInlineCheck = function(btn, evt) {
 };
 
 /* ============ APPLY FILTER ============ */
+/* 
+ * ✅ FIX: Kiểm tra user hết hạn → giới hạn dữ liệu như demo
+ * - Khách chưa login (isDemo=true) → demo
+ * - User hết hạn (isDemo=true, isExpiredOnly=true) → demo
+ * - User còn hạn hoặc admin → full
+ */
+function getBaseData() {
+    // Nếu bị giới hạn (khách HOẶC user hết hạn) → lấy demo data
+    if (isUserLimited()) {
+        return getDemoData();
+    }
+    return RAW_DATA;
+}
+
 function applyFilter() {
     state.search = $('searchInput').value.trim().toLowerCase();
     state.hsk = $('hskFilter').value;
@@ -3000,7 +3033,9 @@ function applyFilter() {
     var clearBtn = $('clearSearchBtn');
     if (state.search) clearBtn.classList.add('show');
     else clearBtn.classList.remove('show');
-    var baseData = isDemo ? getDemoData() : RAW_DATA;
+    
+    // ✅ SỬ DỤNG getBaseData() thay vì check isDemo trực tiếp
+    var baseData = getBaseData();
     filtered = baseData.filter(function(r) {
         if (state.search) {
             var s = state.search;
@@ -3043,6 +3078,21 @@ window.addEventListener('resize', function() {
 
 window.openPracticeFull = function(stt, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
+
+    // ✅ FIX: Chặn user hết hạn
+    if (isUserLimited() && !isDemo && currentUser) {
+        // User login nhưng hết hạn → hiện thông báo gia hạn
+        var daysLeft = getDaysRemaining(currentUser);
+        if (daysLeft !== null && daysLeft <= 0) {
+            showLimitMessage();
+            return;
+        }
+    }
+    // Khách demo → vẫn cho phép nhưng tính vào daily limit
+    if (isDemo) {
+        // Cho phép mở, không chặn (practice full chỉ là UI khác)
+        // Nhưng nếu vượt limit audio thì sẽ bị chặn khi bấm nghe
+    }
 
     pfBuildFilterOptions();
     pfBuildQuickNav();
@@ -3270,6 +3320,9 @@ function pfUpdateResultCount() {
     }
 }
 
+/* 
+ * ✅ FIX: pfApplyFilter cũng dùng getBaseData()
+ */
 function pfApplyFilter() {
     $('searchInput').value = $('pfSearchInput').value;
     $('hskFilter').value = $('pfHskFilter').value;
@@ -3279,7 +3332,8 @@ function pfApplyFilter() {
     state.hsk = $('pfHskFilter').value;
     state.subject = $('pfSubjectFilter').value;
 
-    var baseData = isDemo ? getDemoData() : RAW_DATA;
+    // ✅ SỬ DỤNG getBaseData() 
+    var baseData = getBaseData();
     filtered = baseData.filter(function(r) {
         if (state.search) {
             var s = state.search;
@@ -3495,8 +3549,7 @@ function revealFullAnswer() {
 }
 
 window.speakPhrase = function(phrase, btn) {
-    if (isDemo && !canUseFeature()) { showLimitMessage(); return; }
-    if (!isDemo && !canUseFeature()) { showLimitMessage(); return; }
+    if (isUserLimited() && !canUseFeature()) { showLimitMessage(); return; }
     if (!('speechSynthesis' in window)) { alert('Trình duyệt không hỗ trợ phát âm.'); return; }
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
     speechSynthesis.cancel();
@@ -3512,8 +3565,7 @@ window.speakPhrase = function(phrase, btn) {
 };
 
 window.speakFullSentence = function() {
-    if (isDemo && !canUseFeature()) { showLimitMessage(); return; }
-    if (!isDemo && !canUseFeature()) { showLimitMessage(); return; }
+    if (isUserLimited() && !canUseFeature()) { showLimitMessage(); return; }
     if (!('speechSynthesis' in window)) return;
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
     speechSynthesis.cancel();
@@ -3660,7 +3712,7 @@ function initWriter() {
 
 window.openWriter = function(zh, vi, pinyin, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
-    if (!canUseFeature()) { showLimitMessage(); return; }
+    if (isUserLimited() && !canUseFeature()) { showLimitMessage(); return; }
     if (typeof HanziWriter === 'undefined') { alert('Thư viện chưa tải xong.'); return; }
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
     currentWriteZh = zh || '';
@@ -3692,10 +3744,10 @@ function renderWriterChars(chars) {
     container.querySelectorAll('.writer-char-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var idx = parseInt(this.dataset.idx);
-            var ch = this.dataset.char;
-            container.querySelectorAll('.writer-char-btn').forEach(function(b) { b.classList.remove('active'); });
-            this.classList.add('active');
-            currentCharIndex = idx;
+            var: ch = this.dataset true.char;
+            container.querySelectorAll('.,writer-char-btn').forEach(function(b) stroke { b.classList.remove('active'); });
+Animation            this.classList.add('active');
+Speed            currentCharIndex = idx;
             $('writerScore').textContent = '';
             $('writerScore').className = 'writer-score';
             showWriterChar(ch);
@@ -3718,7 +3770,7 @@ function showWriterChar(char) {
                 strokeColor: '#1e293b', radicalColor: '#2563eb',
                 highlightColor: '#f59e0b', outlineColor: '#cbd5e1',
                 drawingColor: '#2563eb', drawingWidth: drawWidth,
-                showOutline: true, strokeAnimationSpeed: 1, delayBetweenStrokes: 250,
+                showOutline: 1, delayBetweenStrokes: 250,
                 charDataLoader: function(ch, onComplete, onError) {
                     fetch('https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0/' + encodeURIComponent(ch) + '.json')
                         .then(function(res) { if (!res.ok) throw new Error('Không có dữ liệu'); return res.json(); })
@@ -4012,11 +4064,37 @@ async function handleAuthChange(user) {
             role: data.role || 'user',
             photo: user.photoURL || '',
             expiresAt: data.expiresAt || null,
-            isTrial: data.isTrial || false
+            isTrial: data.isTrial || false,
+            isExpiredOnly: false   // ← flag mới
         };
 
         currentUser = userData;
 
+        // ═══════════════════════════════════════════════
+        // ✅ LOGIC MỚI: Kiểm tra user hết hạn
+        // - Admin → luôn full quyền
+        // - User còn hạn → full quyền
+        // - User hết hạn → isDemo = true (giới hạn tính năng),
+        //   NHƯNG vẫn giữ currentUser để hiện menu + nút gia hạn
+        // ═══════════════════════════════════════════════
+        var isExpiredUser = false;
+        if (currentUser.role !== 'admin' && currentUser.expiresAt) {
+            var expDate = getExpiryDate(currentUser.expiresAt);
+            if (expDate && !isNaN(expDate.getTime())) {
+                isExpiredUser = expDate.getTime() < Date.now();
+            }
+        }
+
+        if (isExpiredUser) {
+            isDemo = true;
+            currentUser.isExpiredOnly = true;
+            console.log('⏰ User hết hạn — chuyển sang chế độ demo (vẫn giữ menu user)');
+        } else {
+            isDemo = false;
+            currentUser.isExpiredOnly = false;
+        }
+
+        // Cache lại (bao gồm flag isExpiredOnly)
         try {
             localStorage.setItem(cacheKey, JSON.stringify({
                 data: currentUser,
@@ -4024,7 +4102,6 @@ async function handleAuthChange(user) {
             }));
         } catch(e) {}
 
-        isDemo = false;
         applyUserUI();
         logLogin(currentUser);
         if (!appInitialized) { initApp(); appInitialized = true; }
@@ -4034,7 +4111,6 @@ async function handleAuthChange(user) {
         isDemo = true; enterDemoMode();
     }
 }
-
 function getDaysRemaining(userData) {
     if (!userData || !userData.expiresAt) return null;
     if (userData.role === 'admin') return null;
@@ -4044,6 +4120,13 @@ function getDaysRemaining(userData) {
 }
 
 /* ============ TRIAL: TẶNG NGÀY DÙNG THỬ (ATOMIC) ============ */
+/* 
+ * ⚠️ QUAN TRỌNG: 
+ * - Đã THÊM field `email` để khớp với rules mới
+ * - Set TRỰC TIẾP (không dùng merge) → Firestore sẽ tính là CREATE rule
+ * - Rules mới cho phép: email, name, role, expiresAt, isTrial, trialDays,
+ *   registeredAt, trialStartedAt (không chặn các field này)
+ */
 async function grantTrialIfNew(user, userData) {
     if (!user || !user.email) return false;
     var email = user.email.toLowerCase();
@@ -4064,8 +4147,9 @@ async function grantTrialIfNew(user, userData) {
             var expiresAt = new Date(Date.now() + days * 86400000);
             expiresAt.setHours(23, 59, 59, 0);
 
-            /* ⚠️ Trong transaction chỉ dùng set KHÔNG có option merge */
+            /* ⚠️ Set đầy đủ field — rules mới cho phép hết */
             transaction.set(userRef, {
+                email: email,                         // ← BẮT BUỘC cho rules
                 name: (userData && userData.name) ? userData.name
                      : (user.displayName || email.split('@')[0]),
                 role: 'user',
@@ -4087,10 +4171,22 @@ async function grantTrialIfNew(user, userData) {
 }
 
 function enterDemoMode() {
-    currentUser = null; isDemo = true;
+    // ═══════════════════════════════════════════════
+    // ✅ KHÔNG reset currentUser nếu user đã login (chỉ hết hạn)
+    // Chỉ reset khi thực sự là khách (chưa login)
+    // ═══════════════════════════════════════════════
+    if (!currentUser || !currentUser.isExpiredOnly) {
+        // Trường hợp 1: Khách chưa login (currentUser = null) → OK, không cần làm gì
+        // Trường hợp 2: User hết hạn (isExpiredOnly = true) → GIỮ NGUYÊN currentUser
+        // Trường hợp 3: Logout → currentUser = null
+    }
+
+    isDemo = true;
     applyUserUI();
+
     if (!appInitialized) { initApp(); appInitialized = true; }
     else { if (typeof refreshApp === 'function') refreshApp(); }
+
     if ($('loadingScreen')) $('loadingScreen').classList.add('hidden');
     if ($('stickyTop')) $('stickyTop').style.display = 'block';
     if ($('fabGroup')) $('fabGroup').style.display = 'flex';
@@ -4141,21 +4237,53 @@ function applyUserUI() {
             } else {
                 expiryBanner.style.display = 'none';
             }
+        } else if (currentUser && currentUser.isExpiredOnly) {
+            // ✅ User hết hạn → vẫn hiển thị banner cảnh báo
+            expiryBanner.style.display = 'flex';
+            expiryBanner.classList.add('urgent');
+
+            var iconWrap2 = expiryBanner.querySelector('.expiry-banner-icon');
+            if (iconWrap2) iconWrap2.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+
+            var titleEl2 = expiryBanner.querySelector('.expiry-banner-text .title');
+            if (titleEl2) titleEl2.innerHTML = '❌ Tài khoản đã hết hạn!';
+
+            var descEl2 = expiryBanner.querySelector('.expiry-banner-text .desc');
+            if (descEl2) {
+                var expDate2 = getExpiryDate(currentUser.expiresAt);
+                var expDateStr2 = expDate2 ? expDate2.toLocaleDateString('vi-VN') : '';
+                descEl2.innerHTML = 'Đã hết hạn vào <b>' + expDateStr2 + '</b>. Chỉ dùng được tính năng demo. Gia hạn ngay!';
+            }
+
+            var contactBtn2 = $('expiryContactBtn');
+            if (contactBtn2) {
+                contactBtn2.innerHTML = '<i class="fas fa-crown"></i> Gia hạn ngay';
+                contactBtn2.href = '#';
+                contactBtn2.onclick = function(e) { e.preventDefault(); openRenewalModal(); };
+            }
         } else {
             expiryBanner.style.display = 'none';
         }
     }
 
     var renewBtn = $('dropdownRenewBtn');
-    if (renewBtn) renewBtn.style.display = (!isDemo && currentUser && currentUser.role !== 'admin') ? 'flex' : 'none';
+    if (renewBtn) renewBtn.style.display = (currentUser && currentUser.role !== 'admin') ? 'flex' : 'none';
 
-    if (isDemo) {
+    // ═══════════════════════════════════════════════
+    // ✅ PHÂN BIỆT 3 TRẠNG THÁI
+    // ═══════════════════════════════════════════════
+    var isGuest = isDemo && !currentUser;
+    var isExpiredUser = isDemo && currentUser && currentUser.isExpiredOnly;
+
+    if (isGuest) {
+        // Khách chưa login → ẩn menu user, hiện nút đăng nhập
         if (demoBadge) demoBadge.style.display = 'flex';
         if (headerLoginBtn) headerLoginBtn.style.display = 'flex';
         if (userMenu) userMenu.style.display = 'none';
         if ($('demoBanner')) $('demoBanner').style.display = 'flex';
         if ($('userDetails')) $('userDetails').style.display = 'none';
     } else {
+        // ✅ Đã login (dù hết hạn hay còn hạn) → hiện menu user
         if (demoBadge) demoBadge.style.display = 'none';
         if (headerLoginBtn) headerLoginBtn.style.display = 'none';
         if (userMenu) userMenu.style.display = 'block';
@@ -4184,10 +4312,12 @@ function applyUserUI() {
         updateUserDetails();
     }
 
+    // ✅ Chip HSK/Subject bị giới hạn khi demo HOẶC user hết hạn
     var hskChip = $('hskChip');
     var subjectChip = $('subjectChip');
     if (hskChip && subjectChip) {
-        if (isDemo) { hskChip.classList.add('demo-limited'); subjectChip.classList.add('demo-limited'); }
+        var limited = isDemo;  // ← isDemo = true khi user hết hạn
+        if (limited) { hskChip.classList.add('demo-limited'); subjectChip.classList.add('demo-limited'); }
         else { hskChip.classList.remove('demo-limited'); subjectChip.classList.remove('demo-limited'); }
     }
 
@@ -4204,7 +4334,6 @@ function applyUserUI() {
 
     if (isDemo) document.body.classList.remove('hide-floating');
 }
-
 function updateUserDetails() {
     var detailsEl = $('userDetails');
     if (!detailsEl) return;
@@ -4570,16 +4699,31 @@ async function refreshCurrentUser() {
         var data = doc.data();
         currentUser.expiresAt = data.expiresAt || null;
         currentUser.name = data.name || currentUser.name;
+
+        // ✅ Cập nhật lại isDemo khi user vừa được gia hạn
+        if (currentUser.role !== 'admin' && currentUser.expiresAt) {
+            var expDate = getExpiryDate(currentUser.expiresAt);
+            if (expDate && !isNaN(expDate.getTime())) {
+                var isExpired = expDate.getTime() < Date.now();
+                currentUser.isExpiredOnly = isExpired;
+                isDemo = isExpired;
+                console.log('🔄 refreshCurrentUser: hết hạn =', isExpired);
+            }
+        } else if (currentUser.role === 'admin' || !currentUser.expiresAt) {
+            currentUser.isExpiredOnly = false;
+            isDemo = false;
+        }
+
         try { localStorage.removeItem('user_cache_' + currentUser.email); } catch(e) {}
         try {
             localStorage.setItem('user_cache_' + currentUser.email, JSON.stringify({
                 data: currentUser, expires: Date.now() + 12 * 60 * 60 * 1000
             }));
         } catch(e) {}
+
         if (typeof applyUserUI === 'function') applyUserUI();
     } catch(e) { console.error('refreshCurrentUser error:', e); }
 }
-
 /* ============ ADMIN PANEL ============ */
 function initAdminPanel() {
     if ($('openAdminBtn')) $('openAdminBtn').addEventListener('click', function() {
@@ -4628,6 +4772,7 @@ async function doAddUser() {
         if (doc.exists) { alert('Email này đã tồn tại!'); return; }
 
         var setData = {
+            email: email,                              // ← thêm cho nhất quán
             name: name, role: role,
             addedAt: firebase.firestore.FieldValue.serverTimestamp(),
             addedBy: currentUser.email
@@ -5282,7 +5427,7 @@ async function doImport() {
         var batch = db.batch();
         chunk.forEach(function(r) {
             var ref = db.collection('allowed_users').doc(r.email);
-            var data = { name: r.name, role: 'user', addedBy: currentUser.email };
+            var data = { email: r.email, name: r.name, role: 'user', addedBy: currentUser.email };
             if (!r.isUpdate) {
                 data.addedAt = firebase.firestore.FieldValue.serverTimestamp();
                 data.importedFromExcel = true;
