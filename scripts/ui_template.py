@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ # -*- coding: utf-8 -*-
 """
 Template GIAO DIỆN HỌC: header, search, filter, card, practice full, writer.
 🎨 CHỈ SỬA FILE NÀY KHI ĐỔI CẤU TRÚC GIAO DIỆN HỌC TẬP.
@@ -905,10 +905,6 @@ body.practice-full-open .expiry-banner { display: none !important; }
 .writer-score.success{color:var(--success);font-weight:600}
 .writer-score.error{color:var(--danger);font-weight:600}
 
-/* ============ NÚT GIA HẠN TÀI KHOẢN — NỔI BẬT ============ */
-/* Được CSS trong accounts_template.py override, ở đây chỉ khai báo cơ bản */
-/* để tránh FOUC (flash of unstyled content) trước khi accounts.css load */
-
 /* ============ DARK MODE OVERRIDES ============ */
 [data-theme="dark"] .hsk-badge{
     background:rgba(59,130,246,.25);color:#93c5fd;font-weight:800;
@@ -1047,9 +1043,7 @@ def build_ui_html():
                                 <i class="fas fa-shield-alt"></i> Quản lý tài khoản
                             </button>
                             <button class="dropdown-renew" id="dropdownRenewBtn" style="display:none">
-                                <i class="fas fa-crown"></i>
-                                <span>Gia hạn tài khoản</span>
-                                <span class="renew-badge">HOT</span>
+                                <i class="fas fa-crown"></i> Gia hạn tài khoản
                             </button>
                             <a class="dropdown-zalo" id="dropdownZaloBtn" href="#" target="_blank" rel="noopener noreferrer">
                                 <i class="fas fa-comment-dots"></i> Liên hệ Zalo hỗ trợ
@@ -2261,7 +2255,6 @@ function applyFilter() {
     updateResultCount();
     render(true);
 }
-
 /* ============ PRACTICE FULL MODE ============ */
 var pfCurrentStt = null;
 var pfCurrentAnswer = '';
@@ -2320,7 +2313,6 @@ window.openPracticeFull = function(stt, evt) {
 
     loadPracticeFull(stt);
 };
-
 window.closePracticeFull = function() {
     $('practiceFullModal').classList.remove('show');
     document.body.style.overflow = '';
@@ -2604,7 +2596,6 @@ function pfApplyFilter() {
         $('pfNextBtn').disabled = true;
     }
 }
-
 function updateCharPreview() {
     var input = $('pfInput');
     var preview = $('pfPreview');
@@ -2797,8 +2788,7 @@ function initPracticeFull() {
 
     $('pfQuickNav').addEventListener('change', pfQuickNavChange);
 
-    $('pfSearchInput ||
-').addEventListener('input', function()                                    {
+    $('pfSearchInput').addEventListener('input', function() {
         pfApplyFilter();
     });
     $('pfClearSearchBtn').addEventListener('click', function() {
@@ -2837,7 +2827,8 @@ function initPracticeFull() {
 
         var active = document.activeElement;
         var isTyping = active && (active.tagName === 'INPUT' ||
-                                    active.tagName === 'TEXTAREA' active.tagName === 'SELECT');
+                                    active.tagName === 'TEXTAREA' ||
+                                    active.tagName === 'SELECT');
 
         if (e.key === 'Escape') {
             closePracticeFull();
