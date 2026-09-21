@@ -33,16 +33,18 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - ✅ Nút đổi tên hiển thị (user + admin đều có)
 - ✅ Quản lý ngày hết hạn ngay trên giao diện admin
 - ✅ Nút chỉnh hạn sử dụng = BIỂU TƯỢNG LỊCH (icon only + tooltip + pulse đỏ khi ≤7 ngày)
-- ✅ Header LỚN + TikTok info bar + Header KHÔNG biến mất khi luyện tập
-- ✅ Chế độ thường hiện Zalo + TikTok; Chế độ luyện tập chỉ hiện TikTok
-- ✅ PC hover nút TikTok → hiện card info TikTok (avatar + nickname + username)
-- ✅ Avatar TikTok nhập trong config.json
-- ✅ Mobile 1 tap TikTok = card info; 2 tap = mở TikTok
-- ✅ Nút FAB "Silent mode" (biểu tượng CHUÔNG TẮT 🔕) ẩn/hiện Zalo + TikTok + TikTok bar
+- ✅ MỚI: Header LỚN + TikTok info bar + Header KHÔNG biến mất khi luyện tập
+- ✅ MỚI: Chế độ thường hiện Zalo + TikTok; Chế độ luyện tập chỉ hiện TikTok
+- ✅ MỚI: PC hover nút TikTok → hiện card info TikTok (avatar + nickname + username)
+- ✅ MỚI: Avatar TikTok nhập trong config.json
+- ✅ MỚI: Mobile 1 tap TikTok = card info; 2 tap = mở TikTok
+- ✅ MỚI: Nút FAB "Tập trung học" ẩn/hiện Zalo + TikTok + TikTok bar
          (CHỈ áp dụng cho user/admin, KHÔNG áp dụng demo)
 - ✅ FIX: Bật chế độ luyện tập full màn hình KHÔNG còn trùng lặp search/HSK/chủ đề
 - ✅ FIX: Modal luyện tập set top 1 lần theo chiều cao header, không cập nhật liên tục
-- ✅ FIX: Bỏ tooltip ::after của FAB → không còn chấm đen khi hover/nhấn
+- ✅ FIX: Bỏ chấm đen khi nhấn nút trên PC (outline + tap-highlight)
+- ✅ FIX: Đổi icon nút "Tập trung học" thành quả chuông (fa-bell / fa-bell-slash)
+- ✅ FIX: Nút "Tập trung học" dùng màu xanh giống các nút khác
 
 Chạy: python scripts/convert.py
 """
@@ -116,9 +118,11 @@ print(f"   ⏰ User có hạn sử dụng (expiresAt)")
 print(f"   👤 Click avatar → hiển thị chi tiết + ngày hết hạn")
 print(f"   ✏️  Nút đổi tên hiển thị (user + admin)")
 print(f"   📅 Quản lý ngày hết hạn trên giao diện admin")
-print(f"   🔕 Nút FAB 'Silent mode' (chuông tắt) ẩn/hiện Zalo+TikTok+TikTokBar")
+print(f"   🎯 Nút FAB 'Tập trung học' ẩn/hiện Zalo+TikTok+TikTokBar (chỉ user/admin)")
 print(f"   🚫 FIX: Không còn trùng lặp search/HSK/chủ đề khi luyện tập full")
-print(f"   🚫 FIX: Không còn chấm đen tooltip trên FAB")
+print(f"   🚫 FIX: Bỏ chấm đen khi nhấn nút trên PC")
+print(f"   🔔 FIX: Icon nút 'Tập trung học' thành quả chuông")
+print(f"   🎨 FIX: Nút 'Tập trung học' dùng màu xanh giống các nút khác")
 
 print(f"\n📖 Đang đọc file: {EXCEL_FILE}")
 if not os.path.exists(EXCEL_FILE):
@@ -177,6 +181,8 @@ html_template = r'''<!DOCTYPE html>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+button,a,input,select,textarea{outline:none !important;-webkit-tap-highlight-color:transparent}
+button:focus,a:focus,input:focus,select:focus,textarea:focus{outline:none !important}
 :root{
     --bg:#f0f4f8;--surface:#fff;--surface-2:#f8fafc;--border:#e2e8f0;--border-strong:#cbd5e1;
     --text:#0f172a;--text-2:#475569;--text-3:#94a3b8;
@@ -309,6 +315,7 @@ body{
     background:var(--surface);color:var(--text-3);cursor:pointer;
     display:flex;align-items:center;justify-content:center;font-size:.9rem;
     transition:.15s;position:relative;flex-shrink:0;
+    outline:none !important;
 }
 .icon-btn:hover,.icon-btn:active{background:var(--surface-2);color:var(--primary);border-color:var(--primary)}
 .icon-btn.hidden{display:none}
@@ -731,15 +738,20 @@ body{
     font-size:1.15rem;box-shadow:var(--shadow-fab);
     transition:transform .2s, background .2s, color .2s;
     position:relative;border:2px solid var(--surface);
+    outline:none !important;
+    -webkit-tap-highlight-color:transparent;
 }
-.fab-btn:hover{transform:scale(1.08);background:var(--primary-light);color:var(--primary-dark)}
-.fab-btn:active{transform:scale(0.95);background:var(--primary-light);color:var(--primary-dark)}
+.fab-btn:hover,.fab-btn:active{transform:scale(1.08);background:var(--primary-light);color:var(--primary-dark)}
 .fab-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:0 8px 24px rgba(37,99,235,.4)}
-.fab-btn.active:hover{background:var(--primary-dark);color:#fff}
-.fab-btn.active:active{background:var(--primary-dark);color:#fff;transform:scale(0.95)}
-
-/* ✅ ĐÃ BỎ TOOLTIP ::after → không còn chấm đen khi hover/nhấn */
-
+.fab-btn.active:hover,.fab-btn.active:active{background:var(--primary-dark);color:#fff}
+.fab-btn::after{
+    content:attr(data-label);position:absolute;right:calc(100% + 10px);
+    top:50%;transform:translateY(-50%);background:var(--text);color:var(--surface);
+    padding:.4rem .7rem;border-radius:8px;font-size:.75rem;font-weight:600;
+    white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;font-family:inherit;
+}
+.fab-btn:hover::after{opacity:1}
+@media(max-width:768px){.fab-btn::after{display:none}}
 .fab-main{
     width:56px;height:56px;font-size:1.3rem;
     background:linear-gradient(135deg,#2563eb,#7c3aed);
@@ -765,24 +777,20 @@ body{
 .fab-group.open .fab-sub:nth-child(3){transition-delay:.15s}
 .fab-group.open .fab-sub:nth-child(4){transition-delay:.2s}
 
-/* ✅ Nút FAB "Silent mode" (chuông tắt) - highlight cam khi đang bật */
+/* ✅ Nút FAB "Tập trung học" - dùng màu xanh giống các nút khác */
 .fab-focus.active {
-    background: var(--amber) !important;
+    background: var(--primary) !important;
     color: #fff !important;
-    border-color: var(--amber) !important;
-    box-shadow: 0 8px 24px rgba(245,158,11,.5) !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 8px 24px rgba(37,99,235,.4) !important;
 }
 .fab-focus.active:hover,
 .fab-focus.active:active {
-    background: #d97706 !important;
+    background: var(--primary-dark) !important;
     color: #fff !important;
 }
-/* ✅ Icon nút Silent nhỏ hơn một chút cho đẹp */
-.fab-focus i {
-    font-size: 1rem !important;
-}
 
-/* ✅ Ẩn floating buttons + TikTok bar khi user bật chế độ Silent */
+/* ✅ Ẩn floating buttons + TikTok bar khi user bật chế độ tập trung */
 body.hide-floating .floating-left-group,
 body.hide-floating .tiktok-bar {
     display: none !important;
@@ -1078,6 +1086,8 @@ body.show-practice .card-body{
 }
 .practice-full-modal.show{display:flex}
 
+/* ✅ Ẩn search bar + filters + result-count của header khi ở chế độ luyện tập full
+   → Tránh trùng lặp 2 ô tìm kiếm / 2 ô HSK / 2 ô chủ đề */
 body.practice-full-open .search-bar,
 body.practice-full-open .filters,
 body.practice-full-open .result-count {
@@ -2207,18 +2217,18 @@ body.practice-full-open .expiry-banner {
 </div>
 
 <div class="fab-group" id="fabGroup" style="display:none">
-    <button class="fab-btn fab-sub" id="toggleViBtn" title="Ẩn/hiện Tiếng Việt">
+    <button class="fab-btn fab-sub" id="toggleViBtn" data-label="Tiếng Việt" title="Ẩn/hiện Tiếng Việt">
         <i class="fas fa-language"></i>
     </button>
-    <button class="fab-btn fab-sub" id="togglePinyinBtn" title="Ẩn/hiện Pinyin">
+    <button class="fab-btn fab-sub" id="togglePinyinBtn" data-label="Pinyin" title="Ẩn/hiện Pinyin">
         <i class="fas fa-spell-check"></i>
     </button>
-    <button class="fab-btn fab-sub" id="togglePracticeBtn" title="Ẩn/hiện Ô luyện dịch">
+    <button class="fab-btn fab-sub" id="togglePracticeBtn" data-label="Luyện dịch Việt → Trung" title="Ẩn/hiện Ô luyện dịch">
         <i class="fas fa-keyboard"></i>
     </button>
-    <!-- ✅ NÚT MỚI: Silent mode (chuông tắt) - Ẩn/hiện Zalo + TikTok + TikTok bar -->
-    <button class="fab-btn fab-sub fab-focus" id="toggleFocusBtn" title="Ẩn/hiện Zalo, TikTok, TikTok bar">
-        <i class="fas fa-bell-slash"></i>
+    <!-- ✅ NÚT MỚI: Ẩn/hiện Zalo + TikTok + TikTok bar (chỉ user/admin) -->
+    <button class="fab-btn fab-sub fab-focus" id="toggleFocusBtn" data-label="Tập trung học" title="Ẩn/hiện Zalo, TikTok, TikTok bar">
+        <i class="fas fa-bell"></i>
     </button>
     <button class="fab-btn fab-main" id="fabMainBtn" title="Tùy chọn hiển thị">
         <i class="fas fa-sliders-h"></i>
@@ -3078,7 +3088,7 @@ function applyUserUI() {
     if (hskMaxEl2) hskMaxEl2.textContent = DEMO_HSK_MAX;
     updateDemoRemaining();
     
-    /* ✅ Nút "Silent mode" chỉ hiển thị cho user/admin, KHÔNG hiển thị cho demo */
+    /* ✅ Nút "Tập trung học" chỉ hiển thị cho user/admin, KHÔNG hiển thị cho demo */
     var toggleFocusBtn = $('toggleFocusBtn');
     if (toggleFocusBtn) {
         toggleFocusBtn.style.display = isDemo ? 'none' : 'flex';
@@ -3596,7 +3606,7 @@ function initDisplayState() {
         }
     } catch(e) {}
     
-    /* ✅ Load trạng thái Silent mode (ẩn floating) */
+    /* ✅ Load trạng thái ẩn floating (tập trung học) */
     var focusHidden = false;
     try {
         focusHidden = localStorage.getItem('focusHidden') === 'true';
@@ -3634,7 +3644,7 @@ function initDisplayState() {
         applyDisplayState(); saveDisplayState(); updateToggleButtons();
     });
     
-    /* ✅ Nút "Silent mode": Ẩn/hiện Zalo + TikTok + TikTok bar */
+    /* ✅ Nút "Tập trung học": Ẩn/hiện Zalo + TikTok + TikTok bar */
     var toggleFocusBtn = $('toggleFocusBtn');
     if (toggleFocusBtn) {
         toggleFocusBtn.addEventListener('click', function(e) {
@@ -3648,7 +3658,7 @@ function initDisplayState() {
     }
 }
 
-/* ✅ Cập nhật icon cho nút "Silent mode" */
+/* ✅ Cập nhật icon cho nút "Tập trung học" (quả chuông) */
 function updateFocusBtnIcon() {
     var btn = $('toggleFocusBtn');
     if (!btn) return;
@@ -3657,13 +3667,15 @@ function updateFocusBtnIcon() {
     var icon = btn.querySelector('i');
     
     if (isHidden) {
-        /* Đang ẩn floating → icon "mắt gạch chéo" để biết đang ở chế độ silent */
-        icon.className = 'fas fa-eye-slash';
+        /* Đang ẩn → hiện icon chuông gạch chéo + label "Hiện Zalo/TikTok" */
+        icon.className = 'fas fa-bell-slash';
+        btn.setAttribute('data-label', 'Hiện Zalo/TikTok');
         btn.setAttribute('title', 'Hiện Zalo, TikTok, TikTok bar');
         btn.classList.add('active');
     } else {
-        /* Đang hiện → icon "chuông tắt" 🔕 */
-        icon.className = 'fas fa-bell-slash';
+        /* Đang hiện → icon chuông + label "Tập trung học" */
+        icon.className = 'fas fa-bell';
+        btn.setAttribute('data-label', 'Tập trung học');
         btn.setAttribute('title', 'Ẩn Zalo, TikTok, TikTok bar');
         btn.classList.remove('active');
     }
@@ -3690,7 +3702,7 @@ function updateToggleButtons() {
     $('toggleViBtn').classList.toggle('active', displayState.vi);
     $('togglePinyinBtn').classList.toggle('active', displayState.pinyin);
     $('togglePracticeBtn').classList.toggle('active', displayState.practice);
-    /* ✅ Cập nhật nút Silent */
+    /* ✅ Cập nhật nút focus */
     updateFocusBtnIcon();
 }
 
@@ -6380,9 +6392,9 @@ print(f"🚫 FIX: Đã sửa lỗi TRÙNG LẶP 2 ô tìm kiếm / 2 ô HSK / 2 
 print(f"      → Ẩn search bar + filters của header khi mở modal luyện tập")
 print(f"      → Modal set top 1 lần theo chiều cao header, không cập nhật liên tục")
 print(f"✅ Header KHÔNG biến mất khi bật chế độ luyện tập")
-print(f"🔕 Nút FAB 'Silent mode' (ICON CHUÔNG TẮT 🔕):")
-print(f"      → Ẩn/hiện Zalo + TikTok + TikTok bar")
+print(f"🎯 Nút FAB 'Tập trung học': ẩn/hiện Zalo+TikTok+TikTokBar")
 print(f"      → CHỈ hiển thị cho user/admin (KHÔNG hiển thị demo)")
 print(f"      → Lưu trạng thái vào localStorage (focusHidden)")
-print(f"      → Icon đổi màu cam + icon mắt gạch chéo khi đang bật silent")
-print(f"      → Đã bỏ tooltip ::after → không còn chấm đen khi hover/nhấn")
+print(f"      → 🔔 Icon quả chuông (fa-bell / fa-bell-slash)")
+print(f"      → 🎨 Màu xanh giống các nút FAB khác (primary)")
+print(f"      → 🚫 Bỏ chấm đen khi nhấn nút trên PC (outline + tap-highlight)")
