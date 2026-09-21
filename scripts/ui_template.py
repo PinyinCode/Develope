@@ -2,7 +2,7 @@
 """
 Template GIAO DIỆN HỌC: header, search, filter, card, practice full, writer.
 🎨 CHỈ SỬA FILE NÀY KHI ĐỔI CẤU TRÚC GIAO DIỆN HỌC TẬP.
-KHÔNG chứa login/admin/social (đã tách sang file khác).
+KHÔNG chứa login/admin/social/renewal (đã tách sang file khác).
 """
 
 
@@ -68,7 +68,7 @@ body{
 }
 [data-theme="dark"] .sticky-top.scrolled{box-shadow:0 4px 16px -8px rgba(0,0,0,.5)}
 
-/* ============ HEADER LỚN ============ */
+/* ============ HEADER ============ */
 .header{background:transparent;border:none}
 .header-inner{display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem}
 .logo{display:flex;align-items:center;gap:.85rem;flex:1;min-width:0}
@@ -183,7 +183,7 @@ body{
 .result-count.empty{background:var(--danger-light);border-color:rgba(220,38,38,.3);color:var(--danger)}
 .result-count.empty i,.result-count.empty b{color:var(--danger)}
 
-/* ============ FAB GROUP (right) ============ */
+/* ============ FAB GROUP ============ */
 .fab-group{
     position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));
     right:20px;z-index:1000;display:flex;flex-direction:column;
@@ -833,6 +833,10 @@ body.practice-full-open .expiry-banner { display: none !important; }
 .pf-nav-btn.primary:hover:not(:disabled){background:var(--primary-dark)}
 
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{
+    from{transform:translateY(30px) scale(.95);opacity:0}
+    to{transform:translateY(0) scale(1);opacity:1}
+}
 
 /* ============ WRITER MODAL ============ */
 .writer-modal{
@@ -1037,6 +1041,9 @@ def build_ui_html():
                             </button>
                             <button class="dropdown-item" id="openAdminBtn" style="display:none">
                                 <i class="fas fa-shield-alt"></i> Quản lý tài khoản
+                            </button>
+                            <button class="dropdown-renew" id="dropdownRenewBtn" style="display:none">
+                                <i class="fas fa-crown"></i> Gia hạn tài khoản
                             </button>
                             <a class="dropdown-zalo" id="dropdownZaloBtn" href="#" target="_blank" rel="noopener noreferrer">
                                 <i class="fas fa-comment-dots"></i> Liên hệ Zalo hỗ trợ
@@ -1265,7 +1272,7 @@ def build_ui_html():
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  JS - phần học tập (search, filter, card, practice, writer, speech)
+#  JS
 # ═══════════════════════════════════════════════════════════════════
 def build_ui_js():
     return r"""
@@ -1314,10 +1321,23 @@ function incDemoUsage() {
     } catch(e) {}
 }
 function getDemoRemaining() { return Math.max(0, DEMO_DAILY_LIMIT - getDemoUsage()); }
+
+/* ✅ FIX: Chặn tính năng khi hết hạn */
 function canUseFeature() {
-    if (!isDemo) return true;
-    return getDemoUsage() < DEMO_DAILY_LIMIT;
+    // Demo mode → giới hạn theo ngày
+    if (isDemo) return getDemoUsage() < DEMO_DAILY_LIMIT;
+
+    // User đã login → kiểm tra hạn
+    if (currentUser && currentUser.role !== 'admin') {
+        var daysLeft = getDaysRemaining(currentUser);
+        if (daysLeft !== null && daysLeft <= 0) {
+            return false;   // Đã hết hạn → chặn
+        }
+    }
+
+    return true;
 }
+
 function updateDemoRemaining() {
     var el = $('demoRemainingText');
     if (!el) return;
@@ -1327,8 +1347,27 @@ function updateDemoRemaining() {
     else if (remaining < 50) el.style.color = '#f59e0b';
     else el.style.color = '#16a34a';
 }
+
+/* ✅ FIX: showLimitMessage phân biệt demo vs hết hạn */
 function showLimitMessage() {
-    if (confirm('🔒 Bạn đã dùng hết ' + DEMO_DAILY_LIMIT + ' lượt miễn phí hôm nay.\n\n(Bao gồm cả NGHE và LUYỆN VIẾT)\n\nĐăng nhập Google để dùng KHÔNG GIỚI HẠN!')) {
+    // Case 1: User đã login nhưng hết hạn
+    if (!isDemo && currentUser && currentUser.role !== 'admin') {
+        var daysLeft = getDaysRemaining(currentUser);
+        if (daysLeft !== null && daysLeft <= 0) {
+            if (confirm('🔒 Tài khoản của bạn đã HẾT HẠN.\n\n' +
+                        'Vui lòng gia hạn để tiếp tục sử dụng tính năng này.\n\n' +
+                        'Nhấn OK để mở trang gia hạn.')) {
+                if (typeof openRenewalModal === 'function') openRenewalModal();
+            }
+            return;
+        }
+    }
+
+    // Case 2: Demo hết lượt
+    if (confirm('🔒 Bạn đã dùng hết ' + DEMO_DAILY_LIMIT +
+                ' lượt miễn phí hôm nay.\n\n' +
+                '(Bao gồm cả NGHE và LUYỆN VIẾT)\n\n' +
+                'Đăng nhập Google để dùng KHÔNG GIỚI HẠN!')) {
         showLoginModal();
     }
 }
@@ -1611,6 +1650,7 @@ document.addEventListener('click', function(e) {
         e.target.closest('.practice-full-modal') || e.target.closest('.import-modal') ||
         e.target.closest('.edit-modal') || e.target.closest('.zalo-btn') ||
         e.target.closest('.tiktok-float-wrap') || e.target.closest('.tiktok-bar') ||
+        e.target.closest('.renewal-modal') ||
         e.target.closest('.toggle-check-btn')) return;
     clearFocus();
 }, true);
@@ -1646,6 +1686,7 @@ function getChineseVoice() {
 window.speakText = function(text, btn, evt) {
     if (evt) evt.stopPropagation();
     if (isDemo && !canUseFeature()) { showLimitMessage(); return; }
+    if (!isDemo && !canUseFeature()) { showLimitMessage(); return; }
     if (!('speechSynthesis' in window)) { alert('Trình duyệt không hỗ trợ phát âm.'); return; }
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
     speechSynthesis.cancel();
@@ -2684,6 +2725,7 @@ function revealFullAnswer() {
 
 window.speakPhrase = function(phrase, btn) {
     if (isDemo && !canUseFeature()) { showLimitMessage(); return; }
+    if (!isDemo && !canUseFeature()) { showLimitMessage(); return; }
     if (!('speechSynthesis' in window)) { alert('Trình duyệt không hỗ trợ phát âm.'); return; }
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
     speechSynthesis.cancel();
@@ -2700,6 +2742,7 @@ window.speakPhrase = function(phrase, btn) {
 
 window.speakFullSentence = function() {
     if (isDemo && !canUseFeature()) { showLimitMessage(); return; }
+    if (!isDemo && !canUseFeature()) { showLimitMessage(); return; }
     if (!('speechSynthesis' in window)) return;
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
     speechSynthesis.cancel();
@@ -2846,7 +2889,7 @@ function initWriter() {
 
 window.openWriter = function(zh, vi, pinyin, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
-    if (isDemo && !canUseFeature()) { showLimitMessage(); return; }
+    if (!canUseFeature()) { showLimitMessage(); return; }
     if (typeof HanziWriter === 'undefined') { alert('Thư viện chưa tải xong.'); return; }
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
     currentWriteZh = zh || '';
