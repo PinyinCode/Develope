@@ -38,6 +38,84 @@ def build_accounts_css():
 .dropdown-item.danger{color:var(--danger)}
 .dropdown-item.danger:hover{background:var(--danger-light)}
 
+/* ============ DROPDOWN: NÚT GIA HẠN NỔI BẬT ============ */
+.dropdown-renew{
+    display:flex;align-items:center;justify-content:center;gap:.5rem;
+    width:100%;padding:.75rem 1rem;margin:.4rem 0;
+    border:none;border-radius:12px;
+    background:linear-gradient(135deg,#f59e0b,#d97706 60%,#dc2626);
+    color:#fff;font-size:.9rem;font-weight:800;cursor:pointer;
+    transition:all .2s ease;font-family:inherit;
+    text-transform:uppercase;letter-spacing:.5px;
+    box-shadow:0 4px 14px rgba(245,158,11,.45), 0 0 0 0 rgba(245,158,11,.6);
+    position:relative;overflow:hidden;
+    animation:renewPulse 2.5s infinite;
+}
+.dropdown-renew::before{
+    content:'';position:absolute;top:0;left:-100%;
+    width:100%;height:100%;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent);
+    animation:renewShine 3s infinite;
+}
+.dropdown-renew:hover,.dropdown-renew:active{
+    transform:translateY(-2px) scale(1.02);
+    box-shadow:0 8px 20px rgba(245,158,11,.6), 0 0 0 4px rgba(245,158,11,.25);
+    background:linear-gradient(135deg,#fbbf24,#f59e0b 60%,#ef4444);
+}
+.dropdown-renew i{
+    font-size:1rem;filter:drop-shadow(0 1px 2px rgba(0,0,0,.2));
+    position:relative;z-index:1;
+}
+.dropdown-renew span{
+    position:relative;z-index:1;
+}
+@keyframes renewPulse{
+    0%,100%{box-shadow:0 4px 14px rgba(245,158,11,.45), 0 0 0 0 rgba(245,158,11,.6);}
+    50%{box-shadow:0 4px 14px rgba(245,158,11,.6), 0 0 0 6px rgba(245,158,11,0);}
+}
+@keyframes renewShine{
+    0%{left:-100%;}
+    50%,100%{left:100%;}
+}
+
+/* Badge "HOT" nhấp nháy */
+.dropdown-renew .renew-badge{
+    position:absolute;top:-6px;right:-4px;
+    background:linear-gradient(135deg,#dc2626,#ef4444);
+    color:#fff;font-size:.55rem;font-weight:900;
+    padding:.15rem .4rem;border-radius:50px;
+    letter-spacing:.5px;
+    box-shadow:0 2px 6px rgba(220,38,38,.5);
+    animation:renewBadgeBlink 1.5s infinite;
+    border:1.5px solid #fff;
+    z-index:2;
+}
+@keyframes renewBadgeBlink{
+    0%,100%{transform:scale(1);opacity:1;}
+    50%{transform:scale(1.15);opacity:.85;}
+}
+
+/* Hiệu ứng "hết hạn" — nhấp nháy đỏ mạnh hơn */
+.dropdown-renew.urgent{
+    background:linear-gradient(135deg,#dc2626,#b91c1c 60%,#7f1d1d);
+    animation:renewUrgent 1.2s infinite;
+}
+.dropdown-renew.urgent:hover{
+    background:linear-gradient(135deg,#ef4444,#dc2626 60%,#991b1b);
+}
+@keyframes renewUrgent{
+    0%,100%{box-shadow:0 4px 14px rgba(220,38,38,.6), 0 0 0 0 rgba(220,38,38,.7);}
+    50%{box-shadow:0 4px 18px rgba(220,38,38,.8), 0 0 0 8px rgba(220,38,38,0);}
+}
+
+/* Dark mode */
+[data-theme="dark"] .dropdown-renew{
+    box-shadow:0 4px 14px rgba(245,158,11,.5), 0 0 0 0 rgba(245,158,11,.6);
+}
+[data-theme="dark"] .dropdown-renew .renew-badge{
+    border-color:#1e293b;
+}
+
 .user-details{padding:.6rem .75rem .75rem;border-bottom:1px solid var(--border);margin-bottom:.5rem;display:flex;flex-direction:column;gap:.6rem;}
 .detail-row{display:flex;align-items:flex-start;gap:.65rem;}
 .detail-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0;background:var(--surface-2);color:var(--text-2);transition:.2s;}
@@ -231,6 +309,20 @@ def build_accounts_css():
 .expiry-banner-btn{padding:.5rem .9rem;border-radius:50px;border:none;background:#f59e0b;color:#fff;text-decoration:none;font-size:.8rem;font-weight:700;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;}
 .expiry-banner-btn:hover{background:#d97706;color:#fff;transform:translateY(-1px);}
 .expiry-banner.urgent .expiry-banner-btn{background:#dc2626;}
+
+/* Nút Gia hạn trong banner hết hạn — nổi bật hơn */
+.expiry-banner.urgent .expiry-banner-btn{
+    background:linear-gradient(135deg,#dc2626,#b91c1c);
+    box-shadow:0 4px 14px rgba(220,38,38,.5), 0 0 0 0 rgba(220,38,38,.6);
+    animation:renewUrgent 1.2s infinite;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+}
+.expiry-banner.urgent .expiry-banner-btn:hover{
+    transform:translateY(-2px) scale(1.03);
+    box-shadow:0 8px 20px rgba(220,38,38,.7);
+}
 
 /* ============ RENEWAL MODAL (QR ngân hàng) ============ */
 .renewal-modal{position:fixed;inset:0;background:rgba(15,23,42,.85);backdrop-filter:blur(6px);z-index:3500;display:none;align-items:center;justify-content:center;padding:1rem;animation:fadeIn .2s;overflow-y:auto;}
@@ -824,8 +916,31 @@ function applyUserUI() {
         }
     }
 
+    // ═══════════════════════════════════════════════
+    // ✅ NÚT GIA HẠN TRONG DROPDOWN — có hiệu ứng urgent
+    // ═══════════════════════════════════════════════
     var renewBtn = $('dropdownRenewBtn');
-    if (renewBtn) renewBtn.style.display = (currentUser && currentUser.role !== 'admin') ? 'flex' : 'none';
+    if (renewBtn) {
+        var showRenew = currentUser && currentUser.role !== 'admin';
+        renewBtn.style.display = showRenew ? 'flex' : 'none';
+
+        if (showRenew) {
+            var rDaysLeft = getDaysRemaining(currentUser);
+            var isUrgent = (rDaysLeft !== null && rDaysLeft <= 3);
+            renewBtn.classList.toggle('urgent', isUrgent);
+
+            var rBadge = renewBtn.querySelector('.renew-badge');
+            if (rBadge) {
+                if (rDaysLeft !== null && rDaysLeft <= 0) {
+                    rBadge.textContent = 'HẾT HẠN';
+                } else if (rDaysLeft !== null && rDaysLeft <= 3) {
+                    rBadge.textContent = 'GẤP';
+                } else {
+                    rBadge.textContent = 'HOT';
+                }
+            }
+        }
+    }
 
     // ═══════════════════════════════════════════════
     // ✅ PHÂN BIỆT 3 TRẠNG THÁI
