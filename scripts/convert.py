@@ -38,6 +38,8 @@ Chuyển file Excel → HTML tự chứa dữ liệu
 - ✅ MỚI: PC hover nút TikTok → hiện card info TikTok (avatar + nickname + username)
 - ✅ MỚI: Avatar TikTok nhập trong config.json
 - ✅ MỚI: Mobile 1 tap TikTok = card info; 2 tap = mở TikTok
+- ✅ MỚI: Nút FAB "Tập trung học" ẩn/hiện Zalo + TikTok + TikTok bar
+         (CHỈ áp dụng cho user/admin, KHÔNG áp dụng demo)
 - ✅ FIX: Bật chế độ luyện tập full màn hình KHÔNG còn trùng lặp search/HSK/chủ đề
 - ✅ FIX: Modal luyện tập set top 1 lần theo chiều cao header, không cập nhật liên tục
 
@@ -113,6 +115,7 @@ print(f"   ⏰ User có hạn sử dụng (expiresAt)")
 print(f"   👤 Click avatar → hiển thị chi tiết + ngày hết hạn")
 print(f"   ✏️  Nút đổi tên hiển thị (user + admin)")
 print(f"   📅 Quản lý ngày hết hạn trên giao diện admin")
+print(f"   🎯 Nút FAB 'Tập trung học' ẩn/hiện Zalo+TikTok+TikTokBar (chỉ user/admin)")
 print(f"   🚫 FIX: Không còn trùng lặp search/HSK/chủ đề khi luyện tập full")
 
 print(f"\n📖 Đang đọc file: {EXCEL_FILE}")
@@ -258,7 +261,7 @@ body{
     font-weight:700;
     margin-top:3px;
     letter-spacing:.01em;
-    padding-left:1.1rem;   /* 👈 Lùi sang phải ~2 ký tự */
+    padding-left:1.1rem;
 }
 .header-actions{display:flex;gap:.4rem;align-items:center;flex-shrink:0}
 
@@ -761,6 +764,26 @@ body{
 .fab-group.open .fab-sub:nth-child(1){transition-delay:.05s}
 .fab-group.open .fab-sub:nth-child(2){transition-delay:.1s}
 .fab-group.open .fab-sub:nth-child(3){transition-delay:.15s}
+.fab-group.open .fab-sub:nth-child(4){transition-delay:.2s}
+
+/* ✅ Nút FAB "Tập trung học" - highlight cam khi đang ẩn floating */
+.fab-focus.active {
+    background: var(--amber) !important;
+    color: #fff !important;
+    border-color: var(--amber) !important;
+    box-shadow: 0 8px 24px rgba(245,158,11,.5) !important;
+}
+.fab-focus.active:hover,
+.fab-focus.active:active {
+    background: #d97706 !important;
+    color: #fff !important;
+}
+
+/* ✅ Ẩn floating buttons + TikTok bar khi user bật chế độ tập trung */
+body.hide-floating .floating-left-group,
+body.hide-floating .tiktok-bar {
+    display: none !important;
+}
 
 body:not(.show-pinyin) .col-pinyin,
 body:not(.show-pinyin) .card-pinyin{display:none!important}
@@ -1047,20 +1070,18 @@ body.show-practice .card-body{
     left:0;right:0;bottom:0;
     background:var(--bg);z-index:2500;
     display:none;flex-direction:column;animation:fadeIn .2s;
-    /* ✅ top sẽ được JS set động bằng chiều cao header thực tế khi mở */
     top:0;
     overflow:hidden;
 }
 .practice-full-modal.show{display:flex}
 
-/* ✅ ẨN search bar + filters + result-count của header khi ở chế độ luyện tập full
+/* ✅ Ẩn search bar + filters + result-count của header khi ở chế độ luyện tập full
    → Tránh trùng lặp 2 ô tìm kiếm / 2 ô HSK / 2 ô chủ đề */
 body.practice-full-open .search-bar,
 body.practice-full-open .filters,
 body.practice-full-open .result-count {
     display: none !important;
 }
-/* ✅ Vẫn giữ TikTok bar hiển thị trên header khi luyện tập (theo yêu cầu) */
 body.practice-full-open .demo-banner,
 body.practice-full-open .expiry-banner {
     display: none !important;
@@ -1938,7 +1959,6 @@ body.practice-full-open .expiry-banner {
     .zalo-btn.compact{width:48px;height:48px}
     .zalo-btn.compact i{font-size:1.25rem}
     
-    /* ✅ Mobile: TikTok float button chỉ icon tròn nhỏ gọn */
     .tiktok-float-btn{
         padding:0;
         border-radius:50%;
@@ -1994,7 +2014,6 @@ body.practice-full-open .expiry-banner {
     .zalo-btn .zalo-text{display:none}
     .zalo-btn{padding:0;border-radius:50%;width:48px;height:48px;justify-content:center}
     .zalo-btn i{font-size:1.2rem}
-    /* TikTok float button đã được xử lý ở @media 768px */
     .tiktok-bar-link span{display:none}
     .tiktok-bar-link{padding:.4rem .5rem;}
 }
@@ -2195,6 +2214,10 @@ body.practice-full-open .expiry-banner {
     </button>
     <button class="fab-btn fab-sub" id="togglePracticeBtn" data-label="Luyện dịch Việt → Trung" title="Ẩn/hiện Ô luyện dịch">
         <i class="fas fa-keyboard"></i>
+    </button>
+    <!-- ✅ NÚT MỚI: Ẩn/hiện Zalo + TikTok + TikTok bar (chỉ user/admin) -->
+    <button class="fab-btn fab-sub fab-focus" id="toggleFocusBtn" data-label="Tập trung học" title="Ẩn/hiện Zalo, TikTok, TikTok bar">
+        <i class="fas fa-eye"></i>
     </button>
     <button class="fab-btn fab-main" id="fabMainBtn" title="Tùy chọn hiển thị">
         <i class="fas fa-sliders-h"></i>
@@ -2652,7 +2675,6 @@ function showLimitMessage() {
 /* ============ TIKTOK HELPERS ============ */
 function getTikTokAvatarUrl() {
     if (TIKTOK_AVATAR && TIKTOK_AVATAR.trim()) return TIKTOK_AVATAR;
-    // Fallback: avatar SVG với chữ cái đầu
     var initial = (TIKTOK_NICKNAME || 'T').charAt(0).toUpperCase();
     return 'data:image/svg+xml;utf8,' + encodeURIComponent(
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
@@ -2669,7 +2691,6 @@ function initTikTok() {
     var tiktokUrl = TIKTOK_URL || ('https://www.tiktok.com/@' + TIKTOK_USERNAME);
     var avatarUrl = getTikTokAvatarUrl();
     
-    // TikTok bar
     var tiktokBar = $('tiktokBar');
     if (tiktokBar) tiktokBar.href = tiktokUrl;
     
@@ -2682,7 +2703,6 @@ function initTikTok() {
     var tiktokBarUser = $('tiktokBarUser');
     if (tiktokBarUser) tiktokBarUser.textContent = '@' + TIKTOK_USERNAME;
     
-    // TikTok float button
     var tiktokFloatBtn = $('tiktokFloatBtn');
     if (tiktokFloatBtn) {
         tiktokFloatBtn.href = tiktokUrl;
@@ -2692,11 +2712,9 @@ function initTikTok() {
     var tiktokFloatName = $('tiktokFloatName');
     if (tiktokFloatName) tiktokFloatName.textContent = TIKTOK_NICKNAME;
     
-    // TikTok hover card
     var thcAvatar = $('thcAvatar');
     var thcAvatarFallback = $('thcAvatarFallback');
     if (thcAvatar && thcAvatarFallback) {
-        // Kiểm tra ảnh có load được không
         var testImg = new Image();
         testImg.onload = function() {
             thcAvatar.src = avatarUrl;
@@ -2720,11 +2738,9 @@ function initTikTok() {
     var thcFollowBtn = $('thcFollowBtn');
     if (thcFollowBtn) thcFollowBtn.href = tiktokUrl;
     
-    // Dropdown tiktok
     var dropdownTiktokBtn = $('dropdownTiktokBtn');
     if (dropdownTiktokBtn) dropdownTiktokBtn.href = tiktokUrl;
     
-    /* ✅ MOBILE: 1 tap = hiện hover card, 2 tap (double tap) = mở TikTok */
     var floatBtn = $('tiktokFloatBtn');
     var floatWrap = $('tiktokFloatWrap');
     var hoverCard = $('tiktokHoverCard');
@@ -2741,23 +2757,19 @@ function initTikTok() {
             floatBtn.addEventListener('click', function(e) {
                 var now = Date.now();
                 
-                // ✅ Double tap → mở TikTok, đóng card
                 if (now - lastTapTime < DOUBLE_TAP_MS) {
                     if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; }
                     lastTapTime = 0;
                     floatWrap.classList.remove('show-mobile');
-                    // Cho phép mở link (không preventDefault)
                     return;
                 }
                 
-                // ✅ Single tap → chặn điều hướng, hiện hover card
                 e.preventDefault();
                 e.stopPropagation();
                 lastTapTime = now;
                 
                 var isShowing = floatWrap.classList.toggle('show-mobile');
                 
-                // Tự ẩn sau 5 giây nếu không tương tác
                 if (isShowing) {
                     if (floatWrap._hideTimer) clearTimeout(floatWrap._hideTimer);
                     floatWrap._hideTimer = setTimeout(function() {
@@ -2766,14 +2778,12 @@ function initTikTok() {
                 }
             }, true);
             
-            // Click ra ngoài → đóng card
             document.addEventListener('click', function(e) {
                 if (!floatWrap.contains(e.target)) {
                     floatWrap.classList.remove('show-mobile');
                 }
             });
             
-            // Ngăn card tự đóng khi click vào trong card
             if (hoverCard) {
                 hoverCard.addEventListener('click', function(e) {
                     e.stopPropagation();
@@ -2828,11 +2838,9 @@ function updateFloatingLeftVisibility() {
     var isPracticeMode = document.body.classList.contains('practice-full-open');
     
     if (isPracticeMode) {
-        // Chế độ luyện tập: CHỈ hiện TikTok, ẩn Zalo
         if (zaloBtn) zaloBtn.style.display = 'none';
         if (tiktokFloatWrap) tiktokFloatWrap.style.display = 'block';
     } else {
-        // Chế độ thường: hiện cả Zalo + TikTok
         if (zaloBtn) zaloBtn.style.display = 'flex';
         if (tiktokFloatWrap) tiktokFloatWrap.style.display = 'block';
     }
@@ -3068,6 +3076,17 @@ function applyUserUI() {
     if (hskMaxEl1) hskMaxEl1.textContent = DEMO_HSK_MAX;
     if (hskMaxEl2) hskMaxEl2.textContent = DEMO_HSK_MAX;
     updateDemoRemaining();
+    
+    /* ✅ Nút "Tập trung học" chỉ hiển thị cho user/admin, KHÔNG hiển thị cho demo */
+    var toggleFocusBtn = $('toggleFocusBtn');
+    if (toggleFocusBtn) {
+        toggleFocusBtn.style.display = isDemo ? 'none' : 'flex';
+    }
+    
+    /* ✅ Nếu là demo mode, reset trạng thái ẩn floating */
+    if (isDemo) {
+        document.body.classList.remove('hide-floating');
+    }
 }
 
 function updateUserDetails() {
@@ -3575,6 +3594,17 @@ function initDisplayState() {
             displayState.practice = !!parsed.practice;
         }
     } catch(e) {}
+    
+    /* ✅ Load trạng thái ẩn floating (tập trung học) */
+    var focusHidden = false;
+    try {
+        focusHidden = localStorage.getItem('focusHidden') === 'true';
+    } catch(e) {}
+    if (focusHidden) {
+        document.body.classList.add('hide-floating');
+    }
+    updateFocusBtnIcon();
+    
     if (displayState.practice) {
         displayState.pinyin = false;
         displayState.vi = true;
@@ -3602,7 +3632,44 @@ function initDisplayState() {
         }
         applyDisplayState(); saveDisplayState(); updateToggleButtons();
     });
+    
+    /* ✅ Nút "Tập trung học": Ẩn/hiện Zalo + TikTok + TikTok bar */
+    var toggleFocusBtn = $('toggleFocusBtn');
+    if (toggleFocusBtn) {
+        toggleFocusBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var isHidden = document.body.classList.toggle('hide-floating');
+            try {
+                localStorage.setItem('focusHidden', isHidden ? 'true' : 'false');
+            } catch(e) {}
+            updateFocusBtnIcon();
+        });
+    }
 }
+
+/* ✅ Cập nhật icon cho nút "Tập trung học" */
+function updateFocusBtnIcon() {
+    var btn = $('toggleFocusBtn');
+    if (!btn) return;
+    
+    var isHidden = document.body.classList.contains('hide-floating');
+    var icon = btn.querySelector('i');
+    
+    if (isHidden) {
+        /* Đang ẩn → hiện icon "mắt gạch chéo" + label "Hiện Zalo/TikTok" */
+        icon.className = 'fas fa-eye-slash';
+        btn.setAttribute('data-label', 'Hiện Zalo/TikTok');
+        btn.setAttribute('title', 'Hiện Zalo, TikTok, TikTok bar');
+        btn.classList.add('active');
+    } else {
+        /* Đang hiện → icon "mắt" + label "Tập trung học" */
+        icon.className = 'fas fa-eye';
+        btn.setAttribute('data-label', 'Tập trung học');
+        btn.setAttribute('title', 'Ẩn Zalo, TikTok, TikTok bar');
+        btn.classList.remove('active');
+    }
+}
+
 function applyDisplayState() {
     document.body.classList.toggle('show-vi', displayState.vi);
     document.body.classList.toggle('show-pinyin', displayState.pinyin);
@@ -3624,6 +3691,8 @@ function updateToggleButtons() {
     $('toggleViBtn').classList.toggle('active', displayState.vi);
     $('togglePinyinBtn').classList.toggle('active', displayState.pinyin);
     $('togglePracticeBtn').classList.toggle('active', displayState.practice);
+    /* ✅ Cập nhật nút focus */
+    updateFocusBtnIcon();
 }
 
 window.toggleFocus = function(stt, element) {
@@ -4276,19 +4345,13 @@ function setPracticeFullTop() {
     var stickyTop = $('stickyTop');
     var modal = $('practiceFullModal');
     if (!stickyTop || !modal) return;
-    if (!modal.classList.contains('show') && modal.style.display !== 'flex') {
-        // Vẫn cho phép set trước khi show
-    }
     
-    // Lấy chiều cao thực tế của header (bao gồm cả phần đã scroll)
     var rect = stickyTop.getBoundingClientRect();
     var height = Math.max(0, rect.bottom);
     
-    // ✅ Set 1 lần khi mở modal
     modal.style.top = height + 'px';
 }
 
-// ✅ Chỉ cập nhật top khi resize (không cần theo dõi scroll vì body đã khóa)
 window.addEventListener('resize', function() {
     if ($('practiceFullModal') && $('practiceFullModal').classList.contains('show')) {
         setPracticeFullTop();
@@ -4308,23 +4371,14 @@ window.openPracticeFull = function(stt, evt) {
     if (idx === -1) { alert('Không tìm thấy câu!'); return; }
     pfCurrentStt = stt;
     
-    // ✅ Thêm class vào body TRƯỚC KHI hiển thị modal
-    // → CSS sẽ ẩn search bar + filters + result-count của header
-    // → Tránh trùng lặp 2 ô tìm kiếm / 2 ô HSK / 2 ô chủ đề
     document.body.classList.add('practice-full-open');
-    
-    // ✅ Cập nhật visibility của floating buttons (ẩn Zalo, hiện TikTok)
     updateFloatingLeftVisibility();
-    
-    // ✅ Khóa scroll body TRƯỚC khi hiển thị modal
     document.body.style.overflow = 'hidden';
     
-    // ✅ Set top dựa trên vị trí header hiện tại (trước khi modal show)
     setPracticeFullTop();
     
     $('practiceFullModal').classList.add('show');
     
-    // ✅ Double-check sau khi modal đã render xong
     requestAnimationFrame(function() {
         setPracticeFullTop();
     });
@@ -4335,11 +4389,8 @@ window.openPracticeFull = function(stt, evt) {
 window.closePracticeFull = function() {
     $('practiceFullModal').classList.remove('show');
     document.body.style.overflow = '';
-    // ✅ Xóa class khỏi body → khôi phục search bar + filters của header
     document.body.classList.remove('practice-full-open');
-    // ✅ Reset top về 0 để lần sau mở lại tính toán đúng
     $('practiceFullModal').style.top = '0px';
-    // ✅ Cập nhật visibility của floating buttons (hiện cả Zalo + TikTok)
     updateFloatingLeftVisibility();
     pfCurrentStt = null;
     if ('speechSynthesis' in window) speechSynthesis.cancel();
@@ -6330,3 +6381,7 @@ print(f"🚫 FIX: Đã sửa lỗi TRÙNG LẶP 2 ô tìm kiếm / 2 ô HSK / 2 
 print(f"      → Ẩn search bar + filters của header khi mở modal luyện tập")
 print(f"      → Modal set top 1 lần theo chiều cao header, không cập nhật liên tục")
 print(f"✅ Header KHÔNG biến mất khi bật chế độ luyện tập")
+print(f"🎯 Nút FAB 'Tập trung học': ẩn/hiện Zalo+TikTok+TikTokBar")
+print(f"      → CHỈ hiển thị cho user/admin (KHÔNG hiển thị demo)")
+print(f"      → Lưu trạng thái vào localStorage (focusHidden)")
+print(f"      → Icon đổi màu cam + icon mắt gạch chéo khi đang ẩn")
