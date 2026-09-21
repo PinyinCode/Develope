@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 Template cho tài khoản: login Firebase, admin panel, user management,
-expiry, import/export Excel, super admin / admin thường.
+expiry, import/export Excel, super admin / admin thường, trial, renewal.
 KHÔNG CẦN SỬA khi đổi cấu trúc Excel hay giao diện học.
 """
 
 
 def build_accounts_css():
-    """CSS: user menu, dropdown, admin panel, import, edit modals."""
+    """CSS: user menu, dropdown, admin panel, import, edit modals, renewal."""
     return r"""
 /* ============ USER MENU ============ */
 .user-menu{position:relative}
@@ -330,11 +330,38 @@ def build_accounts_css():
 .expiry-banner-btn:hover{background:#d97706;color:#fff;transform:translateY(-1px);}
 .expiry-banner.urgent .expiry-banner-btn{background:#dc2626;}
 .expiry-banner.urgent .expiry-banner-btn:hover{background:#b91c1c;}
+
+/* ============ RENEWAL REQUESTS ============ */
+.renewal-item{transition:.15s;}
+.renewal-item:hover{border-color:var(--primary);box-shadow:0 2px 8px rgba(37,99,235,.08);}
+.renewals-list{max-height:400px;overflow-y:auto;}
+.renewal-item .btn.primary{padding:.4rem .7rem;font-size:.75rem;}
+
+/* ============ RENEWAL MODAL (user) ============ */
+.renewal-modal{position:fixed;inset:0;background:rgba(15,23,42,.85);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:4000;display:none;align-items:center;justify-content:center;padding:1rem;animation:fadeIn .2s;}
+.renewal-modal.show{display:flex}
+.renewal-box{background:var(--surface);border-radius:20px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.4);padding:1.5rem;position:relative;animation:slideUp .3s cubic-bezier(.34,1.56,.64,1);}
+.renewal-box h2{font-size:1.15rem;color:var(--text);font-weight:700;display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;}
+.renewal-box h2 i{color:var(--amber);}
+.renewal-plans{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;margin-bottom:1rem;}
+.renewal-plan{padding:.75rem .5rem;border-radius:10px;border:2px solid var(--border);background:var(--surface-2);cursor:pointer;text-align:center;transition:.15s;}
+.renewal-plan:hover{border-color:var(--primary);}
+.renewal-plan.selected{border-color:var(--primary);background:var(--primary-light);box-shadow:0 0 0 3px rgba(37,99,235,.15);}
+.renewal-plan .days{font-size:1.3rem;font-weight:800;color:var(--text);line-height:1;margin-bottom:.2rem;}
+.renewal-plan .price{font-size:.75rem;color:var(--text-3);font-weight:600;}
+.renewal-plan.selected .price{color:var(--primary-dark);}
+[data-theme="dark"] .renewal-plan.selected .price{color:#93c5fd;}
+.renewal-plan .discount{display:inline-block;margin-top:.3rem;padding:.1rem .4rem;background:#dc2626;color:#fff;border-radius:50px;font-size:.62rem;font-weight:700;}
+.renewal-contact{margin-top:1rem;padding:.85rem 1rem;border-radius:10px;background:var(--primary-light);font-size:.8rem;color:var(--primary-dark);line-height:1.6;}
+[data-theme="dark"] .renewal-contact{color:#93c5fd;background:rgba(37,99,235,.15);}
+.renewal-contact b{font-weight:800;}
+.renewal-contact a{color:var(--primary-dark);font-weight:700;text-decoration:none;}
+.renewal-contact a:hover{text-decoration:underline;}
 """
 
 
 def build_accounts_html():
-    """HTML cho login + user menu + admin + edit modals."""
+    """HTML cho login + user menu + admin + edit modals + renewal modal."""
     return r"""
 <div class="login-modal" id="loginModal">
     <div class="login-box">
@@ -348,7 +375,7 @@ def build_accounts_html():
         </button>
         <div class="login-error" id="loginError"></div>
         <div class="login-footer">
-            <i class="fas fa-shield-alt"></i> Chỉ tài khoản được cấp phép mới truy cập được.
+            <i class="fas fa-shield-alt"></i> Tài khoản mới được <b>tặng miễn phí 7 ngày</b> dùng thử.
         </div>
     </div>
 </div>
@@ -395,6 +422,52 @@ def build_accounts_html():
         <div class="form-actions">
             <button class="btn" id="editExpiryCancel">Hủy</button>
             <button class="btn primary" id="editExpiryConfirm"><i class="fas fa-check"></i> Lưu</button>
+        </div>
+    </div>
+</div>
+
+<div class="renewal-modal" id="renewalModal">
+    <div class="renewal-box">
+        <button class="edit-close" id="renewalClose"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-crown"></i> Gia hạn tài khoản</h2>
+        <div class="form-group">
+            <label>Chọn gói gia hạn</label>
+            <div class="renewal-plans" id="renewalPlans">
+                <div class="renewal-plan" data-days="30">
+                    <div class="days">30</div>
+                    <div class="price">ngày</div>
+                </div>
+                <div class="renewal-plan selected" data-days="90">
+                    <div class="days">90</div>
+                    <div class="price">ngày</div>
+                    <div class="discount">Phổ biến</div>
+                </div>
+                <div class="renewal-plan" data-days="180">
+                    <div class="days">180</div>
+                    <div class="price">ngày</div>
+                </div>
+                <div class="renewal-plan" data-days="365">
+                    <div class="days">365</div>
+                    <div class="price">ngày</div>
+                    <div class="discount">Tiết kiệm</div>
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Số điện thoại / Zalo (để liên hệ)</label>
+            <input type="tel" id="renewalPhone" placeholder="0912345678" maxlength="15">
+        </div>
+        <div class="form-group">
+            <label>Ghi chú (tùy chọn)</label>
+            <input type="text" id="renewalNote" placeholder="VD: Muốn thanh toán qua Momo..." maxlength="200">
+        </div>
+        <div class="renewal-contact">
+            <i class="fas fa-info-circle"></i>
+            Sau khi gửi yêu cầu, Admin sẽ liên hệ bạn để xác nhận và kích hoạt. Vui lòng để lại SĐT/Zalo để được hỗ trợ nhanh nhất.
+        </div>
+        <div class="form-actions" style="margin-top:1rem">
+            <button class="btn" id="renewalCancel">Hủy</button>
+            <button class="btn primary" id="renewalConfirm"><i class="fas fa-paper-plane"></i> Gửi yêu cầu</button>
         </div>
     </div>
 </div>
@@ -505,7 +578,7 @@ def build_accounts_html():
 
 
 def build_accounts_js():
-    """JS: Firebase auth, login, admin panel, user management, import/export."""
+    """JS: Firebase auth, login, admin panel, user management, import/export, trial, renewal."""
     return r"""
 /* ============ AUTH ============ */
 var currentUser = null;
@@ -517,6 +590,22 @@ var importRows = [];
 var editingEmail = null;
 var editingExpiryEmail = null;
 var appInitialized = false;
+var selectedRenewalDays = 90;
+
+/* ============ HELPERS ============ */
+function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+function escapeJs(s) {
+    if (s == null) return '';
+    return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+}
 
 function isSuperAdmin() {
     if (!currentUser || currentUser.role !== 'admin') return false;
@@ -528,6 +617,7 @@ function isHiddenAdmin() {
     return !isSuperAdmin();
 }
 
+/* ============ FIREBASE INIT ============ */
 try {
     firebase.initializeApp(FIREBASE_CONFIG);
     auth = firebase.auth();
@@ -538,6 +628,7 @@ try {
     enterDemoMode();
 }
 
+/* ============ AUTH STATE ============ */
 async function handleAuthChange(user) {
     if (!user) {
         currentUser = null; isDemo = true;
@@ -551,12 +642,6 @@ async function handleAuthChange(user) {
     try { cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch(e) {}
 
     if (cached && cached.expires > Date.now() && cached.data) {
-        if (!checkUserExpiration(cached.data)) {
-            await auth.signOut();
-            try { localStorage.removeItem(cacheKey); } catch(e) {}
-            enterDemoMode();
-            return;
-        }
         currentUser = cached.data;
         isDemo = false;
         applyUserUI();
@@ -568,27 +653,37 @@ async function handleAuthChange(user) {
 
     try {
         var doc = await db.collection('allowed_users').doc(email).get();
+
+        /* ✅ TỰ ĐỘNG ĐĂNG KÝ: user mới → tặng 7 ngày trial */
         if (!doc.exists) {
-            await auth.signOut();
-            showLoginError('Tài khoản <b>' + email + '</b> chưa được cấp quyền.');
-            enterDemoMode();
-            return;
+            var registered = await grantTrialIfNew(user, null);
+            if (registered) {
+                doc = await db.collection('allowed_users').doc(email).get();
+                setTimeout(function() {
+                    var trialDays = (typeof TRIAL_DAYS !== 'undefined') ? TRIAL_DAYS : 7;
+                    var trialDate = new Date(Date.now() + trialDays * 86400000);
+                    alert('🎉 Chào mừng bạn đến với Học tiếng Trung!\n\n' +
+                          '✅ Bạn được tặng MIỄN PHÍ ' + trialDays + ' ngày sử dụng.\n\n' +
+                          '📅 Hạn dùng: ' + trialDate.toLocaleDateString('vi-VN') + '\n\n' +
+                          'Chúc bạn học tốt! 🎓');
+                }, 600);
+            } else {
+                await auth.signOut();
+                showLoginError('Tài khoản <b>' + email + '</b> chưa được cấp quyền.');
+                enterDemoMode();
+                return;
+            }
         }
-        var data = doc.data();
+
+        var data = doc.data() || {};
         var userData = {
             email: email,
             name: data.name || user.displayName || email.split('@')[0],
             role: data.role || 'user',
             photo: user.photoURL || '',
-            expiresAt: data.expiresAt || null
+            expiresAt: data.expiresAt || null,
+            isTrial: data.isTrial || false
         };
-
-        if (!checkUserExpiration(userData)) {
-            await auth.signOut();
-            try { localStorage.removeItem(cacheKey); } catch(e) {}
-            enterDemoMode();
-            return;
-        }
 
         currentUser = userData;
 
@@ -610,23 +705,8 @@ async function handleAuthChange(user) {
     }
 }
 
+/* ✅ KHÔNG chặn login khi hết hạn — chỉ hiện banner */
 function checkUserExpiration(userData) {
-    if (userData.role === 'admin') return true;
-    if (!userData.expiresAt) return true;
-
-    var expDate;
-    try {
-        var ea = userData.expiresAt;
-        if (typeof ea.toDate === 'function') expDate = ea.toDate();
-        else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
-        else expDate = new Date(ea);
-    } catch(e) { return true; }
-
-    if (expDate < new Date()) {
-        var dateStr = expDate.toLocaleDateString('vi-VN');
-        showLoginError('🔒 Tài khoản của bạn đã <b>hết hạn</b> vào ngày <b>' + dateStr + '</b>.<br><br>Vui lòng liên hệ Admin để gia hạn.');
-        return false;
-    }
     return true;
 }
 
@@ -643,6 +723,30 @@ function getDaysRemaining(userData) {
     return Math.ceil((expDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
 }
 
+/* ============ TRIAL ============ */
+async function grantTrialIfNew(user, extra) {
+    try {
+        var email = (user.email || '').toLowerCase();
+        var days = (typeof TRIAL_DAYS !== 'undefined') ? TRIAL_DAYS : 7;
+        var exp = new Date(Date.now() + days * 86400000);
+        exp.setHours(23, 59, 59, 0);
+
+        await db.collection('allowed_users').doc(email).set({
+            name: user.displayName || email.split('@')[0],
+            role: 'user',
+            expiresAt: firebase.firestore.Timestamp.fromDate(exp),
+            isTrial: true,
+            trialStartedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            addedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            addedBy: 'auto-trial'
+        });
+        return true;
+    } catch(e) {
+        console.error('grantTrialIfNew error:', e);
+        return false;
+    }
+}
+
 function enterDemoMode() {
     currentUser = null; isDemo = true;
     applyUserUI();
@@ -654,34 +758,62 @@ function enterDemoMode() {
     $('mainContent').style.display = 'block';
 }
 
+/* ============ USER UI ============ */
 function applyUserUI() {
     var demoBadge = $('demoBadge');
     var headerLoginBtn = $('headerLoginBtn');
     var userMenu = $('userMenu');
 
+    /* Banner hết hạn + nút gia hạn */
     var expiryBanner = $('expiryBanner');
     if (expiryBanner) {
         if (!isDemo && currentUser && currentUser.role !== 'admin') {
             var daysLeft = getDaysRemaining(currentUser);
             if (daysLeft !== null && daysLeft <= 7) {
                 expiryBanner.style.display = 'flex';
-                $('expiryDaysText').textContent = daysLeft > 0 ? daysLeft : 0;
-                var expDate;
-                try {
-                    var ea = currentUser.expiresAt;
-                    if (typeof ea.toDate === 'function') expDate = ea.toDate();
-                    else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
-                    else expDate = new Date(ea);
-                } catch(e) {}
-                if (expDate) $('expiryDateText').textContent = expDate.toLocaleDateString('vi-VN');
-                expiryBanner.classList.toggle('urgent', daysLeft <= 3);
+                var isExpired = daysLeft <= 0;
+                expiryBanner.classList.toggle('urgent', isExpired || daysLeft <= 3);
+
+                var iconWrap = expiryBanner.querySelector('.expiry-banner-icon');
+                if (iconWrap) {
+                    iconWrap.innerHTML = isExpired
+                        ? '<i class="fas fa-exclamation-triangle"></i>'
+                        : '<i class="fas fa-hourglass-half"></i>';
+                }
+
+                var titleEl = expiryBanner.querySelector('.expiry-banner-text .title');
+                if (titleEl) {
+                    if (isExpired) titleEl.innerHTML = '❌ Tài khoản đã hết hạn!';
+                    else if (daysLeft <= 3) titleEl.innerHTML = '⏰ Sắp hết hạn — còn ' + daysLeft + ' ngày';
+                    else titleEl.innerHTML = '⏳ Sắp hết hạn — còn ' + daysLeft + ' ngày';
+                }
+
+                var descEl = expiryBanner.querySelector('.expiry-banner-text .desc');
+                if (descEl) {
+                    var expDateStr = '';
+                    try {
+                        var ea = currentUser.expiresAt;
+                        var expDate;
+                        if (typeof ea.toDate === 'function') expDate = ea.toDate();
+                        else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
+                        else expDate = new Date(ea);
+                        if (expDate) expDateStr = expDate.toLocaleDateString('vi-VN');
+                    } catch(e) {}
+                    if (isExpired) {
+                        descEl.innerHTML = 'Đã hết hạn vào <b>' + expDateStr + '</b>. Gia hạn ngay để tiếp tục học!';
+                    } else {
+                        descEl.innerHTML = 'Còn <b>' + daysLeft + ' ngày</b> (đến <b>' + expDateStr + '</b>). Gia hạn để không bị gián đoạn!';
+                    }
+                }
+
                 var contactBtn = $('expiryContactBtn');
-                if (ZALO_PHONE) {
-                    var phone = ZALO_PHONE.replace(/\D/g, '');
-                    contactBtn.href = 'https://zalo.me/' + phone;
-                } else {
+                if (contactBtn) {
+                    contactBtn.innerHTML = '<i class="fas fa-crown"></i> Gia hạn ngay';
                     contactBtn.href = '#';
-                    contactBtn.onclick = function(e) { e.preventDefault(); alert('Liên hệ Admin để gia hạn!'); };
+                    contactBtn.onclick = function(e) {
+                        e.preventDefault();
+                        openRenewalModal();
+                    };
                 }
             } else {
                 expiryBanner.style.display = 'none';
@@ -689,6 +821,11 @@ function applyUserUI() {
         } else {
             expiryBanner.style.display = 'none';
         }
+    }
+
+    var renewBtn = $('dropdownRenewBtn');
+    if (renewBtn) {
+        renewBtn.style.display = (!isDemo && currentUser && currentUser.role !== 'admin') ? 'flex' : 'none';
     }
 
     if (isDemo) {
@@ -726,12 +863,14 @@ function applyUserUI() {
 
     var hskChip = $('hskChip');
     var subjectChip = $('subjectChip');
-    if (isDemo) {
-        hskChip.classList.add('demo-limited');
-        subjectChip.classList.add('demo-limited');
-    } else {
-        hskChip.classList.remove('demo-limited');
-        subjectChip.classList.remove('demo-limited');
+    if (hskChip && subjectChip) {
+        if (isDemo) {
+            hskChip.classList.add('demo-limited');
+            subjectChip.classList.add('demo-limited');
+        } else {
+            hskChip.classList.remove('demo-limited');
+            subjectChip.classList.remove('demo-limited');
+        }
     }
 
     var zaloBtn = $('zaloBtn');
@@ -740,8 +879,8 @@ function applyUserUI() {
         else zaloBtn.classList.add('compact');
     }
 
-    $('demoLimitText').textContent = DEMO_LIMIT;
-    $('demoDailyText').textContent = DEMO_DAILY_LIMIT;
+    if ($('demoLimitText')) $('demoLimitText').textContent = DEMO_LIMIT;
+    if ($('demoDailyText')) $('demoDailyText').textContent = DEMO_DAILY_LIMIT;
     var hskMaxEl1 = $('demoHskMaxText');
     var hskMaxEl2 = $('demoHskMaxText2');
     if (hskMaxEl1) hskMaxEl1.textContent = DEMO_HSK_MAX;
@@ -823,7 +962,7 @@ function updateUserDetails() {
     } else if (daysLeft === 0) {
         expiryValue.textContent = 'Hết hạn hôm nay';
         expiryValue.classList.add('urgent');
-        expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b><br>Vui lòng liên hệ Admin để gia hạn!';
+        expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b><br>Vui lòng gia hạn để tiếp tục!';
         expiryIcon.className = 'fas fa-exclamation-circle';
         expiryIconWrap.classList.add('urgent');
         if (progressWrap) progressWrap.style.display = 'none';
@@ -895,6 +1034,66 @@ function logLogin(u) {
             try { localStorage.setItem(logKey, today); } catch(e) {}
         }).catch(function() {});
     } catch(e) {}
+}
+
+/* ============ RENEWAL MODAL (user) ============ */
+window.openRenewalModal = function() {
+    if (!currentUser) return;
+    $('renewalModal').classList.add('show');
+    selectedRenewalDays = 90;
+    var plans = document.querySelectorAll('#renewalPlans .renewal-plan');
+    plans.forEach(function(p) {
+        p.classList.toggle('selected', parseInt(p.getAttribute('data-days'), 10) === 90);
+    });
+    $('renewalPhone').value = '';
+    $('renewalNote').value = '';
+};
+
+async function submitRenewal() {
+    if (!currentUser) return;
+    var phone = ($('renewalPhone').value || '').trim();
+    var note = ($('renewalNote').value || '').trim();
+    if (!phone) { alert('Vui lòng nhập số điện thoại/Zalo để Admin liên hệ!'); return; }
+
+    var btn = $('renewalConfirm');
+    var originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Đang gửi...';
+
+    try {
+        // Kiểm tra xem đã có yêu cầu pending chưa
+        var existing = await db.collection('renewal_requests')
+            .where('email', '==', currentUser.email)
+            .where('status', '==', 'pending')
+            .limit(1)
+            .get();
+
+        if (!existing.empty) {
+            alert('⏳ Bạn đã có 1 yêu cầu đang chờ duyệt. Vui lòng chờ Admin xử lý!');
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+            return;
+        }
+
+        await db.collection('renewal_requests').add({
+            email: currentUser.email,
+            name: currentUser.name,
+            days: selectedRenewalDays,
+            phone: phone,
+            note: note,
+            status: 'pending',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        $('renewalModal').classList.remove('show');
+        alert('✅ Đã gửi yêu cầu gia hạn!\n\nAdmin sẽ liên hệ bạn qua SĐT/Zalo trong thời gian sớm nhất.');
+    } catch(err) {
+        console.error('Renewal error:', err);
+        alert('❌ Lỗi: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
 }
 
 /* ============ ADMIN PANEL ============ */
@@ -1004,6 +1203,8 @@ function openAdminPanel() {
     $('adminModal').classList.add('show');
     loadUsers(false);
     loadLogs();
+    initRenewalUI();      /* ✅ inject section */
+    loadRenewals(false);  /* ✅ load data */
 }
 
 function loadUsers(forceRefresh) {
@@ -1313,6 +1514,228 @@ function loadLogs() {
         .catch(function(err) {
             $('logsList').innerHTML = '<div class="no-data" style="padding:1rem;font-size:.8rem;color:#dc2626">Lỗi: ' + err.message + '</div>';
         });
+}
+
+/* ============ RENEWAL REQUESTS (Section Yêu cầu gia hạn) ============ */
+function renewalsList() {
+    return `
+    <div class="admin-section-title" style="margin-top:1.5rem">
+        <span><i class="fas fa-crown"></i> Yêu cầu gia hạn (<span id="renewalCount">0</span>)</span>
+        <button class="btn" id="refreshRenewalsBtn" title="Làm mới" style="padding:.35rem .7rem;font-size:.75rem">
+            <i class="fas fa-sync-alt"></i> Làm mới
+        </button>
+    </div>
+    <div class="renewals-list" id="renewalsList">
+        <div class="no-data" style="padding:1rem;font-size:.8rem">
+            <i class="fas fa-spinner fa-pulse"></i> Đang tải...
+        </div>
+    </div>
+    `;
+}
+
+function initRenewalUI() {
+    var adminBody = document.querySelector('.admin-body');
+    if (!adminBody) return;
+
+    // Chỉ Super Admin mới thấy section này
+    if (!isSuperAdmin()) {
+        var existing = document.getElementById('renewalsSection');
+        if (existing) existing.style.display = 'none';
+        return;
+    }
+
+    // Kiểm tra đã inject chưa
+    var existing2 = document.getElementById('renewalsSection');
+    if (existing2) {
+        existing2.style.display = 'block';
+        return;
+    }
+
+    var wrapper = document.createElement('div');
+    wrapper.id = 'renewalsSection';
+    wrapper.innerHTML = renewalsList();
+    adminBody.appendChild(wrapper);
+
+    var refreshBtn = document.getElementById('refreshRenewalsBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            loadRenewals(true);
+        });
+    }
+
+    var listEl = document.getElementById('renewalsList');
+    if (listEl) {
+        listEl.addEventListener('click', function(e) {
+            var btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            var action = btn.getAttribute('data-action');
+            var email = btn.getAttribute('data-email');
+            var days = parseInt(btn.getAttribute('data-days') || '0', 10);
+            var docId = btn.getAttribute('data-docid');
+
+            if (action === 'approve') {
+                approveRenewal(docId, email, days);
+            } else if (action === 'reject') {
+                rejectRenewal(docId, email);
+            }
+        });
+    }
+}
+
+async function loadRenewals(forceRefresh) {
+    var listEl = document.getElementById('renewalsList');
+    var countEl = document.getElementById('renewalCount');
+    if (!listEl) return;
+
+    if (!isSuperAdmin()) {
+        var section = document.getElementById('renewalsSection');
+        if (section) section.style.display = 'none';
+        return;
+    } else {
+        var section2 = document.getElementById('renewalsSection');
+        if (section2) section2.style.display = 'block';
+    }
+
+    if (forceRefresh) {
+        listEl.innerHTML = '<div class="no-data" style="padding:1rem;font-size:.8rem"><i class="fas fa-spinner fa-pulse"></i> Đang tải...</div>';
+    }
+
+    try {
+        var snapshot = await db.collection('renewal_requests')
+            .where('status', '==', 'pending')
+            .orderBy('createdAt', 'desc')
+            .limit(50)
+            .get();
+
+        if (snapshot.empty) {
+            listEl.innerHTML = '<div class="no-data" style="padding:1rem;font-size:.8rem"><i class="fas fa-inbox"></i> Không có yêu cầu nào</div>';
+            if (countEl) countEl.textContent = '0';
+            return;
+        }
+
+        var html = '';
+        var count = 0;
+        snapshot.forEach(function(doc) {
+            var d = doc.data() || {};
+            count++;
+            var createdAt = d.createdAt && d.createdAt.toDate
+                ? d.createdAt.toDate().toLocaleString('vi-VN')
+                : 'N/A';
+            var email = d.email || '';
+            var name = d.name || email.split('@')[0];
+            var days = d.days || 30;
+            var note = d.note || '';
+            var phone = d.phone || '';
+
+            html += '<div class="renewal-item" style="padding:.75rem;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:.5rem">' +
+                '<div style="display:flex;align-items:flex-start;gap:.75rem;flex-wrap:wrap">' +
+                    '<div style="flex:1;min-width:200px">' +
+                        '<div style="font-weight:700;font-size:.88rem;color:var(--text);margin-bottom:.2rem">' +
+                            escapeHtml(name) +
+                        '</div>' +
+                        '<div style="font-size:.75rem;color:var(--text-3);word-break:break-all;margin-bottom:.3rem">' +
+                            escapeHtml(email) +
+                        '</div>' +
+                        (phone ? '<div style="font-size:.72rem;color:var(--text-3)"><i class="fas fa-phone"></i> ' + escapeHtml(phone) + '</div>' : '') +
+                        (note ? '<div style="font-size:.72rem;color:var(--text-2);margin-top:.3rem;font-style:italic">"' + escapeHtml(note) + '"</div>' : '') +
+                        '<div style="font-size:.68rem;color:var(--text-3);margin-top:.3rem"><i class="fas fa-clock"></i> ' + createdAt + '</div>' +
+                    '</div>' +
+                    '<div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end">' +
+                        '<span style="padding:.2rem .55rem;background:rgba(245,158,11,.15);color:#92400e;border-radius:50px;font-size:.7rem;font-weight:700">+ ' + days + ' ngày</span>' +
+                        '<div style="display:flex;gap:.3rem">' +
+                            '<button class="btn primary" data-action="approve" data-email="' + escapeHtml(email) + '" data-days="' + days + '" data-docid="' + doc.id + '" style="padding:.4rem .7rem;font-size:.75rem">' +
+                                '<i class="fas fa-check"></i> Duyệt' +
+                            '</button>' +
+                            '<button class="btn" data-action="reject" data-email="' + escapeHtml(email) + '" data-docid="' + doc.id + '" style="padding:.4rem .7rem;font-size:.75rem;color:var(--danger)">' +
+                                '<i class="fas fa-times"></i>' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        });
+
+        listEl.innerHTML = html;
+        if (countEl) countEl.textContent = String(count);
+    } catch (err) {
+        console.error('Load renewals error:', err);
+        listEl.innerHTML = '<div class="no-data" style="padding:1rem;font-size:.8rem;color:#dc2626"><i class="fas fa-exclamation-triangle"></i> Lỗi: ' + escapeHtml(err.message) + '</div>';
+        if (countEl) countEl.textContent = '0';
+    }
+}
+
+async function approveRenewal(docId, email, days) {
+    if (!isSuperAdmin()) {
+        alert('⚠️ Chỉ Super Admin mới duyệt được yêu cầu!');
+        return;
+    }
+    if (!confirm('Duyệt gia hạn +' + days + ' ngày cho:\n\n' + email + ' ?')) return;
+
+    try {
+        var userDoc = await db.collection('allowed_users').doc(email).get();
+        if (!userDoc.exists) {
+            alert('❌ Không tìm thấy user trong hệ thống!');
+            return;
+        }
+        var userData = userDoc.data() || {};
+        var currentExp = null;
+        if (userData.expiresAt) {
+            if (typeof userData.expiresAt.toDate === 'function') {
+                currentExp = userData.expiresAt.toDate();
+            } else if (userData.expiresAt.seconds) {
+                currentExp = new Date(userData.expiresAt.seconds * 1000);
+            } else {
+                currentExp = new Date(userData.expiresAt);
+            }
+        }
+
+        var baseTime = (currentExp && currentExp.getTime() > Date.now())
+            ? currentExp.getTime()
+            : Date.now();
+        var newExp = new Date(baseTime + days * 24 * 60 * 60 * 1000);
+
+        await db.collection('allowed_users').doc(email).update({
+            expiresAt: firebase.firestore.Timestamp.fromDate(newExp),
+            renewedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            renewedBy: currentUser.email
+        });
+
+        await db.collection('renewal_requests').doc(docId).update({
+            status: 'approved',
+            approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            approvedBy: currentUser.email,
+            newExpiry: firebase.firestore.Timestamp.fromDate(newExp)
+        });
+
+        try { localStorage.removeItem('user_cache_' + email); } catch(e) {}
+        try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
+
+        alert('✅ Đã gia hạn đến ngày ' + newExp.toLocaleDateString('vi-VN'));
+        loadRenewals(true);
+        if ($('adminModal').classList.contains('show')) loadUsers(true);
+    } catch (err) {
+        console.error('Approve renewal error:', err);
+        alert('❌ Lỗi: ' + err.message);
+    }
+}
+
+async function rejectRenewal(docId, email) {
+    if (!isSuperAdmin()) return;
+    var reason = prompt('Lý do từ chối yêu cầu của ' + email + ':\n(để trống cũng được)');
+    if (reason === null) return;
+
+    try {
+        await db.collection('renewal_requests').doc(docId).update({
+            status: 'rejected',
+            rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            rejectedBy: currentUser.email,
+            rejectReason: reason || ''
+        });
+        alert('✅ Đã từ chối yêu cầu');
+        loadRenewals(true);
+    } catch (err) {
+        alert('❌ Lỗi: ' + err.message);
+    }
 }
 
 /* ============ EXPIRY EDIT ============ */
@@ -1866,6 +2289,13 @@ function formatDate(d) {
     if (!d) return '';
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
+function formatTimeDiff(ms) {
+    if (ms < 60000) return 'Vừa xong';
+    if (ms < 3600000) return Math.floor(ms / 60000) + ' phút trước';
+    if (ms < 86400000) return Math.floor(ms / 3600000) + ' giờ trước';
+    if (ms < 2592000000) return Math.floor(ms / 86400000) + ' ngày trước';
+    return Math.floor(ms / 2592000000) + ' tháng trước';
+}
 
 /* ============ INIT AUTH UI (chạy sau initApp) ============ */
 function initAuthUI() {
@@ -1943,9 +2373,37 @@ function initAuthUI() {
     }
     if ($('editExpiryConfirm')) $('editExpiryConfirm').addEventListener('click', doUpdateExpiry);
 
+    /* Renewal modal (user) */
+    if ($('renewalClose')) $('renewalClose').addEventListener('click', function() { $('renewalModal').classList.remove('show'); });
+    if ($('renewalCancel')) $('renewalCancel').addEventListener('click', function() { $('renewalModal').classList.remove('show'); });
+    if ($('renewalModal')) {
+        $('renewalModal').addEventListener('click', function(e) {
+            if (e.target === this) $('renewalModal').classList.remove('show');
+        });
+    }
+    if ($('renewalConfirm')) $('renewalConfirm').addEventListener('click', submitRenewal);
+    var plansWrap = $('renewalPlans');
+    if (plansWrap) {
+        plansWrap.addEventListener('click', function(e) {
+            var plan = e.target.closest('.renewal-plan');
+            if (!plan) return;
+            selectedRenewalDays = parseInt(plan.getAttribute('data-days'), 10) || 30;
+            plansWrap.querySelectorAll('.renewal-plan').forEach(function(p) {
+                p.classList.toggle('selected', p === plan);
+            });
+        });
+    }
+    if ($('dropdownRenewBtn')) {
+        $('dropdownRenewBtn').addEventListener('click', function() {
+            $('userDropdown').classList.remove('show');
+            openRenewalModal();
+        });
+    }
+
     initAdminPanel();
 }
 
+/* ============ TIMEOUT FALLBACK ============ */
 setTimeout(function() {
     if (!appInitialized) {
         console.warn('Auth timeout, entering demo mode');
@@ -1953,440 +2411,3 @@ setTimeout(function() {
     }
 }, 5000);
 """
-    
-
-def build_accounts_js():
-    """JS: Firebase auth, login, admin panel, user management, import/export, trial, renewal."""
-    return r"""
-/* ============ AUTH ============ */
-var currentUser = null;
-var isDemo = true;
-var auth, db;
-var usersCache = [];
-var lastLoginMap = {};
-var importRows = [];
-var editingEmail = null;
-var editingExpiryEmail = null;
-var appInitialized = false;
-
-function isSuperAdmin() {
-    if (!currentUser || currentUser.role !== 'admin') return false;
-    var email = (currentUser.email || '').toLowerCase().trim();
-    return email === SUPER_ADMIN.toLowerCase().trim();
-}
-function isHiddenAdmin() {
-    if (!currentUser || currentUser.role !== 'admin') return false;
-    return !isSuperAdmin();
-}
-
-try {
-    firebase.initializeApp(FIREBASE_CONFIG);
-    auth = firebase.auth();
-    db = firebase.firestore();
-    auth.onAuthStateChanged(handleAuthChange);
-} catch(e) {
-    console.error('Firebase init error:', e);
-    enterDemoMode();
-}
-
-async function handleAuthChange(user) {
-    if (!user) {
-        currentUser = null; isDemo = true;
-        applyUserUI(); enterDemoMode();
-        return;
-    }
-
-    var email = (user.email || '').toLowerCase();
-    var cacheKey = 'user_cache_' + email;
-    var cached = null;
-    try { cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch(e) {}
-
-    if (cached && cached.expires > Date.now() && cached.data) {
-        if (!checkUserExpiration(cached.data)) {
-            await auth.signOut();
-            try { localStorage.removeItem(cacheKey); } catch(e) {}
-            enterDemoMode();
-            return;
-        }
-        currentUser = cached.data;
-        isDemo = false;
-        applyUserUI();
-        logLogin(currentUser);
-        if (!appInitialized) { initApp(); appInitialized = true; }
-        else { if (typeof refreshApp === 'function') refreshApp(); }
-        return;
-    }
-
-    try {
-        var doc = await db.collection('allowed_users').doc(email).get();
-
-        // ✅ TỰ ĐỘNG ĐĂNG KÝ: user mới → tặng 7 ngày
-        if (!doc.exists) {
-            if (typeof grantTrialIfNew !== 'function') {
-                await auth.signOut();
-                showLoginError('Lỗi: Không tải được module trial. Vui lòng tải lại trang.');
-                enterDemoMode();
-                return;
-            }
-
-            var registered = await grantTrialIfNew(user, null);
-            if (registered) {
-                doc = await db.collection('allowed_users').doc(email).get();
-                setTimeout(function() {
-                    var trialDate = new Date(Date.now() + (typeof TRIAL_DAYS !== 'undefined' ? TRIAL_DAYS : 7) * 86400000);
-                    alert('🎉 Chào mừng bạn đến với Học tiếng Trung!\n\n' +
-                          '✅ Bạn được tặng MIỄN PHÍ ' +
-                          (typeof TRIAL_DAYS !== 'undefined' ? TRIAL_DAYS : 7) +
-                          ' ngày sử dụng.\n\n' +
-                          '📅 Hạn dùng: ' + trialDate.toLocaleDateString('vi-VN') + '\n\n' +
-                          'Chúc bạn học tốt! 🎓');
-                }, 600);
-            } else {
-                await auth.signOut();
-                showLoginError('Tài khoản <b>' + email + '</b> chưa được cấp quyền.');
-                enterDemoMode();
-                return;
-            }
-        }
-
-        var data = doc.data() || {};
-        var userData = {
-            email: email,
-            name: data.name || user.displayName || email.split('@')[0],
-            role: data.role || 'user',
-            photo: user.photoURL || '',
-            expiresAt: data.expiresAt || null,
-            isTrial: data.isTrial || false
-        };
-
-        if (!checkUserExpiration(userData)) {
-            await auth.signOut();
-            try { localStorage.removeItem(cacheKey); } catch(e) {}
-            enterDemoMode();
-            return;
-        }
-
-        currentUser = userData;
-
-        try {
-            localStorage.setItem(cacheKey, JSON.stringify({
-                data: currentUser,
-                expires: Date.now() + 12 * 60 * 60 * 1000
-            }));
-        } catch(e) {}
-
-        isDemo = false;
-        applyUserUI();
-        logLogin(currentUser);
-        if (!appInitialized) { initApp(); appInitialized = true; }
-        else { if (typeof refreshApp === 'function') refreshApp(); }
-    } catch(e) {
-        console.error('Auth check error:', e);
-        isDemo = true; enterDemoMode();
-    }
-}
-
-/* ✅ KHÔNG chặn login khi hết hạn */
-function checkUserExpiration(userData) {
-    return true;
-}
-
-function getDaysRemaining(userData) {
-    if (!userData || !userData.expiresAt) return null;
-    if (userData.role === 'admin') return null;
-    var expDate;
-    try {
-        var ea = userData.expiresAt;
-        if (typeof ea.toDate === 'function') expDate = ea.toDate();
-        else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
-        else expDate = new Date(ea);
-    } catch(e) { return null; }
-    return Math.ceil((expDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
-}
-
-function enterDemoMode() {
-    currentUser = null; isDemo = true;
-    applyUserUI();
-    if (!appInitialized) { initApp(); appInitialized = true; }
-    else { if (typeof refreshApp === 'function') refreshApp(); }
-    $('loadingScreen').classList.add('hidden');
-    $('stickyTop').style.display = 'block';
-    $('fabGroup').style.display = 'flex';
-    $('mainContent').style.display = 'block';
-}
-
-function applyUserUI() {
-    var demoBadge = $('demoBadge');
-    var headerLoginBtn = $('headerLoginBtn');
-    var userMenu = $('userMenu');
-
-    /* ✅ BANNER HẾT HẠN + NÚT GIA HẠN */
-    var expiryBanner = $('expiryBanner');
-    if (expiryBanner) {
-        if (!isDemo && currentUser && currentUser.role !== 'admin') {
-            var daysLeft = getDaysRemaining(currentUser);
-            if (daysLeft !== null && daysLeft <= 7) {
-                expiryBanner.style.display = 'flex';
-                var isExpired = daysLeft <= 0;
-                expiryBanner.classList.toggle('urgent', isExpired || daysLeft <= 3);
-
-                var iconWrap = expiryBanner.querySelector('.expiry-banner-icon');
-                if (iconWrap) {
-                    iconWrap.innerHTML = isExpired
-                        ? '<i class="fas fa-exclamation-triangle"></i>'
-                        : '<i class="fas fa-hourglass-half"></i>';
-                }
-
-                var titleEl = expiryBanner.querySelector('.expiry-banner-text .title');
-                if (titleEl) {
-                    if (isExpired) titleEl.innerHTML = '❌ Tài khoản đã hết hạn!';
-                    else if (daysLeft <= 3) titleEl.innerHTML = '⏰ Sắp hết hạn — còn ' + daysLeft + ' ngày';
-                    else titleEl.innerHTML = '⏳ Sắp hết hạn — còn ' + daysLeft + ' ngày';
-                }
-
-                var descEl = expiryBanner.querySelector('.expiry-banner-text .desc');
-                if (descEl) {
-                    var expDateStr = '';
-                    try {
-                        var ea = currentUser.expiresAt;
-                        var expDate;
-                        if (typeof ea.toDate === 'function') expDate = ea.toDate();
-                        else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
-                        else expDate = new Date(ea);
-                        if (expDate) expDateStr = expDate.toLocaleDateString('vi-VN');
-                    } catch(e) {}
-                    if (isExpired) {
-                        descEl.innerHTML = 'Đã hết hạn vào <b>' + expDateStr + '</b>. Gia hạn ngay để tiếp tục học!';
-                    } else {
-                        descEl.innerHTML = 'Còn <b>' + daysLeft + ' ngày</b> (đến <b>' + expDateStr + '</b>). Gia hạn để không bị gián đoạn!';
-                    }
-                }
-
-                var contactBtn = $('expiryContactBtn');
-                if (contactBtn) {
-                    contactBtn.innerHTML = '<i class="fas fa-crown"></i> Gia hạn ngay';
-                    contactBtn.href = '#';
-                    contactBtn.onclick = function(e) {
-                        e.preventDefault();
-                        if (typeof openRenewalModal === 'function') openRenewalModal();
-                        else alert('Vui lòng tải lại trang để dùng tính năng gia hạn.');
-                    };
-                }
-            } else {
-                expiryBanner.style.display = 'none';
-            }
-        } else {
-            expiryBanner.style.display = 'none';
-        }
-    }
-
-    var renewBtn = $('dropdownRenewBtn');
-    if (renewBtn) {
-        renewBtn.style.display = (!isDemo && currentUser && currentUser.role !== 'admin') ? 'flex' : 'none';
-    }
-
-    if (isDemo) {
-        demoBadge.style.display = 'flex';
-        headerLoginBtn.style.display = 'flex';
-        userMenu.style.display = 'none';
-        $('demoBanner').style.display = 'flex';
-        var ud0 = $('userDetails');
-        if (ud0) ud0.style.display = 'none';
-    } else {
-        demoBadge.style.display = 'none';
-        headerLoginBtn.style.display = 'none';
-        userMenu.style.display = 'block';
-        $('demoBanner').style.display = 'none';
-
-        $('userName').textContent = currentUser.name;
-        $('userEmail').textContent = currentUser.email;
-        $('userRole').textContent = currentUser.role;
-        $('userRole').className = 'role' + (currentUser.role === 'admin' ? ' admin' : '');
-        $('openAdminBtn').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
-
-        var avatar = $('userAvatar');
-        if (currentUser.photo) avatar.src = currentUser.photo;
-        else {
-            avatar.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
-                '<rect fill="#2563eb" width="100" height="100"/>' +
-                '<text x="50" y="65" font-size="45" fill="#fff" text-anchor="middle" font-family="sans-serif" font-weight="bold">' +
-                currentUser.name.charAt(0).toUpperCase() + '</text></svg>'
-            );
-        }
-
-        updateUserDetails();
-    }
-
-    var hskChip = $('hskChip');
-    var subjectChip = $('subjectChip');
-    if (isDemo) {
-        hskChip.classList.add('demo-limited');
-        subjectChip.classList.add('demo-limited');
-    } else {
-        hskChip.classList.remove('demo-limited');
-        subjectChip.classList.remove('demo-limited');
-    }
-
-    var zaloBtn = $('zaloBtn');
-    if (zaloBtn) {
-        if (isDemo) zaloBtn.classList.remove('compact');
-        else zaloBtn.classList.add('compact');
-    }
-
-    $('demoLimitText').textContent = DEMO_LIMIT;
-    $('demoDailyText').textContent = DEMO_DAILY_LIMIT;
-    var hskMaxEl1 = $('demoHskMaxText');
-    var hskMaxEl2 = $('demoHskMaxText2');
-    if (hskMaxEl1) hskMaxEl1.textContent = DEMO_HSK_MAX;
-    if (hskMaxEl2) hskMaxEl2.textContent = DEMO_HSK_MAX;
-    if (typeof updateDemoRemaining === 'function') updateDemoRemaining();
-
-    var toggleFocusBtn = $('toggleFocusBtn');
-    if (toggleFocusBtn) {
-        toggleFocusBtn.style.display = isDemo ? 'none' : 'flex';
-    }
-
-    if (isDemo) {
-        document.body.classList.remove('hide-floating');
-    }
-}
-
-function updateUserDetails() {
-    var detailsEl = $('userDetails');
-    if (!detailsEl) return;
-    if (isDemo || !currentUser) { detailsEl.style.display = 'none'; return; }
-    detailsEl.style.display = 'flex';
-
-    var expiryValue = $('expiryValue');
-    var expirySub = $('expirySub');
-    var expiryIcon = $('expiryIcon');
-    var expiryIconWrap = $('expiryIconWrap');
-    var progressWrap = $('expiryProgressWrap');
-    var progressBar = $('expiryProgressBar');
-    if (!expiryValue || !expirySub) return;
-
-    if (currentUser.role === 'admin') {
-        expiryValue.textContent = 'Vĩnh viễn';
-        expiryValue.className = 'detail-value permanent';
-        expirySub.textContent = 'Tài khoản quản trị viên';
-        expiryIcon.className = 'fas fa-infinity';
-        expiryIconWrap.className = 'detail-icon permanent';
-        if (progressWrap) progressWrap.style.display = 'none';
-        return;
-    }
-
-    if (!currentUser.expiresAt) {
-        expiryValue.textContent = 'Vĩnh viễn';
-        expiryValue.className = 'detail-value permanent';
-        expirySub.textContent = 'Không giới hạn thời gian';
-        expiryIcon.className = 'fas fa-infinity';
-        expiryIconWrap.className = 'detail-icon permanent';
-        if (progressWrap) progressWrap.style.display = 'none';
-        return;
-    }
-
-    var expDate;
-    try {
-        var ea = currentUser.expiresAt;
-        if (typeof ea.toDate === 'function') expDate = ea.toDate();
-        else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
-        else expDate = new Date(ea);
-    } catch(e) {
-        expiryValue.textContent = '-'; expirySub.textContent = ''; return;
-    }
-    if (!expDate || isNaN(expDate.getTime())) {
-        expiryValue.textContent = '-'; expirySub.textContent = ''; return;
-    }
-
-    var now = Date.now();
-    var expTime = expDate.getTime();
-    var daysLeft = Math.ceil((expTime - now) / (24 * 60 * 60 * 1000));
-    var dateStr = expDate.toLocaleDateString('vi-VN');
-
-    expiryValue.className = 'detail-value';
-    expiryIconWrap.className = 'detail-icon';
-
-    if (daysLeft < 0) {
-        expiryValue.textContent = 'Đã hết hạn';
-        expiryValue.classList.add('expired');
-        expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b><br>Đã hết hạn ' + Math.abs(daysLeft) + ' ngày trước';
-        expiryIcon.className = 'fas fa-calendar-times';
-        expiryIconWrap.classList.add('expired');
-        if (progressWrap) progressWrap.style.display = 'none';
-    } else if (daysLeft === 0) {
-        expiryValue.textContent = 'Hết hạn hôm nay';
-        expiryValue.classList.add('urgent');
-        expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b><br>Vui lòng liên hệ Admin để gia hạn!';
-        expiryIcon.className = 'fas fa-exclamation-circle';
-        expiryIconWrap.classList.add('urgent');
-        if (progressWrap) progressWrap.style.display = 'none';
-    } else if (daysLeft <= 3) {
-        expiryValue.textContent = 'Còn ' + daysLeft + ' ngày';
-        expiryValue.classList.add('urgent');
-        expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b><br>Sắp hết hạn, vui lòng gia hạn!';
-        expiryIcon.className = 'fas fa-exclamation-circle';
-        expiryIconWrap.classList.add('urgent');
-        var total3 = 30 * 24 * 60 * 60 * 1000;
-        var pct3 = Math.max(0, Math.min(100, ((total3 - (expTime - now)) / total3) * 100));
-        if (progressWrap) {
-            progressWrap.style.display = 'block';
-            progressBar.className = 'progress-bar urgent';
-            progressBar.style.width = pct3 + '%';
-        }
-    } else if (daysLeft <= 7) {
-        expiryValue.textContent = 'Còn ' + daysLeft + ' ngày';
-        expiryValue.classList.add('warn');
-        expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b>';
-        expiryIcon.className = 'fas fa-clock';
-        expiryIconWrap.classList.add('warn');
-        var total7 = 30 * 24 * 60 * 60 * 1000;
-        var pct7 = Math.max(0, Math.min(100, ((total7 - (expTime - now)) / total7) * 100));
-        if (progressWrap) {
-            progressWrap.style.display = 'block';
-            progressBar.className = 'progress-bar warn';
-            progressBar.style.width = pct7 + '%';
-        }
-    } else {
-        expiryValue.textContent = 'Còn ' + daysLeft + ' ngày';
-        expiryValue.classList.add('ok');
-        expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b>';
-        expiryIcon.className = 'fas fa-calendar-check';
-        expiryIconWrap.classList.add('ok');
-        var totalOk = 30 * 24 * 60 * 60 * 1000;
-        var pctOk = Math.max(0, Math.min(100, ((totalOk - (expTime - now)) / totalOk) * 100));
-        if (progressWrap) {
-            progressWrap.style.display = 'block';
-            progressBar.className = 'progress-bar ok';
-            progressBar.style.width = pctOk + '%';
-        }
-    }
-}
-
-/* ============ LOGIN UI ============ */
-window.showLoginModal = function() {
-    $('loginModal').classList.add('show');
-    $('loginError').classList.remove('show');
-};
-function hideLoginModal() { $('loginModal').classList.remove('show'); }
-
-function showLoginError(msg) {
-    var el = $('loginError');
-    el.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + msg;
-    el.classList.add('show');
-}
-
-function logLogin(u) {
-    try {
-        var today = new Date().toDateString();
-        var logKey = 'login_log_' + u.email;
-        if (localStorage.getItem(logKey) === today) return;
-        db.collection('login_logs').add({
-            email: u.email, name: u.name, role: u.role,
-            time: firebase.firestore.FieldValue.serverTimestamp(),
-            userAgent: navigator.userAgent.substring(0, 100)
-        }).then(function() {
-            try { localStorage.setItem(logKey, today); } catch(e) {}
-        }).catch(function() {});
-    } catch(e) {}
-}
