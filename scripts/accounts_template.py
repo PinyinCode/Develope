@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 Template cho tài khoản: login Firebase, admin panel, user management,
-expiry, import/export Excel, super admin / admin thường, trial, renewal.
+expiry, import/export Excel, super admin / admin thường.
 KHÔNG CẦN SỬA khi đổi cấu trúc Excel hay giao diện học.
+
+⚠️ LƯU Ý BUILD:
+- File này phải được ghép TRƯỚC renewal_template.py trong cùng 1 thẻ <script>
+- Định nghĩa helpers: $, escapeHtml, escapeJs, formatTimeDiff, formatMoney
+- Định nghĩa grantTrialIfNew bản fallback (renewal_template.js sẽ override)
 """
 
 
@@ -331,7 +336,7 @@ def build_accounts_css():
 .expiry-banner.urgent .expiry-banner-btn{background:#dc2626;}
 .expiry-banner.urgent .expiry-banner-btn:hover{background:#b91c1c;}
 
-/* ============ RENEWAL ADMIN LIST ============ */
+/* ============ RENEWAL ADMIN ============ */
 .renewals-list{max-height:500px;overflow-y:auto;}
 """
 
@@ -524,12 +529,17 @@ def build_accounts_html():
 
 
 def build_accounts_js():
-    """JS: Firebase auth, login, admin panel, user management, import/export."""
+    """JS: helpers + Firebase auth + admin panel + user management."""
     return r"""
-/* ============ AUTH ============ */
+/* ═══════════════════════════════════════════════════════════════
+   PHẦN 1: HELPERS (phải có trước mọi thứ)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ✅ Biến toàn cục */
 var currentUser = null;
 var isDemo = true;
-var auth, db;
+var auth = null;
+var db = null;
 var usersCache = [];
 var lastLoginMap = {};
 var importRows = [];
@@ -537,7 +547,15 @@ var editingEmail = null;
 var editingExpiryEmail = null;
 var appInitialized = false;
 
-/* ============ HELPERS ============ */
+/* ✅ Fallback TRIAL_DAYS nếu renewal_js chưa load */
+if (typeof TRIAL_DAYS === 'undefined' || TRIAL_DAYS === null) {
+    window.TRIAL_DAYS = 7;
+} else {
+    var _parsedTD = parseInt(TRIAL_DAYS, 10);
+    window.TRIAL_DAYS = (!isNaN(_parsedTD) && _parsedTD > 0 && _parsedTD < 365) ? _parsedTD : 7;
+}
+
+/* ✅ escapeHtml */
 function escapeHtml(s) {
     if (s == null) return '';
     return String(s)
@@ -547,45 +565,167 @@ function escapeHtml(s) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
 }
+
+/* ✅ escapeJs */
 function escapeJs(s) {
     if (s == null) return '';
     return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
 }
 
+/* ✅ formatMoney */
+function formatMoney(n) {
+    if (n == null) return '0';
+    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+/* ✅ formatTimeDiff */
+function formatTimeDiff(ms) {
+    if (ms < 60000) return 'Vừa xong';
+    if (ms < 3600000) return Math.floor(ms / 60000) + ' phút trước';
+    if (ms < 86400000) return Math.floor(ms / 3600000) + ' giờ trước';
+    if (ms < 2592000000) return Math.floor(ms / 86400000) + ' ngày trước';
+    return Math.floor(ms / 2592000000) + ' tháng trước';
+}
+
+/* ✅ formatDate */
+function formatDate(d) {
+    if (!d) return '';
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+/* ✅ getExpiryDate */
+function getExpiryDate(expiresAt) {
+    if (!expiresAt) return null;
+    try {
+        var ea = expiresAt;
+        if (typeof ea.toDate === 'function') return ea.toDate();
+        if (ea.seconds) return new Date(ea.seconds * 1000);
+        return new Date(ea);
+    } catch(e) { return null; }
+}
+
+/* ✅ getExpiryTimestamp */
+function getExpiryTimestamp(expiresAt) {
+    var d = getExpiryDate(expiresAt);
+    return d ? d.getTime() : null;
+}
+
+/* ✅ getDaysRemaining */
+function getDaysRemaining(userData) {
+    if (!userData || !userData.expiresAt) return null;
+    if (userData.role === 'admin') return null;
+    var expDate = getExpiryDate(userData.expiresAt);
+    if (!expDate || isNaN(expDate.getTime())) return null;
+    return Math.ceil((expDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+}
+
+/* ✅ isSuperAdmin */
 function isSuperAdmin() {
     if (!currentUser || currentUser.role !== 'admin') return false;
     var email = (currentUser.email || '').toLowerCase().trim();
+    if (typeof SUPER_ADMIN === 'undefined') return false;
     return email === SUPER_ADMIN.toLowerCase().trim();
 }
+
+/* ✅ isHiddenAdmin */
 function isHiddenAdmin() {
     if (!currentUser || currentUser.role !== 'admin') return false;
     return !isSuperAdmin();
 }
 
-/* ============ FIREBASE INIT ============ */
+/* ✅ $ helper */
+function $(id) {
+    return document.getElementById(id);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PHẦN 2: FALLBACK grantTrialIfNew (sẽ bị renewal_js override)
+   ═══════════════════════════════════════════════════════════════ */
+async function grantTrialIfNew(user, userData) {
+    if (!user || !user.email || !db) {
+        console.error('❌ grantTrialIfNew (fallback): user/db không hợp lệ');
+        return false;
+    }
+
+    var email = user.email.toLowerCase();
+    var days = parseInt(window.TRIAL_DAYS, 10) || 7;
+
+    try {
+        var userRef = db.collection('allowed_users').doc(email);
+        var existing = await userRef.get();
+
+        if (existing.exists) {
+            var d = existing.data() || {};
+            if (d.registeredAt || d.expiresAt || d.role === 'admin') {
+                console.log('ℹ️ Trial skipped (fallback):', email);
+                return false;
+            }
+        }
+
+        var expiresAt = new Date(Date.now() + days * 86400000);
+        expiresAt.setHours(23, 59, 59, 0);
+        if (isNaN(expiresAt.getTime())) {
+            console.error('❌ Invalid expiry date (fallback)');
+            return false;
+        }
+
+        await userRef.set({
+            name: (userData && userData.name) || user.displayName || email.split('@')[0],
+            role: 'user',
+            expiresAt: firebase.firestore.Timestamp.fromDate(expiresAt),
+            registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
+            isTrial: true,
+            trialDays: days,
+            trialStartedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: false });
+
+        console.log('✅ Trial granted (fallback):', days, 'days for', email);
+        return true;
+    } catch(e) {
+        console.error('❌ grantTrialIfNew (fallback) error:', e);
+        return false;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PHẦN 3: FIREBASE INIT
+   ═══════════════════════════════════════════════════════════════ */
 try {
     firebase.initializeApp(FIREBASE_CONFIG);
     auth = firebase.auth();
     db = firebase.firestore();
 
-    /* ✅ Chờ DOM ready + tất cả JS đã load xong mới attach listener */
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
+    /* ✅ Đợi DOM + các script khác load xong mới attach listener
+       → đảm bảo grantTrialIfNew (bản atomic từ renewal_js) đã sẵn sàng */
+    function attachAuthListener() {
+        setTimeout(function() {
+            console.log('🔐 Attach onAuthStateChanged. grantTrialIfNew =',
+                typeof grantTrialIfNew, '| TRIAL_DAYS =', window.TRIAL_DAYS);
             auth.onAuthStateChanged(handleAuthChange);
-        });
+        }, 50);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', attachAuthListener);
     } else {
-        auth.onAuthStateChanged(handleAuthChange);
+        attachAuthListener();
     }
 } catch(e) {
-    console.error('Firebase init error:', e);
-    enterDemoMode();
+    console.error('❌ Firebase init error:', e);
+    setTimeout(enterDemoMode, 0);
 }
 
-/* ============ AUTH STATE ⭐ QUAN TRỌNG NHẤT ============ */
+/* ═══════════════════════════════════════════════════════════════
+   PHẦN 4: AUTH STATE
+   ═══════════════════════════════════════════════════════════════ */
 async function handleAuthChange(user) {
+    console.log('🔐 onAuthStateChanged:', user ? user.email : 'null');
+
     if (!user) {
-        currentUser = null; isDemo = true;
-        applyUserUI(); enterDemoMode();
+        currentUser = null;
+        isDemo = true;
+        applyUserUI();
+        enterDemoMode();
         return;
     }
 
@@ -594,8 +734,9 @@ async function handleAuthChange(user) {
     var cached = null;
     try { cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch(e) {}
 
-    /* ===== 1. Thử cache trước (nhanh) ===== */
+    /* ===== 1. Cache hit ===== */
     if (cached && cached.expires > Date.now() && cached.data) {
+        console.log('📦 Cache hit for', email);
         currentUser = cached.data;
         isDemo = false;
         applyUserUI();
@@ -605,19 +746,18 @@ async function handleAuthChange(user) {
         return;
     }
 
-    /* ===== 2. Đọc Firestore ===== */
+    /* ===== 2. Firestore ===== */
     try {
         var doc = await db.collection('allowed_users').doc(email).get();
-        var userData = null;
 
-        /* ─── 2a. MAIL MỚI (chưa có doc) → TỰ ĐỘNG TẶNG TRIAL ─── */
+        /* ─── 2a. MAIL MỚI → TẶNG TRIAL ─── */
         if (!doc.exists) {
-            console.log('🆕 Mail mới, tạo trial cho:', email);
+            console.log('🆕 Mail mới:', email);
 
             if (typeof grantTrialIfNew !== 'function') {
-                console.error('❌ grantTrialIfNew chưa được load! Kiểm tra thứ tự JS.');
+                console.error('❌ grantTrialIfNew không tồn tại!');
                 await auth.signOut();
-                showLoginError('Lỗi hệ thống: không tải được module trial. Vui lòng tải lại trang.');
+                showLoginError('Lỗi hệ thống: module trial chưa load. Vui lòng tải lại trang (Ctrl+F5).');
                 enterDemoMode();
                 return;
             }
@@ -630,19 +770,21 @@ async function handleAuthChange(user) {
                 granted = false;
             }
 
-            /* Đọc lại doc (dù granted hay không, có thể doc đã tồn tại do race) */
+            /* Đọc lại doc (kể cả khi granted=false vì race condition) */
             doc = await db.collection('allowed_users').doc(email).get();
 
             if (!doc.exists) {
+                console.error('❌ Doc vẫn không tồn tại sau khi gọi trial');
                 await auth.signOut();
                 showLoginError('Không thể tạo tài khoản. Vui lòng thử lại hoặc liên hệ Admin.');
                 enterDemoMode();
                 return;
             }
 
+            /* Chỉ hiện alert chào mừng nếu vừa được tặng trial */
             if (granted) {
+                var trialDays = parseInt(window.TRIAL_DAYS, 10) || 7;
                 setTimeout(function() {
-                    var trialDays = (typeof TRIAL_DAYS !== 'undefined') ? TRIAL_DAYS : 7;
                     var trialDate = new Date(Date.now() + trialDays * 86400000);
                     alert('🎉 Chào mừng bạn đến với Học tiếng Trung!\n\n' +
                           '✅ Bạn được tặng MIỄN PHÍ ' + trialDays + ' ngày sử dụng.\n\n' +
@@ -652,9 +794,9 @@ async function handleAuthChange(user) {
             }
         }
 
-        /* ─── 2b. CÓ DOC → build userData ─── */
+        /* ─── 2b. Build userData ─── */
         var data = doc.data() || {};
-        userData = {
+        currentUser = {
             email: email,
             name: data.name || user.displayName || email.split('@')[0],
             role: data.role || 'user',
@@ -663,17 +805,7 @@ async function handleAuthChange(user) {
             isTrial: data.isTrial || false
         };
 
-        /* ─── 2c. Check hạn (không chặn login) ─── */
-        if (!checkUserExpiration(userData)) {
-            await auth.signOut();
-            try { localStorage.removeItem(cacheKey); } catch(e) {}
-            enterDemoMode();
-            return;
-        }
-
-        /* ─── 2d. Login thành công ─── */
-        currentUser = userData;
-
+        /* ─── 2c. Save cache ─── */
         try {
             localStorage.setItem(cacheKey, JSON.stringify({
                 data: currentUser,
@@ -681,6 +813,8 @@ async function handleAuthChange(user) {
             }));
         } catch(e) {}
 
+        /* ─── 2d. Success ─── */
+        console.log('✅ Login OK:', email, '| role:', currentUser.role);
         isDemo = false;
         applyUserUI();
         logLogin(currentUser);
@@ -694,26 +828,14 @@ async function handleAuthChange(user) {
     }
 }
 
-/* ✅ Luôn return true — banner hết hạn hiển thị qua applyUserUI, KHÔNG chặn login */
+/* ✅ Không chặn login — banner hết hạn hiển thị qua applyUserUI */
 function checkUserExpiration(userData) {
     return true;
 }
 
-function getDaysRemaining(userData) {
-    if (!userData || !userData.expiresAt) return null;
-    if (userData.role === 'admin') return null;
-    var expDate;
-    try {
-        var ea = userData.expiresAt;
-        if (typeof ea.toDate === 'function') expDate = ea.toDate();
-        else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
-        else expDate = new Date(ea);
-    } catch(e) { return null; }
-    return Math.ceil((expDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
-}
-
 function enterDemoMode() {
-    currentUser = null; isDemo = true;
+    currentUser = null;
+    isDemo = true;
     applyUserUI();
     if (!appInitialized) { initApp(); appInitialized = true; }
     else { if (typeof refreshApp === 'function') refreshApp(); }
@@ -723,7 +845,9 @@ function enterDemoMode() {
     if ($('mainContent')) $('mainContent').style.display = 'block';
 }
 
-/* ============ USER UI ============ */
+/* ═══════════════════════════════════════════════════════════════
+   PHẦN 5: USER UI
+   ═══════════════════════════════════════════════════════════════ */
 function applyUserUI() {
     var demoBadge = $('demoBadge');
     var headerLoginBtn = $('headerLoginBtn');
@@ -756,14 +880,8 @@ function applyUserUI() {
                 var descEl = expiryBanner.querySelector('.expiry-banner-text .desc');
                 if (descEl) {
                     var expDateStr = '';
-                    try {
-                        var ea = currentUser.expiresAt;
-                        var expDate;
-                        if (typeof ea.toDate === 'function') expDate = ea.toDate();
-                        else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
-                        else expDate = new Date(ea);
-                        if (expDate) expDateStr = expDate.toLocaleDateString('vi-VN');
-                    } catch(e) {}
+                    var expDate = getExpiryDate(currentUser.expiresAt);
+                    if (expDate) expDateStr = expDate.toLocaleDateString('vi-VN');
                     if (isExpired) {
                         descEl.innerHTML = 'Đã hết hạn vào <b>' + expDateStr + '</b>. Gia hạn ngay để tiếp tục học!';
                     } else {
@@ -849,12 +967,12 @@ function applyUserUI() {
         else zaloBtn.classList.add('compact');
     }
 
-    if ($('demoLimitText')) $('demoLimitText').textContent = DEMO_LIMIT;
-    if ($('demoDailyText')) $('demoDailyText').textContent = DEMO_DAILY_LIMIT;
+    if ($('demoLimitText') && typeof DEMO_LIMIT !== 'undefined') $('demoLimitText').textContent = DEMO_LIMIT;
+    if ($('demoDailyText') && typeof DEMO_DAILY_LIMIT !== 'undefined') $('demoDailyText').textContent = DEMO_DAILY_LIMIT;
     var hskMaxEl1 = $('demoHskMaxText');
     var hskMaxEl2 = $('demoHskMaxText2');
-    if (hskMaxEl1) hskMaxEl1.textContent = DEMO_HSK_MAX;
-    if (hskMaxEl2) hskMaxEl2.textContent = DEMO_HSK_MAX;
+    if (hskMaxEl1 && typeof DEMO_HSK_MAX !== 'undefined') hskMaxEl1.textContent = DEMO_HSK_MAX;
+    if (hskMaxEl2 && typeof DEMO_HSK_MAX !== 'undefined') hskMaxEl2.textContent = DEMO_HSK_MAX;
     if (typeof updateDemoRemaining === 'function') updateDemoRemaining();
 
     var toggleFocusBtn = $('toggleFocusBtn');
@@ -901,15 +1019,7 @@ function updateUserDetails() {
         return;
     }
 
-    var expDate;
-    try {
-        var ea = currentUser.expiresAt;
-        if (typeof ea.toDate === 'function') expDate = ea.toDate();
-        else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
-        else expDate = new Date(ea);
-    } catch(e) {
-        expiryValue.textContent = '-'; expirySub.textContent = ''; return;
-    }
+    var expDate = getExpiryDate(currentUser.expiresAt);
     if (!expDate || isNaN(expDate.getTime())) {
         expiryValue.textContent = '-'; expirySub.textContent = ''; return;
     }
@@ -942,8 +1052,7 @@ function updateUserDetails() {
         expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b><br>Sắp hết hạn, vui lòng gia hạn!';
         if (expiryIcon) expiryIcon.className = 'fas fa-exclamation-circle';
         if (expiryIconWrap) expiryIconWrap.classList.add('urgent');
-        var total3 = 30 * 24 * 60 * 60 * 1000;
-        var pct3 = Math.max(0, Math.min(100, ((total3 - (expTime - now)) / total3) * 100));
+        var pct3 = Math.max(0, Math.min(100, ((30 * 86400000 - (expTime - now)) / (30 * 86400000)) * 100));
         if (progressWrap && progressBar) {
             progressWrap.style.display = 'block';
             progressBar.className = 'progress-bar urgent';
@@ -955,8 +1064,7 @@ function updateUserDetails() {
         expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b>';
         if (expiryIcon) expiryIcon.className = 'fas fa-clock';
         if (expiryIconWrap) expiryIconWrap.classList.add('warn');
-        var total7 = 30 * 24 * 60 * 60 * 1000;
-        var pct7 = Math.max(0, Math.min(100, ((total7 - (expTime - now)) / total7) * 100));
+        var pct7 = Math.max(0, Math.min(100, ((30 * 86400000 - (expTime - now)) / (30 * 86400000)) * 100));
         if (progressWrap && progressBar) {
             progressWrap.style.display = 'block';
             progressBar.className = 'progress-bar warn';
@@ -968,8 +1076,7 @@ function updateUserDetails() {
         expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b>';
         if (expiryIcon) expiryIcon.className = 'fas fa-calendar-check';
         if (expiryIconWrap) expiryIconWrap.classList.add('ok');
-        var totalOk = 30 * 24 * 60 * 60 * 1000;
-        var pctOk = Math.max(0, Math.min(100, ((totalOk - (expTime - now)) / totalOk) * 100));
+        var pctOk = Math.max(0, Math.min(100, ((30 * 86400000 - (expTime - now)) / (30 * 86400000)) * 100));
         if (progressWrap && progressBar) {
             progressWrap.style.display = 'block';
             progressBar.className = 'progress-bar ok';
@@ -978,20 +1085,26 @@ function updateUserDetails() {
     }
 }
 
-/* ============ LOGIN UI ============ */
+/* ═══════════════════════════════════════════════════════════════
+   PHẦN 6: LOGIN UI
+   ═══════════════════════════════════════════════════════════════ */
 window.showLoginModal = function() {
-    $('loginModal').classList.add('show');
-    $('loginError').classList.remove('show');
+    if ($('loginModal')) $('loginModal').classList.add('show');
+    if ($('loginError')) $('loginError').classList.remove('show');
 };
-function hideLoginModal() { $('loginModal').classList.remove('show'); }
+function hideLoginModal() {
+    if ($('loginModal')) $('loginModal').classList.remove('show');
+}
 
 function showLoginError(msg) {
     var el = $('loginError');
+    if (!el) return;
     el.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + msg;
     el.classList.add('show');
 }
 
 function logLogin(u) {
+    if (!db || !u) return;
     try {
         var today = new Date().toDateString();
         var logKey = 'login_log_' + u.email;
@@ -1006,7 +1119,9 @@ function logLogin(u) {
     } catch(e) {}
 }
 
-/* ============ ADMIN PANEL ============ */
+/* ═══════════════════════════════════════════════════════════════
+   PHẦN 7: ADMIN PANEL
+   ═══════════════════════════════════════════════════════════════ */
 function initAdminPanel() {
     if ($('openAdminBtn')) {
         $('openAdminBtn').addEventListener('click', function() {
@@ -1260,7 +1375,8 @@ function renderUsers(items) {
     list.innerHTML = displayItems.map(function(u) {
         var isMe = u.email === currentUser.email;
         var isAdmin = u.role === 'admin';
-        var targetIsSuper = (u.email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
+        var targetIsSuper = (typeof SUPER_ADMIN !== 'undefined') &&
+                            (u.email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
         var canModifyAdmin = superAdmin && isAdmin && !isMe && !targetIsSuper;
 
         var roleBtn = '';
@@ -1361,7 +1477,8 @@ window.changeRole = async function(email, newRole) {
     var isMe = email === currentUser.email;
     var isAdmin = target.role === 'admin';
     var superAdmin = isSuperAdmin();
-    var targetIsSuper = (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
+    var targetIsSuper = (typeof SUPER_ADMIN !== 'undefined') &&
+                        (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
     if (isMe && newRole === 'user') { alert('⚠️ Không thể tự hạ quyền admin của chính mình!'); return; }
     if (targetIsSuper) { alert('⚠️ Không thể thay đổi quyền của Super Admin!'); return; }
     if (isAdmin && newRole === 'user' && !superAdmin) { alert('⚠️ Chỉ Super Admin mới có quyền hạ cấp admin khác!'); return; }
@@ -1382,7 +1499,8 @@ window.deleteUser = async function(email) {
     var isMe = email === currentUser.email;
     var isAdmin = target.role === 'admin';
     var superAdmin = isSuperAdmin();
-    var targetIsSuper = (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
+    var targetIsSuper = (typeof SUPER_ADMIN !== 'undefined') &&
+                        (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
     if (isMe) { alert('⚠️ Không thể tự xóa tài khoản của chính mình!'); return; }
     if (targetIsSuper) { alert('⚠️ Không thể xóa Super Admin!'); return; }
     if (isAdmin && !superAdmin) { alert('⚠️ Chỉ Super Admin mới có quyền xóa admin khác!'); return; }
@@ -1431,7 +1549,9 @@ function loadLogs() {
         });
 }
 
-/* ============ EXPIRY EDIT ============ */
+/* ═══════════════════════════════════════════════════════════════
+   PHẦN 8: EXPIRY EDIT
+   ═══════════════════════════════════════════════════════════════ */
 window.openEditExpiry = function(email) {
     var user = usersCache.find(function(u) { return u.email === email; });
     if (!user) { alert('Không tìm thấy user!'); return; }
@@ -1490,7 +1610,9 @@ async function doUpdateExpiry() {
     }
 }
 
-/* ============ CHANGE NAME ============ */
+/* ═══════════════════════════════════════════════════════════════
+   PHẦN 9: CHANGE NAME
+   ═══════════════════════════════════════════════════════════════ */
 async function doChangeName() {
     if (!editingEmail) return;
     var newName = $('changeNameInput').value.trim();
@@ -1533,13 +1655,13 @@ async function doChangeName() {
     }
 }
 
-/* ============ EXPORT EXCEL ============ */
+/* ═══════════════════════════════════════════════════════════════
+   PHẦN 10: EXPORT / IMPORT EXCEL
+   ═══════════════════════════════════════════════════════════════ */
 function doExportExcel() {
+    if (typeof XLSX === 'undefined') { alert('Thư viện XLSX chưa load!'); return; }
     var usersOnly = usersCache.filter(function(u) { return u.role !== 'admin'; });
-    if (!usersOnly.length) {
-        alert('Không có user nào để export!\n(Admin không được export)');
-        return;
-    }
+    if (!usersOnly.length) { alert('Không có user nào để export!\n(Admin không được export)'); return; }
     try {
         var wb = XLSX.utils.book_new();
         var now = Date.now();
@@ -1551,70 +1673,33 @@ function doExportExcel() {
             if (db2 === null) return -1;
             return da - db2;
         });
-        var COLUMNS = [
-            { header: 'STT', width: 6 }, { header: 'email', width: 35 },
-            { header: 'name', width: 25 }, { header: 'phone', width: 16 },
-            { header: 'expiresAt', width: 14 }, { header: 'Trạng thái', width: 22 },
-            { header: 'Ghi chú', width: 25 },
-        ];
-        var aoa = [COLUMNS.map(function(c) { return c.header; })];
-        var stats = { total: usersOnly.length, permanent: 0, expired: 0, urgent: 0, warning: 0, ok: 0 };
-        var statusTypes = [];
-
+        var aoa = [['STT', 'email', 'name', 'phone', 'expiresAt', 'Trạng thái', 'Ghi chú']];
         usersOnly.forEach(function(u) {
             var expDate = getExpiryDate(u.expiresAt);
-            var expStr = '', statusStr = '', statusType = 'ok';
-            if (!expDate) {
-                statusStr = '∞ Vĩnh viễn'; statusType = 'permanent'; stats.permanent++;
-            } else {
+            var expStr = '', statusStr = '';
+            if (!expDate) { statusStr = '∞ Vĩnh viễn'; }
+            else {
                 expStr = formatDate(expDate);
-                var daysLeft = Math.ceil((expDate.getTime() - now) / (24 * 60 * 60 * 1000));
-                if (daysLeft < 0) { statusStr = '❌ Hết hạn ' + Math.abs(daysLeft) + ' ngày'; statusType = 'expired'; stats.expired++; }
-                else if (daysLeft === 0) { statusStr = '⏰ Hết hạn hôm nay'; statusType = 'urgent'; stats.urgent++; }
-                else if (daysLeft <= 3) { statusStr = '🔴 Còn ' + daysLeft + ' ngày'; statusType = 'urgent'; stats.urgent++; }
-                else if (daysLeft <= 7) { statusStr = '🟡 Còn ' + daysLeft + ' ngày'; statusType = 'warning'; stats.warning++; }
-                else { statusStr = '🟢 Còn ' + daysLeft + ' ngày'; statusType = 'ok'; stats.ok++; }
+                var daysLeft = Math.ceil((expDate.getTime() - now) / 86400000);
+                if (daysLeft < 0) statusStr = '❌ Hết hạn ' + Math.abs(daysLeft) + ' ngày';
+                else if (daysLeft <= 7) statusStr = '🟡 Còn ' + daysLeft + ' ngày';
+                else statusStr = '🟢 Còn ' + daysLeft + ' ngày';
             }
-            statusTypes.push(statusType);
             aoa.push(['', u.email || '', u.name || '', '', expStr, statusStr, '']);
         });
-
-        var totalRows = aoa.length;
         var ws = XLSX.utils.aoa_to_sheet(aoa);
-        ws['!cols'] = COLUMNS.map(function(c) { return { wch: c.width }; });
-        ws['!rows'] = [{ hpt: 30 }];
-        for (var r = 1; r < totalRows; r++) ws['!rows'].push({ hpt: 22 });
-        ws['!freeze'] = { xSplit: 0, ySplit: 1 };
-        ws['!autofilter'] = { ref: 'A1:G' + totalRows };
-
+        ws['!cols'] = [{wch:6},{wch:35},{wch:25},{wch:16},{wch:14},{wch:22},{wch:25}];
         XLSX.utils.book_append_sheet(wb, ws, 'Users');
 
-        var ws2 = XLSX.utils.aoa_to_sheet([
-            ['📊  THỐNG KÊ TÀI KHOẢN', '', ''],
-            ['', '', ''],
-            ['Tổng số user', stats.total, ''],
-            ['', '', ''],
-            ['🟢 Còn nhiều thời gian (> 7 ngày)', stats.ok, ''],
-            ['🟡 Sắp hết hạn (4-7 ngày)', stats.warning, ''],
-            ['🔴 Sắp hết hạn (≤ 3 ngày)', stats.urgent, ''],
-            ['❌ Đã hết hạn', stats.expired, ''],
-            ['∞  Vĩnh viễn', stats.permanent, ''],
-            ['', '', ''],
-            ['📅 Ngày export', new Date().toLocaleString('vi-VN'), ''],
-        ]);
-        ws2['!cols'] = [{ wch: 35 }, { wch: 18 }, { wch: 20 }];
-        XLSX.utils.book_append_sheet(wb, ws2, 'Thống kê');
-
         var today = new Date();
-        var dateStr = today.getFullYear() + String(today.getMonth() + 1).padStart(2, '0') + String(today.getDate()).padStart(2, '0') + '_' + String(today.getHours()).padStart(2, '0') + String(today.getMinutes()).padStart(2, '0');
-        XLSX.writeFile(wb, 'users_export_' + dateStr + '.xlsx', { bookType: 'xlsx', cellStyles: true });
+        var dateStr = today.getFullYear() + String(today.getMonth()+1).padStart(2,'0') + String(today.getDate()).padStart(2,'0');
+        XLSX.writeFile(wb, 'users_export_' + dateStr + '.xlsx');
     } catch(err) {
         console.error('Lỗi export:', err);
         alert('❌ Lỗi export: ' + err.message);
     }
 }
 
-/* ============ IMPORT EXCEL ============ */
 function handleImportFileSelect(e) {
     var file = e.target.files[0];
     if (!file) return;
@@ -1642,7 +1727,7 @@ function processImport(rows) {
         if (r.indexOf('email') !== -1) { headerRowIdx = i; break; }
     }
     if (headerRowIdx === -1) {
-        alert('❌ Không tìm thấy cột "email"!\n\nFile Excel cần có ít nhất cột "email".');
+        alert('❌ Không tìm thấy cột "email"!');
         return;
     }
     var header = rows[headerRowIdx].map(function(c) { return String(c || '').toLowerCase().trim(); });
@@ -1659,7 +1744,6 @@ function processImport(rows) {
     });
 
     importRows = [];
-    var stats = { total: 0, newUser: 0, update: 0, invalid: 0, skippedAdmin: 0 };
     var seenInFile = {};
 
     for (var i = headerRowIdx + 1; i < rows.length; i++) {
@@ -1669,50 +1753,27 @@ function processImport(rows) {
         var name = nameCol >= 0 ? String(row[nameCol] || '').trim() : '';
         var expRaw = expCol >= 0 ? row[expCol] : '';
         if (!email && !name) continue;
-        if (email.indexOf('←') === 0 || email.indexOf('•') === 0 || email.indexOf('xóa dòng') !== -1 || email.indexOf('#') === 0 || email.indexOf('⚠') === 0 || email.indexOf('ví dụ') === 0) continue;
-        if (existingAdminSet[email]) { stats.skippedAdmin++; continue; }
+        if (existingAdminSet[email]) continue;
 
         var status = 'ok';
         var reason = '';
         var isUpdate = !!existingUserMap[email];
-        if (!email) { status = 'error'; reason = 'Thiếu email'; stats.invalid++; }
-        else if (!email.includes('@') || !email.includes('.')) { status = 'error'; reason = 'Email không hợp lệ'; stats.invalid++; }
-        else if (seenInFile[email]) { status = 'error'; reason = 'Trùng trong file'; stats.invalid++; }
-        else if (isUpdate) { stats.update++; seenInFile[email] = true; }
-        else { stats.newUser++; seenInFile[email] = true; }
+        if (!email) { status = 'error'; reason = 'Thiếu email'; }
+        else if (!email.includes('@') || !email.includes('.')) { status = 'error'; reason = 'Email không hợp lệ'; }
+        else if (seenInFile[email]) { status = 'error'; reason = 'Trùng trong file'; }
+        else { seenInFile[email] = true; }
 
         if (!name && email.indexOf('@') > 0) name = email.split('@')[0];
 
-        var expDate = null;
-        var expStr = '';
+        var expDate = null, expStr = '';
         if (expRaw) {
-            var raw = expRaw;
-            if (typeof raw === 'number' && raw > 25569) {
-                var d = new Date((raw - 25569) * 86400 * 1000);
-                if (!isNaN(d.getTime())) {
-                    expDate = d;
-                    expStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-                }
-            } else {
-                var s = String(raw).trim();
-                if (s) {
-                    var m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
-                    if (m) {
-                        var d2 = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]), 23, 59, 59);
-                        if (!isNaN(d2.getTime())) {
-                            expDate = d2;
-                            expStr = m[1] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[3]).padStart(2, '0');
-                        }
-                    } else {
-                        var d3 = new Date(s);
-                        if (!isNaN(d3.getTime())) {
-                            expDate = d3;
-                            expStr = d3.getFullYear() + '-' + String(d3.getMonth() + 1).padStart(2, '0') + '-' + String(d3.getDate()).padStart(2, '0');
-                        } else {
-                            if (status === 'ok') { status = 'warn'; reason = 'Ngày không hợp lệ'; }
-                            expDate = null;
-                        }
-                    }
+            var s = String(expRaw).trim();
+            var m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+            if (m) {
+                var d2 = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]), 23, 59, 59);
+                if (!isNaN(d2.getTime())) {
+                    expDate = d2;
+                    expStr = m[1] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[3]).padStart(2, '0');
                 }
             }
         }
@@ -1723,12 +1784,7 @@ function processImport(rows) {
         });
     }
 
-    if (importRows.length === 0) {
-        var msg = '❌ Không có dòng dữ liệu hợp lệ!';
-        if (stats.skippedAdmin > 0) msg += '\n\n(Bỏ qua ' + stats.skippedAdmin + ' admin)';
-        alert(msg);
-        return;
-    }
+    if (importRows.length === 0) { alert('❌ Không có dòng dữ liệu hợp lệ!'); return; }
     renderImportPreview();
     $('importModal').classList.add('show');
 }
@@ -1739,21 +1795,11 @@ function renderImportPreview() {
     var html = '';
     var countOk = 0, countUpdate = 0, countWarn = 0, countErr = 0;
     importRows.forEach(function(r) {
-        var rowCls = '';
-        var statusHtml = '';
+        var rowCls = '', statusHtml = '';
         if (r.status === 'ok' && r.isUpdate) { rowCls = 'row-update'; statusHtml = '<span class="status-badge update"><i class="fas fa-sync-alt"></i> Cập nhật</span>'; countUpdate++; }
         else if (r.status === 'ok') { rowCls = 'row-new'; statusHtml = '<span class="status-badge ok"><i class="fas fa-plus"></i> Thêm mới</span>'; countOk++; }
-        else if (r.status === 'warn') { rowCls = 'row-warn'; statusHtml = '<span class="status-badge warn"><i class="fas fa-exclamation-triangle"></i> ' + escapeHtml(r.reason) + '</span>'; countWarn++; }
         else { rowCls = 'row-error'; statusHtml = '<span class="status-badge err"><i class="fas fa-times"></i> ' + escapeHtml(r.reason) + '</span>'; countErr++; }
-        var expDisplay = '—';
-        if (r.expStr) {
-            var d = new Date(r.expStr + 'T23:59:59');
-            var daysLeft = Math.ceil((d.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
-            var expColor = daysLeft < 0 ? '#dc2626' : (daysLeft <= 7 ? '#f59e0b' : '#16a34a');
-            expDisplay = '<span style="color:' + expColor + ';font-size:.7rem;font-weight:600;">' + r.expStr + '</span>';
-        } else {
-            expDisplay = '<span style="color:#94a3b8;font-size:.7rem;">Vĩnh viễn</span>';
-        }
+        var expDisplay = r.expStr || '<span style="color:#94a3b8">Vĩnh viễn</span>';
         html += '<tr class="' + rowCls + '">' +
             '<td>' + r.rowNum + '</td>' +
             '<td><b>' + escapeHtml(r.email) + '</b></td>' +
@@ -1771,50 +1817,32 @@ function renderImportPreview() {
             '<div class="import-stat"><div class="num">' + importRows.length + '</div><div class="label">Tổng</div></div>' +
             '<div class="import-stat ok"><div class="num">' + countOk + '</div><div class="label">Thêm mới</div></div>' +
             '<div class="import-stat update"><div class="num">' + countUpdate + '</div><div class="label">Cập nhật</div></div>' +
-            '<div class="import-stat warn"><div class="num">' + countWarn + '</div><div class="label">Cảnh báo</div></div>' +
             '<div class="import-stat err"><div class="num">' + countErr + '</div><div class="label">Lỗi</div></div>';
     }
-    var totalImportable = countOk + countUpdate + countWarn;
+    var totalImportable = countOk + countUpdate;
     if ($('importCount')) $('importCount').textContent = totalImportable;
     if ($('importConfirmBtn')) $('importConfirmBtn').disabled = totalImportable === 0;
 }
 
 async function doImport() {
     var skipDuplicates = $('importSkipDuplicates').checked;
-    var skipInvalid = $('importSkipInvalid').checked;
     var toImport = importRows.filter(function(r) {
         if (r.status === 'error') return false;
-        if (r.status === 'warn' && skipInvalid) return false;
         if (r.isUpdate && skipDuplicates) return false;
         return true;
     });
     if (toImport.length === 0) { alert('⚠️ Không có user nào để import!'); return; }
-    var totalNew = toImport.filter(function(r) { return !r.isUpdate; }).length;
-    var totalUpdate = toImport.filter(function(r) { return r.isUpdate; }).length;
-    if (!confirm('📥 IMPORT ' + toImport.length + ' TÀI KHOẢN?\n\n• Thêm mới: ' + totalNew + '\n• Cập nhật: ' + totalUpdate + '\n\n(Chỉ import user, KHÔNG import admin)\n\nBạn có chắc không?')) return;
+    if (!confirm('📥 IMPORT ' + toImport.length + ' TÀI KHOẢN?')) return;
 
     var btn = $('importConfirmBtn');
-    if (!btn) return;
     var originalHTML = btn.innerHTML;
-    var originalDisabled = btn.disabled;
     btn.disabled = true;
-    var icon = btn.querySelector('i');
-    if (icon) icon.className = 'fas fa-spinner fa-pulse';
+    btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Đang import...';
 
-    var success = 0;
-    var failed = 0;
-    var errors = [];
-    var adminEmails = {};
-    usersCache.forEach(function(u) { if (u.role === 'admin') adminEmails[(u.email || '').toLowerCase()] = true; });
-
+    var success = 0, failed = 0;
     var BATCH_SIZE = 400;
     for (var i = 0; i < toImport.length; i += BATCH_SIZE) {
         var chunk = toImport.slice(i, i + BATCH_SIZE);
-        chunk = chunk.filter(function(r) {
-            if (adminEmails[r.email]) { console.warn('Skip admin:', r.email); return false; }
-            return true;
-        });
-        if (chunk.length === 0) continue;
         var batch = db.batch();
         chunk.forEach(function(r) {
             var ref = db.collection('allowed_users').doc(r.email);
@@ -1822,13 +1850,9 @@ async function doImport() {
             if (!r.isUpdate) {
                 data.addedAt = firebase.firestore.FieldValue.serverTimestamp();
                 data.registeredAt = firebase.firestore.FieldValue.serverTimestamp();
-                data.importedFromExcel = true;
-            } else {
-                data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
             }
             if (r.expDate) {
-                try { data.expiresAt = firebase.firestore.Timestamp.fromDate(r.expDate); }
-                catch(e) { data.expiresAt = null; }
+                data.expiresAt = firebase.firestore.Timestamp.fromDate(r.expDate);
             } else {
                 data.expiresAt = null;
             }
@@ -1839,52 +1863,22 @@ async function doImport() {
             success += chunk.length;
         } catch(err) {
             failed += chunk.length;
-            errors.push(err.message);
-            console.error('Batch error:', err);
         }
-        var countEl = btn.querySelector('#importCount');
-        if (countEl) countEl.textContent = success + '/' + toImport.length;
     }
 
-    btn.disabled = originalDisabled;
+    btn.disabled = false;
     btn.innerHTML = originalHTML;
     importRows = [];
     try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
-    toImport.forEach(function(r) { try { localStorage.removeItem('user_cache_' + r.email); } catch(e) {} });
 
-    var msg = '✅ Import hoàn tất!\n\n✓ Thành công: ' + success + '\n' + (failed ? '✗ Thất bại: ' + failed + '\n' : '') + (errors.length ? '\nLỗi:\n' + errors.slice(0, 3).join('\n') : '');
-    alert(msg);
+    alert('✅ Import hoàn tất!\n\n✓ Thành công: ' + success + '\n' + (failed ? '✗ Thất bại: ' + failed : ''));
     $('importModal').classList.remove('show');
     loadUsers(true);
 }
 
-/* ============ DATE HELPERS ============ */
-function getExpiryDate(expiresAt) {
-    if (!expiresAt) return null;
-    try {
-        var ea = expiresAt;
-        if (typeof ea.toDate === 'function') return ea.toDate();
-        if (ea.seconds) return new Date(ea.seconds * 1000);
-        return new Date(ea);
-    } catch(e) { return null; }
-}
-function getExpiryTimestamp(expiresAt) {
-    var d = getExpiryDate(expiresAt);
-    return d ? d.getTime() : null;
-}
-function formatDate(d) {
-    if (!d) return '';
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-function formatTimeDiff(ms) {
-    if (ms < 60000) return 'Vừa xong';
-    if (ms < 3600000) return Math.floor(ms / 60000) + ' phút trước';
-    if (ms < 86400000) return Math.floor(ms / 3600000) + ' giờ trước';
-    if (ms < 2592000000) return Math.floor(ms / 86400000) + ' ngày trước';
-    return Math.floor(ms / 2592000000) + ' tháng trước';
-}
-
-/* ============ INIT AUTH UI ============ */
+/* ═══════════════════════════════════════════════════════════════
+   PHẦN 11: INIT AUTH UI
+   ═══════════════════════════════════════════════════════════════ */
 function initAuthUI() {
     if ($('headerLoginBtn')) $('headerLoginBtn').addEventListener('click', showLoginModal);
     if ($('loginClose')) $('loginClose').addEventListener('click', hideLoginModal);
@@ -1963,10 +1957,12 @@ function initAuthUI() {
     initAdminPanel();
 }
 
-/* ============ TIMEOUT FALLBACK ============ */
+/* ═══════════════════════════════════════════════════════════════
+   PHẦN 12: TIMEOUT FALLBACK
+   ═══════════════════════════════════════════════════════════════ */
 setTimeout(function() {
     if (!appInitialized) {
-        console.warn('Auth timeout, entering demo mode');
+        console.warn('⚠️ Auth timeout 8s, entering demo mode');
         enterDemoMode();
     }
 }, 8000);
