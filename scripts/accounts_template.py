@@ -1,13 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Template cho tài khoản: login Firebase, admin panel, user management,
-expiry, import/export Excel, super admin / admin thường.
+expiry, import/export Excel, super admin / admin thường, trial, renewal.
 KHÔNG CẦN SỬA khi đổi cấu trúc Excel hay giao diện học.
-
-⚠️ LƯU Ý BUILD:
-- File này phải được ghép TRƯỚC renewal_template.py trong cùng 1 thẻ <script>
-- Định nghĩa helpers: $, escapeHtml, escapeJs, formatTimeDiff, formatMoney
-- Định nghĩa grantTrialIfNew bản fallback (renewal_template.js sẽ override)
 """
 
 
@@ -331,18 +326,42 @@ def build_accounts_css():
 [data-theme="dark"] .expiry-banner-text .desc{color:#fde68a;}
 .expiry-banner-text b{color:#dc2626;}
 .expiry-banner.urgent .expiry-banner-text b{color:#991b1b;}
-.expiry-banner-btn{padding:.5rem .9rem;border-radius:50px;border:none;background:#f59e0b;color:#fff;text-decoration:none;font-size:.8rem;font-weight:700;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;font-family:inherit;}
+.expiry-banner-btn{padding:.5rem .9rem;border-radius:50px;border:none;background:#f59e0b;color:#fff;text-decoration:none;font-size:.8rem;font-weight:700;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;}
 .expiry-banner-btn:hover{background:#d97706;color:#fff;transform:translateY(-1px);}
 .expiry-banner.urgent .expiry-banner-btn{background:#dc2626;}
 .expiry-banner.urgent .expiry-banner-btn:hover{background:#b91c1c;}
 
-/* ============ RENEWAL ADMIN ============ */
-.renewals-list{max-height:500px;overflow-y:auto;}
+/* ============ RENEWAL REQUESTS ============ */
+.renewal-item{transition:.15s;}
+.renewal-item:hover{border-color:var(--primary);box-shadow:0 2px 8px rgba(37,99,235,.08);}
+.renewals-list{max-height:400px;overflow-y:auto;}
+.renewal-item .btn.primary{padding:.4rem .7rem;font-size:.75rem;}
+
+/* ============ RENEWAL MODAL (user) ============ */
+.renewal-modal{position:fixed;inset:0;background:rgba(15,23,42,.85);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:4000;display:none;align-items:center;justify-content:center;padding:1rem;animation:fadeIn .2s;}
+.renewal-modal.show{display:flex}
+.renewal-box{background:var(--surface);border-radius:20px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.4);padding:1.5rem;position:relative;animation:slideUp .3s cubic-bezier(.34,1.56,.64,1);}
+.renewal-box h2{font-size:1.15rem;color:var(--text);font-weight:700;display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;}
+.renewal-box h2 i{color:var(--amber);}
+.renewal-plans{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;margin-bottom:1rem;}
+.renewal-plan{padding:.75rem .5rem;border-radius:10px;border:2px solid var(--border);background:var(--surface-2);cursor:pointer;text-align:center;transition:.15s;}
+.renewal-plan:hover{border-color:var(--primary);}
+.renewal-plan.selected{border-color:var(--primary);background:var(--primary-light);box-shadow:0 0 0 3px rgba(37,99,235,.15);}
+.renewal-plan .days{font-size:1.3rem;font-weight:800;color:var(--text);line-height:1;margin-bottom:.2rem;}
+.renewal-plan .price{font-size:.75rem;color:var(--text-3);font-weight:600;}
+.renewal-plan.selected .price{color:var(--primary-dark);}
+[data-theme="dark"] .renewal-plan.selected .price{color:#93c5fd;}
+.renewal-plan .discount{display:inline-block;margin-top:.3rem;padding:.1rem .4rem;background:#dc2626;color:#fff;border-radius:50px;font-size:.62rem;font-weight:700;}
+.renewal-contact{margin-top:1rem;padding:.85rem 1rem;border-radius:10px;background:var(--primary-light);font-size:.8rem;color:var(--primary-dark);line-height:1.6;}
+[data-theme="dark"] .renewal-contact{color:#93c5fd;background:rgba(37,99,235,.15);}
+.renewal-contact b{font-weight:800;}
+.renewal-contact a{color:var(--primary-dark);font-weight:700;text-decoration:none;}
+.renewal-contact a:hover{text-decoration:underline;}
 """
 
 
 def build_accounts_html():
-    """HTML cho login + user menu + admin + edit modals."""
+    """HTML cho login + user menu + admin + edit modals + renewal modal."""
     return r"""
 <div class="login-modal" id="loginModal">
     <div class="login-box">
@@ -356,7 +375,7 @@ def build_accounts_html():
         </button>
         <div class="login-error" id="loginError"></div>
         <div class="login-footer">
-            <i class="fas fa-gift" style="color:#2563eb"></i> Tài khoản mới được <b>tặng miễn phí 7 ngày</b> dùng thử.
+            <i class="fas fa-shield-alt"></i> Tài khoản mới được <b>tặng miễn phí 7 ngày</b> dùng thử.
         </div>
     </div>
 </div>
@@ -403,6 +422,52 @@ def build_accounts_html():
         <div class="form-actions">
             <button class="btn" id="editExpiryCancel">Hủy</button>
             <button class="btn primary" id="editExpiryConfirm"><i class="fas fa-check"></i> Lưu</button>
+        </div>
+    </div>
+</div>
+
+<div class="renewal-modal" id="renewalModal">
+    <div class="renewal-box">
+        <button class="edit-close" id="renewalClose"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-crown"></i> Gia hạn tài khoản</h2>
+        <div class="form-group">
+            <label>Chọn gói gia hạn</label>
+            <div class="renewal-plans" id="renewalPlans">
+                <div class="renewal-plan" data-days="30">
+                    <div class="days">30</div>
+                    <div class="price">ngày</div>
+                </div>
+                <div class="renewal-plan selected" data-days="90">
+                    <div class="days">90</div>
+                    <div class="price">ngày</div>
+                    <div class="discount">Phổ biến</div>
+                </div>
+                <div class="renewal-plan" data-days="180">
+                    <div class="days">180</div>
+                    <div class="price">ngày</div>
+                </div>
+                <div class="renewal-plan" data-days="365">
+                    <div class="days">365</div>
+                    <div class="price">ngày</div>
+                    <div class="discount">Tiết kiệm</div>
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Số điện thoại / Zalo (để liên hệ)</label>
+            <input type="tel" id="renewalPhone" placeholder="0912345678" maxlength="15">
+        </div>
+        <div class="form-group">
+            <label>Ghi chú (tùy chọn)</label>
+            <input type="text" id="renewalNote" placeholder="VD: Muốn thanh toán qua Momo..." maxlength="200">
+        </div>
+        <div class="renewal-contact">
+            <i class="fas fa-info-circle"></i>
+            Sau khi gửi yêu cầu, Admin sẽ liên hệ bạn để xác nhận và kích hoạt. Vui lòng để lại SĐT/Zalo để được hỗ trợ nhanh nhất.
+        </div>
+        <div class="form-actions" style="margin-top:1rem">
+            <button class="btn" id="renewalCancel">Hủy</button>
+            <button class="btn primary" id="renewalConfirm"><i class="fas fa-paper-plane"></i> Gửi yêu cầu</button>
         </div>
     </div>
 </div>
@@ -500,22 +565,6 @@ def build_accounts_html():
             <div class="user-list" id="userList">
                 <div class="no-data"><i class="fas fa-spinner fa-pulse"></i>Đang tải...</div>
             </div>
-
-            <!-- ===== YÊU CẦU GIA HẠN ===== -->
-            <div class="admin-section-title" style="margin-top:1.5rem" id="renewalsTitle">
-                <span><i class="fas fa-crown" style="color:var(--amber)"></i> Yêu cầu gia hạn
-                    (<span id="pendingRenewalsBadge" style="display:none">0</span>)
-                </span>
-                <button class="btn" id="refreshRenewalsBtn" style="padding:.35rem .7rem;font-size:.75rem">
-                    <i class="fas fa-sync-alt"></i> Làm mới
-                </button>
-            </div>
-            <div class="renewals-list" id="renewalsList">
-                <div class="no-data" style="padding:1rem;font-size:.8rem">
-                    <i class="fas fa-spinner fa-pulse"></i> Đang tải...
-                </div>
-            </div>
-
             <div class="admin-section-title" style="margin-top:1.5rem" id="logsTitle">
                 <span><i class="fas fa-history"></i> Lịch sử đăng nhập (gần đây)</span>
             </div>
@@ -529,33 +578,21 @@ def build_accounts_html():
 
 
 def build_accounts_js():
-    """JS: helpers + Firebase auth + admin panel + user management."""
+    """JS: Firebase auth, login, admin panel, user management, import/export, trial, renewal."""
     return r"""
-/* ═══════════════════════════════════════════════════════════════
-   PHẦN 1: HELPERS (phải có trước mọi thứ)
-   ═══════════════════════════════════════════════════════════════ */
-
-/* ✅ Biến toàn cục */
+/* ============ AUTH ============ */
 var currentUser = null;
 var isDemo = true;
-var auth = null;
-var db = null;
+var auth, db;
 var usersCache = [];
 var lastLoginMap = {};
 var importRows = [];
 var editingEmail = null;
 var editingExpiryEmail = null;
 var appInitialized = false;
+var selectedRenewalDays = 90;
 
-/* ✅ Fallback TRIAL_DAYS nếu renewal_js chưa load */
-if (typeof TRIAL_DAYS === 'undefined' || TRIAL_DAYS === null) {
-    window.TRIAL_DAYS = 7;
-} else {
-    var _parsedTD = parseInt(TRIAL_DAYS, 10);
-    window.TRIAL_DAYS = (!isNaN(_parsedTD) && _parsedTD > 0 && _parsedTD < 365) ? _parsedTD : 7;
-}
-
-/* ✅ escapeHtml */
+/* ============ HELPERS ============ */
 function escapeHtml(s) {
     if (s == null) return '';
     return String(s)
@@ -565,167 +602,37 @@ function escapeHtml(s) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
 }
-
-/* ✅ escapeJs */
 function escapeJs(s) {
     if (s == null) return '';
     return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
 }
 
-/* ✅ formatMoney */
-function formatMoney(n) {
-    if (n == null) return '0';
-    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-}
-
-/* ✅ formatTimeDiff */
-function formatTimeDiff(ms) {
-    if (ms < 60000) return 'Vừa xong';
-    if (ms < 3600000) return Math.floor(ms / 60000) + ' phút trước';
-    if (ms < 86400000) return Math.floor(ms / 3600000) + ' giờ trước';
-    if (ms < 2592000000) return Math.floor(ms / 86400000) + ' ngày trước';
-    return Math.floor(ms / 2592000000) + ' tháng trước';
-}
-
-/* ✅ formatDate */
-function formatDate(d) {
-    if (!d) return '';
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-
-/* ✅ getExpiryDate */
-function getExpiryDate(expiresAt) {
-    if (!expiresAt) return null;
-    try {
-        var ea = expiresAt;
-        if (typeof ea.toDate === 'function') return ea.toDate();
-        if (ea.seconds) return new Date(ea.seconds * 1000);
-        return new Date(ea);
-    } catch(e) { return null; }
-}
-
-/* ✅ getExpiryTimestamp */
-function getExpiryTimestamp(expiresAt) {
-    var d = getExpiryDate(expiresAt);
-    return d ? d.getTime() : null;
-}
-
-/* ✅ getDaysRemaining */
-function getDaysRemaining(userData) {
-    if (!userData || !userData.expiresAt) return null;
-    if (userData.role === 'admin') return null;
-    var expDate = getExpiryDate(userData.expiresAt);
-    if (!expDate || isNaN(expDate.getTime())) return null;
-    return Math.ceil((expDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
-}
-
-/* ✅ isSuperAdmin */
 function isSuperAdmin() {
     if (!currentUser || currentUser.role !== 'admin') return false;
     var email = (currentUser.email || '').toLowerCase().trim();
-    if (typeof SUPER_ADMIN === 'undefined') return false;
     return email === SUPER_ADMIN.toLowerCase().trim();
 }
-
-/* ✅ isHiddenAdmin */
 function isHiddenAdmin() {
     if (!currentUser || currentUser.role !== 'admin') return false;
     return !isSuperAdmin();
 }
 
-/* ✅ $ helper */
-function $(id) {
-    return document.getElementById(id);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   PHẦN 2: FALLBACK grantTrialIfNew (sẽ bị renewal_js override)
-   ═══════════════════════════════════════════════════════════════ */
-async function grantTrialIfNew(user, userData) {
-    if (!user || !user.email || !db) {
-        console.error('❌ grantTrialIfNew (fallback): user/db không hợp lệ');
-        return false;
-    }
-
-    var email = user.email.toLowerCase();
-    var days = parseInt(window.TRIAL_DAYS, 10) || 7;
-
-    try {
-        var userRef = db.collection('allowed_users').doc(email);
-        var existing = await userRef.get();
-
-        if (existing.exists) {
-            var d = existing.data() || {};
-            if (d.registeredAt || d.expiresAt || d.role === 'admin') {
-                console.log('ℹ️ Trial skipped (fallback):', email);
-                return false;
-            }
-        }
-
-        var expiresAt = new Date(Date.now() + days * 86400000);
-        expiresAt.setHours(23, 59, 59, 0);
-        if (isNaN(expiresAt.getTime())) {
-            console.error('❌ Invalid expiry date (fallback)');
-            return false;
-        }
-
-        await userRef.set({
-            name: (userData && userData.name) || user.displayName || email.split('@')[0],
-            role: 'user',
-            expiresAt: firebase.firestore.Timestamp.fromDate(expiresAt),
-            registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
-            isTrial: true,
-            trialDays: days,
-            trialStartedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: false });
-
-        console.log('✅ Trial granted (fallback):', days, 'days for', email);
-        return true;
-    } catch(e) {
-        console.error('❌ grantTrialIfNew (fallback) error:', e);
-        return false;
-    }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   PHẦN 3: FIREBASE INIT
-   ═══════════════════════════════════════════════════════════════ */
+/* ============ FIREBASE INIT ============ */
 try {
     firebase.initializeApp(FIREBASE_CONFIG);
     auth = firebase.auth();
     db = firebase.firestore();
-
-    /* ✅ Đợi DOM + các script khác load xong mới attach listener
-       → đảm bảo grantTrialIfNew (bản atomic từ renewal_js) đã sẵn sàng */
-    function attachAuthListener() {
-        setTimeout(function() {
-            console.log('🔐 Attach onAuthStateChanged. grantTrialIfNew =',
-                typeof grantTrialIfNew, '| TRIAL_DAYS =', window.TRIAL_DAYS);
-            auth.onAuthStateChanged(handleAuthChange);
-        }, 50);
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', attachAuthListener);
-    } else {
-        attachAuthListener();
-    }
+    auth.onAuthStateChanged(handleAuthChange);
 } catch(e) {
-    console.error('❌ Firebase init error:', e);
-    setTimeout(enterDemoMode, 0);
+    console.error('Firebase init error:', e);
+    enterDemoMode();
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PHẦN 4: AUTH STATE
-   ═══════════════════════════════════════════════════════════════ */
+/* ============ AUTH STATE ============ */
 async function handleAuthChange(user) {
-    console.log('🔐 onAuthStateChanged:', user ? user.email : 'null');
-
     if (!user) {
-        currentUser = null;
-        isDemo = true;
-        applyUserUI();
-        enterDemoMode();
+        currentUser = null; isDemo = true;
+        applyUserUI(); enterDemoMode();
         return;
     }
 
@@ -734,9 +641,7 @@ async function handleAuthChange(user) {
     var cached = null;
     try { cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch(e) {}
 
-    /* ===== 1. Cache hit ===== */
     if (cached && cached.expires > Date.now() && cached.data) {
-        console.log('📦 Cache hit for', email);
         currentUser = cached.data;
         isDemo = false;
         applyUserUI();
@@ -746,57 +651,32 @@ async function handleAuthChange(user) {
         return;
     }
 
-    /* ===== 2. Firestore ===== */
     try {
         var doc = await db.collection('allowed_users').doc(email).get();
 
-        /* ─── 2a. MAIL MỚI → TẶNG TRIAL ─── */
+        /* ✅ TỰ ĐỘNG ĐĂNG KÝ: user mới → tặng 7 ngày trial */
         if (!doc.exists) {
-            console.log('🆕 Mail mới:', email);
-
-            if (typeof grantTrialIfNew !== 'function') {
-                console.error('❌ grantTrialIfNew không tồn tại!');
-                await auth.signOut();
-                showLoginError('Lỗi hệ thống: module trial chưa load. Vui lòng tải lại trang (Ctrl+F5).');
-                enterDemoMode();
-                return;
-            }
-
-            var granted = false;
-            try {
-                granted = await grantTrialIfNew(user, null);
-            } catch(trialErr) {
-                console.error('❌ grantTrialIfNew throw:', trialErr);
-                granted = false;
-            }
-
-            /* Đọc lại doc (kể cả khi granted=false vì race condition) */
-            doc = await db.collection('allowed_users').doc(email).get();
-
-            if (!doc.exists) {
-                console.error('❌ Doc vẫn không tồn tại sau khi gọi trial');
-                await auth.signOut();
-                showLoginError('Không thể tạo tài khoản. Vui lòng thử lại hoặc liên hệ Admin.');
-                enterDemoMode();
-                return;
-            }
-
-            /* Chỉ hiện alert chào mừng nếu vừa được tặng trial */
-            if (granted) {
-                var trialDays = parseInt(window.TRIAL_DAYS, 10) || 7;
+            var registered = await grantTrialIfNew(user, null);
+            if (registered) {
+                doc = await db.collection('allowed_users').doc(email).get();
                 setTimeout(function() {
+                    var trialDays = (typeof TRIAL_DAYS !== 'undefined') ? TRIAL_DAYS : 7;
                     var trialDate = new Date(Date.now() + trialDays * 86400000);
                     alert('🎉 Chào mừng bạn đến với Học tiếng Trung!\n\n' +
                           '✅ Bạn được tặng MIỄN PHÍ ' + trialDays + ' ngày sử dụng.\n\n' +
                           '📅 Hạn dùng: ' + trialDate.toLocaleDateString('vi-VN') + '\n\n' +
                           'Chúc bạn học tốt! 🎓');
                 }, 600);
+            } else {
+                await auth.signOut();
+                showLoginError('Tài khoản <b>' + email + '</b> chưa được cấp quyền.');
+                enterDemoMode();
+                return;
             }
         }
 
-        /* ─── 2b. Build userData ─── */
         var data = doc.data() || {};
-        currentUser = {
+        var userData = {
             email: email,
             name: data.name || user.displayName || email.split('@')[0],
             role: data.role || 'user',
@@ -805,7 +685,8 @@ async function handleAuthChange(user) {
             isTrial: data.isTrial || false
         };
 
-        /* ─── 2c. Save cache ─── */
+        currentUser = userData;
+
         try {
             localStorage.setItem(cacheKey, JSON.stringify({
                 data: currentUser,
@@ -813,47 +694,77 @@ async function handleAuthChange(user) {
             }));
         } catch(e) {}
 
-        /* ─── 2d. Success ─── */
-        console.log('✅ Login OK:', email, '| role:', currentUser.role);
         isDemo = false;
         applyUserUI();
         logLogin(currentUser);
         if (!appInitialized) { initApp(); appInitialized = true; }
         else { if (typeof refreshApp === 'function') refreshApp(); }
-
     } catch(e) {
-        console.error('❌ Auth check error:', e);
-        isDemo = true;
-        enterDemoMode();
+        console.error('Auth check error:', e);
+        isDemo = true; enterDemoMode();
     }
 }
 
-/* ✅ Không chặn login — banner hết hạn hiển thị qua applyUserUI */
+/* ✅ KHÔNG chặn login khi hết hạn — chỉ hiện banner */
 function checkUserExpiration(userData) {
     return true;
 }
 
+function getDaysRemaining(userData) {
+    if (!userData || !userData.expiresAt) return null;
+    if (userData.role === 'admin') return null;
+    var expDate;
+    try {
+        var ea = userData.expiresAt;
+        if (typeof ea.toDate === 'function') expDate = ea.toDate();
+        else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
+        else expDate = new Date(ea);
+    } catch(e) { return null; }
+    return Math.ceil((expDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+}
+
+/* ============ TRIAL ============ */
+async function grantTrialIfNew(user, extra) {
+    try {
+        var email = (user.email || '').toLowerCase();
+        var days = (typeof TRIAL_DAYS !== 'undefined') ? TRIAL_DAYS : 7;
+        var exp = new Date(Date.now() + days * 86400000);
+        exp.setHours(23, 59, 59, 0);
+
+        await db.collection('allowed_users').doc(email).set({
+            name: user.displayName || email.split('@')[0],
+            role: 'user',
+            expiresAt: firebase.firestore.Timestamp.fromDate(exp),
+            isTrial: true,
+            trialStartedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            addedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            addedBy: 'auto-trial'
+        });
+        return true;
+    } catch(e) {
+        console.error('grantTrialIfNew error:', e);
+        return false;
+    }
+}
+
 function enterDemoMode() {
-    currentUser = null;
-    isDemo = true;
+    currentUser = null; isDemo = true;
     applyUserUI();
     if (!appInitialized) { initApp(); appInitialized = true; }
     else { if (typeof refreshApp === 'function') refreshApp(); }
-    if ($('loadingScreen')) $('loadingScreen').classList.add('hidden');
-    if ($('stickyTop')) $('stickyTop').style.display = 'block';
-    if ($('fabGroup')) $('fabGroup').style.display = 'flex';
-    if ($('mainContent')) $('mainContent').style.display = 'block';
+    $('loadingScreen').classList.add('hidden');
+    $('stickyTop').style.display = 'block';
+    $('fabGroup').style.display = 'flex';
+    $('mainContent').style.display = 'block';
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PHẦN 5: USER UI
-   ═══════════════════════════════════════════════════════════════ */
+/* ============ USER UI ============ */
 function applyUserUI() {
     var demoBadge = $('demoBadge');
     var headerLoginBtn = $('headerLoginBtn');
     var userMenu = $('userMenu');
 
-    /* Banner hết hạn */
+    /* Banner hết hạn + nút gia hạn */
     var expiryBanner = $('expiryBanner');
     if (expiryBanner) {
         if (!isDemo && currentUser && currentUser.role !== 'admin') {
@@ -880,8 +791,14 @@ function applyUserUI() {
                 var descEl = expiryBanner.querySelector('.expiry-banner-text .desc');
                 if (descEl) {
                     var expDateStr = '';
-                    var expDate = getExpiryDate(currentUser.expiresAt);
-                    if (expDate) expDateStr = expDate.toLocaleDateString('vi-VN');
+                    try {
+                        var ea = currentUser.expiresAt;
+                        var expDate;
+                        if (typeof ea.toDate === 'function') expDate = ea.toDate();
+                        else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
+                        else expDate = new Date(ea);
+                        if (expDate) expDateStr = expDate.toLocaleDateString('vi-VN');
+                    } catch(e) {}
                     if (isExpired) {
                         descEl.innerHTML = 'Đã hết hạn vào <b>' + expDateStr + '</b>. Gia hạn ngay để tiếp tục học!';
                     } else {
@@ -895,8 +812,7 @@ function applyUserUI() {
                     contactBtn.href = '#';
                     contactBtn.onclick = function(e) {
                         e.preventDefault();
-                        if (typeof openRenewalModal === 'function') openRenewalModal();
-                        else alert('Vui lòng tải lại trang để dùng tính năng gia hạn.');
+                        openRenewalModal();
                     };
                 }
             } else {
@@ -913,37 +829,33 @@ function applyUserUI() {
     }
 
     if (isDemo) {
-        if (demoBadge) demoBadge.style.display = 'flex';
-        if (headerLoginBtn) headerLoginBtn.style.display = 'flex';
-        if (userMenu) userMenu.style.display = 'none';
-        if ($('demoBanner')) $('demoBanner').style.display = 'flex';
+        demoBadge.style.display = 'flex';
+        headerLoginBtn.style.display = 'flex';
+        userMenu.style.display = 'none';
+        $('demoBanner').style.display = 'flex';
         var ud0 = $('userDetails');
         if (ud0) ud0.style.display = 'none';
     } else {
-        if (demoBadge) demoBadge.style.display = 'none';
-        if (headerLoginBtn) headerLoginBtn.style.display = 'none';
-        if (userMenu) userMenu.style.display = 'block';
-        if ($('demoBanner')) $('demoBanner').style.display = 'none';
+        demoBadge.style.display = 'none';
+        headerLoginBtn.style.display = 'none';
+        userMenu.style.display = 'block';
+        $('demoBanner').style.display = 'none';
 
-        if ($('userName')) $('userName').textContent = currentUser.name;
-        if ($('userEmail')) $('userEmail').textContent = currentUser.email;
-        if ($('userRole')) {
-            $('userRole').textContent = currentUser.role;
-            $('userRole').className = 'role' + (currentUser.role === 'admin' ? ' admin' : '');
-        }
-        if ($('openAdminBtn')) $('openAdminBtn').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
+        $('userName').textContent = currentUser.name;
+        $('userEmail').textContent = currentUser.email;
+        $('userRole').textContent = currentUser.role;
+        $('userRole').className = 'role' + (currentUser.role === 'admin' ? ' admin' : '');
+        $('openAdminBtn').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
 
         var avatar = $('userAvatar');
-        if (avatar) {
-            if (currentUser.photo) avatar.src = currentUser.photo;
-            else {
-                avatar.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
-                    '<rect fill="#2563eb" width="100" height="100"/>' +
-                    '<text x="50" y="65" font-size="45" fill="#fff" text-anchor="middle" font-family="sans-serif" font-weight="bold">' +
-                    currentUser.name.charAt(0).toUpperCase() + '</text></svg>'
-                );
-            }
+        if (currentUser.photo) avatar.src = currentUser.photo;
+        else {
+            avatar.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+                '<rect fill="#2563eb" width="100" height="100"/>' +
+                '<text x="50" y="65" font-size="45" fill="#fff" text-anchor="middle" font-family="sans-serif" font-weight="bold">' +
+                currentUser.name.charAt(0).toUpperCase() + '</text></svg>'
+            );
         }
 
         updateUserDetails();
@@ -967,12 +879,12 @@ function applyUserUI() {
         else zaloBtn.classList.add('compact');
     }
 
-    if ($('demoLimitText') && typeof DEMO_LIMIT !== 'undefined') $('demoLimitText').textContent = DEMO_LIMIT;
-    if ($('demoDailyText') && typeof DEMO_DAILY_LIMIT !== 'undefined') $('demoDailyText').textContent = DEMO_DAILY_LIMIT;
+    if ($('demoLimitText')) $('demoLimitText').textContent = DEMO_LIMIT;
+    if ($('demoDailyText')) $('demoDailyText').textContent = DEMO_DAILY_LIMIT;
     var hskMaxEl1 = $('demoHskMaxText');
     var hskMaxEl2 = $('demoHskMaxText2');
-    if (hskMaxEl1 && typeof DEMO_HSK_MAX !== 'undefined') hskMaxEl1.textContent = DEMO_HSK_MAX;
-    if (hskMaxEl2 && typeof DEMO_HSK_MAX !== 'undefined') hskMaxEl2.textContent = DEMO_HSK_MAX;
+    if (hskMaxEl1) hskMaxEl1.textContent = DEMO_HSK_MAX;
+    if (hskMaxEl2) hskMaxEl2.textContent = DEMO_HSK_MAX;
     if (typeof updateDemoRemaining === 'function') updateDemoRemaining();
 
     var toggleFocusBtn = $('toggleFocusBtn');
@@ -1003,8 +915,8 @@ function updateUserDetails() {
         expiryValue.textContent = 'Vĩnh viễn';
         expiryValue.className = 'detail-value permanent';
         expirySub.textContent = 'Tài khoản quản trị viên';
-        if (expiryIcon) expiryIcon.className = 'fas fa-infinity';
-        if (expiryIconWrap) expiryIconWrap.className = 'detail-icon permanent';
+        expiryIcon.className = 'fas fa-infinity';
+        expiryIconWrap.className = 'detail-icon permanent';
         if (progressWrap) progressWrap.style.display = 'none';
         return;
     }
@@ -1013,13 +925,21 @@ function updateUserDetails() {
         expiryValue.textContent = 'Vĩnh viễn';
         expiryValue.className = 'detail-value permanent';
         expirySub.textContent = 'Không giới hạn thời gian';
-        if (expiryIcon) expiryIcon.className = 'fas fa-infinity';
-        if (expiryIconWrap) expiryIconWrap.className = 'detail-icon permanent';
+        expiryIcon.className = 'fas fa-infinity';
+        expiryIconWrap.className = 'detail-icon permanent';
         if (progressWrap) progressWrap.style.display = 'none';
         return;
     }
 
-    var expDate = getExpiryDate(currentUser.expiresAt);
+    var expDate;
+    try {
+        var ea = currentUser.expiresAt;
+        if (typeof ea.toDate === 'function') expDate = ea.toDate();
+        else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
+        else expDate = new Date(ea);
+    } catch(e) {
+        expiryValue.textContent = '-'; expirySub.textContent = ''; return;
+    }
     if (!expDate || isNaN(expDate.getTime())) {
         expiryValue.textContent = '-'; expirySub.textContent = ''; return;
     }
@@ -1030,30 +950,31 @@ function updateUserDetails() {
     var dateStr = expDate.toLocaleDateString('vi-VN');
 
     expiryValue.className = 'detail-value';
-    if (expiryIconWrap) expiryIconWrap.className = 'detail-icon';
+    expiryIconWrap.className = 'detail-icon';
 
     if (daysLeft < 0) {
         expiryValue.textContent = 'Đã hết hạn';
         expiryValue.classList.add('expired');
         expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b><br>Đã hết hạn ' + Math.abs(daysLeft) + ' ngày trước';
-        if (expiryIcon) expiryIcon.className = 'fas fa-calendar-times';
-        if (expiryIconWrap) expiryIconWrap.classList.add('expired');
+        expiryIcon.className = 'fas fa-calendar-times';
+        expiryIconWrap.classList.add('expired');
         if (progressWrap) progressWrap.style.display = 'none';
     } else if (daysLeft === 0) {
         expiryValue.textContent = 'Hết hạn hôm nay';
         expiryValue.classList.add('urgent');
         expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b><br>Vui lòng gia hạn để tiếp tục!';
-        if (expiryIcon) expiryIcon.className = 'fas fa-exclamation-circle';
-        if (expiryIconWrap) expiryIconWrap.classList.add('urgent');
+        expiryIcon.className = 'fas fa-exclamation-circle';
+        expiryIconWrap.classList.add('urgent');
         if (progressWrap) progressWrap.style.display = 'none';
     } else if (daysLeft <= 3) {
         expiryValue.textContent = 'Còn ' + daysLeft + ' ngày';
         expiryValue.classList.add('urgent');
         expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b><br>Sắp hết hạn, vui lòng gia hạn!';
-        if (expiryIcon) expiryIcon.className = 'fas fa-exclamation-circle';
-        if (expiryIconWrap) expiryIconWrap.classList.add('urgent');
-        var pct3 = Math.max(0, Math.min(100, ((30 * 86400000 - (expTime - now)) / (30 * 86400000)) * 100));
-        if (progressWrap && progressBar) {
+        expiryIcon.className = 'fas fa-exclamation-circle';
+        expiryIconWrap.classList.add('urgent');
+        var total3 = 30 * 24 * 60 * 60 * 1000;
+        var pct3 = Math.max(0, Math.min(100, ((total3 - (expTime - now)) / total3) * 100));
+        if (progressWrap) {
             progressWrap.style.display = 'block';
             progressBar.className = 'progress-bar urgent';
             progressBar.style.width = pct3 + '%';
@@ -1062,10 +983,11 @@ function updateUserDetails() {
         expiryValue.textContent = 'Còn ' + daysLeft + ' ngày';
         expiryValue.classList.add('warn');
         expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b>';
-        if (expiryIcon) expiryIcon.className = 'fas fa-clock';
-        if (expiryIconWrap) expiryIconWrap.classList.add('warn');
-        var pct7 = Math.max(0, Math.min(100, ((30 * 86400000 - (expTime - now)) / (30 * 86400000)) * 100));
-        if (progressWrap && progressBar) {
+        expiryIcon.className = 'fas fa-clock';
+        expiryIconWrap.classList.add('warn');
+        var total7 = 30 * 24 * 60 * 60 * 1000;
+        var pct7 = Math.max(0, Math.min(100, ((total7 - (expTime - now)) / total7) * 100));
+        if (progressWrap) {
             progressWrap.style.display = 'block';
             progressBar.className = 'progress-bar warn';
             progressBar.style.width = pct7 + '%';
@@ -1074,10 +996,11 @@ function updateUserDetails() {
         expiryValue.textContent = 'Còn ' + daysLeft + ' ngày';
         expiryValue.classList.add('ok');
         expirySub.innerHTML = 'Ngày hết hạn: <b>' + dateStr + '</b>';
-        if (expiryIcon) expiryIcon.className = 'fas fa-calendar-check';
-        if (expiryIconWrap) expiryIconWrap.classList.add('ok');
-        var pctOk = Math.max(0, Math.min(100, ((30 * 86400000 - (expTime - now)) / (30 * 86400000)) * 100));
-        if (progressWrap && progressBar) {
+        expiryIcon.className = 'fas fa-calendar-check';
+        expiryIconWrap.classList.add('ok');
+        var totalOk = 30 * 24 * 60 * 60 * 1000;
+        var pctOk = Math.max(0, Math.min(100, ((totalOk - (expTime - now)) / totalOk) * 100));
+        if (progressWrap) {
             progressWrap.style.display = 'block';
             progressBar.className = 'progress-bar ok';
             progressBar.style.width = pctOk + '%';
@@ -1085,26 +1008,20 @@ function updateUserDetails() {
     }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PHẦN 6: LOGIN UI
-   ═══════════════════════════════════════════════════════════════ */
+/* ============ LOGIN UI ============ */
 window.showLoginModal = function() {
-    if ($('loginModal')) $('loginModal').classList.add('show');
-    if ($('loginError')) $('loginError').classList.remove('show');
+    $('loginModal').classList.add('show');
+    $('loginError').classList.remove('show');
 };
-function hideLoginModal() {
-    if ($('loginModal')) $('loginModal').classList.remove('show');
-}
+function hideLoginModal() { $('loginModal').classList.remove('show'); }
 
 function showLoginError(msg) {
     var el = $('loginError');
-    if (!el) return;
     el.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + msg;
     el.classList.add('show');
 }
 
 function logLogin(u) {
-    if (!db || !u) return;
     try {
         var today = new Date().toDateString();
         var logKey = 'login_log_' + u.email;
@@ -1119,9 +1036,67 @@ function logLogin(u) {
     } catch(e) {}
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PHẦN 7: ADMIN PANEL
-   ═══════════════════════════════════════════════════════════════ */
+/* ============ RENEWAL MODAL (user) ============ */
+window.openRenewalModal = function() {
+    if (!currentUser) return;
+    $('renewalModal').classList.add('show');
+    selectedRenewalDays = 90;
+    var plans = document.querySelectorAll('#renewalPlans .renewal-plan');
+    plans.forEach(function(p) {
+        p.classList.toggle('selected', parseInt(p.getAttribute('data-days'), 10) === 90);
+    });
+    $('renewalPhone').value = '';
+    $('renewalNote').value = '';
+};
+
+async function submitRenewal() {
+    if (!currentUser) return;
+    var phone = ($('renewalPhone').value || '').trim();
+    var note = ($('renewalNote').value || '').trim();
+    if (!phone) { alert('Vui lòng nhập số điện thoại/Zalo để Admin liên hệ!'); return; }
+
+    var btn = $('renewalConfirm');
+    var originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Đang gửi...';
+
+    try {
+        // Kiểm tra xem đã có yêu cầu pending chưa
+        var existing = await db.collection('renewal_requests')
+            .where('email', '==', currentUser.email)
+            .where('status', '==', 'pending')
+            .limit(1)
+            .get();
+
+        if (!existing.empty) {
+            alert('⏳ Bạn đã có 1 yêu cầu đang chờ duyệt. Vui lòng chờ Admin xử lý!');
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+            return;
+        }
+
+        await db.collection('renewal_requests').add({
+            email: currentUser.email,
+            name: currentUser.name,
+            days: selectedRenewalDays,
+            phone: phone,
+            note: note,
+            status: 'pending',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        $('renewalModal').classList.remove('show');
+        alert('✅ Đã gửi yêu cầu gia hạn!\n\nAdmin sẽ liên hệ bạn qua SĐT/Zalo trong thời gian sớm nhất.');
+    } catch(err) {
+        console.error('Renewal error:', err);
+        alert('❌ Lỗi: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+}
+
+/* ============ ADMIN PANEL ============ */
 function initAdminPanel() {
     if ($('openAdminBtn')) {
         $('openAdminBtn').addEventListener('click', function() {
@@ -1143,11 +1118,6 @@ function initAdminPanel() {
         $('refreshUsersBtn').addEventListener('click', function() {
             try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
             loadUsers(true);
-        });
-    }
-    if ($('refreshRenewalsBtn')) {
-        $('refreshRenewalsBtn').addEventListener('click', function() {
-            if (typeof loadRenewals === 'function') loadRenewals();
         });
     }
     if ($('exportExcelBtn')) $('exportExcelBtn').addEventListener('click', doExportExcel);
@@ -1208,7 +1178,6 @@ async function doAddUser() {
 
         var setData = {
             name: name, role: role,
-            registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
             addedAt: firebase.firestore.FieldValue.serverTimestamp(),
             addedBy: currentUser.email
         };
@@ -1234,7 +1203,8 @@ function openAdminPanel() {
     $('adminModal').classList.add('show');
     loadUsers(false);
     loadLogs();
-    if (typeof loadRenewals === 'function') loadRenewals();
+    initRenewalUI();      /* ✅ inject section */
+    loadRenewals(false);  /* ✅ load data */
 }
 
 function loadUsers(forceRefresh) {
@@ -1375,8 +1345,7 @@ function renderUsers(items) {
     list.innerHTML = displayItems.map(function(u) {
         var isMe = u.email === currentUser.email;
         var isAdmin = u.role === 'admin';
-        var targetIsSuper = (typeof SUPER_ADMIN !== 'undefined') &&
-                            (u.email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
+        var targetIsSuper = (u.email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
         var canModifyAdmin = superAdmin && isAdmin && !isMe && !targetIsSuper;
 
         var roleBtn = '';
@@ -1477,8 +1446,7 @@ window.changeRole = async function(email, newRole) {
     var isMe = email === currentUser.email;
     var isAdmin = target.role === 'admin';
     var superAdmin = isSuperAdmin();
-    var targetIsSuper = (typeof SUPER_ADMIN !== 'undefined') &&
-                        (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
+    var targetIsSuper = (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
     if (isMe && newRole === 'user') { alert('⚠️ Không thể tự hạ quyền admin của chính mình!'); return; }
     if (targetIsSuper) { alert('⚠️ Không thể thay đổi quyền của Super Admin!'); return; }
     if (isAdmin && newRole === 'user' && !superAdmin) { alert('⚠️ Chỉ Super Admin mới có quyền hạ cấp admin khác!'); return; }
@@ -1499,8 +1467,7 @@ window.deleteUser = async function(email) {
     var isMe = email === currentUser.email;
     var isAdmin = target.role === 'admin';
     var superAdmin = isSuperAdmin();
-    var targetIsSuper = (typeof SUPER_ADMIN !== 'undefined') &&
-                        (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
+    var targetIsSuper = (email || '').toLowerCase() === SUPER_ADMIN.toLowerCase();
     if (isMe) { alert('⚠️ Không thể tự xóa tài khoản của chính mình!'); return; }
     if (targetIsSuper) { alert('⚠️ Không thể xóa Super Admin!'); return; }
     if (isAdmin && !superAdmin) { alert('⚠️ Chỉ Super Admin mới có quyền xóa admin khác!'); return; }
@@ -1549,9 +1516,229 @@ function loadLogs() {
         });
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PHẦN 8: EXPIRY EDIT
-   ═══════════════════════════════════════════════════════════════ */
+/* ============ RENEWAL REQUESTS (Section Yêu cầu gia hạn) ============ */
+function renewalsList() {
+    return `
+    <div class="admin-section-title" style="margin-top:1.5rem">
+        <span><i class="fas fa-crown"></i> Yêu cầu gia hạn (<span id="renewalCount">0</span>)</span>
+        <button class="btn" id="refreshRenewalsBtn" title="Làm mới" style="padding:.35rem .7rem;font-size:.75rem">
+            <i class="fas fa-sync-alt"></i> Làm mới
+        </button>
+    </div>
+    <div class="renewals-list" id="renewalsList">
+        <div class="no-data" style="padding:1rem;font-size:.8rem">
+            <i class="fas fa-spinner fa-pulse"></i> Đang tải...
+        </div>
+    </div>
+    `;
+}
+
+function initRenewalUI() {
+    var adminBody = document.querySelector('.admin-body');
+    if (!adminBody) return;
+
+    // Chỉ Super Admin mới thấy section này
+    if (!isSuperAdmin()) {
+        var existing = document.getElementById('renewalsSection');
+        if (existing) existing.style.display = 'none';
+        return;
+    }
+
+    // Kiểm tra đã inject chưa
+    var existing2 = document.getElementById('renewalsSection');
+    if (existing2) {
+        existing2.style.display = 'block';
+        return;
+    }
+
+    var wrapper = document.createElement('div');
+    wrapper.id = 'renewalsSection';
+    wrapper.innerHTML = renewalsList();
+    adminBody.appendChild(wrapper);
+
+    var refreshBtn = document.getElementById('refreshRenewalsBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            loadRenewals(true);
+        });
+    }
+
+    var listEl = document.getElementById('renewalsList');
+    if (listEl) {
+        listEl.addEventListener('click', function(e) {
+            var btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            var action = btn.getAttribute('data-action');
+            var email = btn.getAttribute('data-email');
+            var days = parseInt(btn.getAttribute('data-days') || '0', 10);
+            var docId = btn.getAttribute('data-docid');
+
+            if (action === 'approve') {
+                approveRenewal(docId, email, days);
+            } else if (action === 'reject') {
+                rejectRenewal(docId, email);
+            }
+        });
+    }
+}
+
+async function loadRenewals(forceRefresh) {
+    var listEl = document.getElementById('renewalsList');
+    var countEl = document.getElementById('renewalCount');
+    if (!listEl) return;
+
+    if (!isSuperAdmin()) {
+        var section = document.getElementById('renewalsSection');
+        if (section) section.style.display = 'none';
+        return;
+    } else {
+        var section2 = document.getElementById('renewalsSection');
+        if (section2) section2.style.display = 'block';
+    }
+
+    if (forceRefresh) {
+        listEl.innerHTML = '<div class="no-data" style="padding:1rem;font-size:.8rem"><i class="fas fa-spinner fa-pulse"></i> Đang tải...</div>';
+    }
+
+    try {
+        var snapshot = await db.collection('renewal_requests')
+            .where('status', '==', 'pending')
+            .orderBy('createdAt', 'desc')
+            .limit(50)
+            .get();
+
+        if (snapshot.empty) {
+            listEl.innerHTML = '<div class="no-data" style="padding:1rem;font-size:.8rem"><i class="fas fa-inbox"></i> Không có yêu cầu nào</div>';
+            if (countEl) countEl.textContent = '0';
+            return;
+        }
+
+        var html = '';
+        var count = 0;
+        snapshot.forEach(function(doc) {
+            var d = doc.data() || {};
+            count++;
+            var createdAt = d.createdAt && d.createdAt.toDate
+                ? d.createdAt.toDate().toLocaleString('vi-VN')
+                : 'N/A';
+            var email = d.email || '';
+            var name = d.name || email.split('@')[0];
+            var days = d.days || 30;
+            var note = d.note || '';
+            var phone = d.phone || '';
+
+            html += '<div class="renewal-item" style="padding:.75rem;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:.5rem">' +
+                '<div style="display:flex;align-items:flex-start;gap:.75rem;flex-wrap:wrap">' +
+                    '<div style="flex:1;min-width:200px">' +
+                        '<div style="font-weight:700;font-size:.88rem;color:var(--text);margin-bottom:.2rem">' +
+                            escapeHtml(name) +
+                        '</div>' +
+                        '<div style="font-size:.75rem;color:var(--text-3);word-break:break-all;margin-bottom:.3rem">' +
+                            escapeHtml(email) +
+                        '</div>' +
+                        (phone ? '<div style="font-size:.72rem;color:var(--text-3)"><i class="fas fa-phone"></i> ' + escapeHtml(phone) + '</div>' : '') +
+                        (note ? '<div style="font-size:.72rem;color:var(--text-2);margin-top:.3rem;font-style:italic">"' + escapeHtml(note) + '"</div>' : '') +
+                        '<div style="font-size:.68rem;color:var(--text-3);margin-top:.3rem"><i class="fas fa-clock"></i> ' + createdAt + '</div>' +
+                    '</div>' +
+                    '<div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end">' +
+                        '<span style="padding:.2rem .55rem;background:rgba(245,158,11,.15);color:#92400e;border-radius:50px;font-size:.7rem;font-weight:700">+ ' + days + ' ngày</span>' +
+                        '<div style="display:flex;gap:.3rem">' +
+                            '<button class="btn primary" data-action="approve" data-email="' + escapeHtml(email) + '" data-days="' + days + '" data-docid="' + doc.id + '" style="padding:.4rem .7rem;font-size:.75rem">' +
+                                '<i class="fas fa-check"></i> Duyệt' +
+                            '</button>' +
+                            '<button class="btn" data-action="reject" data-email="' + escapeHtml(email) + '" data-docid="' + doc.id + '" style="padding:.4rem .7rem;font-size:.75rem;color:var(--danger)">' +
+                                '<i class="fas fa-times"></i>' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        });
+
+        listEl.innerHTML = html;
+        if (countEl) countEl.textContent = String(count);
+    } catch (err) {
+        console.error('Load renewals error:', err);
+        listEl.innerHTML = '<div class="no-data" style="padding:1rem;font-size:.8rem;color:#dc2626"><i class="fas fa-exclamation-triangle"></i> Lỗi: ' + escapeHtml(err.message) + '</div>';
+        if (countEl) countEl.textContent = '0';
+    }
+}
+
+async function approveRenewal(docId, email, days) {
+    if (!isSuperAdmin()) {
+        alert('⚠️ Chỉ Super Admin mới duyệt được yêu cầu!');
+        return;
+    }
+    if (!confirm('Duyệt gia hạn +' + days + ' ngày cho:\n\n' + email + ' ?')) return;
+
+    try {
+        var userDoc = await db.collection('allowed_users').doc(email).get();
+        if (!userDoc.exists) {
+            alert('❌ Không tìm thấy user trong hệ thống!');
+            return;
+        }
+        var userData = userDoc.data() || {};
+        var currentExp = null;
+        if (userData.expiresAt) {
+            if (typeof userData.expiresAt.toDate === 'function') {
+                currentExp = userData.expiresAt.toDate();
+            } else if (userData.expiresAt.seconds) {
+                currentExp = new Date(userData.expiresAt.seconds * 1000);
+            } else {
+                currentExp = new Date(userData.expiresAt);
+            }
+        }
+
+        var baseTime = (currentExp && currentExp.getTime() > Date.now())
+            ? currentExp.getTime()
+            : Date.now();
+        var newExp = new Date(baseTime + days * 24 * 60 * 60 * 1000);
+
+        await db.collection('allowed_users').doc(email).update({
+            expiresAt: firebase.firestore.Timestamp.fromDate(newExp),
+            renewedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            renewedBy: currentUser.email
+        });
+
+        await db.collection('renewal_requests').doc(docId).update({
+            status: 'approved',
+            approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            approvedBy: currentUser.email,
+            newExpiry: firebase.firestore.Timestamp.fromDate(newExp)
+        });
+
+        try { localStorage.removeItem('user_cache_' + email); } catch(e) {}
+        try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
+
+        alert('✅ Đã gia hạn đến ngày ' + newExp.toLocaleDateString('vi-VN'));
+        loadRenewals(true);
+        if ($('adminModal').classList.contains('show')) loadUsers(true);
+    } catch (err) {
+        console.error('Approve renewal error:', err);
+        alert('❌ Lỗi: ' + err.message);
+    }
+}
+
+async function rejectRenewal(docId, email) {
+    if (!isSuperAdmin()) return;
+    var reason = prompt('Lý do từ chối yêu cầu của ' + email + ':\n(để trống cũng được)');
+    if (reason === null) return;
+
+    try {
+        await db.collection('renewal_requests').doc(docId).update({
+            status: 'rejected',
+            rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            rejectedBy: currentUser.email,
+            rejectReason: reason || ''
+        });
+        alert('✅ Đã từ chối yêu cầu');
+        loadRenewals(true);
+    } catch (err) {
+        alert('❌ Lỗi: ' + err.message);
+    }
+}
+
+/* ============ EXPIRY EDIT ============ */
 window.openEditExpiry = function(email) {
     var user = usersCache.find(function(u) { return u.email === email; });
     if (!user) { alert('Không tìm thấy user!'); return; }
@@ -1610,9 +1797,7 @@ async function doUpdateExpiry() {
     }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PHẦN 9: CHANGE NAME
-   ═══════════════════════════════════════════════════════════════ */
+/* ============ CHANGE NAME ============ */
 async function doChangeName() {
     if (!editingEmail) return;
     var newName = $('changeNameInput').value.trim();
@@ -1655,51 +1840,195 @@ async function doChangeName() {
     }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PHẦN 10: EXPORT / IMPORT EXCEL
-   ═══════════════════════════════════════════════════════════════ */
+/* ============ EXPORT EXCEL ============ */
 function doExportExcel() {
-    if (typeof XLSX === 'undefined') { alert('Thư viện XLSX chưa load!'); return; }
     var usersOnly = usersCache.filter(function(u) { return u.role !== 'admin'; });
-    if (!usersOnly.length) { alert('Không có user nào để export!\n(Admin không được export)'); return; }
+    if (!usersOnly.length) {
+        alert('Không có user nào để export!\n(Admin không được export)');
+        return;
+    }
     try {
         var wb = XLSX.utils.book_new();
         var now = Date.now();
         usersOnly.sort(function(a, b) {
             var da = getExpiryTimestamp(a.expiresAt);
-            var db2 = getExpiryTimestamp(b.expiresAt);
-            if (da === null && db2 === null) return 0;
+            var db = getExpiryTimestamp(b.expiresAt);
+            if (da === null && db === null) return 0;
             if (da === null) return 1;
-            if (db2 === null) return -1;
-            return da - db2;
+            if (db === null) return -1;
+            return da - db;
         });
-        var aoa = [['STT', 'email', 'name', 'phone', 'expiresAt', 'Trạng thái', 'Ghi chú']];
+        var COLUMNS = [
+            { header: 'STT', width: 6 }, { header: 'email', width: 35 },
+            { header: 'name', width: 25 }, { header: 'phone', width: 16 },
+            { header: 'expiresAt', width: 14 }, { header: 'Trạng thái', width: 22 },
+            { header: 'Ghi chú', width: 25 },
+        ];
+        var aoa = [COLUMNS.map(function(c) { return c.header; })];
+        var stats = { total: usersOnly.length, permanent: 0, expired: 0, urgent: 0, warning: 0, ok: 0 };
+        var statusTypes = [];
+
         usersOnly.forEach(function(u) {
             var expDate = getExpiryDate(u.expiresAt);
-            var expStr = '', statusStr = '';
-            if (!expDate) { statusStr = '∞ Vĩnh viễn'; }
-            else {
+            var expStr = '', statusStr = '', statusType = 'ok';
+            if (!expDate) {
+                statusStr = '∞ Vĩnh viễn'; statusType = 'permanent'; stats.permanent++;
+            } else {
                 expStr = formatDate(expDate);
-                var daysLeft = Math.ceil((expDate.getTime() - now) / 86400000);
-                if (daysLeft < 0) statusStr = '❌ Hết hạn ' + Math.abs(daysLeft) + ' ngày';
-                else if (daysLeft <= 7) statusStr = '🟡 Còn ' + daysLeft + ' ngày';
-                else statusStr = '🟢 Còn ' + daysLeft + ' ngày';
+                var daysLeft = Math.ceil((expDate.getTime() - now) / (24 * 60 * 60 * 1000));
+                if (daysLeft < 0) { statusStr = '❌ Hết hạn ' + Math.abs(daysLeft) + ' ngày'; statusType = 'expired'; stats.expired++; }
+                else if (daysLeft === 0) { statusStr = '⏰ Hết hạn hôm nay'; statusType = 'urgent'; stats.urgent++; }
+                else if (daysLeft <= 3) { statusStr = '🔴 Còn ' + daysLeft + ' ngày'; statusType = 'urgent'; stats.urgent++; }
+                else if (daysLeft <= 7) { statusStr = '🟡 Còn ' + daysLeft + ' ngày'; statusType = 'warning'; stats.warning++; }
+                else { statusStr = '🟢 Còn ' + daysLeft + ' ngày'; statusType = 'ok'; stats.ok++; }
             }
+            statusTypes.push(statusType);
             aoa.push(['', u.email || '', u.name || '', '', expStr, statusStr, '']);
         });
+
+        var totalRows = aoa.length;
         var ws = XLSX.utils.aoa_to_sheet(aoa);
-        ws['!cols'] = [{wch:6},{wch:35},{wch:25},{wch:16},{wch:14},{wch:22},{wch:25}];
+        ws['!cols'] = COLUMNS.map(function(c) { return { wch: c.width }; });
+        ws['!rows'] = [{ hpt: 30 }];
+        for (var r = 1; r < totalRows; r++) ws['!rows'].push({ hpt: 22 });
+        ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+        ws['!autofilter'] = { ref: 'A1:G' + totalRows };
+
+        var headerStyle = {
+            font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+            fill: { fgColor: { rgb: '2563EB' } },
+            alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+            border: {
+                top: { style: 'thin', color: { rgb: '1E40AF' } }, bottom: { style: 'thin', color: { rgb: '1E40AF' } },
+                left: { style: 'thin', color: { rgb: '1E40AF' } }, right: { style: 'thin', color: { rgb: '1E40AF' } }
+            }
+        };
+        ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1'].forEach(function(ref) {
+            if (ws[ref]) ws[ref].s = headerStyle;
+        });
+
+        function getBorderStyle() {
+            return {
+                top: { style: 'thin', color: { rgb: 'CBD5E1' } }, bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+                left: { style: 'thin', color: { rgb: 'CBD5E1' } }, right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+            };
+        }
+
+        for (var r = 2; r <= totalRows; r++) {
+            var statusType = statusTypes[r - 2] || 'ok';
+            var sttRef = 'A' + r;
+            if (!ws[sttRef]) ws[sttRef] = { v: '', t: 's' };
+            ws[sttRef].f = 'IF(B' + r + '<>"",ROW()-1,"")';
+            ws[sttRef].t = 'n';
+            ws[sttRef].s = { font: { bold: true, color: { rgb: '64748B' }, sz: 10 }, fill: { fgColor: { rgb: 'F1F5F9' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: getBorderStyle() };
+            var emailRef = 'B' + r; if (!ws[emailRef]) ws[emailRef] = { v: '', t: 's' };
+            ws[emailRef].s = { fill: { fgColor: { rgb: 'DBEAFE' } }, alignment: { horizontal: 'left', vertical: 'center' }, border: getBorderStyle() };
+            var nameRef = 'C' + r; if (!ws[nameRef]) ws[nameRef] = { v: '', t: 's' };
+            ws[nameRef].s = { fill: { fgColor: { rgb: 'F0F9FF' } }, alignment: { horizontal: 'left', vertical: 'center' }, border: getBorderStyle() };
+            var phoneRef = 'D' + r; if (!ws[phoneRef]) ws[phoneRef] = { v: '', t: 's' };
+            ws[phoneRef].s = { fill: { fgColor: { rgb: 'FEF3C7' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: getBorderStyle() };
+            ws[phoneRef].t = 's'; ws[phoneRef].z = '@';
+            var expRef = 'E' + r; if (!ws[expRef]) ws[expRef] = { v: '', t: 's' };
+            var expBgColor = 'DCFCE7';
+            if (statusType === 'expired') expBgColor = 'FEE2E2';
+            else if (statusType === 'urgent') expBgColor = 'FECACA';
+            else if (statusType === 'warning') expBgColor = 'FEF3C7';
+            else if (statusType === 'permanent') expBgColor = 'F1F5F9';
+            ws[expRef].s = { fill: { fgColor: { rgb: expBgColor } }, alignment: { horizontal: 'center', vertical: 'center' }, border: getBorderStyle(), font: { bold: statusType === 'expired' || statusType === 'urgent', color: { rgb: statusType === 'expired' ? 'DC2626' : '0F172A' }, sz: 10 } };
+            var sttStatusRef = 'F' + r; if (!ws[sttStatusRef]) ws[sttStatusRef] = { v: '', t: 's' };
+            var statusBgColor = 'DCFCE7', statusFontColor = '16A34A';
+            if (statusType === 'expired') { statusBgColor = 'FEE2E2'; statusFontColor = 'DC2626'; }
+            else if (statusType === 'urgent') { statusBgColor = 'FECACA'; statusFontColor = 'DC2626'; }
+            else if (statusType === 'warning') { statusBgColor = 'FEF3C7'; statusFontColor = '92400E'; }
+            else if (statusType === 'permanent') { statusBgColor = 'DBEAFE'; statusFontColor = '1D4ED8'; }
+            ws[sttStatusRef].s = { fill: { fgColor: { rgb: statusBgColor } }, alignment: { horizontal: 'center', vertical: 'center' }, border: getBorderStyle(), font: { bold: true, color: { rgb: statusFontColor }, sz: 10 } };
+            var noteRef = 'G' + r; if (!ws[noteRef]) ws[noteRef] = { v: '', t: 's' };
+            ws[noteRef].s = { fill: { fgColor: { rgb: 'FFFFFF' } }, alignment: { horizontal: 'left', vertical: 'center' }, border: getBorderStyle() };
+        }
+
         XLSX.utils.book_append_sheet(wb, ws, 'Users');
 
+        var ws2 = XLSX.utils.aoa_to_sheet([
+            ['📊  THỐNG KÊ TÀI KHOẢN', '', ''],
+            ['', '', ''],
+            ['Tổng số user', stats.total, ''],
+            ['', '', ''],
+            ['🟢 Còn nhiều thời gian (> 7 ngày)', stats.ok, ''],
+            ['🟡 Sắp hết hạn (4-7 ngày)', stats.warning, ''],
+            ['🔴 Sắp hết hạn (≤ 3 ngày)', stats.urgent, ''],
+            ['❌ Đã hết hạn', stats.expired, ''],
+            ['∞  Vĩnh viễn', stats.permanent, ''],
+            ['', '', ''],
+            ['📅 Ngày export', new Date().toLocaleString('vi-VN'), ''],
+        ]);
+        ws2['!cols'] = [{ wch: 35 }, { wch: 18 }, { wch: 20 }];
+        if (ws2['A1']) ws2['A1'].s = { font: { bold: true, sz: 16, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: '2563EB' } }, alignment: { horizontal: 'center', vertical: 'center' } };
+        [3, 5, 6, 7, 8, 9].forEach(function(r) {
+            var aRef = 'A' + r, bRef = 'B' + r;
+            if (ws2[aRef]) ws2[aRef].s = { font: { bold: true, sz: 11, color: { rgb: '0F172A' } }, alignment: { horizontal: 'left', vertical: 'center', indent: 1 } };
+            if (ws2[bRef]) ws2[bRef].s = { font: { bold: true, sz: 14 }, alignment: { horizontal: 'center', vertical: 'center' } };
+        });
+        if (ws2['B5']) ws2['B5'].s.font = { bold: true, sz: 14, color: { rgb: '16A34A' } };
+        if (ws2['B6']) ws2['B6'].s.font = { bold: true, sz: 14, color: { rgb: 'D97706' } };
+        if (ws2['B7']) ws2['B7'].s.font = { bold: true, sz: 14, color: { rgb: 'DC2626' } };
+        if (ws2['B8']) ws2['B8'].s.font = { bold: true, sz: 14, color: { rgb: 'DC2626' } };
+        if (ws2['B9']) ws2['B9'].s.font = { bold: true, sz: 14, color: { rgb: '2563EB' } };
+        XLSX.utils.book_append_sheet(wb, ws2, 'Thống kê');
+
+        var ws3 = XLSX.utils.aoa_to_sheet([
+            ['📖  HƯỚNG DẪN SỬ DỤNG FILE EXPORT', '', ''],
+            ['', '', ''],
+            ['🎯  MỤC ĐÍCH', '', ''],
+            ['', 'File này là bản backup danh sách user', ''],
+            ['', 'Có thể import lại để khôi phục', ''],
+            ['', '', ''],
+            ['📌  CỘT QUAN TRỌNG', '', ''],
+            ['', 'email', '✅ BẮT BUỘC khi import lại'],
+            ['', 'name', '⭕ Tùy chọn'],
+            ['', 'expiresAt', '⭕ Định dạng YYYY-MM-DD. Trống = vĩnh viễn'],
+            ['', '', ''],
+            ['🗑️  CỘT CHỈ ĐỂ THAM KHẢO', '', ''],
+            ['', 'STT', 'Tự động đánh số'],
+            ['', 'phone', 'Không import'],
+            ['', 'Trạng thái', 'Tự động tính theo ngày hiện tại'],
+            ['', 'Ghi chú', 'Không import'],
+            ['', '', ''],
+            ['⚠️  LƯU Ý', '', ''],
+            ['', '🚫 Admin không có trong file', 'Chỉ export user thường'],
+            ['', '📅 Định dạng ngày', 'YYYY-MM-DD'],
+            ['', '🔄 Sắp xếp', 'Sắp hết hạn lên đầu, vĩnh viễn xuống cuối'],
+            ['', '🎨 Màu sắc', 'Đỏ = hết hạn, Cam = gấp, Vàng = sắp hết, Xanh = ổn'],
+            ['', '', ''],
+            ['🚀  CÁCH IMPORT LẠI', '', ''],
+            ['', '1.', 'Mở web, đăng nhập Admin'],
+            ['', '2.', 'Click avatar → Quản lý tài khoản'],
+            ['', '3.', 'Nhấn nút "Import"'],
+            ['', '4.', 'Chọn file này'],
+            ['', '5.', 'Kiểm tra preview → Confirm'],
+        ]);
+        ws3['!cols'] = [{ wch: 4 }, { wch: 30 }, { wch: 60 }];
+        ws3['!rows'] = [{ hpt: 42 }, { hpt: 8 }];
+        if (ws3['A1']) ws3['A1'].s = { font: { bold: true, sz: 16, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: '2563EB' } }, alignment: { horizontal: 'center', vertical: 'center' } };
+        ['A3', 'A7', 'A12', 'A18', 'A24'].forEach(function(ref) {
+            if (ws3[ref]) ws3[ref].s = { font: { bold: true, sz: 12, color: { rgb: '1E40AF' } }, fill: { fgColor: { rgb: 'DBEAFE' } }, alignment: { horizontal: 'left', vertical: 'center', indent: 1 } };
+        });
+        for (var rr = 4; rr <= 30; rr++) {
+            var bRef = 'B' + rr, cRef = 'C' + rr;
+            if (ws3[bRef] && ws3[bRef].v) ws3[bRef].s = { font: { bold: true, sz: 10, color: { rgb: '0F172A' } }, alignment: { horizontal: 'left', vertical: 'center' } };
+            if (ws3[cRef] && ws3[cRef].v) ws3[cRef].s = { font: { sz: 10, color: { rgb: '475569' } }, alignment: { horizontal: 'left', vertical: 'center', wrapText: true } };
+        }
+        XLSX.utils.book_append_sheet(wb, ws3, 'Hướng dẫn');
+
         var today = new Date();
-        var dateStr = today.getFullYear() + String(today.getMonth()+1).padStart(2,'0') + String(today.getDate()).padStart(2,'0');
-        XLSX.writeFile(wb, 'users_export_' + dateStr + '.xlsx');
+        var dateStr = today.getFullYear() + String(today.getMonth() + 1).padStart(2, '0') + String(today.getDate()).padStart(2, '0') + '_' + String(today.getHours()).padStart(2, '0') + String(today.getMinutes()).padStart(2, '0');
+        XLSX.writeFile(wb, 'users_export_' + dateStr + '.xlsx', { bookType: 'xlsx', cellStyles: true });
     } catch(err) {
         console.error('Lỗi export:', err);
         alert('❌ Lỗi export: ' + err.message);
     }
 }
 
+/* ============ IMPORT EXCEL ============ */
 function handleImportFileSelect(e) {
     var file = e.target.files[0];
     if (!file) return;
@@ -1727,7 +2056,7 @@ function processImport(rows) {
         if (r.indexOf('email') !== -1) { headerRowIdx = i; break; }
     }
     if (headerRowIdx === -1) {
-        alert('❌ Không tìm thấy cột "email"!');
+        alert('❌ Không tìm thấy cột "email"!\n\nFile Excel cần có ít nhất cột "email".');
         return;
     }
     var header = rows[headerRowIdx].map(function(c) { return String(c || '').toLowerCase().trim(); });
@@ -1744,6 +2073,7 @@ function processImport(rows) {
     });
 
     importRows = [];
+    var stats = { total: 0, newUser: 0, update: 0, invalid: 0, skippedAdmin: 0 };
     var seenInFile = {};
 
     for (var i = headerRowIdx + 1; i < rows.length; i++) {
@@ -1753,27 +2083,50 @@ function processImport(rows) {
         var name = nameCol >= 0 ? String(row[nameCol] || '').trim() : '';
         var expRaw = expCol >= 0 ? row[expCol] : '';
         if (!email && !name) continue;
-        if (existingAdminSet[email]) continue;
+        if (email.indexOf('←') === 0 || email.indexOf('•') === 0 || email.indexOf('xóa dòng') !== -1 || email.indexOf('#') === 0 || email.indexOf('⚠') === 0 || email.indexOf('ví dụ') === 0) continue;
+        if (existingAdminSet[email]) { stats.skippedAdmin++; continue; }
 
         var status = 'ok';
         var reason = '';
         var isUpdate = !!existingUserMap[email];
-        if (!email) { status = 'error'; reason = 'Thiếu email'; }
-        else if (!email.includes('@') || !email.includes('.')) { status = 'error'; reason = 'Email không hợp lệ'; }
-        else if (seenInFile[email]) { status = 'error'; reason = 'Trùng trong file'; }
-        else { seenInFile[email] = true; }
+        if (!email) { status = 'error'; reason = 'Thiếu email'; stats.invalid++; }
+        else if (!email.includes('@') || !email.includes('.')) { status = 'error'; reason = 'Email không hợp lệ'; stats.invalid++; }
+        else if (seenInFile[email]) { status = 'error'; reason = 'Trùng trong file'; stats.invalid++; }
+        else if (isUpdate) { stats.update++; seenInFile[email] = true; }
+        else { stats.newUser++; seenInFile[email] = true; }
 
         if (!name && email.indexOf('@') > 0) name = email.split('@')[0];
 
-        var expDate = null, expStr = '';
+        var expDate = null;
+        var expStr = '';
         if (expRaw) {
-            var s = String(expRaw).trim();
-            var m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
-            if (m) {
-                var d2 = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]), 23, 59, 59);
-                if (!isNaN(d2.getTime())) {
-                    expDate = d2;
-                    expStr = m[1] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[3]).padStart(2, '0');
+            var raw = expRaw;
+            if (typeof raw === 'number' && raw > 25569) {
+                var d = new Date((raw - 25569) * 86400 * 1000);
+                if (!isNaN(d.getTime())) {
+                    expDate = d;
+                    expStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                }
+            } else {
+                var s = String(raw).trim();
+                if (s) {
+                    var m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+                    if (m) {
+                        var d2 = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]), 23, 59, 59);
+                        if (!isNaN(d2.getTime())) {
+                            expDate = d2;
+                            expStr = m[1] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[3]).padStart(2, '0');
+                        }
+                    } else {
+                        var d3 = new Date(s);
+                        if (!isNaN(d3.getTime())) {
+                            expDate = d3;
+                            expStr = d3.getFullYear() + '-' + String(d3.getMonth() + 1).padStart(2, '0') + '-' + String(d3.getDate()).padStart(2, '0');
+                        } else {
+                            if (status === 'ok') { status = 'warn'; reason = 'Ngày không hợp lệ (bỏ qua hạn)'; }
+                            expDate = null;
+                        }
+                    }
                 }
             }
         }
@@ -1784,7 +2137,12 @@ function processImport(rows) {
         });
     }
 
-    if (importRows.length === 0) { alert('❌ Không có dòng dữ liệu hợp lệ!'); return; }
+    if (importRows.length === 0) {
+        var msg = '❌ Không có dòng dữ liệu hợp lệ!';
+        if (stats.skippedAdmin > 0) msg += '\n\n(Bỏ qua ' + stats.skippedAdmin + ' admin)';
+        alert(msg);
+        return;
+    }
     renderImportPreview();
     $('importModal').classList.add('show');
 }
@@ -1795,11 +2153,21 @@ function renderImportPreview() {
     var html = '';
     var countOk = 0, countUpdate = 0, countWarn = 0, countErr = 0;
     importRows.forEach(function(r) {
-        var rowCls = '', statusHtml = '';
+        var rowCls = '';
+        var statusHtml = '';
         if (r.status === 'ok' && r.isUpdate) { rowCls = 'row-update'; statusHtml = '<span class="status-badge update"><i class="fas fa-sync-alt"></i> Cập nhật</span>'; countUpdate++; }
         else if (r.status === 'ok') { rowCls = 'row-new'; statusHtml = '<span class="status-badge ok"><i class="fas fa-plus"></i> Thêm mới</span>'; countOk++; }
+        else if (r.status === 'warn') { rowCls = 'row-warn'; statusHtml = '<span class="status-badge warn"><i class="fas fa-exclamation-triangle"></i> ' + escapeHtml(r.reason) + '</span>'; countWarn++; }
         else { rowCls = 'row-error'; statusHtml = '<span class="status-badge err"><i class="fas fa-times"></i> ' + escapeHtml(r.reason) + '</span>'; countErr++; }
-        var expDisplay = r.expStr || '<span style="color:#94a3b8">Vĩnh viễn</span>';
+        var expDisplay = '—';
+        if (r.expStr) {
+            var d = new Date(r.expStr + 'T23:59:59');
+            var daysLeft = Math.ceil((d.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+            var expColor = daysLeft < 0 ? '#dc2626' : (daysLeft <= 7 ? '#f59e0b' : '#16a34a');
+            expDisplay = '<span style="color:' + expColor + ';font-size:.7rem;font-weight:600;">' + r.expStr + '</span>';
+        } else {
+            expDisplay = '<span style="color:#94a3b8;font-size:.7rem;">Vĩnh viễn</span>';
+        }
         html += '<tr class="' + rowCls + '">' +
             '<td>' + r.rowNum + '</td>' +
             '<td><b>' + escapeHtml(r.email) + '</b></td>' +
@@ -1817,42 +2185,63 @@ function renderImportPreview() {
             '<div class="import-stat"><div class="num">' + importRows.length + '</div><div class="label">Tổng</div></div>' +
             '<div class="import-stat ok"><div class="num">' + countOk + '</div><div class="label">Thêm mới</div></div>' +
             '<div class="import-stat update"><div class="num">' + countUpdate + '</div><div class="label">Cập nhật</div></div>' +
+            '<div class="import-stat warn"><div class="num">' + countWarn + '</div><div class="label">Cảnh báo</div></div>' +
             '<div class="import-stat err"><div class="num">' + countErr + '</div><div class="label">Lỗi</div></div>';
     }
-    var totalImportable = countOk + countUpdate;
+    var totalImportable = countOk + countUpdate + countWarn;
     if ($('importCount')) $('importCount').textContent = totalImportable;
     if ($('importConfirmBtn')) $('importConfirmBtn').disabled = totalImportable === 0;
 }
 
 async function doImport() {
     var skipDuplicates = $('importSkipDuplicates').checked;
+    var skipInvalid = $('importSkipInvalid').checked;
     var toImport = importRows.filter(function(r) {
         if (r.status === 'error') return false;
+        if (r.status === 'warn' && skipInvalid) return false;
         if (r.isUpdate && skipDuplicates) return false;
         return true;
     });
     if (toImport.length === 0) { alert('⚠️ Không có user nào để import!'); return; }
-    if (!confirm('📥 IMPORT ' + toImport.length + ' TÀI KHOẢN?')) return;
+    var totalNew = toImport.filter(function(r) { return !r.isUpdate; }).length;
+    var totalUpdate = toImport.filter(function(r) { return r.isUpdate; }).length;
+    if (!confirm('📥 IMPORT ' + toImport.length + ' TÀI KHOẢN?\n\n• Thêm mới: ' + totalNew + '\n• Cập nhật: ' + totalUpdate + '\n\n(Chỉ import user, KHÔNG import admin)\n\nBạn có chắc không?')) return;
 
     var btn = $('importConfirmBtn');
+    if (!btn) return;
     var originalHTML = btn.innerHTML;
+    var originalDisabled = btn.disabled;
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Đang import...';
+    var icon = btn.querySelector('i');
+    if (icon) icon.className = 'fas fa-spinner fa-pulse';
 
-    var success = 0, failed = 0;
+    var success = 0;
+    var failed = 0;
+    var errors = [];
+    var adminEmails = {};
+    usersCache.forEach(function(u) { if (u.role === 'admin') adminEmails[(u.email || '').toLowerCase()] = true; });
+
     var BATCH_SIZE = 400;
     for (var i = 0; i < toImport.length; i += BATCH_SIZE) {
         var chunk = toImport.slice(i, i + BATCH_SIZE);
+        chunk = chunk.filter(function(r) {
+            if (adminEmails[r.email]) { console.warn('Skip admin:', r.email); return false; }
+            return true;
+        });
+        if (chunk.length === 0) continue;
         var batch = db.batch();
         chunk.forEach(function(r) {
             var ref = db.collection('allowed_users').doc(r.email);
             var data = { name: r.name, role: 'user', addedBy: currentUser.email };
             if (!r.isUpdate) {
                 data.addedAt = firebase.firestore.FieldValue.serverTimestamp();
-                data.registeredAt = firebase.firestore.FieldValue.serverTimestamp();
+                data.importedFromExcel = true;
+            } else {
+                data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
             }
             if (r.expDate) {
-                data.expiresAt = firebase.firestore.Timestamp.fromDate(r.expDate);
+                try { data.expiresAt = firebase.firestore.Timestamp.fromDate(r.expDate); }
+                catch(e) { data.expiresAt = null; }
             } else {
                 data.expiresAt = null;
             }
@@ -1863,22 +2252,52 @@ async function doImport() {
             success += chunk.length;
         } catch(err) {
             failed += chunk.length;
+            errors.push(err.message);
+            console.error('Batch error:', err);
         }
+        var countEl = btn.querySelector('#importCount');
+        if (countEl) countEl.textContent = success + '/' + toImport.length;
     }
 
-    btn.disabled = false;
+    btn.disabled = originalDisabled;
     btn.innerHTML = originalHTML;
     importRows = [];
     try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
+    toImport.forEach(function(r) { try { localStorage.removeItem('user_cache_' + r.email); } catch(e) {} });
 
-    alert('✅ Import hoàn tất!\n\n✓ Thành công: ' + success + '\n' + (failed ? '✗ Thất bại: ' + failed : ''));
+    var msg = '✅ Import hoàn tất!\n\n✓ Thành công: ' + success + '\n' + (failed ? '✗ Thất bại: ' + failed + '\n' : '') + (errors.length ? '\nLỗi:\n' + errors.slice(0, 3).join('\n') : '');
+    alert(msg);
     $('importModal').classList.remove('show');
     loadUsers(true);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PHẦN 11: INIT AUTH UI
-   ═══════════════════════════════════════════════════════════════ */
+/* ============ DATE HELPERS ============ */
+function getExpiryDate(expiresAt) {
+    if (!expiresAt) return null;
+    try {
+        var ea = expiresAt;
+        if (typeof ea.toDate === 'function') return ea.toDate();
+        if (ea.seconds) return new Date(ea.seconds * 1000);
+        return new Date(ea);
+    } catch(e) { return null; }
+}
+function getExpiryTimestamp(expiresAt) {
+    var d = getExpiryDate(expiresAt);
+    return d ? d.getTime() : null;
+}
+function formatDate(d) {
+    if (!d) return '';
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function formatTimeDiff(ms) {
+    if (ms < 60000) return 'Vừa xong';
+    if (ms < 3600000) return Math.floor(ms / 60000) + ' phút trước';
+    if (ms < 86400000) return Math.floor(ms / 3600000) + ' giờ trước';
+    if (ms < 2592000000) return Math.floor(ms / 86400000) + ' ngày trước';
+    return Math.floor(ms / 2592000000) + ' tháng trước';
+}
+
+/* ============ INIT AUTH UI (chạy sau initApp) ============ */
 function initAuthUI() {
     if ($('headerLoginBtn')) $('headerLoginBtn').addEventListener('click', showLoginModal);
     if ($('loginClose')) $('loginClose').addEventListener('click', hideLoginModal);
@@ -1954,16 +2373,41 @@ function initAuthUI() {
     }
     if ($('editExpiryConfirm')) $('editExpiryConfirm').addEventListener('click', doUpdateExpiry);
 
+    /* Renewal modal (user) */
+    if ($('renewalClose')) $('renewalClose').addEventListener('click', function() { $('renewalModal').classList.remove('show'); });
+    if ($('renewalCancel')) $('renewalCancel').addEventListener('click', function() { $('renewalModal').classList.remove('show'); });
+    if ($('renewalModal')) {
+        $('renewalModal').addEventListener('click', function(e) {
+            if (e.target === this) $('renewalModal').classList.remove('show');
+        });
+    }
+    if ($('renewalConfirm')) $('renewalConfirm').addEventListener('click', submitRenewal);
+    var plansWrap = $('renewalPlans');
+    if (plansWrap) {
+        plansWrap.addEventListener('click', function(e) {
+            var plan = e.target.closest('.renewal-plan');
+            if (!plan) return;
+            selectedRenewalDays = parseInt(plan.getAttribute('data-days'), 10) || 30;
+            plansWrap.querySelectorAll('.renewal-plan').forEach(function(p) {
+                p.classList.toggle('selected', p === plan);
+            });
+        });
+    }
+    if ($('dropdownRenewBtn')) {
+        $('dropdownRenewBtn').addEventListener('click', function() {
+            $('userDropdown').classList.remove('show');
+            openRenewalModal();
+        });
+    }
+
     initAdminPanel();
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PHẦN 12: TIMEOUT FALLBACK
-   ═══════════════════════════════════════════════════════════════ */
+/* ============ TIMEOUT FALLBACK ============ */
 setTimeout(function() {
     if (!appInitialized) {
-        console.warn('⚠️ Auth timeout 8s, entering demo mode');
+        console.warn('Auth timeout, entering demo mode');
         enterDemoMode();
     }
-}, 8000);
+}, 5000);
 """
