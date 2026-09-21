@@ -1322,19 +1322,32 @@ function incDemoUsage() {
 }
 function getDemoRemaining() { return Math.max(0, DEMO_DAILY_LIMIT - getDemoUsage()); }
 
-/* ✅ FIX: Chặn tính năng khi hết hạn */
-function canUseFeature() {
-    // Demo mode → giới hạn theo ngày
-    if (isDemo) return getDemoUsage() < DEMO_DAILY_LIMIT;
+/* ✅ HÀM MỚI: Kiểm tra user có bị giới hạn không (demo HOẶC hết hạn) */
+function isUserLimited() {
+    // Khách chưa login → bị giới hạn
+    if (isDemo) return true;
 
-    // User đã login → kiểm tra hạn
+    // User hết hạn → bị giới hạn
     if (currentUser && currentUser.role !== 'admin') {
         var daysLeft = getDaysRemaining(currentUser);
-        if (daysLeft !== null && daysLeft <= 0) {
-            return false;   // Đã hết hạn → chặn
-        }
+        if (daysLeft !== null && daysLeft <= 0) return true;
     }
 
+    return false;
+}
+
+/* ✅ FIX: Chặn tính năng khi hết hạn */
+function canUseFeature() {
+    // Nếu bị giới hạn (demo OR hết hạn)
+    if (isUserLimited()) {
+        // Với user hết hạn → chặn hẳn
+        if (!isDemo && currentUser && currentUser.role !== 'admin') {
+            var daysLeft = getDaysRemaining(currentUser);
+            if (daysLeft !== null && daysLeft <= 0) return false;
+        }
+        // Với khách demo → giới hạn theo ngày
+        return getDemoUsage() < DEMO_DAILY_LIMIT;
+    }
     return true;
 }
 
@@ -1685,8 +1698,7 @@ function getChineseVoice() {
 
 window.speakText = function(text, btn, evt) {
     if (evt) evt.stopPropagation();
-    if (isDemo && !canUseFeature()) { showLimitMessage(); return; }
-    if (!isDemo && !canUseFeature()) { showLimitMessage(); return; }
+    if (isUserLimited() && !canUseFeature()) { showLimitMessage(); return; }
     if (!('speechSynthesis' in window)) { alert('Trình duyệt không hỗ trợ phát âm.'); return; }
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
     speechSynthesis.cancel();
@@ -1865,7 +1877,7 @@ function render(reset) {
     if (oldEndNote) oldEndNote.remove();
 
     if (renderedCount < filtered.length) {
-        var isDemoLock = isDemo && renderedCount >= DEMO_LIMIT;
+        var isDemoLock = isUserLimited() && renderedCount >= DEMO_LIMIT;
         if (!isDemoLock) {
             var btnMobile = document.createElement('button');
             btnMobile.className = 'load-more';
@@ -1875,8 +1887,15 @@ function render(reset) {
         } else {
             var lockedBtn = document.createElement('button');
             lockedBtn.className = 'load-more locked';
-            lockedBtn.innerHTML = '<i class="fas fa-lock"></i> Đăng nhập để xem toàn bộ ' + RAW_DATA.length + ' câu';
-            lockedBtn.onclick = function() { showLoginModal(); };
+            lockedBtn.innerHTML = '<i class="fas fa-lock"></i> ' + 
+                (!isDemo ? 'Tài khoản hết hạn — Gia hạn để xem tiếp' : 'Đăng nhập để xem toàn bộ ' + RAW_DATA.length + ' câu');
+            lockedBtn.onclick = function() {
+                if (!isDemo && typeof openRenewalModal === 'function') {
+                    openRenewalModal();
+                } else {
+                    showLoginModal();
+                }
+            };
             mobileWrapper.appendChild(lockedBtn);
         }
     } else if (filtered.length > PAGE_SIZE) {
@@ -2221,6 +2240,20 @@ window.toggleInlineCheck = function(btn, evt) {
 };
 
 /* ============ APPLY FILTER ============ */
+/* 
+ * ✅ FIX: Kiểm tra user hết hạn → giới hạn dữ liệu như demo
+ * - Khách chưa login (isDemo=true) → demo
+ * - User hết hạn (isDemo=true, isExpiredOnly=true) → demo
+ * - User còn hạn hoặc admin → full
+ */
+function getBaseData() {
+    // Nếu bị giới hạn (khách HOẶC user hết hạn) → lấy demo data
+    if (isUserLimited()) {
+        return getDemoData();
+    }
+    return RAW_DATA;
+}
+
 function applyFilter() {
     state.search = $('searchInput').value.trim().toLowerCase();
     state.hsk = $('hskFilter').value;
@@ -2229,7 +2262,9 @@ function applyFilter() {
     var clearBtn = $('clearSearchBtn');
     if (state.search) clearBtn.classList.add('show');
     else clearBtn.classList.remove('show');
-    var baseData = isDemo ? getDemoData() : RAW_DATA;
+    
+    // ✅ SỬ DỤNG getBaseData() thay vì check isDemo trực tiếp
+    var baseData = getBaseData();
     filtered = baseData.filter(function(r) {
         if (state.search) {
             var s = state.search;
@@ -2272,6 +2307,21 @@ window.addEventListener('resize', function() {
 
 window.openPracticeFull = function(stt, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
+
+    // ✅ FIX: Chặn user hết hạn
+    if (isUserLimited() && !isDemo && currentUser) {
+        // User login nhưng hết hạn → hiện thông báo gia hạn
+        var daysLeft = getDaysRemaining(currentUser);
+        if (daysLeft !== null && daysLeft <= 0) {
+            showLimitMessage();
+            return;
+        }
+    }
+    // Khách demo → vẫn cho phép nhưng tính vào daily limit
+    if (isDemo) {
+        // Cho phép mở, không chặn (practice full chỉ là UI khác)
+        // Nhưng nếu vượt limit audio thì sẽ bị chặn khi bấm nghe
+    }
 
     pfBuildFilterOptions();
     pfBuildQuickNav();
@@ -2499,6 +2549,9 @@ function pfUpdateResultCount() {
     }
 }
 
+/* 
+ * ✅ FIX: pfApplyFilter cũng dùng getBaseData()
+ */
 function pfApplyFilter() {
     $('searchInput').value = $('pfSearchInput').value;
     $('hskFilter').value = $('pfHskFilter').value;
@@ -2508,7 +2561,8 @@ function pfApplyFilter() {
     state.hsk = $('pfHskFilter').value;
     state.subject = $('pfSubjectFilter').value;
 
-    var baseData = isDemo ? getDemoData() : RAW_DATA;
+    // ✅ SỬ DỤNG getBaseData() 
+    var baseData = getBaseData();
     filtered = baseData.filter(function(r) {
         if (state.search) {
             var s = state.search;
@@ -2724,8 +2778,7 @@ function revealFullAnswer() {
 }
 
 window.speakPhrase = function(phrase, btn) {
-    if (isDemo && !canUseFeature()) { showLimitMessage(); return; }
-    if (!isDemo && !canUseFeature()) { showLimitMessage(); return; }
+    if (isUserLimited() && !canUseFeature()) { showLimitMessage(); return; }
     if (!('speechSynthesis' in window)) { alert('Trình duyệt không hỗ trợ phát âm.'); return; }
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
     speechSynthesis.cancel();
@@ -2741,8 +2794,7 @@ window.speakPhrase = function(phrase, btn) {
 };
 
 window.speakFullSentence = function() {
-    if (isDemo && !canUseFeature()) { showLimitMessage(); return; }
-    if (!isDemo && !canUseFeature()) { showLimitMessage(); return; }
+    if (isUserLimited() && !canUseFeature()) { showLimitMessage(); return; }
     if (!('speechSynthesis' in window)) return;
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
     speechSynthesis.cancel();
@@ -2889,7 +2941,7 @@ function initWriter() {
 
 window.openWriter = function(zh, vi, pinyin, evt) {
     if (evt) { evt.stopPropagation(); if (evt.preventDefault) evt.preventDefault(); }
-    if (!canUseFeature()) { showLimitMessage(); return; }
+    if (isUserLimited() && !canUseFeature()) { showLimitMessage(); return; }
     if (typeof HanziWriter === 'undefined') { alert('Thư viện chưa tải xong.'); return; }
     if (isDemo) { incDemoUsage(); updateDemoRemaining(); }
     currentWriteZh = zh || '';
@@ -2921,10 +2973,10 @@ function renderWriterChars(chars) {
     container.querySelectorAll('.writer-char-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var idx = parseInt(this.dataset.idx);
-            var ch = this.dataset.char;
-            container.querySelectorAll('.writer-char-btn').forEach(function(b) { b.classList.remove('active'); });
-            this.classList.add('active');
-            currentCharIndex = idx;
+            var: ch = this.dataset true.char;
+            container.querySelectorAll('.,writer-char-btn').forEach(function(b) stroke { b.classList.remove('active'); });
+Animation            this.classList.add('active');
+Speed            currentCharIndex = idx;
             $('writerScore').textContent = '';
             $('writerScore').className = 'writer-score';
             showWriterChar(ch);
@@ -2947,7 +2999,7 @@ function showWriterChar(char) {
                 strokeColor: '#1e293b', radicalColor: '#2563eb',
                 highlightColor: '#f59e0b', outlineColor: '#cbd5e1',
                 drawingColor: '#2563eb', drawingWidth: drawWidth,
-                showOutline: true, strokeAnimationSpeed: 1, delayBetweenStrokes: 250,
+                showOutline: 1, delayBetweenStrokes: 250,
                 charDataLoader: function(ch, onComplete, onError) {
                     fetch('https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0/' + encodeURIComponent(ch) + '.json')
                         .then(function(res) { if (!res.ok) throw new Error('Không có dữ liệu'); return res.json(); })
