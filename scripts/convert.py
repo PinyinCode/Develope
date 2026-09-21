@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Chuyển file Excel → HTML tự chứa dữ liệu.
-Ghép 5 template: ui + social + accounts + renewal + data.
+Ghép 4 template: ui + social + accounts (gộp renewal) + data.
 """
 import json
 import os
@@ -15,13 +15,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from config_loader import load_config, print_banner, CONFIG_FILE
 from data_reader import read_excel
 from ui_template import build_ui_css, build_ui_html, build_ui_js
-from accounts_template import build_accounts_css, build_accounts_html, build_accounts_js
 from social_template import (
     build_social_css, build_social_html, build_social_js,
     build_tiktok_bar_html
 )
-from renewal_template import (
-    build_renewal_css, build_renewal_html, build_renewal_js
+# ✅ CHỈ CÒN 1 MODULE ACCOUNTS (đã gộp renewal)
+from accounts_template import (
+    build_accounts_css,
+    build_accounts_html,
+    build_accounts_js,
+    build_all_auth,  # helper gộp CSS+HTML+JS
 )
 
 
@@ -45,13 +48,18 @@ fillers_json = json.dumps(CONFIG["filler_words"], ensure_ascii=True, separators=
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  GHÉP CSS
+#  BUILD AUTH (CSS + HTML + JS) — 1 LẦN DUY NHẤT
+# ═══════════════════════════════════════════════════════════════════
+auth_css, auth_html, auth_js = build_all_auth(CONFIG)
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  GHÉP CSS (3 khối: ui + social + auth)
 # ═══════════════════════════════════════════════════════════════════
 full_css = (
     build_ui_css()
     + "\n/* ==== SOCIAL CSS ==== */\n" + build_social_css()
-    + "\n/* ==== ACCOUNTS CSS ==== */\n" + build_accounts_css()
-    + "\n/* ==== RENEWAL CSS ==== */\n" + build_renewal_css()
+    + "\n/* ==== ACCOUNTS + RENEWAL CSS ==== */\n" + auth_css
 )
 
 
@@ -67,28 +75,17 @@ ui_html = ui_html.replace(
     social_html + '\n<div class="writer-modal" id="writerModal">'
 )
 
-accounts_html = build_accounts_html()
-renewal_html = build_renewal_html()
-
-full_body = ui_html + "\n" + renewal_html + "\n" + accounts_html
+# ✅ Auth HTML đã chứa cả login modal + renewal modal + admin panel
+full_body = ui_html + "\n" + auth_html
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  GHÉP JS + REPLACE PLACEHOLDER RENEWAL
+#  GHÉP JS (3 khối: ui + social + auth đã inject config)
 # ═══════════════════════════════════════════════════════════════════
 full_js = (
     build_ui_js()
     + "\n/* ==== SOCIAL JS ==== */\n" + build_social_js()
-    + "\n/* ==== ACCOUNTS JS ==== */\n" + build_accounts_js()
-    + "\n/* ==== RENEWAL JS ==== */\n" + build_renewal_js()
-)
-
-# Replace placeholder trong renewal_js
-full_js = (full_js
-    .replace("__TRIAL_DAYS__", str(CONFIG["trial_days"]))
-    .replace("__BANK_CONFIG__", json.dumps(CONFIG["bank_config"], ensure_ascii=False))
-    .replace("__PACKAGES__", json.dumps(CONFIG["packages"], ensure_ascii=False))
-    .replace("__RENEWAL_SUPPORT_ZALO__", CONFIG["renewal_support_zalo"])
+    + "\n/* ==== ACCOUNTS + RENEWAL JS ==== */\n" + auth_js
 )
 
 
@@ -181,4 +178,4 @@ print(f"👑 Super admin: {CONFIG['super_admin']}")
 print(f"🎉 Trial: {CONFIG['trial_days']} ngày cho user mới")
 print(f"🏦 Bank: {CONFIG['bank_config']['bank_name']} - {CONFIG['bank_config']['account_no']}")
 print(f"💰 Packages: {len(CONFIG['packages'])} gói")
-print(f"✅ Đã ghép 5 template: UI + Social + Accounts + Renewal + Data")
+print(f"✅ Đã ghép 4 template: UI + Social + Auth (gộp Renewal) + Data")
