@@ -2,6 +2,7 @@
 """
 Template cho tài khoản: login Firebase, admin panel, user management,
 expiry, import/export Excel, super admin / admin thường.
+✅ ĐÃ TÍCH HỢP TÍNH NĂNG TRIAL + GIA HẠN
 KHÔNG CẦN SỬA khi đổi cấu trúc Excel hay giao diện học.
 """
 
@@ -492,6 +493,21 @@ def build_accounts_html():
             <div class="user-list" id="userList">
                 <div class="no-data"><i class="fas fa-spinner fa-pulse"></i>Đang tải...</div>
             </div>
+
+            <!-- ✅ SECTION: YÊU CẦU GIA HẠN -->
+            <div class="admin-section-title" style="margin-top:1.5rem" id="renewalsTitle">
+                <span>
+                    <i class="fas fa-crown"></i>
+                    Yêu cầu gia hạn
+                    <span id="pendingRenewalsBadge" style="display:none;background:#dc2626;color:#fff;padding:.1rem .45rem;border-radius:50px;font-size:.65rem;margin-left:.35rem">0</span>
+                </span>
+            </div>
+            <div class="renewals-list" id="renewalsList" style="display:flex;flex-direction:column;gap:.5rem">
+                <div class="no-data" style="padding:1rem;font-size:.8rem">
+                    <i class="fas fa-spinner fa-pulse"></i>Đang tải...
+                </div>
+            </div>
+
             <div class="admin-section-title" style="margin-top:1.5rem" id="logsTitle">
                 <span><i class="fas fa-history"></i> Lịch sử đăng nhập (gần đây)</span>
             </div>
@@ -505,7 +521,7 @@ def build_accounts_html():
 
 
 def build_accounts_js():
-    """JS: Firebase auth, login, admin panel, user management, import/export."""
+    """JS: Firebase auth, login, admin panel, user management, import/export, trial, renewal."""
     return r"""
 /* ============ AUTH ============ */
 var currentUser = null;
@@ -568,19 +584,49 @@ async function handleAuthChange(user) {
 
     try {
         var doc = await db.collection('allowed_users').doc(email).get();
+
+        // ═══════════════════════════════════════════════════════
+        //  ✅ SỬA 1: TỰ ĐỘNG ĐĂNG KÝ → TẶNG 7 NGÀY CHO USER MỚI
+        // ═══════════════════════════════════════════════════════
         if (!doc.exists) {
-            await auth.signOut();
-            showLoginError('Tài khoản <b>' + email + '</b> chưa được cấp quyền.');
-            enterDemoMode();
-            return;
+            if (typeof grantTrialIfNew !== 'function') {
+                await auth.signOut();
+                showLoginError('Lỗi: Không tải được module trial. Vui lòng tải lại trang.');
+                enterDemoMode();
+                return;
+            }
+
+            var registered = await grantTrialIfNew(user, null);
+            if (registered) {
+                // Đọc lại doc sau khi tạo
+                doc = await db.collection('allowed_users').doc(email).get();
+
+                // Thông báo chào mừng
+                setTimeout(function() {
+                    var trialDate = new Date(Date.now() + (typeof TRIAL_DAYS !== 'undefined' ? TRIAL_DAYS : 7) * 86400000);
+                    alert('🎉 Chào mừng bạn đến với Học tiếng Trung!\n\n' +
+                          '✅ Bạn được tặng MIỄN PHÍ ' +
+                          (typeof TRIAL_DAYS !== 'undefined' ? TRIAL_DAYS : 7) +
+                          ' ngày sử dụng.\n\n' +
+                          '📅 Hạn dùng: ' + trialDate.toLocaleDateString('vi-VN') + '\n\n' +
+                          'Chúc bạn học tốt! 🎓');
+                }, 600);
+            } else {
+                await auth.signOut();
+                showLoginError('Tài khoản <b>' + email + '</b> chưa được cấp quyền.');
+                enterDemoMode();
+                return;
+            }
         }
-        var data = doc.data();
+
+        var data = doc.data() || {};
         var userData = {
             email: email,
             name: data.name || user.displayName || email.split('@')[0],
             role: data.role || 'user',
             photo: user.photoURL || '',
-            expiresAt: data.expiresAt || null
+            expiresAt: data.expiresAt || null,
+            isTrial: data.isTrial || false
         };
 
         if (!checkUserExpiration(userData)) {
@@ -610,23 +656,12 @@ async function handleAuthChange(user) {
     }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   ✅ SỬA 2: KHÔNG CHẶN LOGIN KHI HẾT HẠN
+   ═══════════════════════════════════════════════════════════════ */
 function checkUserExpiration(userData) {
-    if (userData.role === 'admin') return true;
-    if (!userData.expiresAt) return true;
-
-    var expDate;
-    try {
-        var ea = userData.expiresAt;
-        if (typeof ea.toDate === 'function') expDate = ea.toDate();
-        else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
-        else expDate = new Date(ea);
-    } catch(e) { return true; }
-
-    if (expDate < new Date()) {
-        var dateStr = expDate.toLocaleDateString('vi-VN');
-        showLoginError('🔒 Tài khoản của bạn đã <b>hết hạn</b> vào ngày <b>' + dateStr + '</b>.<br><br>Vui lòng liên hệ Admin để gia hạn.');
-        return false;
-    }
+    // User vẫn login được khi hết hạn, chỉ bị giới hạn tính năng.
+    // Banner "hết hạn" + nút gia hạn sẽ hiển thị ở applyUserUI().
     return true;
 }
 
@@ -659,29 +694,79 @@ function applyUserUI() {
     var headerLoginBtn = $('headerLoginBtn');
     var userMenu = $('userMenu');
 
+    /* ═══════════════════════════════════════════════════════════
+       ✅ SỬA 3: BANNER HẾT HẠN + NÚT GIA HẠN
+       ═══════════════════════════════════════════════════════════ */
     var expiryBanner = $('expiryBanner');
     if (expiryBanner) {
         if (!isDemo && currentUser && currentUser.role !== 'admin') {
             var daysLeft = getDaysRemaining(currentUser);
+
+            // Hiện banner khi hết hạn HOẶC sắp hết hạn (≤ 7 ngày)
             if (daysLeft !== null && daysLeft <= 7) {
                 expiryBanner.style.display = 'flex';
-                $('expiryDaysText').textContent = daysLeft > 0 ? daysLeft : 0;
-                var expDate;
-                try {
-                    var ea = currentUser.expiresAt;
-                    if (typeof ea.toDate === 'function') expDate = ea.toDate();
-                    else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
-                    else expDate = new Date(ea);
-                } catch(e) {}
-                if (expDate) $('expiryDateText').textContent = expDate.toLocaleDateString('vi-VN');
-                expiryBanner.classList.toggle('urgent', daysLeft <= 3);
+
+                var isExpired = daysLeft <= 0;
+                expiryBanner.classList.toggle('urgent', isExpired || daysLeft <= 3);
+
+                // Cập nhật icon
+                var iconWrap = expiryBanner.querySelector('.expiry-banner-icon');
+                if (iconWrap) {
+                    if (isExpired) {
+                        iconWrap.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+                    } else {
+                        iconWrap.innerHTML = '<i class="fas fa-hourglass-half"></i>';
+                    }
+                }
+
+                // Cập nhật title
+                var titleEl = expiryBanner.querySelector('.expiry-banner-text .title');
+                if (titleEl) {
+                    if (isExpired) {
+                        titleEl.innerHTML = '❌ Tài khoản đã hết hạn!';
+                    } else if (daysLeft <= 3) {
+                        titleEl.innerHTML = '⏰ Sắp hết hạn — còn ' + daysLeft + ' ngày';
+                    } else {
+                        titleEl.innerHTML = '⏳ Sắp hết hạn — còn ' + daysLeft + ' ngày';
+                    }
+                }
+
+                // Cập nhật desc
+                var descEl = expiryBanner.querySelector('.expiry-banner-text .desc');
+                if (descEl) {
+                    var expDateStr = '';
+                    try {
+                        var ea = currentUser.expiresAt;
+                        var expDate;
+                        if (typeof ea.toDate === 'function') expDate = ea.toDate();
+                        else if (ea.seconds) expDate = new Date(ea.seconds * 1000);
+                        else expDate = new Date(ea);
+                        if (expDate) expDateStr = expDate.toLocaleDateString('vi-VN');
+                    } catch(e) {}
+
+                    if (isExpired) {
+                        descEl.innerHTML = 'Đã hết hạn vào <b>' + expDateStr +
+                            '</b>. Gia hạn ngay để tiếp tục học!';
+                    } else {
+                        descEl.innerHTML = 'Còn <b>' + daysLeft +
+                            ' ngày</b> (đến <b>' + expDateStr +
+                            '</b>). Gia hạn để không bị gián đoạn!';
+                    }
+                }
+
+                // Đổi nút "Liên hệ" → "Gia hạn ngay"
                 var contactBtn = $('expiryContactBtn');
-                if (ZALO_PHONE) {
-                    var phone = ZALO_PHONE.replace(/\D/g, '');
-                    contactBtn.href = 'https://zalo.me/' + phone;
-                } else {
+                if (contactBtn) {
+                    contactBtn.innerHTML = '<i class="fas fa-crown"></i> Gia hạn ngay';
                     contactBtn.href = '#';
-                    contactBtn.onclick = function(e) { e.preventDefault(); alert('Liên hệ Admin để gia hạn!'); };
+                    contactBtn.onclick = function(e) {
+                        e.preventDefault();
+                        if (typeof openRenewalModal === 'function') {
+                            openRenewalModal();
+                        } else {
+                            alert('Vui lòng tải lại trang để dùng tính năng gia hạn.');
+                        }
+                    };
                 }
             } else {
                 expiryBanner.style.display = 'none';
@@ -689,6 +774,13 @@ function applyUserUI() {
         } else {
             expiryBanner.style.display = 'none';
         }
+    }
+
+    /* ✅ Hiện/ẩn nút "Gia hạn" trong dropdown user */
+    var renewBtn = $('dropdownRenewBtn');
+    if (renewBtn) {
+        renewBtn.style.display = (!isDemo && currentUser &&
+                                  currentUser.role !== 'admin') ? 'flex' : 'none';
     }
 
     if (isDemo) {
@@ -919,6 +1011,7 @@ function initAdminPanel() {
         $('refreshUsersBtn').addEventListener('click', function() {
             try { localStorage.removeItem('admin_users_cache'); } catch(e) {}
             loadUsers(true);
+            if (typeof loadRenewals === 'function') loadRenewals();
         });
     }
     if ($('exportExcelBtn')) $('exportExcelBtn').addEventListener('click', doExportExcel);
@@ -999,11 +1092,15 @@ async function doAddUser() {
     } catch(e) { alert('Lỗi: ' + e.message); }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   ✅ SỬA 5: MỞ ADMIN PANEL → LOAD YÊU CẦU GIA HẠN
+   ═══════════════════════════════════════════════════════════════ */
 function openAdminPanel() {
     if (!currentUser || currentUser.role !== 'admin') return;
     $('adminModal').classList.add('show');
     loadUsers(false);
     loadLogs();
+    if (typeof loadRenewals === 'function') loadRenewals();
 }
 
 function loadUsers(forceRefresh) {
@@ -1667,12 +1764,12 @@ function processImport(rows) {
         var reason = '';
         var isUpdate = !!existingUserMap[email];
         if (!email) { status = 'error'; reason = 'Thiếu email'; stats.invalid++; }
-        else if (!email.includes('@') || !email.includes('.')) { status = 'error'; reason = 'Email không hợp lệ'; stats.invalid++; }
+        else if (!email.includes('@') ||0 !email.includes('.')) { status) = 'error'; reason = 'Email không hợp lệ'; stats.invalid++; }
         else if (seenInFile[email]) { status = 'error'; reason = 'Trùng trong file'; stats.invalid++; }
-        else if (isUpdate) { stats.update++; seenInFile[email] = true; }
-        else { stats.newUser++; seenInFile[email] = true; }
+        else if (isUpdate) name { stats.update++; seenIn =File[email] = true; }
+ email        else { stats.newUser++;.split seenInFile[email] = true; }
 
-        if (!name && email.indexOf('@') > 0) name = email.split('@')[0];
+        if (!name && email.indexOf('@') > ('@')[0];
 
         var expDate = null;
         var expStr = '';
@@ -1810,9 +1907,10 @@ async function doImport() {
         chunk.forEach(function(r) {
             var ref = db.collection('allowed_users').doc(r.email);
             var data = { name: r.name, role: 'user', addedBy: currentUser.email };
-            if (!r.isUpdate) {
-                data.addedAt = firebase.firestore.FieldValue.serverTimestamp();
-                data.importedFromExcel = true;
+ires            if (!r.isUpdate) {
+                data.addAtedAt = firebase.fire);
+store.FieldValue.serverTimestamp();
+                   data.importedFromExcel = true;
             } else {
                 data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
             }
@@ -1859,15 +1957,16 @@ function getExpiryDate(expiresAt) {
     } catch(e) { return null; }
 }
 function getExpiryTimestamp(expiresAt) {
-    var d = getExpiryDate(expiresAt);
-    return d ? d.getTime() : null;
+    var d = getExpiryDate(exp return d ? d.getTime() : null;
 }
 function formatDate(d) {
     if (!d) return '';
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
-/* ============ INIT AUTH UI (chạy sau initApp) ============ */
+/* ═══════════════════════════════════════════════════════════════
+   ✅ SỬA 6: INIT AUTH UI → GỌI initRenewalUI()
+   ═══════════════════════════════════════════════════════════════ */
 function initAuthUI() {
     if ($('headerLoginBtn')) $('headerLoginBtn').addEventListener('click', showLoginModal);
     if ($('loginClose')) $('loginClose').addEventListener('click', hideLoginModal);
@@ -1944,6 +2043,11 @@ function initAuthUI() {
     if ($('editExpiryConfirm')) $('editExpiryConfirm').addEventListener('click', doUpdateExpiry);
 
     initAdminPanel();
+
+    /* ✅ Khởi tạo UI gia hạn */
+    if (typeof initRenewalUI === 'function') {
+        initRenewalUI();
+    }
 }
 
 setTimeout(function() {
