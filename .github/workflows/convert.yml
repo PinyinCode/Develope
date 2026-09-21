@@ -39,8 +39,116 @@ jobs:
       - name: Install dependencies
         run: pip install openpyxl
 
+      # ═══════════════════════════════════════════════════════════
+      #  DEBUG: Liệt kê file + kiểm tra config trước khi build
+      # ═══════════════════════════════════════════════════════════
+      - name: Debug - List files
+        run: |
+          echo "════════════════════════════════════════"
+          echo "📁 Thư mục gốc:"
+          echo "════════════════════════════════════════"
+          ls -la
+          echo ""
+          echo "════════════════════════════════════════"
+          echo "📁 Thư mục scripts/:"
+          echo "════════════════════════════════════════"
+          ls -la scripts/
+          echo ""
+          echo "════════════════════════════════════════"
+          echo "📁 Thư mục data/:"
+          echo "════════════════════════════════════════"
+          ls -la data/ 2>/dev/null || echo "⚠️  Không có thư mục data/"
+          echo ""
+          echo "════════════════════════════════════════"
+          echo "🔍 Kiểm tra config.json:"
+          echo "════════════════════════════════════════"
+          python -c "
+import json
+try:
+    with open('scripts/config.json', 'r', encoding='utf-8') as f:
+        c = json.load(f)
+    print('✅ config.json hợp lệ')
+    print('   - excel_file:', c.get('excel_file', '❌ MISSING'))
+    print('   - output_html:', c.get('output_html', '❌ MISSING'))
+    print('   - super_admin:', c.get('super_admin', '❌ MISSING'))
+    print('   - trial_days:', c.get('trial_days', '❌ MISSING'))
+    print('   - bank_config:', '✅' if c.get('bank_config') else '❌ MISSING')
+    print('   - packages:', len(c.get('packages', [])), 'gói')
+    print('   - firebase projectId:', c.get('firebase_config', {}).get('projectId', '❌ MISSING'))
+except Exception as e:
+    print('❌ LỖI config.json:', e)
+"
+          echo ""
+          echo "════════════════════════════════════════"
+          echo "🔍 Kiểm tra import modules:"
+          echo "════════════════════════════════════════"
+          cd scripts && python -c "
+import sys
+try:
+    import config_loader
+    print('✅ config_loader.py')
+except Exception as e:
+    print('❌ config_loader.py:', e)
+
+try:
+    import data_reader
+    print('✅ data_reader.py')
+except Exception as e:
+    print('❌ data_reader.py:', e)
+
+try:
+    import ui_template
+    print('✅ ui_template.py')
+except Exception as e:
+    print('❌ ui_template.py:', e)
+
+try:
+    import social_template
+    print('✅ social_template.py')
+except Exception as e:
+    print('❌ social_template.py:', e)
+
+try:
+    import accounts_template
+    print('✅ accounts_template.py')
+except Exception as e:
+    print('❌ accounts_template.py:', e)
+
+try:
+    import renewal_template
+    print('✅ renewal_template.py')
+except Exception as e:
+    print('❌ renewal_template.py:', e)
+"
+
+      # ═══════════════════════════════════════════════════════════
+      #  BUILD
+      # ═══════════════════════════════════════════════════════════
       - name: Run convert script
         run: python scripts/convert.py
+
+      - name: Verify index.html
+        run: |
+          echo "════════════════════════════════════════"
+          echo "📄 Kiểm tra index.html sau khi build:"
+          echo "════════════════════════════════════════"
+          if [ -f index.html ]; then
+            SIZE=$(stat -c%s index.html)
+            SIZE_KB=$((SIZE / 1024))
+            echo "✅ index.html tồn tại: ${SIZE_KB} KB"
+            echo ""
+            echo "🔍 Kiểm tra các thành phần quan trọng:"
+            grep -q "renewalModal" index.html && echo "   ✅ renewalModal" || echo "   ❌ THIẾU renewalModal"
+            grep -q "grantTrialIfNew" index.html && echo "   ✅ grantTrialIfNew" || echo "   ❌ THIẾU grantTrialIfNew"
+            grep -q "dropdownRenewBtn" index.html && echo "   ✅ dropdownRenewBtn" || echo "   ❌ THIẾU dropdownRenewBtn"
+            grep -q "tiktokBar" index.html && echo "   ✅ tiktokBar" || echo "   ❌ THIẾU tiktokBar"
+            grep -q "zaloBtn" index.html && echo "   ✅ zaloBtn" || echo "   ❌ THIẾU zaloBtn"
+            grep -q "initRenewalUI" index.html && echo "   ✅ initRenewalUI" || echo "   ❌ THIẾU initRenewalUI"
+            grep -q "RAW_DATA" index.html && echo "   ✅ RAW_DATA" || echo "   ❌ THIẾU RAW_DATA"
+          else
+            echo "❌ index.html KHÔNG được tạo!"
+            exit 1
+          fi
 
       - name: Commit & push index.html
         run: |
@@ -48,7 +156,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html
           if git diff --quiet && git diff --staged --quiet; then
-            echo "Không có thay đổi"
+            echo "ℹ️  Không có thay đổi trong index.html"
           else
             git commit -m "🤖 Auto convert Excel → HTML ($(date -u +%Y-%m-%d %H:%M:%S UTC))"
             git push
